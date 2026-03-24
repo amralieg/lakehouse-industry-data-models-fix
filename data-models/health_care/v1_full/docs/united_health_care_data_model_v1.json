@@ -336039,7 +336039,7 @@
               "type": "STRING",
               "business_glossary_term": "Termination Initiated By",
               "description": "Party that initiated the contract termination.",
-              "value_regex": "provider|united_health_care|mutual|regulatory",
+              "value_regex": "provider|health_care|mutual|regulatory",
               "tags": "",
               "foreign_key_to": "",
               "references": "CMS Provider Contract Requirements"

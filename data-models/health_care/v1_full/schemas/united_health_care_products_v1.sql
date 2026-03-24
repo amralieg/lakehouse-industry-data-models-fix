@@ -23737,7 +23737,7 @@ CREATE OR REPLACE TABLE `cmoore_customer_demos`.`government`.`program_provider_c
     `state_medicaid_contract_number` STRING COMMENT 'State-assigned contract number for Medicaid managed care programs.',
     `performance_guarantee_amount` DECIMAL(18,2) COMMENT 'Dollar amount of performance guarantee or bond required from the provider.',
     `termination_reason` STRING COMMENT 'Reason for contract termination if the contract has been terminated.. Valid values are `mutual_agreement|provider_request|plan_termination|non_compliance|quality_issues|credentialing_failure|financial_default|contract_expiration`',
-    `termination_initiated_by` STRING COMMENT 'Party that initiated the contract termination.. Valid values are `provider|united_health_care|mutual|regulatory`',
+    `termination_initiated_by` STRING COMMENT 'Party that initiated the contract termination.. Valid values are `provider|health_care|mutual|regulatory`',
     `contract_document_url` STRING COMMENT 'URL or file path to the stored contract document.',
     `notes` STRING COMMENT 'Free-text notes or comments about the contract for internal reference.',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the contract record was created in the system.. Valid values are `^d{4}-d{2}-d{2}Td{2}:d{2}:d{2}.d{3}[+-]d{2}:d{2}$`',

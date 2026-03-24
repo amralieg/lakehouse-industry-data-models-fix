@@ -36755,7 +36755,7 @@ ALTER TABLE `cmoore_customer_demos`.`government`.`program_provider_contract` ALT
 ALTER TABLE `cmoore_customer_demos`.`government`.`program_provider_contract` ALTER COLUMN `termination_reason` SET TAGS ('e_business_glossary_term' = 'Termination Reason');;
 ALTER TABLE `cmoore_customer_demos`.`government`.`program_provider_contract` ALTER COLUMN `termination_reason` SET TAGS ('e_value_regex' = 'mutual_agreement|provider_request|plan_termination|non_compliance|quality_issues|credentialing_failure|financial_default|contract_expiration');;
 ALTER TABLE `cmoore_customer_demos`.`government`.`program_provider_contract` ALTER COLUMN `termination_initiated_by` SET TAGS ('e_business_glossary_term' = 'Termination Initiated By');;
-ALTER TABLE `cmoore_customer_demos`.`government`.`program_provider_contract` ALTER COLUMN `termination_initiated_by` SET TAGS ('e_value_regex' = 'provider|united_health_care|mutual|regulatory');;
+ALTER TABLE `cmoore_customer_demos`.`government`.`program_provider_contract` ALTER COLUMN `termination_initiated_by` SET TAGS ('e_value_regex' = 'provider|health_care|mutual|regulatory');;
 ALTER TABLE `cmoore_customer_demos`.`government`.`program_provider_contract` ALTER COLUMN `contract_document_url` SET TAGS ('e_business_glossary_term' = 'Contract Document URL');;
 ALTER TABLE `cmoore_customer_demos`.`government`.`program_provider_contract` ALTER COLUMN `contract_document_url` SET TAGS ('e_confidential' = 'true');;
 ALTER TABLE `cmoore_customer_demos`.`government`.`program_provider_contract` ALTER COLUMN `notes` SET TAGS ('e_business_glossary_term' = 'Contract Notes');;
