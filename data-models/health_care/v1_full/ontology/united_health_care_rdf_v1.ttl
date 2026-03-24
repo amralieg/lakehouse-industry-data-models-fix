@@ -1,4 +1,4 @@
-# RDFS Schema for Business: United Health Care
+# RDFS Schema for Business:  health Care
 
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
@@ -11,10 +11,10 @@ ind:Business rdf:type rdfs:Class ;
     rdfs:label 'Business' ;
     rdfs:comment 'Root class for all business entities' .
 
-# --- Specific Business: United Health Care ---
+# --- Specific Business:  health Care ---
 ind:UnitedHealthCare rdf:type rdfs:Class ;
     rdfs:subClassOf ind:Business ;
-    rdfs:label 'United Health Care' ;
+    rdfs:label ' health Care' ;
     rdfs:comment 'nitedHealthcare is the largest health insurance carrier in the United States and a primary division of UnitedHealth Group, serving over 52 million members globally as of 2023. It provides comprehensive health benefit plans for employers, individuals, Medicare/Medicaid beneficiaries, and military families, partnering with extensive networks of doctors and hospitals. The company aims to make healthcare more affordable and accessible through diverse insurance products and digital tools.' .
 
 # --- Domain Classes ---
@@ -1497,7 +1497,7 @@ ind:AssetDepreciation rdf:type rdfs:Class ;
 ind:IntercompanyTransaction rdf:type rdfs:Class ;
     rdfs:subClassOf ind:Finance ;
     rdfs:label 'Intercompany Transaction' ;
-    rdfs:comment 'Transactional record of financial activity between legal entities within United Health Care, including eliminations.' .
+    rdfs:comment 'Transactional record of financial activity between legal entities within  health Care, including eliminations.' .
 
 ind:TaxReturn rdf:type rdfs:Class ;
     rdfs:subClassOf ind:Finance ;
@@ -1937,7 +1937,7 @@ ind:WorkflowStep rdf:type rdfs:Class ;
 ind:Broker rdf:type rdfs:Class ;
     rdfs:subClassOf ind:Sales ;
     rdfs:label 'Broker' ;
-    rdfs:comment 'Master record for insurance brokers including broker ID, name, contact information, licensing, and relationship details with United Health Care.' .
+    rdfs:comment 'Master record for insurance brokers including broker ID, name, contact information, licensing, and relationship details with  health Care.' .
 
 ind:Opportunity rdf:type rdfs:Class ;
     rdfs:subClassOf ind:Sales ;
@@ -2122,7 +2122,7 @@ ind:Alert rdf:type rdfs:Class ;
 ind:Contract rdf:type rdfs:Class ;
     rdfs:subClassOf ind:Shared ;
     rdfs:label 'Contract' ;
-    rdfs:comment 'Consolidated contract from provider and sales domains. Original: Details of contractual agreements between UnitedHealth and the provider, covering rates, terms, obli... Also includes: Master record of the contractual agreement between United Health Care and a broker, defining commiss...' .
+    rdfs:comment 'Consolidated contract from provider and sales domains. Original: Details of contractual agreements between UnitedHealth and the provider, covering rates, terms, obli... Also includes: Master record of the contractual agreement between  health Care and a broker, defining commiss...' .
 
 ind:Complaint rdf:type rdfs:Class ;
     rdfs:subClassOf ind:Shared ;
@@ -2287,7 +2287,7 @@ ind:CampaignContent rdf:type rdfs:Class ;
 ind:BrokerProgramParticipation rdf:type rdfs:Class ;
     rdfs:subClassOf ind:Sales ;
     rdfs:label 'Broker Program Participation' ;
-    rdfs:comment 'This association product represents the participation relationship between insurance brokers and United Health Care programs. It captures broker enrollment in certification programs, incentive programs, and training initiatives. Each record links one broker to one program with attributes that track certification status, performance metrics, and participation dates specific to that broker-program combination.. Existence Justification: In United Health Care\'s broker management operations, brokers participate in multiple programs simultaneously (Medicare Stars certification, wellness initiative training, preferred partner tiers, AEP training programs), and each program has many participating brokers. The business actively manages these participation relationships, tracking certification status, performance tiers, and participation dates for each broker-program combination. This is an operational relationship that broker management teams create, update, and query regularly.' .
+    rdfs:comment 'This association product represents the participation relationship between insurance brokers and  health Care programs. It captures broker enrollment in certification programs, incentive programs, and training initiatives. Each record links one broker to one program with attributes that track certification status, performance metrics, and participation dates specific to that broker-program combination.. Existence Justification: In  health Care\'s broker management operations, brokers participate in multiple programs simultaneously (Medicare Stars certification, wellness initiative training, preferred partner tiers, AEP training programs), and each program has many participating brokers. The business actively manages these participation relationships, tracking certification status, performance tiers, and participation dates for each broker-program combination. This is an operational relationship that broker management teams create, update, and query regularly.' .
 
 ind:CredentialingNetworkParticipation rdf:type rdfs:Class ;
     rdfs:subClassOf ind:Credentialing ;
@@ -2332,7 +2332,7 @@ ind:CredentialingProviderProgramParticipation rdf:type rdfs:Class ;
 ind:ProgramCredentialingPolicy rdf:type rdfs:Class ;
     rdfs:subClassOf ind:Shared ;
     rdfs:label 'Program Credentialing Policy' ;
-    rdfs:comment 'This association product represents the assignment of credentialing policies to specific programs within United Health Care. It captures program-specific credentialing requirements and policy variations that exist only in the context of a particular program\'s compliance framework. Each record links one credentialing policy to one program with effective dates and program-specific requirement overrides.. Existence Justification: In United Health Care\'s operations, credentialing policies must be applied across multiple programs (Medicare Advantage, Medicaid, Commercial) because each program has distinct regulatory requirements and compliance frameworks. A single base credentialing policy (e.g., primary care physician credentialing) is referenced by multiple programs, but each program applies it with program-specific variations, effective dates, and override requirements. The compliance team actively manages these program-policy assignments as operational records, tracking when policies become effective for each program and what program-specific modifications apply.' .
+    rdfs:comment 'This association product represents the assignment of credentialing policies to specific programs within  health Care. It captures program-specific credentialing requirements and policy variations that exist only in the context of a particular program\'s compliance framework. Each record links one credentialing policy to one program with effective dates and program-specific requirement overrides.. Existence Justification: In  health Care\'s operations, credentialing policies must be applied across multiple programs (Medicare Advantage, Medicaid, Commercial) because each program has distinct regulatory requirements and compliance frameworks. A single base credentialing policy (e.g., primary care physician credentialing) is referenced by multiple programs, but each program applies it with program-specific variations, effective dates, and override requirements. The compliance team actively manages these program-policy assignments as operational records, tracking when policies become effective for each program and what program-specific modifications apply.' .
 
 ind:WorkflowStepSla rdf:type rdfs:Class ;
     rdfs:subClassOf ind:Credentialing ;
@@ -69669,7 +69669,7 @@ ind:encumbranceAmount rdf:type rdf:Property ;
 
 ind:intercompanyTransactionId rdf:type rdf:Property ;
     rdfs:label 'Intercompany Transaction Id' ;
-    rdfs:comment 'Unique identifier for the intercompany transaction record within United Health Care\'s financial system.' ;
+    rdfs:comment 'Unique identifier for the intercompany transaction record within  health Care\'s financial system.' ;
     rdfs:domain ind:IntercompanyTransaction ;
     rdf:type owl:DatatypeProperty ;
     rdfs:range xsd:integer .
@@ -69683,28 +69683,28 @@ ind:transactionNumber rdf:type rdf:Property ;
 
 ind:sourceLegalEntityCode rdf:type rdf:Property ;
     rdfs:label 'Source Legal Entity Code' ;
-    rdfs:comment 'The code identifying the originating legal entity within United Health Care that initiated or is the source of the intercompany transaction.' ;
+    rdfs:comment 'The code identifying the originating legal entity within  health Care that initiated or is the source of the intercompany transaction.' ;
     rdfs:domain ind:IntercompanyTransaction ;
     rdf:type owl:DatatypeProperty ;
     rdfs:range xsd:string .
 
 ind:sourceLegalEntityName rdf:type rdf:Property ;
     rdfs:label 'Source Legal Entity Name' ;
-    rdfs:comment 'The full legal name of the originating entity within United Health Care that is the source of the intercompany transaction.' ;
+    rdfs:comment 'The full legal name of the originating entity within  health Care that is the source of the intercompany transaction.' ;
     rdfs:domain ind:IntercompanyTransaction ;
     rdf:type owl:DatatypeProperty ;
     rdfs:range xsd:string .
 
 ind:destinationLegalEntityCode rdf:type rdf:Property ;
     rdfs:label 'Destination Legal Entity Code' ;
-    rdfs:comment 'The code identifying the receiving legal entity within United Health Care that is the destination of the intercompany transaction.' ;
+    rdfs:comment 'The code identifying the receiving legal entity within  health Care that is the destination of the intercompany transaction.' ;
     rdfs:domain ind:IntercompanyTransaction ;
     rdf:type owl:DatatypeProperty ;
     rdfs:range xsd:string .
 
 ind:destinationLegalEntityName rdf:type rdf:Property ;
     rdfs:label 'Destination Legal Entity Name' ;
-    rdfs:comment 'The full legal name of the receiving entity within United Health Care that is the destination of the intercompany transaction.' ;
+    rdfs:comment 'The full legal name of the receiving entity within  health Care that is the destination of the intercompany transaction.' ;
     rdfs:domain ind:IntercompanyTransaction ;
     rdf:type owl:DatatypeProperty ;
     rdfs:range xsd:string .
@@ -88457,14 +88457,14 @@ ind:doingBusinessAsName rdf:type rdf:Property ;
 
 ind:primaryContactFirstName rdf:type rdf:Property ;
     rdfs:label 'Primary Contact First Name' ;
-    rdfs:comment 'First name of the primary contact person at the brokerage for United Health Care relationship management.' ;
+    rdfs:comment 'First name of the primary contact person at the brokerage for  health Care relationship management.' ;
     rdfs:domain ind:Broker ;
     rdf:type owl:DatatypeProperty ;
     rdfs:range xsd:string .
 
 ind:primaryContactLastName rdf:type rdf:Property ;
     rdfs:label 'Primary Contact Last Name' ;
-    rdfs:comment 'Last name of the primary contact person at the brokerage for United Health Care relationship management.' ;
+    rdfs:comment 'Last name of the primary contact person at the brokerage for  health Care relationship management.' ;
     rdfs:domain ind:Broker ;
     rdf:type owl:DatatypeProperty ;
     rdfs:range xsd:string .
@@ -88555,28 +88555,28 @@ ind:linesOfAuthority rdf:type rdf:Property ;
 
 ind:appointmentStatus rdf:type rdf:Property ;
     rdfs:label 'Appointment Status' ;
-    rdfs:comment 'Status of the broker\'s appointment with United Health Care. Appointed status is required to sell UHC products and receive commissions.' ;
+    rdfs:comment 'Status of the broker\'s appointment with  health Care. Appointed status is required to sell UHC products and receive commissions.' ;
     rdfs:domain ind:Sales ;
     rdf:type owl:DatatypeProperty ;
     rdfs:range xsd:string .
 
 ind:appointmentDate rdf:type rdf:Property ;
     rdfs:label 'Appointment Date' ;
-    rdfs:comment 'Date when the broker was appointed to represent United Health Care.' ;
+    rdfs:comment 'Date when the broker was appointed to represent  health Care.' ;
     rdfs:domain ind:Sales ;
     rdf:type owl:DatatypeProperty ;
     rdfs:range xsd:date .
 
 ind:appointmentTerminationDate rdf:type rdf:Property ;
     rdfs:label 'Appointment Termination Date' ;
-    rdfs:comment 'Date when the broker\'s appointment with United Health Care was terminated, if applicable.' ;
+    rdfs:comment 'Date when the broker\'s appointment with  health Care was terminated, if applicable.' ;
     rdfs:domain ind:Broker ;
     rdf:type owl:DatatypeProperty ;
     rdfs:range xsd:date .
 
 ind:contractingStatus rdf:type rdf:Property ;
     rdfs:label 'Contracting Status' ;
-    rdfs:comment 'Status of the broker\'s contractual agreement with United Health Care. Determines commission eligibility and product access.' ;
+    rdfs:comment 'Status of the broker\'s contractual agreement with  health Care. Determines commission eligibility and product access.' ;
     rdfs:domain ind:Broker ;
     rdf:type owl:DatatypeProperty ;
     rdfs:range xsd:string .
@@ -88681,35 +88681,35 @@ ind:errorsAndOmissionsExpirationDate rdf:type rdf:Property ;
 
 ind:complianceTrainingStatus rdf:type rdf:Property ;
     rdfs:label 'Compliance Training Status' ;
-    rdfs:comment 'Status of the broker\'s completion of required United Health Care compliance training modules (HIPAA, fraud prevention, marketing guidelines).' ;
+    rdfs:comment 'Status of the broker\'s completion of required  health Care compliance training modules (HIPAA, fraud prevention, marketing guidelines).' ;
     rdfs:domain ind:Broker ;
     rdf:type owl:DatatypeProperty ;
     rdfs:range xsd:string .
 
 ind:complianceTrainingCompletionDate rdf:type rdf:Property ;
     rdfs:label 'Compliance Training Completion Date' ;
-    rdfs:comment 'Date when the broker completed the most recent United Health Care compliance training.' ;
+    rdfs:comment 'Date when the broker completed the most recent  health Care compliance training.' ;
     rdfs:domain ind:Broker ;
     rdf:type owl:DatatypeProperty ;
     rdfs:range xsd:date .
 
 ind:relationshipManagerName rdf:type rdf:Property ;
     rdfs:label 'Relationship Manager Name' ;
-    rdfs:comment 'Name of the United Health Care employee assigned as the primary relationship manager for this broker.' ;
+    rdfs:comment 'Name of the  health Care employee assigned as the primary relationship manager for this broker.' ;
     rdfs:domain ind:Broker ;
     rdf:type owl:DatatypeProperty ;
     rdfs:range xsd:string .
 
 ind:relationshipManagerEmail rdf:type rdf:Property ;
     rdfs:label 'Relationship Manager Email' ;
-    rdfs:comment 'Email address of the United Health Care relationship manager assigned to this broker.' ;
+    rdfs:comment 'Email address of the  health Care relationship manager assigned to this broker.' ;
     rdfs:domain ind:Broker ;
     rdf:type owl:DatatypeProperty ;
     rdfs:range xsd:string .
 
 ind:relationshipManagerPhone rdf:type rdf:Property ;
     rdfs:label 'Relationship Manager Phone' ;
-    rdfs:comment 'Phone number of the United Health Care relationship manager assigned to this broker.' ;
+    rdfs:comment 'Phone number of the  health Care relationship manager assigned to this broker.' ;
     rdfs:domain ind:Broker ;
     rdf:type owl:DatatypeProperty ;
     rdfs:range xsd:string .
@@ -88723,7 +88723,7 @@ ind:salesTerritoryCode rdf:type rdf:Property ;
 
 ind:producerCode rdf:type rdf:Property ;
     rdfs:label 'Producer Code' ;
-    rdfs:comment 'Internal United Health Care producer code used in commission systems and enrollment transactions. May differ from broker_id.' ;
+    rdfs:comment 'Internal  health Care producer code used in commission systems and enrollment transactions. May differ from broker_id.' ;
     rdfs:domain ind:Broker ;
     rdf:type owl:DatatypeProperty ;
     rdfs:range xsd:string .
@@ -88758,21 +88758,21 @@ ind:annualRevenueRange rdf:type rdf:Property ;
 
 ind:portalAccessEnabled rdf:type rdf:Property ;
     rdfs:label 'Portal Access Enabled' ;
-    rdfs:comment 'Indicates whether the broker has active access to United Health Care broker portal systems for quoting, enrollment, and commission reporting.' ;
+    rdfs:comment 'Indicates whether the broker has active access to  health Care broker portal systems for quoting, enrollment, and commission reporting.' ;
     rdfs:domain ind:Broker ;
     rdf:type owl:DatatypeProperty ;
     rdfs:range xsd:boolean .
 
 ind:portalUserId rdf:type rdf:Property ;
     rdfs:label 'Portal User Id' ;
-    rdfs:comment 'Unique user ID for the broker\'s access to United Health Care broker portal systems.' ;
+    rdfs:comment 'Unique user ID for the broker\'s access to  health Care broker portal systems.' ;
     rdfs:domain ind:UnitedHealthCare ;
     rdf:type owl:ObjectProperty ;
     rdfs:range ind:PortalUser .
 
 ind:lastLoginDate rdf:type rdf:Property ;
     rdfs:label 'Last Login Date' ;
-    rdfs:comment 'Timestamp of the broker\'s most recent login to United Health Care broker portal systems. Used for engagement tracking.' ;
+    rdfs:comment 'Timestamp of the broker\'s most recent login to  health Care broker portal systems. Used for engagement tracking.' ;
     rdfs:domain ind:Broker ;
     rdf:type owl:DatatypeProperty ;
     rdfs:range xsd:dateTime .

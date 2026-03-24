@@ -1,4 +1,4 @@
--- DDL for Business: United Health Care | Version: 1 | Generated on: 2026-03-20 04:03:39
+-- DDL for Business:  health Care | Version: 1 | Generated on: 2026-03-20 04:03:39
 
 -- ========= TABLES (PRODUCTS) =========
 CREATE OR REPLACE TABLE `cmoore_customer_demos`.`eligibility`.`coverage` (
@@ -20555,7 +20555,7 @@ CREATE OR REPLACE TABLE `cmoore_customer_demos`.`finance`.`asset_depreciation` (
 ) COMMENT 'Transactional detail of periodic depreciation charges applied to fixed assets, with amount, period, and method.';
 
 CREATE OR REPLACE TABLE `cmoore_customer_demos`.`finance`.`intercompany_transaction` (
-    `intercompany_transaction_id` STRING COMMENT 'Unique identifier for the intercompany transaction record within United Health Cares financial system.',
+    `intercompany_transaction_id` STRING COMMENT 'Unique identifier for the intercompany transaction record within  health Cares financial system.',
     `reversed_transaction_id` STRING COMMENT 'The identifier of the original intercompany transaction that this entry reverses or corrects.',
     `source_system_transaction_id` STRING COMMENT 'The unique transaction identifier from the source financial system used for traceability and reconciliation purposes.',
     `source_finance_account_id` STRING COMMENT 'Foreign key linking to finance.finance_account. Business justification: intercompany_transaction references a source account. The source_account_code is used for lookup, but adding FK to finance_account provides referential integrity and allows joining to get full account',
@@ -20565,17 +20565,17 @@ CREATE OR REPLACE TABLE `cmoore_customer_demos`.`finance`.`intercompany_transact
     `transaction_number` STRING COMMENT 'Human-readable business transaction number assigned to the intercompany transaction for tracking and reference purposes.. Valid values are `^IC-[0-9]{10}$`',
     `transaction_date` DATE COMMENT 'The date on which the intercompany transaction was executed or recorded in the financial system.',
     `posting_date` DATE COMMENT 'The date on which the intercompany transaction was posted to the general ledger for financial reporting purposes.',
-    `source_legal_entity_code` STRING COMMENT 'The code identifying the originating legal entity within United Health Care that initiated or is the source of the intercompany transaction.. Valid values are `^[A-Z0-9]{4,10}$`',
-    `source_legal_entity_name` STRING COMMENT 'The full legal name of the originating entity within United Health Care that is the source of the intercompany transaction.',
-    `destination_legal_entity_code` STRING COMMENT 'The code identifying the receiving legal entity within United Health Care that is the destination of the intercompany transaction.. Valid values are `^[A-Z0-9]{4,10}$`',
-    `destination_legal_entity_name` STRING COMMENT 'The full legal name of the receiving entity within United Health Care that is the destination of the intercompany transaction.',
+    `source_legal_entity_code` STRING COMMENT 'The code identifying the originating legal entity within  health Care that initiated or is the source of the intercompany transaction.. Valid values are `^[A-Z0-9]{4,10}$`',
+    `source_legal_entity_name` STRING COMMENT 'The full legal name of the originating entity within  health Care that is the source of the intercompany transaction.',
+    `destination_legal_entity_code` STRING COMMENT 'The code identifying the receiving legal entity within  health Care that is the destination of the intercompany transaction.. Valid values are `^[A-Z0-9]{4,10}$`',
+    `destination_legal_entity_name` STRING COMMENT 'The full legal name of the receiving entity within  health Care that is the destination of the intercompany transaction.',
     `transaction_type` STRING COMMENT 'The classification of the intercompany transaction indicating the nature of the financial activity between legal entities.. Valid values are `intercompany_sale|intercompany_purchase|intercompany_loan|intercompany_service_fee|management_fee|royalty|dividend|capital_contribution|intercompany_transfer|cost_allocation|shared_service_charge|recharge|elimination_entry`',
     `transaction_category` STRING COMMENT 'The high-level financial statement category to which the intercompany transaction belongs for consolidation purposes.. Valid values are `revenue|expense|asset_transfer|liability_transfer|equity|elimination`',
     `transaction_amount` DECIMAL(18,2) COMMENT 'The monetary value of the intercompany transaction in the transaction currency before any adjustments or eliminations.',
     `transaction_currency_code` STRING COMMENT 'The three-letter ISO 4217 currency code in which the intercompany transaction was originally denominated.. Valid values are `^[A-Z]{3}$`',
     `functional_currency_code` STRING COMMENT 'The three-letter ISO 4217 currency code representing the primary currency of the economic environment in which the entity operates.. Valid values are `^[A-Z]{3}$`',
     `functional_currency_amount` DECIMAL(18,2) COMMENT 'The transaction amount converted to the functional currency of the source legal entity for financial reporting purposes.',
-    `reporting_currency_code` STRING COMMENT 'The three-letter ISO 4217 currency code used for consolidated financial reporting at the corporate level (typically USD for United Health Care).. Valid values are `^[A-Z]{3}$`',
+    `reporting_currency_code` STRING COMMENT 'The three-letter ISO 4217 currency code used for consolidated financial reporting at the corporate level (typically USD for  health Care).. Valid values are `^[A-Z]{3}$`',
     `reporting_currency_amount` DECIMAL(18,2) COMMENT 'The transaction amount converted to the corporate reporting currency for consolidated financial statements and regulatory filings.',
     `exchange_rate` DECIMAL(18,2) COMMENT 'The exchange rate used to convert the transaction amount from transaction currency to functional or reporting currency.',
     `exchange_rate_date` DATE COMMENT 'The date for which the exchange rate was determined and applied to the currency conversion.',
@@ -20587,7 +20587,7 @@ CREATE OR REPLACE TABLE `cmoore_customer_demos`.`finance`.`intercompany_transact
     `cost_center_code` STRING COMMENT 'The code identifying the cost center or organizational unit responsible for the intercompany transaction.. Valid values are `^[A-Z0-9]{4,10}$`',
     `department_code` STRING COMMENT 'The code identifying the department within the legal entity that initiated or is responsible for the intercompany transaction.. Valid values are `^[A-Z0-9]{2,6}$`',
     `department_name` STRING COMMENT 'The descriptive name of the department within the legal entity that initiated or is responsible for the intercompany transaction.',
-    `line_of_business` STRING COMMENT 'The business segment or product line within United Health Care to which the intercompany transaction is attributed for management reporting.. Valid values are `commercial|medicare_advantage|medicaid|individual_exchange|employer_group|government_programs|specialty|other`',
+    `line_of_business` STRING COMMENT 'The business segment or product line within  health Care to which the intercompany transaction is attributed for management reporting.. Valid values are `commercial|medicare_advantage|medicaid|individual_exchange|employer_group|government_programs|specialty|other`',
     `product_code` STRING COMMENT 'The code identifying the specific insurance product or service offering related to the intercompany transaction.. Valid values are `^[A-Z0-9]{4,10}$`',
     `product_name` STRING COMMENT 'The descriptive name of the insurance product or service offering related to the intercompany transaction.',
     `project_code` STRING COMMENT 'The code identifying a specific project or initiative to which the intercompany transaction is allocated for cost tracking purposes.. Valid values are `^[A-Z0-9]{4,12}$`',
@@ -20637,7 +20637,7 @@ CREATE OR REPLACE TABLE `cmoore_customer_demos`.`finance`.`intercompany_transact
     `last_modified_timestamp` TIMESTAMP COMMENT 'The date and time when the intercompany transaction record was most recently updated or modified in the financial system.',
     `source_system_code` STRING COMMENT 'The code identifying the originating financial system or application from which the intercompany transaction data was sourced.. Valid values are `SAP|ORACLE|FACETS|QNXT|MANUAL|OTHER`',
     CONSTRAINT pk_intercompany_transaction PRIMARY KEY(`intercompany_transaction_id`)
-) COMMENT 'Transactional record of financial activity between legal entities within United Health Care, including eliminations.';
+) COMMENT 'Transactional record of financial activity between legal entities within  health Care, including eliminations.';
 
 CREATE OR REPLACE TABLE `cmoore_customer_demos`.`finance`.`tax_return` (
     `tax_return_id` STRING COMMENT 'Unique identifier for the tax return filing record. Primary key for the tax return entity.',
@@ -27265,8 +27265,8 @@ CREATE OR REPLACE TABLE `cmoore_customer_demos`.`credentialing`.`workflow_step` 
 ) COMMENT 'Reference definition of each step in the credentialing workflow (verification, committee review, decision, notification).';
 
 CREATE OR REPLACE TABLE `cmoore_customer_demos`.`sales`.`broker` (
-    `broker_id` STRING COMMENT 'Unique identifier for the insurance broker within United Health Care systems. Primary key for the broker entity.',
-    `portal_user_id` STRING COMMENT 'Unique user ID for the brokers access to United Health Care broker portal systems.',
+    `broker_id` STRING COMMENT 'Unique identifier for the insurance broker within  health Care systems. Primary key for the broker entity.',
+    `portal_user_id` STRING COMMENT 'Unique user ID for the brokers access to  health Care broker portal systems.',
     `party_id` STRING COMMENT 'Foreign key linking to contract.contract_party. Business justification: Brokers are contractual parties with formal agreements defining commission structures, appointment status, and compliance obligations. Contracting and sales reference this for broker management and pa',
     `training_record_id` STRING COMMENT 'Foreign key linking to compliance.training_record. Business justification: Health insurance brokers must complete mandatory compliance training (HIPAA, ACA, state regulations) annually. Sales operations verify broker certification status before allowing sales activities.',
     `npi` STRING COMMENT 'Ten-digit unique identification number issued to health care providers by CMS. Used for HIPAA-compliant transactions and provider identification.. Valid values are `^[0-9]{10}$`',
@@ -27274,8 +27274,8 @@ CREATE OR REPLACE TABLE `cmoore_customer_demos`.`sales`.`broker` (
     `legal_name` STRING COMMENT 'Full legal name of the broker or brokerage firm as registered with state insurance departments and licensing authorities.',
     `doing_business_as_name` STRING COMMENT 'Trade name or DBA name under which the broker operates if different from legal name. Used for marketing and customer-facing communications.',
     `type` STRING COMMENT 'Classification of the broker entity indicating organizational structure and operational model.. Valid values are `individual|agency|general_agency|managing_general_agent|wholesale_broker|enrollment_counselor`',
-    `primary_contact_first_name` STRING COMMENT 'First name of the primary contact person at the brokerage for United Health Care relationship management.',
-    `primary_contact_last_name` STRING COMMENT 'Last name of the primary contact person at the brokerage for United Health Care relationship management.',
+    `primary_contact_first_name` STRING COMMENT 'First name of the primary contact person at the brokerage for  health Care relationship management.',
+    `primary_contact_last_name` STRING COMMENT 'Last name of the primary contact person at the brokerage for  health Care relationship management.',
     `primary_contact_title` STRING COMMENT 'Job title or role of the primary contact person (e.g., Principal Broker, Agency Owner, Sales Director).',
     `primary_email` STRING COMMENT 'Primary email address for broker communications, commission statements, and system notifications.. Valid values are `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$`',
     `secondary_email` STRING COMMENT 'Secondary or backup email address for broker communications and escalations.. Valid values are `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$`',
@@ -27299,14 +27299,14 @@ CREATE OR REPLACE TABLE `cmoore_customer_demos`.`sales`.`broker` (
     `primary_license_state` STRING COMMENT 'Two-letter state code where the broker holds their primary resident insurance license.. Valid values are `^[A-Z]{2}$`',
     `primary_license_issue_date` DATE COMMENT 'Date when the primary insurance license was originally issued to the broker.. Valid values are `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`',
     `primary_license_expiration_date` DATE COMMENT 'Date when the primary insurance license expires. Critical for compliance monitoring and broker eligibility.. Valid values are `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`',
-    `license_status` STRING COMMENT 'Current status of the brokers primary insurance license. Determines eligibility to sell United Health Care products.. Valid values are `active|expired|suspended|revoked|pending_renewal|inactive`',
+    `license_status` STRING COMMENT 'Current status of the brokers primary insurance license. Determines eligibility to sell  health Care products.. Valid values are `active|expired|suspended|revoked|pending_renewal|inactive`',
     `lines_of_authority` STRING COMMENT 'Comma-separated list of insurance lines the broker is licensed to sell (e.g., Life, Health, Accident, Variable Annuities). Determines product eligibility.',
-    `appointment_status` STRING COMMENT 'Status of the brokers appointment with United Health Care. Appointed status is required to sell UHC products and receive commissions.. Valid values are `appointed|pending|terminated|suspended|not_appointed`',
-    `appointment_date` DATE COMMENT 'Date when the broker was appointed to represent United Health Care.. Valid values are `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`',
-    `appointment_termination_date` DATE COMMENT 'Date when the brokers appointment with United Health Care was terminated, if applicable.. Valid values are `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`',
-    `contracting_status` STRING COMMENT 'Status of the brokers contractual agreement with United Health Care. Determines commission eligibility and product access.. Valid values are `contracted|pending_contract|not_contracted|contract_expired|contract_terminated`',
-    `contract_effective_date` DATE COMMENT 'Date when the brokers contract with United Health Care became effective.. Valid values are `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`',
-    `contract_termination_date` DATE COMMENT 'Date when the brokers contract with United Health Care was terminated, if applicable.. Valid values are `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`',
+    `appointment_status` STRING COMMENT 'Status of the brokers appointment with  health Care. Appointed status is required to sell UHC products and receive commissions.. Valid values are `appointed|pending|terminated|suspended|not_appointed`',
+    `appointment_date` DATE COMMENT 'Date when the broker was appointed to represent  health Care.. Valid values are `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`',
+    `appointment_termination_date` DATE COMMENT 'Date when the brokers appointment with  health Care was terminated, if applicable.. Valid values are `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`',
+    `contracting_status` STRING COMMENT 'Status of the brokers contractual agreement with  health Care. Determines commission eligibility and product access.. Valid values are `contracted|pending_contract|not_contracted|contract_expired|contract_terminated`',
+    `contract_effective_date` DATE COMMENT 'Date when the brokers contract with  health Care became effective.. Valid values are `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`',
+    `contract_termination_date` DATE COMMENT 'Date when the brokers contract with  health Care was terminated, if applicable.. Valid values are `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`',
     `tier` STRING COMMENT 'Performance-based tier classification for the broker indicating sales volume, quality metrics, and relationship level. Affects commission rates and support levels.. Valid values are `platinum|gold|silver|bronze|standard`',
     `commission_schedule_code` STRING COMMENT 'Code identifying the commission rate schedule applicable to this broker. Determines compensation for sales across different product lines.',
     `payment_method` STRING COMMENT 'Method by which commission payments are delivered to the broker.. Valid values are `ach|check|wire_transfer`',
@@ -27329,14 +27329,14 @@ CREATE OR REPLACE TABLE `cmoore_customer_demos`.`sales`.`broker` (
     `errors_and_omissions_expiration_date` DATE COMMENT 'Date when the brokers Errors and Omissions insurance policy expires. Critical for compliance monitoring.. Valid values are `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`',
     `background_check_status` STRING COMMENT 'Status of the brokers background check screening. May be required for certain lines of business or state regulations.. Valid values are `passed|failed|pending|not_required|expired`',
     `background_check_date` DATE COMMENT 'Date when the most recent background check was completed for the broker.. Valid values are `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`',
-    `compliance_training_status` STRING COMMENT 'Status of the brokers completion of required United Health Care compliance training modules (HIPAA, fraud prevention, marketing guidelines).. Valid values are `current|expired|pending|not_completed`',
-    `compliance_training_completion_date` DATE COMMENT 'Date when the broker completed the most recent United Health Care compliance training.. Valid values are `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`',
-    `relationship_manager_name` STRING COMMENT 'Name of the United Health Care employee assigned as the primary relationship manager for this broker.',
-    `relationship_manager_email` STRING COMMENT 'Email address of the United Health Care relationship manager assigned to this broker.. Valid values are `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$`',
-    `relationship_manager_phone` STRING COMMENT 'Phone number of the United Health Care relationship manager assigned to this broker.. Valid values are `^+?[0-9]{10,15}$`',
+    `compliance_training_status` STRING COMMENT 'Status of the brokers completion of required  health Care compliance training modules (HIPAA, fraud prevention, marketing guidelines).. Valid values are `current|expired|pending|not_completed`',
+    `compliance_training_completion_date` DATE COMMENT 'Date when the broker completed the most recent  health Care compliance training.. Valid values are `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`',
+    `relationship_manager_name` STRING COMMENT 'Name of the  health Care employee assigned as the primary relationship manager for this broker.',
+    `relationship_manager_email` STRING COMMENT 'Email address of the  health Care relationship manager assigned to this broker.. Valid values are `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$`',
+    `relationship_manager_phone` STRING COMMENT 'Phone number of the  health Care relationship manager assigned to this broker.. Valid values are `^+?[0-9]{10,15}$`',
     `sales_territory_code` STRING COMMENT 'Code identifying the geographic sales territory assigned to this broker for commission and reporting purposes.',
     `sales_region` STRING COMMENT 'Geographic sales region (e.g., Northeast, Southeast, Midwest, West) for broker segmentation and reporting.',
-    `producer_code` STRING COMMENT 'Internal United Health Care producer code used in commission systems and enrollment transactions. May differ from broker_id.',
+    `producer_code` STRING COMMENT 'Internal  health Care producer code used in commission systems and enrollment transactions. May differ from broker_id.',
     `writing_agent_number` STRING COMMENT 'Legacy or alternate agent identification number used in specific product lines or legacy systems.',
     `upline_broker_id` STRING COMMENT 'Broker ID of the upline general agent or managing general agent in the broker hierarchy. Used for commission splits and reporting.',
     `hierarchy_level` STRING COMMENT 'Numeric level in the broker hierarchy (1=direct writing agent, 2=sub-agent, 3=general agent, etc.). Used for commission calculations.',
@@ -27345,25 +27345,25 @@ CREATE OR REPLACE TABLE `cmoore_customer_demos`.`sales`.`broker` (
     `years_in_business` STRING COMMENT 'Number of years the broker has been operating in the insurance industry. Used for experience-based segmentation.',
     `employee_count` STRING COMMENT 'Number of employees working for the brokerage firm. Indicates agency size and capacity.',
     `annual_revenue_range` STRING COMMENT 'Estimated annual revenue range for the brokerage firm. Used for broker segmentation and relationship management.. Valid values are `under_100k|100k_500k|500k_1m|1m_5m|5m_10m|over_10m`',
-    `marketing_opt_in` BOOLEAN COMMENT 'Indicates whether the broker has opted in to receive marketing communications, newsletters, and promotional materials from United Health Care.. Valid values are `true|false`',
-    `portal_access_enabled` BOOLEAN COMMENT 'Indicates whether the broker has active access to United Health Care broker portal systems for quoting, enrollment, and commission reporting.. Valid values are `true|false`',
-    `last_login_date` TIMESTAMP COMMENT 'Timestamp of the brokers most recent login to United Health Care broker portal systems. Used for engagement tracking.. Valid values are `^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}[+-][0-9]{2}:[0-9]{2}$`',
-    `nps_score` STRING COMMENT 'Most recent Net Promoter Score rating provided by the broker indicating satisfaction with United Health Care partnership. Scale of -100 to 100.',
+    `marketing_opt_in` BOOLEAN COMMENT 'Indicates whether the broker has opted in to receive marketing communications, newsletters, and promotional materials from  health Care.. Valid values are `true|false`',
+    `portal_access_enabled` BOOLEAN COMMENT 'Indicates whether the broker has active access to  health Care broker portal systems for quoting, enrollment, and commission reporting.. Valid values are `true|false`',
+    `last_login_date` TIMESTAMP COMMENT 'Timestamp of the brokers most recent login to  health Care broker portal systems. Used for engagement tracking.. Valid values are `^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}[+-][0-9]{2}:[0-9]{2}$`',
+    `nps_score` STRING COMMENT 'Most recent Net Promoter Score rating provided by the broker indicating satisfaction with  health Care partnership. Scale of -100 to 100.',
     `last_survey_date` DATE COMMENT 'Date when the broker last completed a satisfaction or feedback survey.. Valid values are `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`',
     `risk_score` STRING COMMENT 'Calculated risk score for the broker based on compliance history, complaint patterns, and fraud indicators. Used for monitoring and oversight.',
     `complaint_count` STRING COMMENT 'Total number of formal complaints filed against the broker by members or regulators. Used for risk assessment.',
     `last_complaint_date` DATE COMMENT 'Date of the most recent formal complaint filed against the broker.. Valid values are `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`',
-    `status` STRING COMMENT 'Current operational status of the broker relationship with United Health Care. Determines eligibility for sales and commissions.. Valid values are `active|inactive|suspended|terminated|pending_activation`',
+    `status` STRING COMMENT 'Current operational status of the broker relationship with  health Care. Determines eligibility for sales and commissions.. Valid values are `active|inactive|suspended|terminated|pending_activation`',
     `status_reason` STRING COMMENT 'Detailed reason or explanation for the current broker status, especially for inactive, suspended, or terminated statuses.',
     `status_effective_date` DATE COMMENT 'Date when the current broker status became effective.. Valid values are `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`',
-    `onboarding_date` DATE COMMENT 'Date when the broker completed the onboarding process and became eligible to sell United Health Care products.. Valid values are `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`',
+    `onboarding_date` DATE COMMENT 'Date when the broker completed the onboarding process and became eligible to sell  health Care products.. Valid values are `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`',
     `last_activity_date` DATE COMMENT 'Date of the brokers most recent sales activity, enrollment submission, or system interaction. Used for engagement tracking.. Valid values are `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`',
-    `record_created_date` DATE COMMENT 'Date when the broker record was originally created in United Health Care systems.. Valid values are `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`',
-    `record_updated_date` DATE COMMENT 'Date when the broker record was last updated in United Health Care systems.. Valid values are `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`',
+    `record_created_date` DATE COMMENT 'Date when the broker record was originally created in  health Care systems.. Valid values are `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`',
+    `record_updated_date` DATE COMMENT 'Date when the broker record was last updated in  health Care systems.. Valid values are `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`',
     `data_source_system` STRING COMMENT 'Name of the source system from which the broker record originated (e.g., Salesforce Health Cloud, QNXT, Legacy Broker System).',
     `notes` STRING COMMENT 'Free-text field for additional notes, comments, or special instructions related to the broker relationship.',
     CONSTRAINT pk_broker PRIMARY KEY(`broker_id`)
-) COMMENT 'Master record for insurance brokers including broker ID, name, contact information, licensing, and relationship details with United Health Care.';
+) COMMENT 'Master record for insurance brokers including broker ID, name, contact information, licensing, and relationship details with  health Care.';
 
 CREATE OR REPLACE TABLE `cmoore_customer_demos`.`sales`.`opportunity` (
     `opportunity_id` STRING COMMENT 'Unique identifier for the sales opportunity record.',
@@ -28379,7 +28379,7 @@ CREATE OR REPLACE TABLE `cmoore_customer_demos`.`sales`.`lead_source` (
     `effective_date` DATE COMMENT 'Date when the lead source became or will become active and available for lead attribution.. Valid values are `^d{4}-d{2}-d{2}$`',
     `expiration_date` DATE COMMENT 'Date when the lead source is scheduled to expire or was retired. Null if the source has no planned end date.. Valid values are `^d{4}-d{2}-d{2}$`',
     `cost_per_lead` DECIMAL(18,2) COMMENT 'Average cost incurred to acquire a single lead from this source. Used for Return on Investment (ROI) analysis and budget planning.',
-    `cost_currency_code` STRING COMMENT 'ISO 4217 three-letter currency code for the cost per lead amount. Typically USD for United Health Care operations.. Valid values are `^[A-Z]{3}$`',
+    `cost_currency_code` STRING COMMENT 'ISO 4217 three-letter currency code for the cost per lead amount. Typically USD for  health Care operations.. Valid values are `^[A-Z]{3}$`',
     `conversion_rate_percent` DECIMAL(18,2) COMMENT 'Historical conversion rate from lead to enrolled member for this source, expressed as a percentage. Used for lead quality assessment and forecasting.',
     `priority_rank` STRING COMMENT 'Numerical ranking indicating the strategic priority or preference for this lead source. Lower numbers indicate higher priority.',
     `attribution_method` STRING COMMENT 'Method used to attribute leads to this source when multiple touchpoints exist. Defines how credit is assigned in multi-channel journeys.. Valid values are `first_touch|last_touch|multi_touch|linear|time_decay|position_based|manual`',
@@ -30243,7 +30243,7 @@ CREATE OR REPLACE TABLE `cmoore_customer_demos`.`shared`.`contract` (
     `last_modified_timestamp` TIMESTAMP COMMENT 'Date and time when the contract record was last updated or modified.',
     `notes` STRING COMMENT 'Free-text field for additional notes, comments, or special instructions related to the contract.',
     CONSTRAINT pk_contract PRIMARY KEY(`contract_id`)
-) COMMENT 'Consolidated contract from provider and sales domains. Original: Details of contractual agreements between UnitedHealth and the provider, covering rates, terms, obli... Also includes: Master record of the contractual agreement between United Health Care and a broker, defining commiss...';
+) COMMENT 'Consolidated contract from provider and sales domains. Original: Details of contractual agreements between UnitedHealth and the provider, covering rates, terms, obli... Also includes: Master record of the contractual agreement between  health Care and a broker, defining commiss...';
 
 CREATE OR REPLACE TABLE `cmoore_customer_demos`.`shared`.`complaint` (
     `complaint_id` STRING COMMENT 'Unique identifier for the complaint record. Primary key for the complaint entity.',
@@ -31074,7 +31074,7 @@ CREATE OR REPLACE TABLE `cmoore_customer_demos`.`sales`.`broker_program_particip
     `program_effective_date` DATE COMMENT 'The date when the brokers participation in the program became effective or active. May differ from enrollment_date if there is a waiting period or approval process.',
     `program_end_date` DATE COMMENT 'The date when the brokers participation in the program ended or is scheduled to end. Used to track historical participation and program expiration dates.',
     CONSTRAINT pk_broker_program_participation PRIMARY KEY(`broker_program_participation_id`)
-) COMMENT 'This association product represents the participation relationship between insurance brokers and United Health Care programs. It captures broker enrollment in certification programs, incentive programs, and training initiatives. Each record links one broker to one program with attributes that track certification status, performance metrics, and participation dates specific to that broker-program combination.. Existence Justification: In United Health Cares broker management operations, brokers participate in multiple programs simultaneously (Medicare Stars certification, wellness initiative training, preferred partner tiers, AEP training programs), and each program has many participating brokers. The business actively manages these participation relationships, tracking certification status, performance tiers, and participation dates for each broker-program combination. This is an operational relationship that broker management teams create, update, and query regularly.';
+) COMMENT 'This association product represents the participation relationship between insurance brokers and  health Care programs. It captures broker enrollment in certification programs, incentive programs, and training initiatives. Each record links one broker to one program with attributes that track certification status, performance metrics, and participation dates specific to that broker-program combination.. Existence Justification: In  health Cares broker management operations, brokers participate in multiple programs simultaneously (Medicare Stars certification, wellness initiative training, preferred partner tiers, AEP training programs), and each program has many participating brokers. The business actively manages these participation relationships, tracking certification status, performance tiers, and participation dates for each broker-program combination. This is an operational relationship that broker management teams create, update, and query regularly.';
 
 CREATE OR REPLACE TABLE `cmoore_customer_demos`.`credentialing`.`credentialing_network_participation` (
     `credentialing_network_participation_id` STRING COMMENT 'Primary key for the network_participation association',
@@ -31216,7 +31216,7 @@ CREATE OR REPLACE TABLE `cmoore_customer_demos`.`shared`.`program_credentialing_
     `status` STRING COMMENT 'Current status of this program-policy assignment indicating whether it is actively enforced, pending approval, or has been superseded',
     `compliance_notes` STRING COMMENT 'Additional notes regarding compliance considerations, exceptions, or special handling for this program-policy combination',
     CONSTRAINT pk_program_credentialing_policy PRIMARY KEY(`program_credentialing_policy_id`)
-) COMMENT 'This association product represents the assignment of credentialing policies to specific programs within United Health Care. It captures program-specific credentialing requirements and policy variations that exist only in the context of a particular programs compliance framework. Each record links one credentialing policy to one program with effective dates and program-specific requirement overrides.. Existence Justification: In United Health Cares operations, credentialing policies must be applied across multiple programs (Medicare Advantage, Medicaid, Commercial) because each program has distinct regulatory requirements and compliance frameworks. A single base credentialing policy (e.g., primary care physician credentialing) is referenced by multiple programs, but each program applies it with program-specific variations, effective dates, and override requirements. The compliance team actively manages these program-policy assignments as operational records, tracking when policies become effective for each program and what program-specific modifications apply.';
+) COMMENT 'This association product represents the assignment of credentialing policies to specific programs within  health Care. It captures program-specific credentialing requirements and policy variations that exist only in the context of a particular programs compliance framework. Each record links one credentialing policy to one program with effective dates and program-specific requirement overrides.. Existence Justification: In  health Cares operations, credentialing policies must be applied across multiple programs (Medicare Advantage, Medicaid, Commercial) because each program has distinct regulatory requirements and compliance frameworks. A single base credentialing policy (e.g., primary care physician credentialing) is referenced by multiple programs, but each program applies it with program-specific variations, effective dates, and override requirements. The compliance team actively manages these program-policy assignments as operational records, tracking when policies become effective for each program and what program-specific modifications apply.';
 
 CREATE OR REPLACE TABLE `cmoore_customer_demos`.`credentialing`.`workflow_step_sla` (
     `workflow_step_sla_id` STRING COMMENT 'Primary key for the workflow_step_sla association',

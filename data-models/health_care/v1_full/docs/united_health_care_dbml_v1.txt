@@ -1,10 +1,10 @@
-// DBML Schema for Business: United Health Care
+// DBML Schema for Business:  health Care
 // Version: 1
 // Generated on: 2026-03-20 04:03:10
 
 Project {
   database_type: 'Databricks Unity Catalog'
-  Note: 'Business data model for United Health Care - Version 1'
+  Note: 'Business data model for  health Care - Version 1'
 }
 
 Table claim.claim {
@@ -21098,17 +21098,17 @@ Table risk.audit_sample {
 }
 
 Table sales.broker {
-  broker_id varchar [pk, note: 'Unique identifier for the insurance broker within United Health Care systems. Primary key for the broker entity.']
+  broker_id varchar [pk, note: 'Unique identifier for the insurance broker within  health Care systems. Primary key for the broker entity.']
   party_id varchar [note: 'Foreign key linking to contract.contract_party. Business justification: Brokers are contractual parties with formal agreements defining commission structures, appointment status, and compliance obligations. Contracting and sales reference this for broker management and pa']
-  portal_user_id varchar [note: 'Unique user ID for the broker\'s access to United Health Care broker portal systems.']
+  portal_user_id varchar [note: 'Unique user ID for the broker\'s access to  health Care broker portal systems.']
   training_record_id varchar [note: 'Foreign key linking to compliance.training_record. Business justification: Health insurance brokers must complete mandatory compliance training (HIPAA, ACA, state regulations) annually. Sales operations verify broker certification status before allowing sales activities.']
   ahip_certification_date date [note: 'Date when the broker completed AHIP Medicare certification training.']
   ahip_certification_expiration_date date [note: 'Date when the broker\'s AHIP Medicare certification expires. Must be renewed annually.']
   ahip_certification_status varchar [note: 'Status of the broker\'s AHIP Medicare certification. Required annually for Medicare Advantage and Part D sales.']
   annual_revenue_range varchar [note: 'Estimated annual revenue range for the brokerage firm. Used for broker segmentation and relationship management.']
-  appointment_date date [note: 'Date when the broker was appointed to represent United Health Care.']
-  appointment_status varchar [note: 'Status of the broker\'s appointment with United Health Care. Appointed status is required to sell UHC products and receive commissions.']
-  appointment_termination_date date [note: 'Date when the broker\'s appointment with United Health Care was terminated, if applicable.']
+  appointment_date date [note: 'Date when the broker was appointed to represent  health Care.']
+  appointment_status varchar [note: 'Status of the broker\'s appointment with  health Care. Appointed status is required to sell UHC products and receive commissions.']
+  appointment_termination_date date [note: 'Date when the broker\'s appointment with  health Care was terminated, if applicable.']
   background_check_date date [note: 'Date when the most recent background check was completed for the broker.']
   background_check_status varchar [note: 'Status of the broker\'s background check screening. May be required for certain lines of business or state regulations.']
   bank_account_number varchar [note: 'Bank account number for ACH commission payments. Encrypted at rest and in transit.']
@@ -21123,11 +21123,11 @@ Table sales.broker {
   business_zip_code varchar [note: 'Five or nine-digit ZIP code for the broker\'s principal place of business.']
   commission_schedule_code varchar [note: 'Code identifying the commission rate schedule applicable to this broker. Determines compensation for sales across different product lines.']
   complaint_count varchar [note: 'Total number of formal complaints filed against the broker by members or regulators. Used for risk assessment.']
-  compliance_training_completion_date date [note: 'Date when the broker completed the most recent United Health Care compliance training.']
-  compliance_training_status varchar [note: 'Status of the broker\'s completion of required United Health Care compliance training modules (HIPAA, fraud prevention, marketing guidelines).']
-  contract_effective_date date [note: 'Date when the broker\'s contract with United Health Care became effective.']
-  contract_termination_date date [note: 'Date when the broker\'s contract with United Health Care was terminated, if applicable.']
-  contracting_status varchar [note: 'Status of the broker\'s contractual agreement with United Health Care. Determines commission eligibility and product access.']
+  compliance_training_completion_date date [note: 'Date when the broker completed the most recent  health Care compliance training.']
+  compliance_training_status varchar [note: 'Status of the broker\'s completion of required  health Care compliance training modules (HIPAA, fraud prevention, marketing guidelines).']
+  contract_effective_date date [note: 'Date when the broker\'s contract with  health Care became effective.']
+  contract_termination_date date [note: 'Date when the broker\'s contract with  health Care was terminated, if applicable.']
+  contracting_status varchar [note: 'Status of the broker\'s contractual agreement with  health Care. Determines commission eligibility and product access.']
   data_source_system varchar [note: 'Name of the source system from which the broker record originated (e.g., Salesforce Health Cloud, QNXT, Legacy Broker System).']
   doing_business_as_name varchar [note: 'Trade name or DBA name under which the broker operates if different from legal name. Used for marketing and customer-facing communications.']
   employee_count varchar [note: 'Number of employees working for the brokerage firm. Indicates agency size and capacity.']
@@ -21139,10 +21139,10 @@ Table sales.broker {
   hierarchy_level varchar [note: 'Numeric level in the broker hierarchy (1=direct writing agent, 2=sub-agent, 3=general agent, etc.). Used for commission calculations.']
   last_activity_date date [note: 'Date of the broker\'s most recent sales activity, enrollment submission, or system interaction. Used for engagement tracking.']
   last_complaint_date date [note: 'Date of the most recent formal complaint filed against the broker.']
-  last_login_date timestamp [note: 'Timestamp of the broker\'s most recent login to United Health Care broker portal systems. Used for engagement tracking.']
+  last_login_date timestamp [note: 'Timestamp of the broker\'s most recent login to  health Care broker portal systems. Used for engagement tracking.']
   last_survey_date date [note: 'Date when the broker last completed a satisfaction or feedback survey.']
   legal_name varchar [note: 'Full legal name of the broker or brokerage firm as registered with state insurance departments and licensing authorities.']
-  license_status varchar [note: 'Current status of the broker\'s primary insurance license. Determines eligibility to sell United Health Care products.']
+  license_status varchar [note: 'Current status of the broker\'s primary insurance license. Determines eligibility to sell  health Care products.']
   lines_of_authority varchar [note: 'Comma-separated list of insurance lines the broker is licensed to sell (e.g., Life, Health, Accident, Variable Annuities). Determines product eligibility.']
   lob_commercial boolean [note: 'Indicates whether the broker is authorized to sell Commercial group health insurance products.']
   lob_individual boolean [note: 'Indicates whether the broker is authorized to sell individual and family health insurance plans.']
@@ -21155,17 +21155,17 @@ Table sales.broker {
   mailing_country_code varchar [note: 'Three-letter ISO country code for broker mailing address.']
   mailing_state varchar [note: 'Two-letter state code for broker mailing address.']
   mailing_zip_code varchar [note: 'Five or nine-digit ZIP code for broker mailing address.']
-  marketing_opt_in boolean [note: 'Indicates whether the broker has opted in to receive marketing communications, newsletters, and promotional materials from United Health Care.']
+  marketing_opt_in boolean [note: 'Indicates whether the broker has opted in to receive marketing communications, newsletters, and promotional materials from  health Care.']
   marketplace_registration_number varchar [note: 'Unique registration number issued by the Federally Facilitated Marketplace (FFM) or State-Based Marketplace (SBM) for ACA marketplace sales.']
   notes varchar [note: 'Free-text field for additional notes, comments, or special instructions related to the broker relationship.']
   npi varchar [note: 'Ten-digit unique identification number issued to health care providers by CMS. Used for HIPAA-compliant transactions and provider identification.']
-  nps_score varchar [note: 'Most recent Net Promoter Score rating provided by the broker indicating satisfaction with United Health Care partnership. Scale of -100 to 100.']
-  onboarding_date date [note: 'Date when the broker completed the onboarding process and became eligible to sell United Health Care products.']
+  nps_score varchar [note: 'Most recent Net Promoter Score rating provided by the broker indicating satisfaction with  health Care partnership. Scale of -100 to 100.']
+  onboarding_date date [note: 'Date when the broker completed the onboarding process and became eligible to sell  health Care products.']
   payment_method varchar [note: 'Method by which commission payments are delivered to the broker.']
-  portal_access_enabled boolean [note: 'Indicates whether the broker has active access to United Health Care broker portal systems for quoting, enrollment, and commission reporting.']
+  portal_access_enabled boolean [note: 'Indicates whether the broker has active access to  health Care broker portal systems for quoting, enrollment, and commission reporting.']
   preferred_language varchar [note: 'Preferred language for broker communications and support. Supports multilingual broker engagement.']
-  primary_contact_first_name varchar [note: 'First name of the primary contact person at the brokerage for United Health Care relationship management.']
-  primary_contact_last_name varchar [note: 'Last name of the primary contact person at the brokerage for United Health Care relationship management.']
+  primary_contact_first_name varchar [note: 'First name of the primary contact person at the brokerage for  health Care relationship management.']
+  primary_contact_last_name varchar [note: 'Last name of the primary contact person at the brokerage for  health Care relationship management.']
   primary_contact_title varchar [note: 'Job title or role of the primary contact person (e.g., Principal Broker, Agency Owner, Sales Director).']
   primary_email varchar [note: 'Primary email address for broker communications, commission statements, and system notifications.']
   primary_license_expiration_date date [note: 'Date when the primary insurance license expires. Critical for compliance monitoring and broker eligibility.']
@@ -21173,19 +21173,19 @@ Table sales.broker {
   primary_license_number varchar [note: 'State-issued insurance producer license number for the broker\'s primary state of licensure. Required for all insurance sales activities.']
   primary_license_state varchar [note: 'Two-letter state code where the broker holds their primary resident insurance license.']
   primary_phone varchar [note: 'Primary business phone number for broker contact and support.']
-  producer_code varchar [note: 'Internal United Health Care producer code used in commission systems and enrollment transactions. May differ from broker_id.']
-  record_created_date date [note: 'Date when the broker record was originally created in United Health Care systems.']
-  record_updated_date date [note: 'Date when the broker record was last updated in United Health Care systems.']
-  relationship_manager_email varchar [note: 'Email address of the United Health Care relationship manager assigned to this broker.']
-  relationship_manager_name varchar [note: 'Name of the United Health Care employee assigned as the primary relationship manager for this broker.']
-  relationship_manager_phone varchar [note: 'Phone number of the United Health Care relationship manager assigned to this broker.']
+  producer_code varchar [note: 'Internal  health Care producer code used in commission systems and enrollment transactions. May differ from broker_id.']
+  record_created_date date [note: 'Date when the broker record was originally created in  health Care systems.']
+  record_updated_date date [note: 'Date when the broker record was last updated in  health Care systems.']
+  relationship_manager_email varchar [note: 'Email address of the  health Care relationship manager assigned to this broker.']
+  relationship_manager_name varchar [note: 'Name of the  health Care employee assigned as the primary relationship manager for this broker.']
+  relationship_manager_phone varchar [note: 'Phone number of the  health Care relationship manager assigned to this broker.']
   risk_score varchar [note: 'Calculated risk score for the broker based on compliance history, complaint patterns, and fraud indicators. Used for monitoring and oversight.']
   sales_region varchar [note: 'Geographic sales region (e.g., Northeast, Southeast, Midwest, West) for broker segmentation and reporting.']
   sales_territory_code varchar [note: 'Code identifying the geographic sales territory assigned to this broker for commission and reporting purposes.']
   secondary_email varchar [note: 'Secondary or backup email address for broker communications and escalations.']
   secondary_phone varchar [note: 'Secondary or mobile phone number for broker contact.']
   specialization varchar [note: 'Comma-separated list of broker specializations or focus areas (e.g., Small Business, Large Group, Senior Market, Hispanic Market, Union Groups).']
-  status varchar [note: 'Current operational status of the broker relationship with United Health Care. Determines eligibility for sales and commissions.']
+  status varchar [note: 'Current operational status of the broker relationship with  health Care. Determines eligibility for sales and commissions.']
   status_effective_date date [note: 'Date when the current broker status became effective.']
   status_reason varchar [note: 'Detailed reason or explanation for the current broker status, especially for inactive, suspended, or terminated statuses.']
   tier varchar [note: 'Performance-based tier classification for the broker indicating sales volume, quality metrics, and relationship level. Affects commission rates and support levels.']
@@ -21196,7 +21196,7 @@ Table sales.broker {
   writing_agent_number varchar [note: 'Legacy or alternate agent identification number used in specific product lines or legacy systems.']
   years_in_business varchar [note: 'Number of years the broker has been operating in the insurance industry. Used for experience-based segmentation.']
 
-  Note: 'Master record for insurance brokers including broker ID, name, contact information, licensing, and relationship details with United Health Care.'
+  Note: 'Master record for insurance brokers including broker ID, name, contact information, licensing, and relationship details with  health Care.'
 }
 
 Table sales.opportunity {
@@ -22228,7 +22228,7 @@ Table sales.lead_source {
   consent_type varchar [note: 'Type of consent obtained for contacting leads from this source. Express written consent is required for certain marketing activities under TCPA.']
   contact_consent_obtained boolean [note: 'Indicates whether explicit consent for contact has been obtained from leads originating from this source. Critical for Telephone Consumer Protection Act (TCPA) compliance.']
   conversion_rate_percent decimal(5,2) [note: 'Historical conversion rate from lead to enrolled member for this source, expressed as a percentage. Used for lead quality assessment and forecasting.']
-  cost_currency_code varchar [note: 'ISO 4217 three-letter currency code for the cost per lead amount. Typically USD for United Health Care operations.']
+  cost_currency_code varchar [note: 'ISO 4217 three-letter currency code for the cost per lead amount. Typically USD for  health Care operations.']
   cost_per_lead decimal(12,2) [note: 'Average cost incurred to acquire a single lead from this source. Used for Return on Investment (ROI) analysis and budget planning.']
   created_date date [note: 'Date when the lead source record was created in the system.']
   data_quality_threshold_percent decimal(5,2) [note: 'Minimum acceptable data quality score for leads from this source, expressed as a percentage. Leads below this threshold may be rejected or flagged for review.']
@@ -22596,7 +22596,7 @@ Table sales.broker_program_participation {
   program_effective_date date [note: 'The date when the broker\'s participation in the program became effective or active. May differ from enrollment_date if there is a waiting period or approval process.']
   program_end_date date [note: 'The date when the broker\'s participation in the program ended or is scheduled to end. Used to track historical participation and program expiration dates.']
 
-  Note: 'This association product represents the participation relationship between insurance brokers and United Health Care programs. It captures broker enrollment in certification programs, incentive programs, and training initiatives. Each record links one broker to one program with attributes that track certification status, performance metrics, and participation dates specific to that broker-program combination.. Existence Justification: In United Health Care\'s broker management operations, brokers participate in multiple programs simultaneously (Medicare Stars certification, wellness initiative training, preferred partner tiers, AEP training programs), and each program has many participating brokers. The business actively manages these participation relationships, tracking certification status, performance tiers, and participation dates for each broker-program combination. This is an operational relationship that broker management teams create, update, and query regularly.'
+  Note: 'This association product represents the participation relationship between insurance brokers and  health Care programs. It captures broker enrollment in certification programs, incentive programs, and training initiatives. Each record links one broker to one program with attributes that track certification status, performance metrics, and participation dates specific to that broker-program combination.. Existence Justification: In  health Care\'s broker management operations, brokers participate in multiple programs simultaneously (Medicare Stars certification, wellness initiative training, preferred partner tiers, AEP training programs), and each program has many participating brokers. The business actively manages these participation relationships, tracking certification status, performance tiers, and participation dates for each broker-program combination. This is an operational relationship that broker management teams create, update, and query regularly.'
 }
 
 Table sales.commission {
@@ -28020,7 +28020,7 @@ Table finance.asset_depreciation {
 }
 
 Table finance.intercompany_transaction {
-  intercompany_transaction_id varchar [pk, note: 'Unique identifier for the intercompany transaction record within United Health Care\'s financial system.']
+  intercompany_transaction_id varchar [pk, note: 'Unique identifier for the intercompany transaction record within  health Care\'s financial system.']
   cost_center_id varchar [note: 'Foreign key linking to finance.cost_center. Business justification: intercompany_transaction can be allocated to a cost center. The cost_center_code is used for lookup, but adding FK provides referential integrity and allows joining to get full cost center details.']
   destination_finance_account_id varchar [note: 'Foreign key linking to finance.finance_account. Business justification: intercompany_transaction references a destination account. The destination_account_code is used for lookup, but adding FK to finance_account provides referential integrity and allows joining to get fu']
   financial_period_id varchar [note: 'Foreign key linking to finance.financial_period. Business justification: intercompany_transaction belongs to a specific financial period. Rather than duplicating period attributes, it should reference the authoritative financial_period master.']
@@ -28039,8 +28039,8 @@ Table finance.intercompany_transaction {
   department_name varchar [note: 'The descriptive name of the department within the legal entity that initiated or is responsible for the intercompany transaction.']
   description varchar [note: 'A detailed textual description of the intercompany transaction explaining its business purpose and nature.']
   destination_account_code varchar [note: 'The general ledger account code in the destination legal entity\'s chart of accounts to which the intercompany transaction is posted.']
-  destination_legal_entity_code varchar [note: 'The code identifying the receiving legal entity within United Health Care that is the destination of the intercompany transaction.']
-  destination_legal_entity_name varchar [note: 'The full legal name of the receiving entity within United Health Care that is the destination of the intercompany transaction.']
+  destination_legal_entity_code varchar [note: 'The code identifying the receiving legal entity within  health Care that is the destination of the intercompany transaction.']
+  destination_legal_entity_name varchar [note: 'The full legal name of the receiving entity within  health Care that is the destination of the intercompany transaction.']
   elimination_date date [note: 'The date on which the intercompany transaction elimination entry was posted during the consolidation process.']
   elimination_flag boolean [note: 'Indicates whether this intercompany transaction requires elimination during the financial consolidation process to avoid double-counting.']
   elimination_journal_number varchar [note: 'The journal entry number assigned to the elimination entry that offsets this intercompany transaction during consolidation.']
@@ -28054,7 +28054,7 @@ Table finance.intercompany_transaction {
   journal_category varchar [note: 'The classification of the journal entry type for the intercompany transaction used for audit trail and financial control purposes.']
   journal_source varchar [note: 'The origin or method by which the intercompany transaction journal entry was created in the financial system.']
   last_modified_timestamp timestamp [note: 'The date and time when the intercompany transaction record was most recently updated or modified in the financial system.']
-  line_of_business varchar [note: 'The business segment or product line within United Health Care to which the intercompany transaction is attributed for management reporting.']
+  line_of_business varchar [note: 'The business segment or product line within  health Care to which the intercompany transaction is attributed for management reporting.']
   materiality_threshold_flag boolean [note: 'Indicates whether the intercompany transaction amount exceeds the materiality threshold requiring enhanced review or disclosure.']
   mlr_category varchar [note: 'The MLR reporting category to which this intercompany transaction is classified for ACA compliance and rebate calculation purposes.']
   mlr_impact_flag boolean [note: 'Indicates whether this intercompany transaction impacts the Medical Loss Ratio calculation required under the Affordable Care Act.']
@@ -28075,14 +28075,14 @@ Table finance.intercompany_transaction {
   reference_document_type varchar [note: 'The type of supporting document that provides evidence or justification for the intercompany transaction.']
   regulatory_reporting_flag boolean [note: 'Indicates whether this intercompany transaction must be included in regulatory financial reports or statutory filings.']
   reporting_currency_amount decimal(18,2) [note: 'The transaction amount converted to the corporate reporting currency for consolidated financial statements and regulatory filings.']
-  reporting_currency_code varchar [note: 'The three-letter ISO 4217 currency code used for consolidated financial reporting at the corporate level (typically USD for United Health Care).']
+  reporting_currency_code varchar [note: 'The three-letter ISO 4217 currency code used for consolidated financial reporting at the corporate level (typically USD for  health Care).']
   reversal_date date [note: 'The date on which the intercompany transaction was reversed in the financial system.']
   reversal_flag boolean [note: 'Indicates whether this intercompany transaction is a reversal entry that offsets a previously posted transaction.']
   reversal_reason varchar [note: 'The business justification or explanation for why the intercompany transaction was reversed or cancelled.']
   risk_adjustment_flag boolean [note: 'Indicates whether this intercompany transaction is related to risk adjustment payments or settlements under Medicare Advantage or ACA programs.']
   source_account_code varchar [note: 'The general ledger account code in the source legal entity\'s chart of accounts to which the intercompany transaction is posted.']
-  source_legal_entity_code varchar [note: 'The code identifying the originating legal entity within United Health Care that initiated or is the source of the intercompany transaction.']
-  source_legal_entity_name varchar [note: 'The full legal name of the originating entity within United Health Care that is the source of the intercompany transaction.']
+  source_legal_entity_code varchar [note: 'The code identifying the originating legal entity within  health Care that initiated or is the source of the intercompany transaction.']
+  source_legal_entity_name varchar [note: 'The full legal name of the originating entity within  health Care that is the source of the intercompany transaction.']
   source_system_code varchar [note: 'The code identifying the originating financial system or application from which the intercompany transaction data was sourced.']
   sox_control_flag boolean [note: 'Indicates whether this intercompany transaction is subject to Sarbanes-Oxley internal control testing and documentation requirements.']
   statutory_filing_category varchar [note: 'The type of statutory or regulatory filing to which this intercompany transaction must be reported for insurance regulatory compliance.']
@@ -28102,7 +28102,7 @@ Table finance.intercompany_transaction {
   withholding_tax_amount decimal(18,2) [note: 'The amount of tax withheld at source on the intercompany transaction as required by applicable tax regulations.']
   withholding_tax_rate decimal(5,2) [note: 'The percentage rate applied to calculate withholding tax on the intercompany transaction amount.']
 
-  Note: 'Transactional record of financial activity between legal entities within United Health Care, including eliminations.'
+  Note: 'Transactional record of financial activity between legal entities within  health Care, including eliminations.'
 }
 
 Table finance.tax_return {
@@ -34227,7 +34227,7 @@ Table shared.contract {
   utilization_review_indicator boolean [note: 'Flag indicating whether services under this contract are subject to utilization review processes.']
   value_amount decimal(15,2) [note: 'Estimated total financial value or annual spend associated with this contract.']
 
-  Note: 'Consolidated contract from provider and sales domains. Original: Details of contractual agreements between UnitedHealth and the provider, covering rates, terms, obli... Also includes: Master record of the contractual agreement between United Health Care and a broker, defining commiss...'
+  Note: 'Consolidated contract from provider and sales domains. Original: Details of contractual agreements between UnitedHealth and the provider, covering rates, terms, obli... Also includes: Master record of the contractual agreement between  health Care and a broker, defining commiss...'
 }
 
 Table shared.complaint {
@@ -34551,7 +34551,7 @@ Table shared.program_credentialing_policy {
   program_specific_requirements varchar [note: 'Text description of additional or modified credentialing requirements specific to this program-policy combination, as identified in the detection phase relationship data']
   status varchar [note: 'Current status of this program-policy assignment indicating whether it is actively enforced, pending approval, or has been superseded']
 
-  Note: 'This association product represents the assignment of credentialing policies to specific programs within United Health Care. It captures program-specific credentialing requirements and policy variations that exist only in the context of a particular program\'s compliance framework. Each record links one credentialing policy to one program with effective dates and program-specific requirement overrides.. Existence Justification: In United Health Care\'s operations, credentialing policies must be applied across multiple programs (Medicare Advantage, Medicaid, Commercial) because each program has distinct regulatory requirements and compliance frameworks. A single base credentialing policy (e.g., primary care physician credentialing) is referenced by multiple programs, but each program applies it with program-specific variations, effective dates, and override requirements. The compliance team actively manages these program-policy assignments as operational records, tracking when policies become effective for each program and what program-specific modifications apply.'
+  Note: 'This association product represents the assignment of credentialing policies to specific programs within  health Care. It captures program-specific credentialing requirements and policy variations that exist only in the context of a particular program\'s compliance framework. Each record links one credentialing policy to one program with effective dates and program-specific requirement overrides.. Existence Justification: In  health Care\'s operations, credentialing policies must be applied across multiple programs (Medicare Advantage, Medicaid, Commercial) because each program has distinct regulatory requirements and compliance frameworks. A single base credentialing policy (e.g., primary care physician credentialing) is referenced by multiple programs, but each program applies it with program-specific variations, effective dates, and override requirements. The compliance team actively manages these program-policy assignments as operational records, tracking when policies become effective for each program and what program-specific modifications apply.'
 }
 
 Table shared.contract_journal_allocation {
