@@ -33,15 +33,15 @@ The fastest way to explore one of these models visually is the **model-viewer ap
 
 ### Step 1 — Install the viewer app
 
-1. Download the installer notebook from the agent repo: [`viewer/model_viewer_app_installer.ipynb`](https://github.com/amralieg/vibe-modelling-agent/blob/main/viewer/model_viewer_app_installer.ipynb).
+1. Download the installer notebook from this repo: [`viewer/model_viewer_app_installer.ipynb`](https://github.com/databricks-industry-solutions/lakehouse-business-data-models/blob/main/viewer/model_viewer_app_installer.ipynb).
 2. Import the notebook into your Databricks workspace and run all cells. The installer provisions a Databricks App and prints the app URL when it finishes.
 
 ### Step 2 — Load a model
 
 Open the app URL. You have two ways to load any model from this repo:
 
-- **Load from repo** — paste `amralieg/vibe-business-data-models` and pick the industry + flavour from the dropdown. Note: GitHub sometimes rate-limits anonymous API calls — if you hit a 429 / "rate limit exceeded" message, fall back to the second option.
-- **Load from JSON** — navigate to the industry folder in this repo (e.g. [`retail/mvm_v1/`](./retail/mvm_v1/)), download `model.json`, and click **Load from JSON** in the app to upload it directly.
+- **Load from repo** — paste `databricks-industry-solutions/lakehouse-business-data-models` and pick the industry + flavour from the dropdown. Note: GitHub sometimes rate-limits anonymous API calls — if you hit a 429 / "rate limit exceeded" message, fall back to the second option.
+- **Load from JSON** — navigate to the industry folder in this repo (e.g. [`retail/v1/mvm/`](./retail/v1/mvm/)), download `model.json`, and click **Load from JSON** in the app to upload it directly.
 
 ### What you see in the viewer
 
@@ -63,8 +63,8 @@ Open the app URL. You have two ways to load any model from this repo:
 
 Each industry root folder ships **two flavours** of the same business domain:
 
-- **`ecm_v1/` — Expanded Coverage Model.** Comprehensive, audit-grade model — the agent's source of truth. Covers every entity it can think of for the industry: operations, finance, regulatory, audit trail, reference data.
-- **`mvm_v1/` — Minimum Viable Model.** Production-ready, demo-friendly subset derived from the ECM. Roughly 40-50% of the ECM's table count, retaining the most-used entities and FK paths. Recommended starting point for new deployments.
+- **`v1/ecm/` — Expanded Coverage Model.** Comprehensive, audit-grade model — the agent's source of truth. Covers every entity it can think of for the industry: operations, finance, regulatory, audit trail, reference data.
+- **`v1/mvm/` — Minimum Viable Model.** Production-ready, demo-friendly subset derived from the ECM. Roughly 40-50% of the ECM's table count, retaining the most-used entities and FK paths. Recommended starting point for new deployments.
 
 Both flavours are byte-identical in shape — same files, same structure, same Unity-Catalog deployment story. You pick the size that fits your use-case.
 
@@ -74,21 +74,24 @@ Both flavours are byte-identical in shape — same files, same structure, same U
 
 ```
 <industry>/
-├── readme.md                    # Industry-level summary (counts, vibe, generation metadata)
-├── ecm_v1/
-│   ├── readme.md                # ECM-specific summary + per-domain breakdown
-│   ├── model.json               # Full agent model (single source of truth)
-│   ├── _manifest.json           # Quality-gate manifest (counts, file inventory)
-│   ├── schemas/                 # Per-table DDL (CREATE TABLE / CREATE VIEW)
-│   ├── metrics/                 # Metric view SQL (one .sql per BI-ready metric view)
-│   ├── samples/                 # Realistic sample-data CSVs sampled from each table
-│   ├── ontology/                # Tag taxonomy + classification ontology JSON
-│   ├── docs/                    # Per-domain markdown docs (auto-generated)
-│   ├── diagram/                 # DBML + auto-rendered ER diagrams
-│   └── vibes/                   # next_vibes.txt — auto-generated improvement priorities for v2
-└── mvm_v1/
-    └── (same structure as ecm_v1)
+└── v1/                          # Model generation version (v2/, v3/, … land as siblings)
+    ├── readme.md                # Industry-level summary (counts, vibe, generation metadata)
+    ├── ecm/
+    │   ├── readme.md            # ECM-specific summary + per-domain breakdown
+    │   ├── model.json           # Full agent model (single source of truth)
+    │   ├── _manifest.json       # Quality-gate manifest (counts, file inventory)
+    │   ├── schemas/             # Per-table DDL (CREATE TABLE / CREATE VIEW)
+    │   ├── metrics/             # Metric view SQL (one .sql per BI-ready metric view)
+    │   ├── samples/             # Realistic sample-data CSVs sampled from each table
+    │   ├── ontology/            # Tag taxonomy + classification ontology JSON
+    │   ├── docs/                # Per-domain markdown docs (auto-generated)
+    │   ├── diagram/             # DBML + auto-rendered ER diagrams
+    │   └── vibes/               # next_vibes.txt — auto-generated improvement priorities for the next version
+    └── mvm/
+        └── (same structure as ecm/)
 ```
+
+Each new model generation lands under a new `vN/` sibling (`v2/`, `v3/`, …), so multiple versions of the same industry stay side-by-side and reviewable.
 
 Top-level helper:
 
@@ -122,54 +125,54 @@ All 40 MVMs ship with **zero structural findings** — they're clean across ever
 
 | Industry | Domains | Sub-domains | Tables | Attributes | FKs | Metric views |
 |---|---:|---:|---:|---:|---:|---:|
-| [Healthcare](./healthcare/ecm_v1/) | 22 | 78 | 541 | 22,423 | 4,093 | 104 |
-| [Oil & Gas](./oil_gas/ecm_v1/) | 19 | 72 | 568 | 22,088 | 3,533 | 107 |
-| [Sports & Entertainment](./sports_entertainment/ecm_v1/) | 19 | 75 | 473 | 21,075 | 4,474 | 180 |
-| [Transport & Shipping](./transport_shipping/ecm_v1/) | 19 | 82 | 514 | 20,747 | 3,292 | 195 |
-| [Banking](./banking/ecm_v1/) | 19 | 70 | 501 | 19,792 | 3,301 | 90 |
+| [Healthcare](./healthcare/v1/ecm/) | 22 | 78 | 541 | 22,423 | 4,093 | 104 |
+| [Oil & Gas](./oil_gas/v1/ecm/) | 19 | 72 | 568 | 22,088 | 3,533 | 107 |
+| [Sports & Entertainment](./sports_entertainment/v1/ecm/) | 19 | 75 | 473 | 21,075 | 4,474 | 180 |
+| [Transport & Shipping](./transport_shipping/v1/ecm/) | 19 | 82 | 514 | 20,747 | 3,292 | 195 |
+| [Banking](./banking/v1/ecm/) | 19 | 70 | 501 | 19,792 | 3,301 | 90 |
 
 **Top-5 biggest MVMs by attribute count:**
 
 | Industry | Domains | Sub-domains | Tables | Attributes | FKs | Metric views |
 |---|---:|---:|---:|---:|---:|---:|
-| [Oil & Gas](./oil_gas/mvm_v1/) | 17 | 45 | 246 | 11,143 | 2,664 | 93 |
-| [Energy & Utilities](./energy_utilities/mvm_v1/) | 15 | 45 | 236 | 10,384 | 2,107 | 84 |
-| [Banking](./banking/mvm_v1/) | 17 | 47 | 227 | 9,883 | 2,478 | 80 |
-| [Life Insurance](./life_insurance/mvm_v1/) | 15 | 45 | 217 | 9,579 | 1,926 | 158 |
-| [Transport & Shipping](./transport_shipping/mvm_v1/) | 14 | 45 | 210 | 9,524 | 1,918 | 122 |
+| [Oil & Gas](./oil_gas/v1/mvm/) | 17 | 45 | 246 | 11,143 | 2,664 | 93 |
+| [Energy & Utilities](./energy_utilities/v1/mvm/) | 15 | 45 | 236 | 10,384 | 2,107 | 84 |
+| [Banking](./banking/v1/mvm/) | 17 | 47 | 227 | 9,883 | 2,478 | 80 |
+| [Life Insurance](./life_insurance/v1/mvm/) | 15 | 45 | 217 | 9,579 | 1,926 | 158 |
+| [Transport & Shipping](./transport_shipping/v1/mvm/) | 14 | 45 | 210 | 9,524 | 1,918 | 122 |
 
 **Most relationship-rich (densest FK graph):**
 
 | Industry | Flavour | FKs | Tables | FKs / table |
 |---|---|---:|---:|---:|
-| [Sports & Entertainment](./sports_entertainment/ecm_v1/) | ECM | 4,474 | 473 | 9.46 |
-| [Healthcare](./healthcare/ecm_v1/) | ECM | 4,093 | 541 | 7.57 |
-| [Oil & Gas](./oil_gas/ecm_v1/) | ECM | 3,533 | 568 | 6.22 |
-| [Oil & Gas](./oil_gas/mvm_v1/) | MVM | 2,664 | 246 | 10.83 |
-| [Banking](./banking/mvm_v1/) | MVM | 2,478 | 227 | 10.92 |
-| [Pharmaceuticals](./pharmaceuticals/mvm_v1/) | MVM | 2,423 | 213 | 11.38 |
+| [Sports & Entertainment](./sports_entertainment/v1/ecm/) | ECM | 4,474 | 473 | 9.46 |
+| [Healthcare](./healthcare/v1/ecm/) | ECM | 4,093 | 541 | 7.57 |
+| [Oil & Gas](./oil_gas/v1/ecm/) | ECM | 3,533 | 568 | 6.22 |
+| [Oil & Gas](./oil_gas/v1/mvm/) | MVM | 2,664 | 246 | 10.83 |
+| [Banking](./banking/v1/mvm/) | MVM | 2,478 | 227 | 10.92 |
+| [Pharmaceuticals](./pharmaceuticals/v1/mvm/) | MVM | 2,423 | 213 | 11.38 |
 
 **Most BI-ready (most metric views):**
 
 | Industry | Flavour | Metric views | Tables |
 |---|---|---:|---:|
-| [Education](./education/ecm_v1/) | ECM | 237 | 446 |
-| [Airlines](./airlines/ecm_v1/) | ECM | 231 | 424 |
-| [Health Insurance](./health_insurance/ecm_v1/) | ECM | 222 | 409 |
-| [Life Insurance](./life_insurance/mvm_v1/) | MVM | 158 | 217 |
-| [Pharmaceuticals](./pharmaceuticals/mvm_v1/) | MVM | 147 | 213 |
-| [Education](./education/mvm_v1/) | MVM | 143 | 203 |
+| [Education](./education/v1/ecm/) | ECM | 237 | 446 |
+| [Airlines](./airlines/v1/ecm/) | ECM | 231 | 424 |
+| [Health Insurance](./health_insurance/v1/ecm/) | ECM | 222 | 409 |
+| [Life Insurance](./life_insurance/v1/mvm/) | MVM | 158 | 217 |
+| [Pharmaceuticals](./pharmaceuticals/v1/mvm/) | MVM | 147 | 213 |
+| [Education](./education/v1/mvm/) | MVM | 143 | 203 |
 
 **Deepest sub-domain hierarchy:**
 
 | Industry | Flavour | Domains | Sub-domains | Sub-domains / domain |
 |---|---|---:|---:|---:|
-| [Transport & Shipping](./transport_shipping/ecm_v1/) | ECM | 19 | 82 | 4.3 |
-| [Healthcare](./healthcare/ecm_v1/) | ECM | 22 | 78 | 3.5 |
-| [Automotive](./automotive/ecm_v1/) | ECM | 19 | 75 | 3.9 |
-| [Banking](./banking/mvm_v1/) | MVM | 17 | 47 | 2.8 |
-| [Pharmaceuticals](./pharmaceuticals/mvm_v1/) | MVM | 15 | 47 | 3.1 |
-| [Mining](./mining/mvm_v1/) | MVM | 15 | 46 | 3.1 |
+| [Transport & Shipping](./transport_shipping/v1/ecm/) | ECM | 19 | 82 | 4.3 |
+| [Healthcare](./healthcare/v1/ecm/) | ECM | 22 | 78 | 3.5 |
+| [Automotive](./automotive/v1/ecm/) | ECM | 19 | 75 | 3.9 |
+| [Banking](./banking/v1/mvm/) | MVM | 17 | 47 | 2.8 |
+| [Pharmaceuticals](./pharmaceuticals/v1/mvm/) | MVM | 15 | 47 | 3.1 |
+| [Mining](./mining/v1/mvm/) | MVM | 15 | 46 | 3.1 |
 
 ---
 
@@ -283,7 +286,7 @@ See the [vibe-modelling-agent README](https://github.com/amralieg/vibe-modelling
 ## Known limitations
 
 - **Sample data is synthetic.** The agent generates plausible-looking values, but never use them as ground truth for analytics; replace with real ingestion before going to production.
-- **27 ECMs have cross-domain duplicate product names** (e.g. `party` shared across 4 domains in `payments_fintech/ecm_v1`). These are usually legitimate shared lookups but a future agent version may consolidate them under a single owning domain. **All 40 MVMs are clean of this.**
+- **27 ECMs have cross-domain duplicate product names** (e.g. `party` shared across 4 domains in `payments_fintech/v1/ecm`). These are usually legitimate shared lookups but a future agent version may consolidate them under a single owning domain. **All 40 MVMs are clean of this.**
 - **4 ECMs have one siloed product each** (`finance.ledger` in `education`, `facility.organization` in `healthcare`, `program.program` in `ngo`, `marine.pilotage_exemption` in `shipping_ports`). These are legitimate top-level reference entities that the agent didn't link out from. **All 40 MVMs are silo-free.**
 - **Industry coverage is broad, not deep.** The ECMs aim for 70-80% of an enterprise's domain shape; the last 20-30% (organisation-specific extensions, third-party integrations) is a follow-up vibe-iteration the agent can take on.
 
