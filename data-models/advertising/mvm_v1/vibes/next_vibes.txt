@@ -1,0 +1,61 @@
+**Model Quality Score: 83/100**
+
+**Static Analysis Findings (9 actionable):**
+  - [SA:duplicate_product_pair] Domain 'media' has both 'placement' and 'media_placement' — SSOT violation. Merge into 'placement'.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'campaign.campaign_kpi_target' and 'performance.performance_kpi_target' have the same entity name 'kpi_target' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'client.client_brief' and 'creative.creative_brief' have the same entity name 'brief' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'client.client_brief' and 'project.project_brief' have the same entity name 'brief' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'creative.creative_brief' and 'project.project_brief' have the same entity name 'brief' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.contract_insertion_order' and 'media.media_insertion_order' have the same entity name 'insertion_order' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.contract_deliverable' and 'creative.creative_deliverable' have the same entity name 'deliverable' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.contract_rate_card' and 'vendor.vendor_rate_card' have the same entity name 'rate_card' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'finance.finance_budget' and 'project.project_budget' have the same entity name 'budget' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — rename_attribute: media.media_placement** — rename column original_placement_media_placement_id to original_media_placement_id because the current name redundantly embeds both the relationship context and the target table name, violating naming conventions
+**PRIORITY 2 — rename_attribute: creative.asset** — rename column parent_asset_creative_asset_id to parent_asset_id because the current name redundantly embeds both domain and table qualifiers; the self-ref relationship is clear from "parent_" prefix
+**PRIORITY 3 — rename_attribute: media.trafficking_instruction** — rename column parent_instruction_trafficking_instruction_id to parent_trafficking_instruction_id because the current name is awkwardly constructed with redundant qualifiers
+**PRIORITY 4 — rename_attribute: vendor.vendor_rate_card** — rename column source_system_rate_card_vendor_rate_card_id to source_vendor_rate_card_id because the current name is excessively long and redundant
+**PRIORITY 5 — rename_product: media.placement** — rename to placement_template because media.media_placement already exists as the operational placement record, and "placement" is a generic stub that creates confusion about which table to use
+**PRIORITY 6 — connect_table: media.ad_format** — add column ad_channel_id (BIGINT) with FK to media.ad_channel.ad_channel_id — ad formats are channel-specific (e.g., video pre-roll is digital, full-page bleed is print) and this logical relationship is missing
+**PRIORITY 7 — connect_table: finance.gl_account** — add column cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — GL accounts are typically mapped to cost centers in SAP FI/CO for financial reporting and allocation
+**PRIORITY 8 — connect_table: vendor.accreditation** — add column tech_partner_id (BIGINT) with FK to vendor.tech_partner.tech_partner_id — accreditations (TAG, MRC) apply to tech partners as well as publishers, and tech_partner already references accreditation but the reverse lookup is needed for accreditation scope
+**PRIORITY 9 — remove_fk: performance.impression_event** — remove FK on column audience.lookalike_model because an individual impression event should not directly reference a lookalike model; the audience segment FK already captures targeting context
+**PRIORITY 10 — remove_fk: performance.conversion_event** — remove FK on column audience.lookalike_model because conversion events relate to segments and attribution models, not directly to lookalike model definitions
+**PRIORITY 11 — connect_table: campaign.ad** — add column audience_segment_id (BIGINT) with FK to audience.segment.segment_id — ads are frequently targeted to specific audience segments and this direct linkage supports targeting validation
+**PRIORITY 12 — connect_table: creative.concept** — add column creative_brief_id (BIGINT) with FK to creative.creative_brief.creative_brief_id — concepts are developed in response to creative briefs and this critical workflow link is missing
+**PRIORITY 13 — connect_table: creative.brand_guideline** — add column advertiser_id (BIGINT) with FK to client.advertiser.advertiser_id — brand guidelines apply at the advertiser level, not just brand level, especially for corporate identity standards
+**PRIORITY 14 — connect_table: media.ad_channel** — add column ad_format_id (BIGINT) with FK to media.ad_format.ad_format_id — channels have default/supported formats and this bidirectional awareness is needed for media planning validation
+**PRIORITY 15 — remove_fk: media.media_placement** — remove FK on column media.placement because having both a self-referencing original_placement FK and a separate FK to a "placement" template table creates ambiguity about placement lineage
+**PRIORITY 16 — connect_table: vendor.performance_evaluation** — add column contract_agreement_id (BIGINT) with FK to contract.agreement.agreement_id — vendor evaluations should reference the governing agreement to contextualize performance against contractual obligations
+**PRIORITY 17 — connect_table: project.task** — add column milestone_id (BIGINT) with FK to project.milestone.milestone_id — tasks roll up to milestones in standard WBS methodology and this structural link is absent
+**PRIORITY 18 — connect_table: campaign.campaign_kpi_target** — add column performance_attribution_model_id (BIGINT) with FK to performance.attribution_model.attribution_model_id — KPI targets depend on which attribution model is applied for measurement
+**PRIORITY 19 — connect_table: audience.behavioral_profile** — add column advertiser_id (BIGINT) with FK to client.advertiser.advertiser_id — behavioral profiles are built from advertiser first-party data and need ownership linkage
+**PRIORITY 20 — connect_table: audience.demographic_profile** — add column advertiser_id (BIGINT) with FK to client.advertiser.advertiser_id — demographic profiles are scoped to specific advertisers for targeting purposes
+**PRIORITY 21 — rename_attribute: project.deliverable_tracker** — rename column revision_of_deliverable_tracker_id to revised_from_deliverable_tracker_id because "revision_of" is ambiguous about direction; "revised_from" clearly indicates the predecessor
+**PRIORITY 22 — rename_attribute: project.assignment** — rename column reassigned_from_project_assignment_id to reassigned_from_assignment_id because the "project_" qualifier is redundant within the project domain
+**PRIORITY 23 — rename_attribute: project.milestone** — rename column replanned_from_project_milestone_id to replanned_from_milestone_id because the "project_" qualifier is redundant within the project domain
+**PRIORITY 24 — rename_attribute: project.project_brief** — rename column superseded_project_brief_id to superseded_by_project_brief_id because the relationship direction should be explicit in the column name
+**PRIORITY 25 — connect_table: creative.proof** — add column creative_brief_id (BIGINT) with FK to creative.creative_brief.creative_brief_id — proofs are validated against the original brief requirements and this traceability link is missing
+**PRIORITY 26 — connect_table: vendor.invoice** — add column media_insertion_order_id (BIGINT) with FK to media.media_insertion_order.media_insertion_order_id — vendor invoices for media are reconciled against media IOs and this direct link supports billing workflows
+**PRIORITY 27 — connect_table: contract.term** — add column vendor_supplier_id (BIGINT) with FK to vendor.supplier.supplier_id — contract terms often apply to vendor agreements and need party identification
+**PRIORITY 28 — connect_table: audience.persona** — add column advertiser_id (BIGINT) with FK to client.advertiser.advertiser_id — personas are developed for specific advertisers and need ownership attribution
+**PRIORITY 29 — connect_table: campaign.budget_allocation** — add column finance_budget_id (BIGINT) with FK to finance.finance_budget.finance_budget_id — budget allocations draw from approved finance budgets and this source linkage enables reconciliation
+**PRIORITY 30 — connect_table: media.schedule** — add column publisher_id (BIGINT) with FK to vendor.publisher.publisher_id — media schedules are executed on specific publisher properties and need direct publisher accountability
+**PRIORITY 31 — rename_product: project.project_budget** — rename to budget_plan because the "project_" prefix is redundant within the project domain and creates confusion with finance.finance_budget
+**PRIORITY 32 — rename_product: project.project_brief** — rename to brief because the "project_" prefix is redundant within the project domain and creates confusion with client.client_brief and creative.creative_brief
+**PRIORITY 33 — connect_table: client.account_team** — add column brand_id (BIGINT) with FK to client.brand.brand_id — account teams are often assigned at the brand level, not just advertiser level
+**PRIORITY 34 — connect_table: vendor.reconciliation** — add column media_placement_id (BIGINT) with FK to media.media_placement.media_placement_id — reconciliation occurs at the placement level to match delivered vs. billed impressions
+**PRIORITY 35 — connect_table: campaign.pacing_rule** — add column budget_allocation_id (BIGINT) with FK to campaign.budget_allocation.budget_allocation_id — pacing rules enforce budget allocation spend rates and need direct linkage
+**PRIORITY 36 — connect_table: audience.segment_membership** — add column advertiser_id (BIGINT) with FK to client.advertiser.advertiser_id — segment membership records need advertiser scoping for data governance and privacy compliance
+**PRIORITY 37 — connect_table: creative.asset_version** — add column brand_id (BIGINT) with FK to client.brand.brand_id — asset versions carry brand-specific adaptations and need brand attribution for DAM filtering
+**PRIORITY 38 — connect_table: finance.media_cost_reconciliation** — add column ad_channel_id (BIGINT) with FK to media.ad_channel.ad_channel_id — cost reconciliation reporting requires channel-level aggregation for P&L analysis
+**PRIORITY 39 — connect_table: project.resource_plan** — add column cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — resource plans allocate FTEs whose costs map to cost centers for financial planning
+**PRIORITY 40 — connect_table: project.time_entry** — add column deliverable_tracker_id (BIGINT) with FK to project.deliverable_tracker.deliverable_tracker_id — time entries are often logged against specific deliverables for WIP tracking and client billing
+
+Other known issues from static analysis (4):
+  - Attribute 'brand_tier' in client.brand has redundant product prefix 'brand_'. Rename to 'tier'
+  - Attribute 'accreditation_tier' in vendor.accreditation has redundant product prefix 'accreditation_'. Rename to 'tier'
+  - Attribute 'campaign_tier' in campaign.campaign has redundant product prefix 'campaign_'. Rename to 'tier'
+  - 153 attribute(s) match person-data patterns but lack pii_ tags
+
+Deterministic score: 83/100 (LLM assessment: 62/100)

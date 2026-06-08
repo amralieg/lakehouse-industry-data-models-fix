@@ -1,0 +1,211 @@
+**Model Quality Score: 56/100**
+
+**Static Analysis Findings (41 actionable):**
+  - [SA:unlinked_fk] Column safety.corrective_action.regulatory_finding_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column billing.service_line.parent_service_line_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column customer.lessee.parent_account_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column finance.legal_entity.parent_entity_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column finance.party.parent_party_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column workforce.pay_group.legal_entity_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column workforce.pay_group.pay_calendar_id looks like an FK but has no foreign_key_to reference
+  - [SA:denormalized_natural_key] Product 'claim.cargo_claim' has both FK 'claimant_id' and natural key 'claimant_reference' for entity 'claimant'. The natural key is redundant — use the FK join instead.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_invoice_line' and 'procurement.procurement_invoice_line' have the same entity name 'invoice_line' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_dispute' and 'contract.contract_dispute' have the same entity name 'dispute' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_account' and 'customer.customer_account' have the same entity name 'account' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'claim.claim_event' and 'customs.customs_event' have the same entity name 'event' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'claim.claim_event' and 'network.network_event' have the same entity name 'event' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'customs.customs_event' and 'network.network_event' have the same entity name 'event' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'claim.claim_document' and 'shipment.shipment_document' have the same entity name 'document' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'claim.claim_party' and 'contract.contract_party' have the same entity name 'party' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'claim.claim_party' and 'finance.party' have the same entity name 'party' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.contract_party' and 'finance.party' have the same entity name 'party' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.contract_sla_commitment' and 'shipment.shipment_sla_commitment' have the same entity name 'sla_commitment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.contract_surcharge_schedule' and 'pricing.pricing_surcharge_schedule' have the same entity name 'surcharge_schedule' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.contract_volume_commitment' and 'customer.customer_volume_commitment' have the same entity name 'volume_commitment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.contract_volume_commitment' and 'pricing.pricing_volume_commitment' have the same entity name 'volume_commitment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'customer.customer_volume_commitment' and 'pricing.pricing_volume_commitment' have the same entity name 'volume_commitment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.contract_approval_workflow' and 'procurement.procurement_approval_workflow' have the same entity name 'approval_workflow' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'customer.customer_program_enrollment' and 'fulfillment.fulfillment_program_enrollment' have the same entity name 'program_enrollment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'document.document_package' and 'shipment.shipment_package' have the same entity name 'package' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'document.document_exception' and 'freight.freight_exception' have the same entity name 'exception' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'document.document_exception' and 'fulfillment.fulfillment_exception' have the same entity name 'exception' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'document.document_exception' and 'route.route_exception' have the same entity name 'exception' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'freight.freight_exception' and 'fulfillment.fulfillment_exception' have the same entity name 'exception' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'freight.freight_exception' and 'route.route_exception' have the same entity name 'exception' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'fulfillment.fulfillment_exception' and 'route.route_exception' have the same entity name 'exception' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'finance.finance_audit_finding' and 'safety.safety_audit_finding' have the same entity name 'audit_finding' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'fleet.fleet_driver_assignment' and 'shipment.shipment_driver_assignment' have the same entity name 'driver_assignment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'fleet.fleet_training_completion' and 'safety.safety_training_completion' have the same entity name 'training_completion' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'fleet.fleet_training_completion' and 'workforce.workforce_training_completion' have the same entity name 'training_completion' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'safety.safety_training_completion' and 'workforce.workforce_training_completion' have the same entity name 'training_completion' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'freight.freight_carrier_assignment' and 'fulfillment.fulfillment_carrier_assignment' have the same entity name 'carrier_assignment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'freight.freight_carrier_assignment' and 'shipment.shipment_carrier_assignment' have the same entity name 'carrier_assignment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'fulfillment.fulfillment_carrier_assignment' and 'shipment.shipment_carrier_assignment' have the same entity name 'carrier_assignment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'fulfillment.fulfillment_delivery_zone' and 'route.route_delivery_zone' have the same entity name 'delivery_zone' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — connect_table: claim.claimant** — add column customer_account_id (BIGINT) with FK to customer.customer_account.customer_account_id — claimants filing cargo claims should be linked to customer accounts for identity verification and communication
+**PRIORITY 2 — connect_table: claim.policy** — add column customer_account_id (BIGINT) with FK to customer.customer_account.customer_account_id — insurance policies must be associated with the customer account they cover
+**PRIORITY 3 — connect_table: billing.payment_term** — add column created_by_employee_id (BIGINT) with FK to workforce.employee.employee_id — payment terms require audit trail of who created or modified them
+**PRIORITY 4 — connect_table: billing.service_line** — add column created_by_employee_id (BIGINT) with FK to workforce.employee.employee_id — service line definitions need ownership tracking for governance
+**PRIORITY 5 — connect_table: freight.cargo** — add column freight_order_id (BIGINT) with FK to freight.freight_order.freight_order_id — cargo must be linked to the freight order it belongs to for operational tracking
+**PRIORITY 6 — connect_table: customer.lessee** — add column customer_account_id (BIGINT) with FK to customer.customer_account.customer_account_id — lessees should be linked to customer accounts for billing and relationship management
+**PRIORITY 7 — connect_table: finance.party** — add column customer_account_id (BIGINT) with FK to customer.customer_account.customer_account_id — financial parties need linkage to customer accounts for reconciliation
+**PRIORITY 8 — connect_table: finance.chart_of_accounts** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — chart of accounts must be scoped to specific company codes for multi-entity accounting
+**PRIORITY 9 — connect_table: finance.house_bank** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — house banks must be associated with company codes for treasury management
+**PRIORITY 10 — connect_table: finance.credit_control_area** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — credit control areas must be linked to company codes for credit management
+**PRIORITY 11 — connect_table: finance.legal_entity** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — legal entities need association with company codes for statutory reporting
+**PRIORITY 12 — connect_table: finance.cost_element** — add column chart_of_accounts_id (BIGINT) with FK to finance.chart_of_accounts.chart_of_accounts_id — cost elements must reference the chart of accounts they belong to
+**PRIORITY 13 — connect_table: finance.commitment_item** — add column fund_id (BIGINT) with FK to finance.fund.fund_id — commitment items are used in funds management and need fund association
+**PRIORITY 14 — connect_table: safety.coaching_session** — add column driver_profile_id (BIGINT) with FK to fleet.driver_profile.driver_profile_id — coaching sessions must be linked to the driver being coached
+**PRIORITY 15 — connect_table: safety.driver_safety_program** — add column carrier_id (BIGINT) with FK to network.carrier.carrier_id — driver safety programs should be associated with carriers for compliance tracking
+**PRIORITY 16 — connect_table: safety.training** — add column created_by_employee_id (BIGINT) with FK to workforce.employee.employee_id — training definitions need ownership for curriculum management
+**PRIORITY 17 — connect_table: sustainability.carbon_offset_program** — add column created_by_employee_id (BIGINT) with FK to workforce.employee.employee_id — carbon offset programs require governance and ownership tracking
+**PRIORITY 18 — connect_table: sustainability.emissions_factor** — add column created_by_employee_id (BIGINT) with FK to workforce.employee.employee_id — emissions factors need audit trail for regulatory compliance
+**PRIORITY 19 — connect_table: sustainability.compliance_period** — add column ghg_inventory_id (BIGINT) with FK to sustainability.ghg_inventory.ghg_inventory_id — compliance periods must link to GHG inventories for emissions reporting
+**PRIORITY 20 — connect_table: document.retention_policy** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — retention policies must be scoped to company codes for legal compliance
+**PRIORITY 21 — connect_table: fleet.driver_licence_type** — add column created_by_employee_id (BIGINT) with FK to workforce.employee.employee_id — licence type definitions need governance tracking
+**PRIORITY 22 — connect_table: fleet.depot** — add column facility_id (BIGINT) with FK to warehouse.facility.facility_id — depots are physical facilities and should link to facility master
+**PRIORITY 23 — connect_table: network.partner_tier** — add column partner_id (BIGINT) with FK to network.partner.partner_id — partner tiers should reference the partner classification hierarchy
+**PRIORITY 24 — connect_table: pricing.charge_code** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — charge codes need company code scope for multi-entity pricing
+**PRIORITY 25 — connect_table: pricing.commodity_rate_class** — add column tariff_id (BIGINT) with FK to pricing.tariff.tariff_id — commodity rate classes should be linked to tariffs they apply to
+**PRIORITY 26 — connect_table: procurement.item** — add column supplier_id (BIGINT) with FK to procurement.supplier.supplier_id — procurement items should have preferred supplier linkage
+**PRIORITY 27 — connect_table: warehouse.material** — add column supplier_id (BIGINT) with FK to procurement.supplier.supplier_id — materials need supplier association for procurement
+**PRIORITY 28 — connect_table: workforce.pay_group** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — pay groups must be scoped to company codes for payroll processing
+**PRIORITY 29 — connect_table: workforce.random_pool** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — random testing pools need company code scope for DOT compliance
+**PRIORITY 30 — connect_table: workforce.training_course** — add column created_by_employee_id (BIGINT) with FK to workforce.employee.employee_id — training courses need ownership for curriculum management
+**PRIORITY 31 — connect_table: workforce.job_profile** — add column org_unit_id (BIGINT) with FK to workforce.org_unit.org_unit_id — job profiles should be associated with organizational units
+**PRIORITY 32 — connect_table: workforce.competency_record** — add column job_profile_id (BIGINT) with FK to workforce.job_profile.job_profile_id — competency records should link to job profiles for skills matching
+**PRIORITY 33 — rename_attribute: fulfillment.fulfillment_allocation** — rename column allocation_id to parent_allocation_id because self-referencing FK column name must differ from PK and indicate hierarchical relationship
+**PRIORITY 34 — connect_table: route.network_node** — add column facility_id (BIGINT) with FK to warehouse.facility.facility_id — network nodes representing physical locations should link to facility master
+**PRIORITY 35 — connect_table: claim.policy** — add column carrier_id (BIGINT) with FK to network.carrier.carrier_id — insurance policies may be carrier-specific for liability coverage
+**PRIORITY 36 — connect_table: freight.cargo** — add column consignment_id (BIGINT) with FK to shipment.consignment.consignment_id — cargo must be traceable to consignments for shipment visibility
+**PRIORITY 37 — connect_table: document.type** — add column created_by_employee_id (BIGINT) with FK to workforce.employee.employee_id — document type definitions need governance tracking
+**PRIORITY 38 — connect_table: customs.trade_agreement** — add column trade_party_id (BIGINT) with FK to customs.trade_party.trade_party_id — trade agreements should reference the parties involved
+**PRIORITY 39 — connect_table: shipment.shipment_package** — add column sku_id (BIGINT) with FK to warehouse.sku.sku_id — shipment packages should link to SKU for inventory reconciliation
+**PRIORITY 40 — connect_table: shipment.delivery_instruction** — add column carrier_id (BIGINT) with FK to network.carrier.carrier_id — delivery instructions may specify carrier preferences
+**PRIORITY 41 — connect_table: fleet.asset_type** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — asset types need company code scope for fixed asset accounting
+**PRIORITY 42 — connect_table: fleet.container_unit** — add column carrier_id (BIGINT) with FK to network.carrier.carrier_id — containers are often carrier-owned and need carrier association
+**PRIORITY 43 — connect_table: network.carrier_profile** — add column partner_id (BIGINT) with FK to network.partner.partner_id — carrier profiles should link to partner master for relationship management
+**PRIORITY 44 — connect_table: billing.cycle** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — billing cycles must be scoped to company codes for revenue recognition
+**PRIORITY 45 — connect_table: contract.renewal_event** — add column employee_id (BIGINT) with FK to workforce.employee.employee_id — renewal events need tracking of who processed the renewal
+**PRIORITY 46 — connect_table: sustainability.initiative** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — sustainability initiatives need company code scope for ESG reporting
+**PRIORITY 47 — connect_table: sustainability.target** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — sustainability targets must be scoped to company codes for accountability
+**PRIORITY 48 — connect_table: warehouse.zone** — add column storage_location_id (BIGINT) with FK to warehouse.storage_location.storage_location_id — zones contain storage locations and need hierarchical linkage
+**PRIORITY 49 — connect_table: fulfillment.service** — add column carrier_service_id (BIGINT) with FK to network.carrier_service.carrier_service_id — fulfillment services should map to carrier service levels
+**PRIORITY 50 — connect_table: claim.claimant** — add column contact_id (BIGINT) with FK to customer.contact.contact_id — claimants need contact information for claim correspondence
+
+Other known issues from static analysis (112):
+  - Attribute 'storage_tier' in document.storage has redundant product prefix 'storage_'. Rename to 'tier'
+  - Attribute 'merchant_tier' in fulfillment.merchant has redundant product prefix 'merchant_'. Rename to 'tier'
+  - Attribute 'lane_tier' in route.lane has redundant product prefix 'lane_'. Rename to 'tier'
+  - Attribute 'project_phase' in finance.project has redundant product prefix 'project_'. Rename to 'phase'
+  - Attribute 'project_status_reason' in finance.project has redundant product prefix 'project_'. Rename to 'status_reason'
+  - Attribute 'project_subcategory' in finance.project has redundant product prefix 'project_'. Rename to 'subcategory'
+  - Attribute 'approval_rule_notes' in procurement.approval_rule has redundant product prefix 'approval_rule_'. Rename to 'notes'
+  - Attribute 'approval_session_notes' in procurement.approval_session has redundant product prefix 'approval_session_'. Rename to 'notes'
+  - Attribute 'approval_session_priority' in procurement.approval_session has redundant product prefix 'approval_session_'. Rename to 'priority'
+  - Attribute 'approval_session_reason' in procurement.approval_session has redundant product prefix 'approval_session_'. Rename to 'reason'
+  - Attribute 'contractor_address_line1' in network.contractor has redundant product prefix 'contractor_'. Rename to 'address_line1'
+  - Attribute 'contractor_address_line2' in network.contractor has redundant product prefix 'contractor_'. Rename to 'address_line2'
+  - Attribute 'contractor_bank_account_number' in network.contractor has redundant product prefix 'contractor_'. Rename to 'bank_account_number'
+  - Attribute 'contractor_bank_iban' in network.contractor has redundant product prefix 'contractor_'. Rename to 'bank_iban'
+  - Attribute 'contractor_bank_name' in network.contractor has redundant product prefix 'contractor_'. Rename to 'bank_name'
+  - Attribute 'contractor_bank_swift' in network.contractor has redundant product prefix 'contractor_'. Rename to 'bank_swift'
+  - Attribute 'contractor_capacity' in network.contractor has redundant product prefix 'contractor_'. Rename to 'capacity'
+  - Attribute 'contractor_capacity_unit' in network.contractor has redundant product prefix 'contractor_'. Rename to 'capacity_unit'
+  - Attribute 'contractor_certification_dates' in network.contractor has redundant product prefix 'contractor_'. Rename to 'certification_dates'
+  - Attribute 'contractor_certifications' in network.contractor has redundant product prefix 'contractor_'. Rename to 'certifications'
+  - Attribute 'contractor_city' in network.contractor has redundant product prefix 'contractor_'. Rename to 'city'
+  - Attribute 'contractor_contact_email' in network.contractor has redundant product prefix 'contractor_'. Rename to 'contact_email'
+  - Attribute 'contractor_contact_name' in network.contractor has redundant product prefix 'contractor_'. Rename to 'contact_name'
+  - Attribute 'contractor_contact_phone' in network.contractor has redundant product prefix 'contractor_'. Rename to 'contact_phone'
+  - Attribute 'contractor_contract_end_date' in network.contractor has redundant product prefix 'contractor_'. Rename to 'contract_end_date'
+  - Attribute 'contractor_contract_number' in network.contractor has redundant product prefix 'contractor_'. Rename to 'contract_number'
+  - Attribute 'contractor_contract_start_date' in network.contractor has redundant product prefix 'contractor_'. Rename to 'contract_start_date'
+  - Attribute 'contractor_contract_status' in network.contractor has redundant product prefix 'contractor_'. Rename to 'contract_status'
+  - Attribute 'contractor_contract_terms' in network.contractor has redundant product prefix 'contractor_'. Rename to 'contract_terms'
+  - Attribute 'contractor_country' in network.contractor has redundant product prefix 'contractor_'. Rename to 'country'
+  - Attribute 'contractor_country_of_operation' in network.contractor has redundant product prefix 'contractor_'. Rename to 'country_of_operation'
+  - Attribute 'contractor_created_at' in network.contractor has redundant product prefix 'contractor_'. Rename to 'created_at'
+  - Attribute 'contractor_currency' in network.contractor has redundant product prefix 'contractor_'. Rename to 'currency'
+  - Attribute 'contractor_email' in network.contractor has redundant product prefix 'contractor_'. Rename to 'email'
+  - Attribute 'contractor_geo_coverage' in network.contractor has redundant product prefix 'contractor_'. Rename to 'geo_coverage'
+  - Attribute 'contractor_geo_coverage_type' in network.contractor has redundant product prefix 'contractor_'. Rename to 'geo_coverage_type'
+  - Attribute 'contractor_insurance_expiry_date' in network.contractor has redundant product prefix 'contractor_'. Rename to 'insurance_expiry_date'
+  - Attribute 'contractor_insurance_policy_number' in network.contractor has redundant product prefix 'contractor_'. Rename to 'insurance_policy_number'
+  - Attribute 'contractor_operational_modes' in network.contractor has redundant product prefix 'contractor_'. Rename to 'operational_modes'
+  - Attribute 'contractor_payment_currency' in network.contractor has redundant product prefix 'contractor_'. Rename to 'payment_currency'
+  - Attribute 'contractor_payment_method' in network.contractor has redundant product prefix 'contractor_'. Rename to 'payment_method'
+  - Attribute 'contractor_payment_terms' in network.contractor has redundant product prefix 'contractor_'. Rename to 'payment_terms'
+  - Attribute 'contractor_phone' in network.contractor has redundant product prefix 'contractor_'. Rename to 'phone'
+  - Attribute 'contractor_postal_code' in network.contractor has redundant product prefix 'contractor_'. Rename to 'postal_code'
+  - Attribute 'contractor_registration_number' in network.contractor has redundant product prefix 'contractor_'. Rename to 'registration_number'
+  - Attribute 'contractor_risk_rating' in network.contractor has redundant product prefix 'contractor_'. Rename to 'risk_rating'
+  - Attribute 'contractor_service_level_agreement' in network.contractor has redundant product prefix 'contractor_'. Rename to 'service_level_agreement'
+  - Attribute 'contractor_tax_number' in network.contractor has redundant product prefix 'contractor_'. Rename to 'tax_number'
+  - Attribute 'contractor_termination_date' in network.contractor has redundant product prefix 'contractor_'. Rename to 'termination_date'
+  - Attribute 'contractor_updated_at' in network.contractor has redundant product prefix 'contractor_'. Rename to 'updated_at'
+  - Table shipment.exception_event has self-referencing FK on column 'related_exception_event_id' with same name as PK 'exception_event_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table fulfillment.fulfillment_allocation has self-referencing FK on column 'allocation_id' with same name as PK 'fulfillment_allocation_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table document.destruction_record has self-referencing FK on column 'related_destruction_record_id' with same name as PK 'destruction_record_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table document.access_log has self-referencing FK on column 'related_access_log_id' with same name as PK 'access_log_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table document.document_exception has self-referencing FK on column 'related_document_exception_id' with same name as PK 'document_exception_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table network.network_event has self-referencing FK on column 'related_network_event_id' with same name as PK 'network_event_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table network.partner_incident has self-referencing FK on column 'related_partner_incident_id' with same name as PK 'partner_incident_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table safety.dg_incident has self-referencing FK on column 'related_dg_incident_id' with same name as PK 'dg_incident_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table safety.driver_safety_event has self-referencing FK on column 'related_driver_safety_event_id' with same name as PK 'driver_safety_event_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table safety.environmental_incident has self-referencing FK on column 'related_environmental_incident_id' with same name as PK 'environmental_incident_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table safety.hse_incident has self-referencing FK on column 'related_hse_incident_id' with same name as PK 'hse_incident_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table safety.occupational_health_case has self-referencing FK on column 'related_occupational_health_case_id' with same name as PK 'occupational_health_case_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table safety.osha_recordable has self-referencing FK on column 'related_osha_recordable_id' with same name as PK 'osha_recordable_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table safety.safety_audit_finding has self-referencing FK on column 'related_safety_audit_finding_id' with same name as PK 'safety_audit_finding_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table billing.billing_account has 3 FK columns pointing to workforce.employee (created_by_user_employee_id, employee_id, updated_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table contract.contract_approval_workflow has 4 FK columns pointing to workforce.employee (employee_id, modified_by_user_employee_id, primary_contract_employee_id, tertiary_contract_authorized_signatory_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table customs.valuation has 3 FK columns pointing to workforce.employee (employee_id, valuation_employee_id, valuation_last_modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table document.issuance has 2 FK columns pointing to customs.trade_party (issuing_entity_trade_party_id, trade_party_id) (generic/unlabeled: trade_party_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.bank_account has 3 FK columns pointing to workforce.employee (created_by_user_employee_id, employee_id, last_modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.financial_control has 4 FK columns pointing to workforce.employee (employee_id, last_modified_by_user_employee_id, owner_employee_id, primary_financial_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.financial_period_close has 5 FK columns pointing to workforce.employee (approver_employee_id, created_by_user_employee_id, employee_id, last_modified_by_user_employee_id, primary_financial_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.profit_center has 3 FK columns pointing to workforce.employee (created_by_user_employee_id, employee_id, last_modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.tax_account has 3 FK columns pointing to workforce.employee (created_by_user_employee_id, employee_id, last_modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table procurement.rfq has 6 FK columns pointing to workforce.employee (approver_employee_id, employee_id, primary_rfq_employee_id, requester_employee_id, rfq_buyer_employee_id, rfq_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table route.plan_leg has 2 FK columns pointing to fleet.transport_asset (transport_asset_id, vehicle_transport_asset_id) (generic/unlabeled: transport_asset_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table safety.dg_certification has 3 FK columns pointing to workforce.employee (employee_id, holder_employee_id, modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table safety.safety_audit_finding has 2 FK columns pointing to safety.safety_audit_finding (previous_finding_safety_audit_finding_id, related_safety_audit_finding_id) (generic/unlabeled: related_safety_audit_finding_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table safety.program has 4 FK columns pointing to workforce.employee (employee_id, owner_employee_id, program_employee_id, program_modified_by_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table shipment.transit_hub_event has 2 FK columns pointing to shipment.consignment (consignment_id, shipment_consignment_id) (generic/unlabeled: consignment_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.labor_cost_allocation has 3 FK columns pointing to workforce.employee (employee_id, modified_by_user_employee_id, primary_labor_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.performance_review has 4 FK columns pointing to workforce.employee (employee_id, modified_by_user_employee_id, primary_performance_employee_id, reviewer_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table fleet.depot_certification has 2 FK columns pointing to fleet.depot (depot_id, fleet_depot_id) (generic/unlabeled: depot_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table freight.document_attachment has 2 FK columns pointing to workforce.employee (employee_id, reviewed_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table safety.program_training_requirement has 2 FK columns pointing to safety.program (program_id, safety_program_id) (generic/unlabeled: program_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table safety.program_training_requirement has 2 FK columns pointing to safety.training (safety_training_id, training_id) (generic/unlabeled: training_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table freight.carbon_allocation has 2 FK columns pointing to freight.freight_order (freight_order_id, order_freight_order_id) (generic/unlabeled: freight_order_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table route.lane_safety_program_requirement has 2 FK columns pointing to safety.program (program_id, safety_program_id) (generic/unlabeled: program_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table fulfillment.merchant_safety_certification has 2 FK columns pointing to safety.training (safety_training_id, training_id) (generic/unlabeled: training_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.bank_statement has 2 FK columns pointing to finance.house_bank (bank_id, house_bank_id) (generic/unlabeled: house_bank_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.project has 3 FK columns pointing to workforce.employee (employee_id, project_owner_employee_id, sponsor_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.payment_proposal has 2 FK columns pointing to workforce.employee (created_by_user_employee_id, employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table warehouse.counter_team has 2 FK columns pointing to workforce.employee (employee_id, team_lead_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.fmla_case has 3 FK columns pointing to workforce.employee (employee_id, hr_administrator_employee_id, manager_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - PII-candidate attribute sustainability.eu_ets_allowance.registry_account_number has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute finance.house_bank.iban has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute finance.house_bank.swift_code has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute finance.bank_statement.bank_account_id has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute network.contractor.contractor_address_line1 has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute network.contractor.contractor_address_line2 has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute network.contractor.contractor_bank_iban has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute network.contractor.contractor_name has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute network.contractor.contractor_phone has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute network.contractor.contractor_postal_code has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute customer.lessee.account_number has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute customer.lessee.billing_address_country has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute finance.party.registered_address_country has no classification tags — expected restricted/confidential + PII tag
+  - Product 'claim.cargo_claim' has 30 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - 16 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 592 attribute(s) match person-data patterns but lack pii_ tags
+  - 105 non-PK attributes redundantly prefixed with their product name
+  - 8 attribute(s) have value_regex on typed columns (DATE/BOOLEAN/INT/etc.) — regex is redundant when data_type constrains format
+  - 5 attribute(s) have pipe-enum value_regex with >8 values — consider creating a reference product instead
+
+Deterministic score: 56/100 (LLM assessment: 72/100)

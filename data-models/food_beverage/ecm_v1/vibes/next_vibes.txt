@@ -1,0 +1,167 @@
+**Model Quality Score: 63/100**
+
+**Static Analysis Findings (12 actionable):**
+  - [SA:missing_pk] Product 'quality.sample' has no primary key attribute.
+  - [SA:denormalized_natural_key] Product 'supply.inbound_shipment' has both FK 'certificate_of_analysis_id' and natural key 'certificate_of_analysis_ref' for entity 'certificate_of_analysis'. The natural key is redundant — use the FK join instead.
+  - [SA:denormalized_natural_key] Product 'procurement.spend_transaction' has both FK 'material_id' and natural key 'material_number' for entity 'material'. The natural key is redundant — use the FK join instead.
+  - [SA:denormalized_natural_key] Product 'finance.forecast' has both FK 'gl_account_id' and natural key 'gl_account_code' for entity 'gl_account'. The natural key is redundant — use the FK join instead.
+  - [SA:denormalized_natural_key] Product 'finance.fixed_asset' has both FK 'gl_account_id' and natural key 'gl_account_code' for entity 'gl_account'. The natural key is redundant — use the FK join instead.
+  - [SA:denormalized_natural_key] Product 'inventory.quarantine_hold' has both FK 'material_id' and natural key 'material_number' for entity 'material'. The natural key is redundant — use the FK join instead.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'finance.finance_standard_cost' and 'product.product_standard_cost' have the same entity name 'standard_cost' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'finance.finance_budget' and 'maintenance.maintenance_budget' have the same entity name 'budget' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'ingredient.ingredient_price_history' and 'pricing.pricing_price_history' have the same entity name 'price_history' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'ingredient.sample' and 'quality.sample' have the same entity name 'sample' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'maintenance.maintenance_contract' and 'sales.sales_contract' have the same entity name 'contract' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'manufacturing.manufacturing_production_bom' and 'product.product_production_bom' have the same entity name 'production_bom' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — remove_fk: distribution.shipment** — remove FK on column research_rd_project_id because shipments do not logically require a direct link to R&D projects; traceability flows through production_order or batch_record
+**PRIORITY 2 — remove_fk: distribution.yard_management** — remove FK on column research_rd_project_id because yard management operations have no business relationship to R&D projects
+**PRIORITY 3 — remove_fk: distribution.delivery_route** — remove FK on column research_rd_project_id because delivery routes are operational logistics entities with no direct R&D relationship
+**PRIORITY 4 — remove_fk: distribution.cold_chain_event** — remove FK on column regulatory_product_registration_id because cold chain events relate to shipments/SKUs, not directly to product registrations
+**PRIORITY 5 — remove_fk: maintenance.work_order** — remove FK on column trade_promotion_event_id because maintenance work orders have no business justification for linking to trade promotion events
+**PRIORITY 6 — remove_fk: maintenance.asset** — remove FK on column sales_order_id because physical assets are not logically tied to individual sales orders
+**PRIORITY 7 — remove_fk: maintenance.asset** — remove FK on column sales_sales_contract_id because maintenance assets do not have a direct business relationship to sales contracts
+**PRIORITY 8 — remove_fk: maintenance.asset** — remove FK on column research_rd_project_id because assets are operational equipment, not R&D project deliverables (link through work_order if needed)
+**PRIORITY 9 — remove_fk: maintenance.asset** — remove FK on column customer_ship_to_location_id because maintenance assets are plant/DC equipment and do not belong to customer ship-to locations
+**PRIORITY 10 — remove_fk: maintenance.asset** — remove FK on column customer_account_id because maintenance assets are internal equipment, not customer-owned
+**PRIORITY 11 — remove_fk: ingredient.cost** — remove FK on column customer_account_id because ingredient costs are supplier-driven, not customer-driven
+**PRIORITY 12 — remove_fk: ingredient.ingredient_price_history** — remove FK on column customer_account_id because ingredient price history tracks supplier pricing, not customer pricing
+**PRIORITY 13 — remove_fk: ingredient.lot** — remove FK on column customer_account_id because ingredient lots are inbound raw materials from suppliers, not customer-related
+**PRIORITY 14 — remove_fk: ingredient.lot** — remove FK on column sales_order_id because ingredient lots are raw material receipts, not sales order fulfillment items
+**PRIORITY 15 — rename_product: finance.finance_budget** — rename to budget because the domain prefix is redundant given the domain context and violates naming conventions
+**PRIORITY 16 — rename_product: finance.finance_standard_cost** — rename to standard_cost because the domain prefix is redundant given the domain context
+**PRIORITY 17 — rename_product: manufacturing.manufacturing_production_bom** — rename to production_bom because the domain prefix is redundant and product.product_production_bom already exists creating confusion
+**PRIORITY 18 — rename_product: product.product_production_bom** — rename to plant_bom_assignment because it duplicates the concept in manufacturing.manufacturing_production_bom and needs differentiation
+**PRIORITY 19 — rename_product: product.product_standard_cost** — rename to sku_standard_cost because the domain prefix is redundant and it conflicts with finance.finance_standard_cost naming pattern
+**PRIORITY 20 — rename_product: pricing.pricing_price_history** — rename to price_history because the domain prefix is redundant given the domain context
+**PRIORITY 21 — connect_table: workforce.training_course** — add column regulatory_establishment_registration_id (BIGINT) with FK to regulatory.establishment_registration.establishment_registration_id — food handler and GMP training courses are often mandated per facility registration
+**PRIORITY 22 — connect_table: workforce.osha_incident** — add column manufacturing_plant_id (BIGINT) with FK to manufacturing.plant.plant_id — OSHA incidents occur at specific plant locations and must be reported per facility
+**PRIORITY 23 — connect_table: sales.planogram** — add column customer_account_id (BIGINT) with FK to customer.account.account_id — planograms are retailer-specific and must link to the retail account
+**PRIORITY 24 — connect_table: sales.planogram** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — planograms define shelf placement for specific SKUs
+**PRIORITY 25 — connect_table: sales.store** — add column sales_territory_id (BIGINT) with FK to sales.territory.territory_id — stores belong to sales territories for coverage planning
+**PRIORITY 26 — connect_table: sales.distribution_point** — add column sales_territory_id (BIGINT) with FK to sales.territory.territory_id — distribution points operate within sales territories
+**PRIORITY 27 — connect_table: quality.environmental_monitoring** — add column manufacturing_plant_id (BIGINT) with FK to manufacturing.plant.plant_id — environmental monitoring samples are collected at specific plant facilities
+**PRIORITY 28 — connect_table: quality.hold_record** — add column manufacturing_batch_record_id (BIGINT) with FK to manufacturing.batch_record.batch_record_id — quality holds are typically placed against specific production batches
+**PRIORITY 29 — connect_table: trade.deduction** — add column sales_order_id (BIGINT) with FK to sales.order.order_id — deductions are raised against specific sales orders/invoices
+**PRIORITY 30 — connect_table: trade.fund** — add column customer_account_id (BIGINT) with FK to customer.account.account_id — trade funds are allocated to specific customer accounts
+**PRIORITY 31 — connect_table: sustainability.carbon_offset** — add column finance_gl_account_id (BIGINT) with FK to finance.gl_account.gl_account_id — carbon offset purchases must be recorded against a GL account for financial reporting
+**PRIORITY 32 — connect_table: sustainability.sourcing_certification** — add column regulatory_establishment_registration_id (BIGINT) with FK to regulatory.establishment_registration.establishment_registration_id — sourcing certifications are validated against registered establishments
+**PRIORITY 33 — connect_table: sustainability.circular_activity** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — circular economy activities (recycling, reuse) relate to specific product SKUs
+**PRIORITY 34 — connect_table: sustainability.energy_consumption** — add column finance_cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — energy costs must be allocated to cost centers for financial reporting
+**PRIORITY 35 — connect_table: customer.credit_profile** — add column customer_account_id (BIGINT) with FK to customer.account.account_id — credit profiles must link back to the account they describe (currently only account links to credit_profile, not vice versa for querying)
+**PRIORITY 36 — connect_table: customer.bill_to_location** — add column customer_account_id (BIGINT) with FK to customer.account.account_id — bill-to locations belong to specific customer accounts
+**PRIORITY 37 — connect_table: customer.edi_trading_partner** — add column customer_account_id (BIGINT) with FK to customer.account.account_id — EDI trading partners represent specific customer accounts
+**PRIORITY 38 — connect_table: customer.segment** — add column marketing_brand_id (BIGINT) with FK to marketing.brand.brand_id — customer segments are often defined per brand in F&B
+**PRIORITY 39 — connect_table: distribution.center** — add column finance_company_code_id (BIGINT) with FK to finance.company_code.company_code_id — distribution centers belong to legal entities for financial consolidation
+**PRIORITY 40 — connect_table: distribution.carrier** — add column procurement_supplier_id (BIGINT) with FK to procurement.supplier.supplier_id — carriers are suppliers of transportation services and should link to supplier master
+**PRIORITY 41 — connect_table: manufacturing.changeover** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — changeovers track the target SKU being changed to (current link is only one SKU; need from/to)
+**PRIORITY 42 — rename_attribute: manufacturing.changeover** — rename column product_sku_id to from_sku_id
+**PRIORITY 43 — connect_table: sales.broker** — add column finance_cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — broker commissions must be allocated to cost centers
+**PRIORITY 44 — connect_table: sales.pos_transaction** — add column sales_store_id (BIGINT) with FK to sales.store.store_id — POS transactions occur at specific stores
+**PRIORITY 45 — connect_table: sales.pos_transaction** — add column sales_territory_id (BIGINT) with FK to sales.territory.territory_id — POS data must be attributable to territories for sales analytics
+**PRIORITY 46 — connect_table: procurement.category_strategy** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — category strategies require an owner/responsible procurement manager
+**PRIORITY 47 — connect_table: procurement.category_strategy** — add column finance_cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — category strategies align to cost centers for spend management
+**PRIORITY 48 — remove_fk: customer.sponsorship** — remove FK on column research_rd_project_id because customer sponsorships are marketing/brand activities, not R&D project deliverables
+**PRIORITY 49 — remove_fk: distribution.wms_transaction** — remove FK on column research_experimental_formula_id because warehouse management transactions do not relate to experimental formulas
+**PRIORITY 50 — remove_fk: distribution.wms_transaction** — remove FK on column sustainability_lifecycle_assessment_id because WMS transactions are operational movements with no direct LCA relationship
+**PRIORITY 51 — connect_table: quality.product_recall** — add column regulatory_recall_event_id (BIGINT) with FK to regulatory.recall_event.recall_event_id — product recalls in quality must link to the regulatory recall event that triggered them
+**PRIORITY 52 — connect_table: quality.customer_complaint** — add column distribution_shipment_id (BIGINT) with FK to distribution.shipment.shipment_id — customer complaints often reference a specific shipment
+**PRIORITY 53 — connect_table: inventory.cycle_count_line** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — cycle count lines count specific SKUs
+**PRIORITY 54 — connect_table: inventory.cycle_count_line** — add column inventory_stock_position_id (BIGINT) with FK to inventory.stock_position.stock_position_id — cycle count lines reconcile against stock positions
+**PRIORITY 55 — connect_table: inventory.cycle_count_line** — add column inventory_storage_location_id (BIGINT) with FK to inventory.storage_location.storage_location_id — cycle count lines are performed at specific storage locations
+**PRIORITY 56 — connect_table: workforce.compensation_plan** — add column finance_cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — compensation plans must be budgeted against cost centers
+**PRIORITY 57 — connect_table: workforce.position** — add column manufacturing_plant_id (BIGINT) with FK to manufacturing.plant.plant_id — positions in F&B manufacturing are plant-specific
+**PRIORITY 58 — connect_table: workforce.headcount_plan** — add column manufacturing_plant_id (BIGINT) with FK to manufacturing.plant.plant_id — headcount planning in F&B is done at the plant level
+**PRIORITY 59 — remove_fk: maintenance.maintenance_contract** — remove FK on column trade_retailer_agreement_id because maintenance contracts for equipment have no business relationship to retailer trade agreements
+**PRIORITY 60 — remove_fk: distribution.shipment** — remove FK on column trade_retailer_agreement_id because individual shipments should link through orders, not directly to retailer agreements
+**PRIORITY 61 — remove_fk: pricing.price_list** — remove FK on column sustainability_target_id because price lists are commercial instruments not directly governed by sustainability targets
+**PRIORITY 62 — remove_fk: pricing.price_list** — remove FK on column supply_ibp_scenario_id because price lists are master data, not scenario-dependent planning objects
+**PRIORITY 63 — remove_fk: pricing.price_list_line** — remove FK on column sustainability_carbon_footprint_id because individual price list lines do not need direct carbon footprint linkage
+**PRIORITY 64 — remove_fk: pricing.price_list_line** — remove FK on column sustainability_packaging_profile_id because pricing lines reference SKUs which already carry packaging profiles
+**PRIORITY 65 — remove_fk: pricing.price_list_line** — remove FK on column supply_plan_version_id because price list lines are master data not tied to supply plan versions
+**PRIORITY 66 — remove_fk: sales.rebate_agreement** — remove FK on column research_rd_project_id because rebate agreements are commercial instruments with no R&D relationship
+**PRIORITY 67 — remove_fk: trade.route_allowance** — remove FK on column maintenance_asset_id because trade route allowances are financial incentives, not equipment-related
+**PRIORITY 68 — remove_fk: trade.coop_advertising** — remove FK on column sustainability_target_id because co-op advertising programs are marketing spend, not sustainability initiatives
+**PRIORITY 69 — remove_fk: trade.agreement_term** — remove FK on column research_rd_project_id because trade agreement terms are commercial, not R&D-related
+**PRIORITY 70 — connect_table: distribution.center** — add column manufacturing_plant_id (BIGINT) with FK to manufacturing.plant.plant_id — DCs are often co-located with or dedicated to specific plants
+**PRIORITY 71 — connect_table: marketing.brand_equity_tracker** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — brand equity is often tracked at the SKU level for portfolio decisions
+**PRIORITY 72 — connect_table: finance.fiscal_period** — add column finance_profit_center_id (BIGINT) with FK to finance.profit_center.profit_center_id — fiscal periods govern reporting by profit center
+**PRIORITY 73 — remove_fk: finance.cost_center** — remove FK on column sustainability_packaging_profile_id because cost centers are organizational units, not packaging-related entities
+**PRIORITY 74 — remove_fk: finance.cost_center** — remove FK on column regulatory_establishment_registration_id because cost centers map to company codes, not directly to regulatory registrations
+**PRIORITY 75 — connect_table: sales.order** — add column customer_contact_id (BIGINT) with FK to customer.contact.contact_id — sales orders should reference the buyer contact who placed the order
+**PRIORITY 76 — connect_table: quality.food_safety_audit** — add column procurement_supplier_id (BIGINT) with FK to procurement.supplier.supplier_id — food safety audits are frequently conducted at supplier facilities
+**PRIORITY 77 — connect_table: regulatory.recall_event** — add column manufacturing_plant_id (BIGINT) with FK to manufacturing.plant.plant_id — recalls originate from specific manufacturing plants
+**PRIORITY 78 — connect_table: regulatory.recall_event** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — recalls target specific SKUs
+**PRIORITY 79 — remove_fk: procurement.supplier_risk** — remove FK on column research_rd_project_id because supplier risk assessments are procurement activities, not R&D-related
+**PRIORITY 80 — remove_fk: procurement.supplier_scorecard** — remove FK on column research_rd_project_id because supplier scorecards measure procurement performance, not R&D outcomes
+**PRIORITY 81 — remove_fk: procurement.approved_vendor_list** — remove FK on column research_rd_project_id because approved vendor lists are procurement governance, not R&D project deliverables
+**PRIORITY 82 — remove_fk: procurement.spend_transaction** — remove FK on column customer_account_id because spend transactions are procurement outflows to suppliers, not customer-related
+**PRIORITY 83 — remove_fk: procurement.spend_transaction** — remove FK on column research_rd_project_id because spend transactions should link through purchase orders/cost centers, not directly to R&D projects
+**PRIORITY 84 — connect_table: sustainability.waste_generation** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — waste generation should be attributable to specific products for per-SKU sustainability metrics
+**PRIORITY 85 — connect_table: sustainability.water_usage** — add column finance_cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — water usage costs must be allocated to cost centers
+**PRIORITY 86 — remove_fk: inventory.adjustment** — remove FK on column trade_promotion_event_id because inventory adjustments are operational corrections, not trade promotion activities
+**PRIORITY 87 — remove_fk: inventory.adjustment** — remove FK on column pricing_price_list_id because inventory adjustments do not require price list references
+**PRIORITY 88 — remove_fk: inventory.goods_movement** — remove FK on column trade_promotion_event_id because goods movements are physical stock transfers, not trade promotion activities
+**PRIORITY 89 — remove_fk: manufacturing.lot_consumption** — remove FK on column trade_promotion_event_id because lot consumption is a production execution event, not trade-related
+**PRIORITY 90 — remove_fk: manufacturing.copacking_order** — remove FK on column trade_promotion_event_id because co-packing orders are manufacturing arrangements, not trade promotions
+**PRIORITY 91 — remove_fk: manufacturing.batch_record** — remove FK on column trade_promotion_event_id because batch records document production execution, not trade activities
+**PRIORITY 92 — connect_table: workforce.labor_grievance** — add column manufacturing_plant_id (BIGINT) with FK to manufacturing.plant.plant_id — labor grievances in F&B manufacturing occur at specific plant locations
+**PRIORITY 93 — connect_table: workforce.leave_request** — add column manufacturing_plant_id (BIGINT) with FK to manufacturing.plant.plant_id — leave requests impact plant-level labor scheduling
+**PRIORITY 94 — connect_table: marketing.consumer_promotion** — add column trade_promotion_event_id (BIGINT) with FK to trade.promotion_event.promotion_event_id — consumer promotions are often tied to trade promotion events
+**PRIORITY 95 — connect_table: distribution.returns_receipt** — add column quality_non_conformance_id (BIGINT) with FK to quality.non_conformance.non_conformance_id — returns often trigger or result from quality non-conformances
+**PRIORITY 96 — remove_fk: sales.rebate_agreement** — remove FK on column sustainability_target_id because rebate agreements are commercial instruments not governed by sustainability targets
+**PRIORITY 97 — remove_fk: sales.rep** — remove FK on column sustainability_target_id because sales reps are not directly accountable to sustainability targets in their role definition
+**PRIORITY 98 — connect_table: quality.allergen_matrix** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — allergen matrices must be traceable to specific finished goods SKUs
+**PRIORITY 99 — connect_table: quality.allergen_matrix** — add column ingredient_raw_material_id (BIGINT) with FK to ingredient.raw_material.raw_material_id — allergen matrices declare allergens from specific raw materials
+**PRIORITY 100 — remove_fk: ingredient.raw_material** — remove FK on column customer_account_id because raw materials are sourced from suppliers, not customers
+**PRIORITY 101 — connect_table: finance.company_code** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — company codes require a responsible controller/CFO assignment
+**PRIORITY 102 — remove_fk: maintenance.asset** — remove FK on column marketing_brand_id because physical assets (equipment) are not brand-specific in F&B manufacturing
+**PRIORITY 103 — remove_fk: distribution.cold_chain_event** — remove FK on column marketing_brand_id because cold chain monitoring is operational logistics, not brand-specific
+**PRIORITY 104 — remove_fk: distribution.freight_invoice** — remove FK on column marketing_brand_id because freight invoices are carrier billing documents, not brand-related
+**PRIORITY 105 — connect_table: sales.invoice** — add column distribution_shipment_id (BIGINT) with FK to distribution.shipment.shipment_id — invoices are generated upon shipment and must reference the shipment for proof of delivery reconciliation
+
+Other known issues from static analysis (42):
+  - Attribute 'supplier_tier' in procurement.supplier has redundant product prefix 'supplier_'. Rename to 'tier'
+  - Attribute 'patent_family_code' in research.patent has redundant product prefix 'patent_'. Rename to 'family_code'
+  - Attribute 'payment_run_version' in finance.payment_run has redundant product prefix 'payment_run_'. Rename to 'version'
+  - Attribute 'cash_pool_limit_amount' in finance.cash_pool has redundant product prefix 'cash_pool_'. Rename to 'limit_amount'
+  - Attribute 'cash_pool_purpose' in finance.cash_pool has redundant product prefix 'cash_pool_'. Rename to 'purpose'
+  - Attribute 'cash_pool_utilization_pct' in finance.cash_pool has redundant product prefix 'cash_pool_'. Rename to 'utilization_pct'
+  - Attribute 'market_segment' in marketing.market has redundant product prefix 'market_'. Rename to 'segment'
+  - Attribute 'market_size_estimate' in marketing.market has redundant product prefix 'market_'. Rename to 'size_estimate'
+  - Attribute 'agency_rating' in marketing.agency has redundant product prefix 'agency_'. Rename to 'rating'
+  - Attribute 'store_cluster' in sales.store has redundant product prefix 'store_'. Rename to 'cluster'
+  - Attribute 'store_format' in sales.store has redundant product prefix 'store_'. Rename to 'format'
+  - Attribute 'policy_document_format' in workforce.policy has redundant product prefix 'policy_'. Rename to 'document_format'
+  - Attribute 'policy_document_url' in workforce.policy has redundant product prefix 'policy_'. Rename to 'document_url'
+  - Attribute 'policy_owner_department' in workforce.policy has redundant product prefix 'policy_'. Rename to 'owner_department'
+  - Attribute 'policy_owner_name' in workforce.policy has redundant product prefix 'policy_'. Rename to 'owner_name'
+  - Attribute 'policy_tags' in workforce.policy has redundant product prefix 'policy_'. Rename to 'tags'
+  - Table quality.sample declares PK 'sample_id' but no matching attribute exists in the attributes list
+  - Table customer.case has self-referencing FK on column 'related_case_id' with same name as PK 'case_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table maintenance.inspection_finding has self-referencing FK on column 'related_inspection_finding_id' with same name as PK 'inspection_finding_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table pricing.price_exception has self-referencing FK on column 'related_price_exception_id' with same name as PK 'price_exception_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table research.technology_scout has self-referencing FK on column 'related_technology_scout_id' with same name as PK 'technology_scout_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table research.trial_observation has self-referencing FK on column 'related_trial_observation_id' with same name as PK 'trial_observation_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table quality.audit_finding has self-referencing FK on column 'related_audit_finding_id' with same name as PK 'audit_finding_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table finance.bank_account has 2 FK columns pointing to finance.company_code (company_code_id, legal_entity_company_code_id) (generic/unlabeled: company_code_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table inventory.wip_stock has 2 FK columns pointing to manufacturing.work_center (production_line_work_center_id, work_center_id) (generic/unlabeled: work_center_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table maintenance.shutdown_plan has 2 FK columns pointing to manufacturing.plant (facility_plant_id, plant_id) (generic/unlabeled: plant_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table trade.route_allowance has 2 FK columns pointing to distribution.delivery_route (delivery_route_id, dsd_route_id) (generic/unlabeled: delivery_route_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.payment_run has 2 FK columns pointing to workforce.employee (approved_by_user_employee_id, employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table quality.sample has 2 FK columns pointing to workforce.employee (analyst_employee_id, employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - PII-candidate attribute distribution.location.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute distribution.location.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute marketing.agency.primary_contact_name has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute quality.laboratory.address_line1 has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute quality.laboratory.address_line2 has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute quality.laboratory.postal_code has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute research.lab.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute research.lab.longitude has no classification tags — expected restricted/confidential + PII tag
+  - 15 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 368 attribute(s) match person-data patterns but lack pii_ tags
+  - 4 attribute(s) have datatypes inconsistent with their column name pattern
+  - 56 non-PK attributes redundantly prefixed with their product name
+  - 2 attribute(s) have value_regex on typed columns (DATE/BOOLEAN/INT/etc.) — regex is redundant when data_type constrains format
+
+Deterministic score: 63/100 (LLM assessment: 62/100)

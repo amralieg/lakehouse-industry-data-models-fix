@@ -1,0 +1,194 @@
+**Model Quality Score: 50/100**
+
+**Static Analysis Findings (42 actionable):**
+  - [SA:unlinked_fk] Column billing.payment_receipt.settlement_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column maintenance.work_order.notification_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column product.chemical_product.primary_chemical_sds_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column rawmaterial.material_master.rawmaterial_sds_record_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column sales.opportunity.contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column research.transfer_package.carrier_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column research.transfer_package.destination_location_id looks like an FK but has no foreign_key_to reference
+  - [SA:fk_namespace_mismatch] billing.invoice_line.line_item_id: description says 'order' but FK points to 'product'
+  - [SA:fk_namespace_mismatch] customer.case.product_order_id: description says 'order' but FK points to 'product'
+  - [SA:fk_namespace_mismatch] customer.interaction.product_order_id: description says 'order' but FK points to 'product'
+  - [SA:fk_namespace_mismatch] ehs.emission_event.product_order_id: description says 'order' but FK points to 'product'
+  - [SA:fk_namespace_mismatch] ehs.safety_incident.product_order_id: description says 'order' but FK points to 'product'
+  - [SA:fk_namespace_mismatch] ehs.waste_disposal_record.product_order_id: description says 'order' but FK points to 'product'
+  - [SA:fk_namespace_mismatch] inventory.stock_movement.outbound_delivery_id: description says 'order' but FK points to 'product'
+  - [SA:fk_namespace_mismatch] inventory.transfer_order.line_item_id: description says 'order' but FK points to 'product'
+  - [SA:fk_namespace_mismatch] logistics.shipment.product_order_id: description says 'order' but FK points to 'product'
+  - [SA:fk_namespace_mismatch] logistics.shipment_line.line_item_id: description says 'order' but FK points to 'product'
+  - [SA:fk_namespace_mismatch] product.line_item.special_handling_instruction_id: description says 'order' but FK points to 'product'
+  - [SA:fk_namespace_mismatch] product.order_confirmation.special_handling_instruction_id: description says 'order' but FK points to 'product'
+  - [SA:fk_namespace_mismatch] production.batch_record.line_item_id: description says 'order' but FK points to 'product'
+  - [SA:fk_namespace_mismatch] production.process_order.product_order_id: description says 'order' but FK points to 'product'
+  - [SA:fk_namespace_mismatch] quality.inspection_lot.line_item_id: description says 'order' but FK points to 'product'
+  - [SA:fk_namespace_mismatch] quality.lab_sample.line_item_id: description says 'order' but FK points to 'product'
+  - [SA:fk_namespace_mismatch] quality.qc_result.line_item_id: description says 'order' but FK points to 'product'
+  - [SA:fk_namespace_mismatch] quality.quality_hold.product_order_id: description says 'order' but FK points to 'product'
+  - [SA:denormalized_natural_key] Product 'inventory.tank_farm_level' has both FK 'tank_id' and natural key 'tank_number' for entity 'tank'. The natural key is redundant — use the FK join instead.
+  - [SA:denormalized_natural_key] Product 'supply.supply_procurement_plan' has both FK 'plant_id' and natural key 'plant_code' for entity 'plant'. The natural key is redundant — use the FK join instead.
+  - [SA:denormalized_natural_key] Product 'production.production_deviation' has both FK 'deviation_id' and natural key 'deviation_number' for entity 'deviation'. The natural key is redundant — use the FK join instead.
+  - [SA:denormalized_natural_key] Product 'planning.supply_demand_balance' has both FK 'plant_id' and natural key 'plant_code' for entity 'plant'. The natural key is redundant — use the FK join instead.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_adjustment' and 'inventory.inventory_adjustment' have the same entity name 'adjustment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_rebate_agreement' and 'sales.sales_rebate_agreement' have the same entity name 'rebate_agreement' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.party' and 'logistics.party' have the same entity name 'party' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'customer.customer_lead' and 'sales.sales_lead' have the same entity name 'lead' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'ehs.ehs_regulatory_submission' and 'formulation.formulation_regulatory_submission' have the same entity name 'regulatory_submission' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'formulation.formulation_process_simulation' and 'research.research_process_simulation' have the same entity name 'process_simulation' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'inventory.inventory_lot_allocation' and 'rawmaterial.rawmaterial_lot_allocation' have the same entity name 'lot_allocation' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'maintenance.plant' and 'production.plant' have the same entity name 'plant' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'product.product_specification' and 'quality.quality_specification' have the same entity name 'specification' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'product.product_ghs_classification' and 'rawmaterial.rawmaterial_ghs_classification' have the same entity name 'ghs_classification' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'product.product_hold' and 'quality.quality_hold' have the same entity name 'hold' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'production.production_deviation' and 'quality.quality_deviation' have the same entity name 'deviation' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'production.production_procurement_plan' and 'supply.supply_procurement_plan' have the same entity name 'procurement_plan' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — connect_table: order.blanket_order** — add column customer_account_id (BIGINT) with FK to customer.account.account_id — blanket orders are placed by customers and must link to the customer account
+**PRIORITY 2 — connect_table: order.quotation** — add column product_chemical_product_id (BIGINT) with FK to product.chemical_product.chemical_product_id — quotations in chemical manufacturing must reference the product being quoted
+**PRIORITY 3 — connect_table: order.inquiry** — add column product_chemical_product_id (BIGINT) with FK to product.chemical_product.chemical_product_id — customer inquiries typically reference specific chemical products
+**PRIORITY 4 — connect_table: order.blanket_order** — add column product_chemical_product_id (BIGINT) with FK to product.chemical_product.chemical_product_id — blanket orders cover specific chemical products over a time period
+**PRIORITY 5 — connect_table: order.blanket_order** — add column pricing_price_list_id (BIGINT) with FK to pricing.price_list.price_list_id — blanket orders reference agreed pricing terms
+**PRIORITY 6 — connect_table: order.quotation** — add column pricing_price_list_id (BIGINT) with FK to pricing.price_list.price_list_id — quotations must reference the applicable price list
+**PRIORITY 7 — connect_table: order.quotation** — add column formulation_formula_version_id (BIGINT) with FK to formulation.formula_version.formula_version_id — quotations in chemical manufacturing often specify a formula version
+**PRIORITY 8 — connect_table: order.inquiry** — add column formulation_formula_id (BIGINT) with FK to formulation.formula.formula_id — inquiries may reference specific formulations for technical feasibility
+**PRIORITY 9 — connect_table: workforce.competency** — add column workforce_job_role_id (BIGINT) with FK to workforce.job_role.job_role_id — competencies should link to the job roles that require them
+**PRIORITY 10 — connect_table: workforce.position** — add column workforce_org_unit_id (BIGINT) with FK to workforce.org_unit.org_unit_id — positions must belong to an organizational unit
+**PRIORITY 11 — connect_table: workforce.position** — add column workforce_job_role_id (BIGINT) with FK to workforce.job_role.job_role_id — positions are instances of job roles within the organization
+**PRIORITY 12 — connect_table: workforce.training_course** — add column workforce_competency_id (BIGINT) with FK to workforce.competency.competency_id — training courses develop specific competencies
+**PRIORITY 13 — connect_table: quality.reference_standard** — add column supply_vendor_id (BIGINT) with FK to supply.vendor.vendor_id — reference standards are procured from certified vendors
+**PRIORITY 14 — connect_table: ehs.environmental_aspect** — add column maintenance_functional_location_id (BIGINT) with FK to maintenance.functional_location.functional_location_id — environmental aspects are associated with specific plant locations
+**PRIORITY 15 — connect_table: ehs.contractor_safety_record** — add column supply_vendor_id (BIGINT) with FK to supply.vendor.vendor_id — contractor safety records must link to the vendor/contractor company
+**PRIORITY 16 — connect_table: ehs.contractor_safety_record** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — contractor safety records need a responsible site employee
+**PRIORITY 17 — connect_table: ehs.contractor_safety_record** — add column maintenance_functional_location_id (BIGINT) with FK to maintenance.functional_location.functional_location_id — contractor work occurs at specific functional locations
+**PRIORITY 18 — connect_table: rawmaterial.cas_registry** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — CAS registry entries need a responsible chemist or data steward
+**PRIORITY 19 — connect_table: inventory.hazmat_storage_rule** — add column rawmaterial_cas_registry_id (BIGINT) with FK to rawmaterial.cas_registry.cas_registry_id — hazmat storage rules are driven by chemical substance CAS classifications
+**PRIORITY 20 — connect_table: logistics.party** — add column customer_account_id (BIGINT) with FK to customer.account.account_id — logistics parties (ship-to, bill-to) must resolve to customer accounts
+**PRIORITY 21 — connect_table: logistics.loading_dock** — add column inventory_warehouse_location_id (BIGINT) with FK to inventory.warehouse_location.warehouse_location_id — loading docks are physically located at warehouse locations
+**PRIORITY 22 — connect_table: maintenance.plant** — add column finance_cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — maintenance plants must link to their cost center for financial allocation
+**PRIORITY 23 — connect_table: production.plant** — add column finance_cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — production plants must link to cost centers for cost accounting
+**PRIORITY 24 — connect_table: ehs.facility** — add column customer_site_id (BIGINT) with FK to customer.site.site_id — EHS facilities correspond to physical site locations
+**PRIORITY 25 — connect_table: ehs.facility** — add column finance_cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — EHS facilities need cost center linkage for compliance cost tracking
+**PRIORITY 26 — connect_table: order.blanket_order** — add column finance_cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — blanket orders need cost center assignment for financial reporting
+**PRIORITY 27 — connect_table: order.inquiry** — add column customer_contact_id (BIGINT) with FK to customer.contact.contact_id — inquiries come from specific customer contacts
+**PRIORITY 28 — connect_table: order.quotation** — add column sales_opportunity_id (BIGINT) with FK to sales.opportunity.opportunity_id — quotations are generated in response to sales opportunities
+**PRIORITY 29 — remove_fk: billing.billing_adjustment** — remove FK on column ehs_safety_incident_id because billing adjustments should not directly reference safety incidents; any financial impact flows through work orders or journal entries
+**PRIORITY 30 — remove_fk: billing.invoice** — remove FK on column ehs_emission_source_id because invoices should not directly reference emission sources; environmental charges should flow through pricing conditions or line items
+**PRIORITY 31 — remove_fk: billing.invoice** — remove FK on column ehs_operating_permit_id because invoices should not directly reference operating permits; this is not a standard billing relationship
+**PRIORITY 32 — remove_fk: billing.invoice** — remove FK on column ehs_waste_stream_id because invoices should not directly reference waste streams; waste disposal billing should link through service orders
+**PRIORITY 33 — remove_fk: billing.invoice** — remove FK on column formulation_ip_record_id because invoices should not directly reference IP records; IP licensing revenue should flow through contracts
+**PRIORITY 34 — remove_fk: stock_position** — remove FK on column pricing_price_list_id because stock positions track physical inventory and should not reference price lists directly
+**PRIORITY 35 — remove_fk: maintenance.pm_plan** — remove FK on column pricing_strategy_id because preventive maintenance plans have no business relationship to pricing strategies
+**PRIORITY 36 — remove_fk: maintenance.equipment** — remove FK on column sales_territory_id because equipment is a physical asset and should not be assigned to sales territories
+**PRIORITY 37 — connect_table: production.bill_of_materials** — add column product_chemical_product_id (BIGINT) with FK to product.chemical_product.chemical_product_id — BOMs must reference the finished product they produce
+**PRIORITY 38 — connect_table: production.bill_of_materials** — add column formulation_formula_version_id (BIGINT) with FK to formulation.formula_version.formula_version_id — BOMs in chemical manufacturing are derived from formula versions
+**PRIORITY 39 — connect_table: production.resource** — add column production_plant_id (BIGINT) with FK to production.plant.plant_id — production resources belong to specific plants
+**PRIORITY 40 — connect_table: production.phase** — add column production_routing_id (BIGINT) with FK to production.routing.routing_id — phases are steps within a routing
+**PRIORITY 41 — connect_table: ehs.work_activity** — add column maintenance_functional_location_id (BIGINT) with FK to maintenance.functional_location.functional_location_id — work activities occur at specific functional locations for risk assessment
+**PRIORITY 42 — connect_table: ehs.management_objective** — add column finance_cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — EHS management objectives require budget allocation via cost centers
+**PRIORITY 43 — connect_table: ehs.management_objective** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — management objectives need an accountable owner
+**PRIORITY 44 — connect_table: planning.horizon** — add column production_plant_id (BIGINT) with FK to production.plant.plant_id — planning horizons are typically defined per plant
+**PRIORITY 45 — connect_table: formulation.blend_ratio** — add column formulation_formula_version_id (BIGINT) with FK to formulation.formula_version.formula_version_id — blend ratios belong to a specific formula version
+**PRIORITY 46 — connect_table: formulation.active_ingredient_spec** — add column formulation_formula_version_id (BIGINT) with FK to formulation.formula_version.formula_version_id — active ingredient specs are defined per formula version
+**PRIORITY 47 — connect_table: formulation.compatibility_matrix** — add column formulation_formula_id (BIGINT) with FK to formulation.formula.formula_id — compatibility matrices are evaluated in the context of a formula
+**PRIORITY 48 — move_product: order.blanket_order** — move to supply because blanket orders with vendor FK are procurement instruments, not customer sales orders
+**PRIORITY 49 — connect_table: sales.competitor** — add column product_chemical_product_id (BIGINT) with FK to product.chemical_product.chemical_product_id — competitors are tracked relative to specific product markets
+**PRIORITY 50 — connect_table: supply.rfq** — add column rawmaterial_material_master_id (BIGINT) with FK to rawmaterial.material_master.material_master_id — RFQs are issued for specific raw materials
+**PRIORITY 51 — connect_table: supply.rfq** — add column supply_vendor_id (BIGINT) with FK to supply.vendor.vendor_id — RFQs are sent to specific vendors
+**PRIORITY 52 — connect_table: supply.rfq** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — RFQs need a buyer/owner
+**PRIORITY 53 — connect_table: billing.payment_term** — add column finance_gl_account_id (BIGINT) with FK to finance.gl_account.gl_account_id — payment terms affect GL posting for discount accruals
+**PRIORITY 54 — connect_table: billing.performance_obligation** — add column billing_invoice_id (BIGINT) with FK to billing.invoice.invoice_id — performance obligations arise from specific invoiced contracts
+**PRIORITY 55 — connect_table: billing.performance_obligation** — add column product_chemical_product_id (BIGINT) with FK to product.chemical_product.chemical_product_id — performance obligations relate to specific products delivered
+**PRIORITY 56 — connect_table: quality.spc_control** — add column production_work_center_id (BIGINT) with FK to production.work_center.work_center_id — SPC controls monitor specific work centers
+**PRIORITY 57 — connect_table: quality.spc_control** — add column product_chemical_product_id (BIGINT) with FK to product.chemical_product.chemical_product_id — SPC controls are defined for specific products
+**PRIORITY 58 — connect_table: quality.inspection_characteristic** — add column quality_inspection_plan_id (BIGINT) with FK to quality.inspection_plan.inspection_plan_id — inspection characteristics belong to inspection plans
+**PRIORITY 59 — connect_table: pricing.condition** — add column product_chemical_product_id (BIGINT) with FK to product.chemical_product.chemical_product_id — pricing conditions are typically product-specific
+**PRIORITY 60 — connect_table: workforce.labor_agreement** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — labor agreements need a responsible HR representative
+**PRIORITY 61 — connect_table: workforce.headcount_plan** — add column finance_cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — headcount plans must link to cost centers for budget alignment
+**PRIORITY 62 — connect_table: workforce.disciplinary_action** — add column workforce_org_unit_id (BIGINT) with FK to workforce.org_unit.org_unit_id — disciplinary actions occur within an organizational context
+**PRIORITY 63 — remove_fk: billing.billing_adjustment** — remove FK on column formulation_formula_change_request_id because billing adjustments should not directly reference formula change requests; cost impacts flow through work orders
+**PRIORITY 64 — remove_fk: billing.billing_adjustment** — remove FK on column rawmaterial_material_master_id because billing adjustments are financial documents and should not directly reference raw materials
+**PRIORITY 65 — remove_fk: billing.billing_adjustment** — remove FK on column maintenance_work_order_id because billing adjustments are customer-facing financial corrections, not maintenance-related
+**PRIORITY 66 — connect_table: order.quotation** — add column product_product_order_id (BIGINT) with FK to product.product_order.product_order_id — quotations should link to resulting orders for order-to-cash traceability
+**PRIORITY 67 — connect_table: order.inquiry** — add column sales_territory_id (BIGINT) with FK to sales.territory.territory_id — inquiries should be assigned to sales territories for routing
+**PRIORITY 68 — connect_table: ehs.inspection_finding** — add column ehs_inspection_audit_id (BIGINT) with FK to ehs.inspection_audit.inspection_audit_id — inspection findings must link to the audit that discovered them
+**PRIORITY 69 — connect_table: production.control_recipe** — add column formulation_formula_version_id (BIGINT) with FK to formulation.formula_version.formula_version_id — control recipes are automation implementations of formula versions
+**PRIORITY 70 — connect_table: production.control_recipe** — add column production_work_center_id (BIGINT) with FK to production.work_center.work_center_id — control recipes execute on specific work centers
+**PRIORITY 71 — connect_table: maintenance.catalog_code** — add column maintenance_plant_id (BIGINT) with FK to maintenance.plant.plant_id — catalog codes may be plant-specific for maintenance categorization
+**PRIORITY 72 — connect_table: formulation.formula_bom** — add column formulation_formula_version_id (BIGINT) with FK to formulation.formula_version.formula_version_id — formula BOMs are version-controlled and must link to a formula version
+**PRIORITY 73 — connect_table: formulation.formula_bom** — add column rawmaterial_material_master_id (BIGINT) with FK to rawmaterial.material_master.material_master_id — formula BOMs list raw material components
+**PRIORITY 74 — connect_table: customer.segment** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — customer segments need an owner/manager responsible for strategy
+**PRIORITY 75 — connect_table: ehs.sampling_point** — add column maintenance_functional_location_id (BIGINT) with FK to maintenance.functional_location.functional_location_id — sampling points are installed at specific functional locations
+**PRIORITY 76 — connect_table: logistics.carrier** — add column finance_cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — carrier costs need allocation to cost centers
+**PRIORITY 77 — connect_table: inventory.handling_unit** — add column rawmaterial_material_master_id (BIGINT) with FK to rawmaterial.material_master.material_master_id — handling units contain specific materials
+**PRIORITY 78 — connect_table: inventory.handling_unit** — add column inventory_warehouse_location_id (BIGINT) with FK to inventory.warehouse_location.warehouse_location_id — handling units are stored at warehouse locations
+**PRIORITY 79 — connect_table: production.shift_log** — add column production_manufacturing_order_id (BIGINT) with FK to production.manufacturing_order.manufacturing_order_id — shift logs record activities against manufacturing orders
+**PRIORITY 80 — connect_table: production.shift_log** — add column workforce_shift_schedule_id (BIGINT) with FK to workforce.shift_schedule.shift_schedule_id — shift logs correspond to specific shift schedules
+**PRIORITY 81 — remove_fk: workforce.employee** — remove FK on column planning_rough_cut_capacity_id because employees should not directly reference rough cut capacity plans; this is an inverted relationship
+**PRIORITY 82 — connect_table: quality.coa_template** — add column product_chemical_product_id (BIGINT) with FK to product.chemical_product.chemical_product_id — COA templates are defined per product
+**PRIORITY 83 — connect_table: research.transfer_package** — add column research_project_id (BIGINT) with FK to research.project.project_id — transfer packages belong to R&D projects for technology transfer
+**PRIORITY 84 — connect_table: sales.incentive_plan** — add column sales_sales_organization_id (BIGINT) with FK to sales.sales_organization.sales_organization_id — incentive plans are defined per sales organization
+**PRIORITY 85 — connect_table: pricing.volume_discount_schedule** — add column product_chemical_product_id (BIGINT) with FK to product.chemical_product.chemical_product_id — volume discounts apply to specific products
+**PRIORITY 86 — connect_table: maintenance.calibration_procedure** — add column maintenance_equipment_id (BIGINT) with FK to maintenance.equipment.equipment_id — calibration procedures are defined for specific equipment types
+**PRIORITY 87 — connect_table: maintenance.calibration_standard** — add column supply_vendor_id (BIGINT) with FK to supply.vendor.vendor_id — calibration standards are procured from certified vendors
+**PRIORITY 88 — connect_table: ehs.control_device** — add column ehs_operating_permit_id (BIGINT) with FK to ehs.operating_permit.operating_permit_id — control devices operate under specific environmental permits
+**PRIORITY 89 — connect_table: ehs.environmental_aspect** — add column ehs_facility_id (BIGINT) with FK to ehs.facility.facility_id — environmental aspects are identified per facility for ISO 14001
+**PRIORITY 90 — connect_table: production.dcs_event_log** — add column maintenance_equipment_id (BIGINT) with FK to maintenance.equipment.equipment_id — DCS events originate from specific equipment/instruments
+**PRIORITY 91 — connect_table: production.dcs_event_log** — add column production_work_center_id (BIGINT) with FK to production.work_center.work_center_id — DCS events occur at specific work centers
+**PRIORITY 92 — connect_table: formulation.formulation_regulatory_submission** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — regulatory submissions need a responsible submitter
+**PRIORITY 93 — connect_table: formulation.formulation_regulatory_submission** — add column rawmaterial_cas_registry_id (BIGINT) with FK to rawmaterial.cas_registry.cas_registry_id — formulation regulatory submissions reference CAS-registered substances
+**PRIORITY 94 — connect_table: quality.evidence_document** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — evidence documents need an uploader/author
+**PRIORITY 95 — connect_table: planning.allocation_rule** — add column product_chemical_product_id (BIGINT) with FK to product.chemical_product.chemical_product_id — allocation rules govern specific products
+**PRIORITY 96 — connect_table: order.inquiry** — add column customer_contact_id (BIGINT) with FK to customer.contact.contact_id — inquiries are submitted by specific customer contacts
+**PRIORITY 97 — connect_table: order.quotation** — add column formulation_formula_id (BIGINT) with FK to formulation.formula.formula_id — quotations in chemical manufacturing reference specific formulas
+**PRIORITY 98 — connect_table: logistics.carrier_qualification** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — carrier qualifications need an approver
+**PRIORITY 99 — connect_table: logistics.carrier_pricing_agreement** — add column finance_cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — carrier pricing agreements need cost center allocation
+**PRIORITY 100 — connect_table: supply.toll_manufacturer** — add column supply_vendor_id (BIGINT) with FK to supply.vendor.vendor_id — toll manufacturers are vendors and must link to vendor master
+
+Other known issues from static analysis (44):
+  - Attribute 'account_tier' in customer.account has redundant product prefix 'account_'. Rename to 'tier'
+  - Attribute 'segment_tier' in customer.segment has redundant product prefix 'segment_'. Rename to 'tier'
+  - Attribute 'distributor_tier' in sales.distributor has redundant product prefix 'distributor_'. Rename to 'tier'
+  - Attribute 'vendor_tier' in supply.vendor has redundant product prefix 'vendor_'. Rename to 'tier'
+  - Attribute 'plant_area_sq_meters' in production.plant has redundant product prefix 'plant_'. Rename to 'area_sq_meters'
+  - Attribute 'plant_area_sq_m' in maintenance.plant has redundant product prefix 'plant_'. Rename to 'area_sq_m'
+  - Attribute 'assay_notes' in research.assay has redundant product prefix 'assay_'. Rename to 'notes'
+  - Attribute 'assay_quality_flag' in research.assay has redundant product prefix 'assay_'. Rename to 'quality_flag'
+  - Attribute 'assay_retention_period_days' in research.assay has redundant product prefix 'assay_'. Rename to 'retention_period_days'
+  - Attribute 'assay_status_reason' in research.assay has redundant product prefix 'assay_'. Rename to 'status_reason'
+  - Attribute 'assay_subcategory' in research.assay has redundant product prefix 'assay_'. Rename to 'subcategory'
+  - Attribute 'assay_version_number' in research.assay has redundant product prefix 'assay_'. Rename to 'version_number'
+  - Attribute 'crew_size' in workforce.crew has redundant product prefix 'crew_'. Rename to 'size'
+  - Table planning.mrp_exception has self-referencing FK on column 'related_mrp_exception_id' with same name as PK 'mrp_exception_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table maintenance.pm_plan has 2 FK columns pointing to pricing.strategy (maintenance_strategy_id, strategy_id) (generic/unlabeled: strategy_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table inventory.warehouse_task has 2 FK columns pointing to inventory.warehouse_location (location_id, warehouse_location_id) (generic/unlabeled: warehouse_location_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table research.transfer_package_document has 2 FK columns pointing to customer.site (destination_location_site_id, site_id) (generic/unlabeled: site_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.timesheet has 2 FK columns pointing to workforce.employee (approved_by_employee_id, employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - PII-candidate attribute ehs.sampling_point.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute ehs.sampling_point.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute ehs.facility.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute ehs.facility.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute ehs.facility.primary_contact_name has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute production.plant.emergency_contact_name has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute production.plant.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute production.plant.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute finance.legal_entity.address_line1 has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute finance.legal_entity.address_line2 has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute finance.legal_entity.postal_code has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute inventory.tank.gps_latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute inventory.tank.gps_longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute logistics.loading_dock.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute logistics.loading_dock.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute maintenance.plant.address_line1 has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute maintenance.plant.address_line2 has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute maintenance.plant.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute maintenance.plant.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute maintenance.plant.postal_code has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute product.product_family.family_name has no classification tags — expected restricted/confidential + PII tag
+  - 5 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 435 attribute(s) match person-data patterns but lack pii_ tags
+  - 43 non-PK attributes redundantly prefixed with their product name
+  - 1 attribute(s) have value_regex on typed columns (DATE/BOOLEAN/INT/etc.) — regex is redundant when data_type constrains format
+  - 1 attribute(s) have pipe-enum value_regex with >8 values — consider creating a reference product instead
+
+Deterministic score: 50/100 (LLM assessment: 62/100)

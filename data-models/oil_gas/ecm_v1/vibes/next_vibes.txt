@@ -1,0 +1,246 @@
+**Model Quality Score: 50/100**
+
+**Static Analysis Findings (78 actionable):**
+  - [SA:unlinked_fk] Column commercial.commercial_counterparty.venture_partner_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column product.assay.crude_grade_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column production.pipeline_connection.pipeline_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column compliance.submitting_entity.parent_entity_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column finance.sponsor.parent_sponsor_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column finance.sponsor.tax_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column hse.installation_location.emergency_response_plan_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column petrochemical.optimization_run.input_data_snapshot_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column petrochemical.optimization_run.schedule_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column petrochemical.allocation_run.created_by_user_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column petrochemical.allocation_run.plant_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column petrochemical.allocation_run.product_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column petrochemical.calibration_run.equipment_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column petrochemical.calibration_run.location_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column petrochemical.calibration_run.operator_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column petrochemical.run_period.plant_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column petrochemical.run_period.unit_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column procurement.location.created_by_user_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column procurement.location.parent_location_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column procurement.location.updated_by_user_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column venture.concession.document_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column venture.concession.operator_id looks like an FK but has no foreign_key_to reference
+  - [SA:duplicate_product_pair] Domain 'production' has both 'working_interest' and 'production_working_interest' — SSOT violation. Merge into 'working_interest'.
+  - [SA:duplicate_product_pair] Domain 'production' has both 'facility' and 'production_facility' — SSOT violation. Merge into 'facility'.
+  - [SA:missing_pk] Product 'production.field' has no primary key attribute.
+  - [SA:missing_pk] Product 'reservoir.sample' has no primary key attribute.
+  - [SA:denormalized_natural_key] Product 'exploration.field' has both FK 'field_id' and natural key 'field_code' for entity 'field'. The natural key is redundant — use the FK join instead.
+  - [SA:denormalized_natural_key] Product 'exploration.wellbore' has both FK 'wellbore_id' and natural key 'wellbore_code' for entity 'wellbore'. The natural key is redundant — use the FK join instead.
+  - [SA:denormalized_natural_key] Product 'production.production_facility' has both FK 'facility_id' and natural key 'facility_code' for entity 'facility'. The natural key is redundant — use the FK join instead.
+  - [SA:denormalized_natural_key] Product 'land.operator' has both FK 'operator_id' and natural key 'operator_code' for entity 'operator'. The natural key is redundant — use the FK join instead.
+  - [SA:denormalized_natural_key] Product 'drilling.field' has both FK 'field_id' and natural key 'field_code' for entity 'field'. The natural key is redundant — use the FK join instead.
+  - [SA:denormalized_natural_key] Product 'procurement.material_reservation' has both FK 'project_id' and natural key 'project_number' for entity 'project'. The natural key is redundant — use the FK join instead.
+  - [SA:denormalized_natural_key] Product 'procurement.project' has both FK 'project_id' and natural key 'project_code' for entity 'project'. The natural key is redundant — use the FK join instead.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'asset.asset_facility' and 'production.production_facility' have the same entity name 'facility' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'asset.asset_facility' and 'production.facility' have the same entity name 'facility' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'asset.asset_risk_assessment' and 'hse.hse_risk_assessment' have the same entity name 'risk_assessment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'asset.asset_working_interest' and 'land.land_working_interest' have the same entity name 'working_interest' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'asset.asset_working_interest' and 'production.production_working_interest' have the same entity name 'working_interest' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'asset.asset_working_interest' and 'production.working_interest' have the same entity name 'working_interest' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'asset.asset_working_interest' and 'reservoir.reservoir_working_interest' have the same entity name 'working_interest' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'asset.asset_working_interest' and 'venture.venture_working_interest' have the same entity name 'working_interest' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'land.land_working_interest' and 'production.production_working_interest' have the same entity name 'working_interest' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'land.land_working_interest' and 'production.working_interest' have the same entity name 'working_interest' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'land.land_working_interest' and 'reservoir.reservoir_working_interest' have the same entity name 'working_interest' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'land.land_working_interest' and 'venture.venture_working_interest' have the same entity name 'working_interest' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'production.production_working_interest' and 'reservoir.reservoir_working_interest' have the same entity name 'working_interest' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'production.production_working_interest' and 'venture.venture_working_interest' have the same entity name 'working_interest' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'production.working_interest' and 'reservoir.reservoir_working_interest' have the same entity name 'working_interest' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'production.working_interest' and 'venture.venture_working_interest' have the same entity name 'working_interest' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'reservoir.reservoir_working_interest' and 'venture.venture_working_interest' have the same entity name 'working_interest' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'asset.field' and 'drilling.field' have the same entity name 'field' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'asset.field' and 'exploration.field' have the same entity name 'field' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'asset.field' and 'production.field' have the same entity name 'field' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'drilling.field' and 'exploration.field' have the same entity name 'field' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'drilling.field' and 'production.field' have the same entity name 'field' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'exploration.field' and 'production.field' have the same entity name 'field' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'asset.location' and 'procurement.location' have the same entity name 'location' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'commercial.commercial_term_contract' and 'customer.customer_term_contract' have the same entity name 'term_contract' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'commercial.commercial_volume_commitment' and 'customer.customer_volume_commitment' have the same entity name 'volume_commitment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'commercial.commercial_counterparty' and 'customer.customer_counterparty' have the same entity name 'counterparty' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'commercial.commercial_price_index_preference' and 'customer.customer_price_index_preference' have the same entity name 'price_index_preference' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'compliance.compliance_regulatory_filing' and 'land.land_regulatory_filing' have the same entity name 'regulatory_filing' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'compliance.compliance_corrective_action' and 'hse.hse_corrective_action' have the same entity name 'corrective_action' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'compliance.compliance_audit_finding' and 'hse.hse_audit_finding' have the same entity name 'audit_finding' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'compliance.compliance_sec_reserves_disclosure' and 'reservoir.reservoir_sec_reserves_disclosure' have the same entity name 'sec_reserves_disclosure' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'compliance.compliance_certification' and 'workforce.workforce_certification' have the same entity name 'certification' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'customer.customer_lifting_schedule' and 'logistics.logistics_lifting_schedule' have the same entity name 'lifting_schedule' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'customer.customer_product_approval' and 'petrochemical.petrochemical_product_approval' have the same entity name 'product_approval' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'drilling.drilling_well' and 'exploration.exploration_well' have the same entity name 'well' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'drilling.drilling_well' and 'production.production_well' have the same entity name 'well' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'exploration.exploration_well' and 'production.production_well' have the same entity name 'well' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'drilling.operator' and 'land.operator' have the same entity name 'operator' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'drilling.wellbore' and 'exploration.wellbore' have the same entity name 'wellbore' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'finance.project' and 'procurement.project' have the same entity name 'project' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'hse.hse_training_record' and 'workforce.workforce_training_record' have the same entity name 'training_record' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'petrochemical.petrochemical_yield_record' and 'refining.refining_yield_record' have the same entity name 'yield_record' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'production.forecast' and 'revenue.revenue_forecast' have the same entity name 'forecast' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'refining.sample' and 'reservoir.sample' have the same entity name 'sample' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — rename_product: asset.field** — rename to `asset_location_field` because the same “field” concept is duplicated in drilling, production, and exploration domains, causing ambiguity.
+**PRIORITY 2 — rename_product: drilling.field** — rename to `drilling_operation_field` because it duplicates the asset‑level field entity and should be merged.
+**PRIORITY 3 — rename_product: production.field** — rename to `production_operation_field` because it duplicates the asset‑level field entity and should be merged.
+**PRIORITY 4 — rename_product: exploration.field** — rename to `exploration_geologic_field` because it duplicates the asset‑level field entity and should be merged.
+**PRIORITY 5 — move_product: asset.field** — move to `core` domain because “field” is a core asset concept used across the enterprise; consolidate all field tables into this single product.
+**PRIORITY 6 — rename_product: drilling.wellbore** — rename to `drilling_wellbore` because a separate wellbore table already exists in the exploration domain, leading to duplicate entities.
+**PRIORITY 7 — rename_product: exploration.wellbore** — rename to `exploration_wellbore` to differentiate from the drilling‑specific wellbore entity.
+**PRIORITY 8 — move_product: drilling.wellbore** — move to `drilling` domain (retain here) and deprecate the exploration wellbore table; all wellbore data should be stored in the drilling wellbore product.
+**PRIORITY 9 — remove_fk: commercial.commercial_counterparty** — remove FK on column `commercial_counterparty_id` that points to `commercial.commercial_counterparty.commercial_counterparty_id` because the column name duplicates the primary key and violates the naming rule (should be `counterparty_id` or similar).
+**PRIORITY 10 — rename_attribute: commercial.commercial_counterparty.commercial_counterparty_id** — rename column `commercial_counterparty_id` to `counterparty_id` because self‑referencing FK uses the same name as the PK, violating the business‑meaningful naming rule.
+**PRIORITY 11 — connect_table: finance.cgu** — add column `parent_cgu_id` (BIGINT) with FK to `finance.cgu.cgu_id` — enables hierarchical cost‑grouping which is required for consolidated reporting of cost‑center structures.
+**PRIORITY 12 — connect_table: hse.hse_corrective_action** — add column `parent_action_id` (BIGINT) with FK to `hse.hse_corrective_action.hse_corrective_action_id` — provides a traceable parent‑child relationship for corrective‑action cascades.
+**PRIORITY 13 — connect_table: logistics.tariff_rate** — add column `base_tariff_rate_id` (BIGINT) with FK to `logistics.tariff_rate.tariff_rate_id` — allows versioning of tariff rates and supports historical pricing analysis.
+**PRIORITY 14 — connect_table: petrochemical.product_line** — add column `parent_product_line_id` (BIGINT) with FK to `petrochemical.product_line.product_line_id` — enables hierarchical product‑line structuring needed for portfolio management.
+**PRIORITY 15 — remove_fk: venture.partner** — remove FK on column `partner_id` that points to `venture.partner.partner_id` because the column name matches the PK and does not convey the relationship (should be `partner_entity_id` if retained).
+**PRIORITY 16 — rename_attribute: venture.partner.partner_id** — rename column `partner_id` to `partner_entity_id` because self‑referencing FK uses the same name as the PK, violating the naming rule.
+**PRIORITY 17 — connect_table: compliance.calendar** — add column `calendar_type_id` (BIGINT) with FK to a new lookup table `compliance.calendar_type.calendar_type_id` — distinguishes between regulatory, operational, and maintenance calendars, which is required for proper scheduling.
+**PRIORITY 18 — rename_product: finance.project_definition** — rename to `project_template` because the term “definition” is ambiguous and overlaps with `project` semantics.
+**PRIORITY 19 — rename_product: finance.project** — rename to `project_instance` because “project” is used both as a template and an active project, causing confusion.
+**PRIORITY 20 — connect_table: revenue.revenue_forecast** — add column `forecast_version_id` (BIGINT) with FK to a new lookup table `revenue.forecast_version.forecast_version_id` — enables version control of revenue forecasts, a critical requirement for audit trails.
+
+Other known issues from static analysis (140):
+  - Attribute 'account_tier' in customer.account has redundant product prefix 'account_'. Rename to 'tier'
+  - Attribute 'asset_category_code' in asset.asset has redundant product prefix 'asset_'. Rename to 'category_code'
+  - Attribute 'asset_tag' in asset.asset has redundant product prefix 'asset_'. Rename to 'tag'
+  - Attribute 'field_capacity_boepd' in asset.field has redundant product prefix 'field_'. Rename to 'capacity_boepd'
+  - Attribute 'field_classification' in asset.field has redundant product prefix 'field_'. Rename to 'classification'
+  - Attribute 'field_development_phase' in asset.field has redundant product prefix 'field_'. Rename to 'development_phase'
+  - Attribute 'field_risk_rating' in asset.field has redundant product prefix 'field_'. Rename to 'risk_rating'
+  - Attribute 'field_classification' in exploration.field has redundant product prefix 'field_'. Rename to 'classification'
+  - Attribute 'field_status_date' in exploration.field has redundant product prefix 'field_'. Rename to 'status_date'
+  - Attribute 'wellbore_classification' in drilling.wellbore has redundant product prefix 'wellbore_'. Rename to 'classification'
+  - Attribute 'field_area_sqkm' in drilling.field has redundant product prefix 'field_'. Rename to 'area_sqkm'
+  - Attribute 'field_classification' in drilling.field has redundant product prefix 'field_'. Rename to 'classification'
+  - Attribute 'field_owner' in drilling.field has redundant product prefix 'field_'. Rename to 'owner'
+  - Attribute 'field_risk_rating' in drilling.field has redundant product prefix 'field_'. Rename to 'risk_rating'
+  - Attribute 'field_status_date' in drilling.field has redundant product prefix 'field_'. Rename to 'status_date'
+  - Attribute 'wellbore_diameter_mm' in exploration.wellbore has redundant product prefix 'wellbore_'. Rename to 'diameter_mm'
+  - Attribute 'wellbore_length_m' in exploration.wellbore has redundant product prefix 'wellbore_'. Rename to 'length_m'
+  - Attribute 'wellbore_status_reason' in exploration.wellbore has redundant product prefix 'wellbore_'. Rename to 'status_reason'
+  - Attribute 'project_manager_name' in finance.project has redundant product prefix 'project_'. Rename to 'manager_name'
+  - Attribute 'project_phase' in finance.project has redundant product prefix 'project_'. Rename to 'phase'
+  - Attribute 'project_subcategory' in finance.project has redundant product prefix 'project_'. Rename to 'subcategory'
+  - Attribute 'project_manager_name' in procurement.project has redundant product prefix 'project_'. Rename to 'manager_name'
+  - Attribute 'crew_availability_status' in workforce.crew has redundant product prefix 'crew_'. Rename to 'availability_status'
+  - Attribute 'crew_average_experience_years' in workforce.crew has redundant product prefix 'crew_'. Rename to 'average_experience_years'
+  - Attribute 'crew_capacity' in workforce.crew has redundant product prefix 'crew_'. Rename to 'capacity'
+  - Attribute 'crew_certifications' in workforce.crew has redundant product prefix 'crew_'. Rename to 'certifications'
+  - Attribute 'crew_contract_end_date' in workforce.crew has redundant product prefix 'crew_'. Rename to 'contract_end_date'
+  - Attribute 'crew_contract_start_date' in workforce.crew has redundant product prefix 'crew_'. Rename to 'contract_start_date'
+  - Attribute 'crew_contract_type' in workforce.crew has redundant product prefix 'crew_'. Rename to 'contract_type'
+  - Attribute 'crew_created_by' in workforce.crew has redundant product prefix 'crew_'. Rename to 'created_by'
+  - Attribute 'crew_is_overtime_allowed' in workforce.crew has redundant product prefix 'crew_'. Rename to 'is_overtime_allowed'
+  - Attribute 'crew_language' in workforce.crew has redundant product prefix 'crew_'. Rename to 'language'
+  - Attribute 'crew_last_modified_by' in workforce.crew has redundant product prefix 'crew_'. Rename to 'last_modified_by'
+  - Attribute 'crew_leader_name' in workforce.crew has redundant product prefix 'crew_'. Rename to 'leader_name'
+  - Attribute 'crew_operating_company' in workforce.crew has redundant product prefix 'crew_'. Rename to 'operating_company'
+  - Attribute 'crew_region' in workforce.crew has redundant product prefix 'crew_'. Rename to 'region'
+  - Attribute 'crew_safety_score' in workforce.crew has redundant product prefix 'crew_'. Rename to 'safety_score'
+  - Attribute 'crew_size' in workforce.crew has redundant product prefix 'crew_'. Rename to 'size'
+  - Attribute 'crew_time_zone' in workforce.crew has redundant product prefix 'crew_'. Rename to 'time_zone'
+  - Attribute 'crew_union_affiliation' in workforce.crew has redundant product prefix 'crew_'. Rename to 'union_affiliation'
+  - Attribute 'payroll_run_version' in workforce.payroll_run has redundant product prefix 'payroll_run_'. Rename to 'version'
+  - Attribute 'field_classification' in production.field has redundant product prefix 'field_'. Rename to 'classification'
+  - Attribute 'field_depth_ft' in production.field has redundant product prefix 'field_'. Rename to 'depth_ft'
+  - Attribute 'sample_volume_ml' in reservoir.sample has redundant product prefix 'sample_'. Rename to 'volume_ml'
+  - Attribute 'sample_weight_g' in reservoir.sample has redundant product prefix 'sample_'. Rename to 'weight_g'
+  - Attribute 'catalyst_family' in petrochemical.catalyst has redundant product prefix 'catalyst_'. Rename to 'family'
+  - Attribute 'catalyst_grade' in petrochemical.catalyst has redundant product prefix 'catalyst_'. Rename to 'grade'
+  - Table production.field declares PK 'field_id' but no matching attribute exists in the attributes list
+  - Table reservoir.sample declares PK 'sample_id' but no matching attribute exists in the attributes list
+  - Table product.uom_conversion has self-referencing FK on column 'inverse_conversion_id' with same name as PK 'uom_conversion_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table petrochemical.petrochemical_product_approval has self-referencing FK on column 'product_approval_id' with same name as PK 'petrochemical_product_approval_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table drilling.well_status_history has 3 FK columns pointing to workforce.employee (created_by_user_employee_id, employee_id, last_modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.finance_afe has 2 FK columns pointing to workforce.employee (approved_by_employee_id, employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table hse.hse_risk_assessment has 4 FK columns pointing to workforce.employee (employee_id, last_modified_by_employee_id, primary_hse_employee_id, tertiary_hse_approved_by_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table hse.ldar_component has 3 FK columns pointing to workforce.employee (created_by_employee_id, employee_id, last_modified_by_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table hse.ldar_survey has 3 FK columns pointing to workforce.employee (employee_id, last_modified_by_employee_id, primary_ldar_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table hse.safety_observation has 4 FK columns pointing to workforce.employee (employee_id, last_modified_by_employee_id, primary_safety_employee_id, tertiary_safety_verified_by_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table hse.simops_plan has 4 FK columns pointing to workforce.employee (employee_id, last_modified_by_employee_id, primary_simops_employee_id, tertiary_simops_hse_reviewer_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table hse.waste_manifest has 2 FK columns pointing to asset.asset_facility (asset_facility_id, generator_facility_id) (generic/unlabeled: asset_facility_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table land.leasing_prospect has 2 FK columns pointing to workforce.employee (employee_id, land_manager_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table land.surface_use_agreement has 3 FK columns pointing to land.party (grantor_id, grantor_party_id, party_id) (generic/unlabeled: party_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table land.suspense_account has 2 FK columns pointing to land.royalty_owner (owner_id, royalty_owner_id) (generic/unlabeled: royalty_owner_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table petrochemical.quality_assay has 3 FK columns pointing to asset.equipment (equipment_id, lab_instrument_equipment_id, storage_tank_equipment_id) (generic/unlabeled: equipment_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table production.forecast has 2 FK columns pointing to workforce.employee (approved_by_employee_id, employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table commercial.commercial_price_index_preference has 2 FK columns pointing to commercial.price_index (price_index_id, price_index_preference_price_index_id) (generic/unlabeled: price_index_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table customer.license_interest has 2 FK columns pointing to customer.customer_counterparty (counterparty_customer_counterparty_id, customer_counterparty_id) (generic/unlabeled: customer_counterparty_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table asset.asset has 2 FK columns pointing to workforce.employee (employee_id, updated_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table commercial.portfolio has 2 FK columns pointing to workforce.employee (employee_id, manager_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table revenue.recognition_schedule has 2 FK columns pointing to workforce.employee (approved_by_user_employee_id, employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.crew has 2 FK columns pointing to workforce.employee (crew_leader_employee_id, employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.payroll_run has 2 FK columns pointing to workforce.employee (employee_id, processed_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - PII-candidate attribute asset.asset.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute asset.asset.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute asset.work_center.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute asset.work_center.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute asset.field.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute asset.field.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute exploration.field.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute exploration.field.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute drilling.wellbore.spud_latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute drilling.wellbore.spud_longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute exploration.wellbore.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute exploration.wellbore.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute finance.settlement_receiver.bank_account_type has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute finance.settlement_receiver.swift_code has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute hse.monitoring_station.address has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute hse.monitoring_station.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute hse.monitoring_station.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute land.tax_entity.address_line1 has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute land.tax_entity.contact_name has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute land.tax_entity.zip_code has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute land.operator.primary_contact_name has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute production.scada_tag.tag_address has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute production.flare_system.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute production.flare_system.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute production.storage_tank.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute production.storage_tank.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute production.tank_battery.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute production.tank_battery.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute production.pipeline_connection.end_latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute production.pipeline_connection.end_longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute production.pipeline_connection.start_latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute production.pipeline_connection.start_longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute production.facility.address_line1 has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute production.facility.address_line2 has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute production.facility.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute production.facility.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute production.facility.operator_name has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute production.facility.zip_code has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute reservoir.interference_test.operator_name has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute land.property.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute land.property.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute production.field.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute production.field.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute asset.location.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute asset.location.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute compliance.regulatory_authority.address has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute compliance.regulatory_authority.contact_email has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute compliance.regulatory_authority.phone_number has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute hse.installation_location.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute hse.installation_location.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute petrochemical.storage_location.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute petrochemical.storage_location.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute petrochemical.sample_point.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute petrochemical.sample_point.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute procurement.location.address_line1 has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute procurement.location.address_line2 has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute procurement.location.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute procurement.location.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute procurement.location.postal_code has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute product.laboratory.address_line1 has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute product.laboratory.address_line2 has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute product.laboratory.postal_code has no classification tags — expected restricted/confidential + PII tag
+  - Product 'hse.incident' has 33 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'hse.spill_event' has 29 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'logistics.shipment' has 27 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - 34 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 789 attribute(s) match person-data patterns but lack pii_ tags
+  - 82 non-PK attributes redundantly prefixed with their product name
+  - 1 attribute(s) have value_regex on typed columns (DATE/BOOLEAN/INT/etc.) — regex is redundant when data_type constrains format
+
+Deterministic score: 50/100 (LLM assessment: 68/100)

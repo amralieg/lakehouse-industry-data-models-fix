@@ -1,0 +1,1801 @@
+-- Schema for Domain: dispute | Business: Payments Fintech | Version: v1_ecm
+-- Generated on: 2026-05-03 18:25:32
+
+-- ========= DATABASE =========
+CREATE DATABASE IF NOT EXISTS `payments_fintech_ecm`.`dispute` COMMENT 'Manages the full dispute and chargeback lifecycle — retrieval requests, chargeback filings, reason code classification, representment packages, arbitration tracking, evidence collection, response deadlines, and final resolution outcomes. SSOT for ARN-linked dispute records and financial adjustments per card scheme rules.';
+
+-- ========= TABLES =========
+CREATE OR REPLACE TABLE `payments_fintech_ecm`.`dispute`.`chargeback` (
+    `chargeback_id` BIGINT COMMENT 'Unique surrogate primary key for the chargeback record in the dispute domain. Serves as the SSOT identifier for all chargeback lifecycle tracking per card scheme rules (Visa, Mastercard, Amex, Discover).',
+    `authorization_id` BIGINT COMMENT 'Foreign key linking to transaction.authorization. Business justification: Original authorization data is required to validate the auth amount, response codes, and 3‑DS results during chargeback assessment.',
+    `capture_id` BIGINT COMMENT 'Foreign key linking to transaction.capture. Business justification: Capture details (final amount, fees) are essential for reconciling chargeback amounts and settlement adjustments.',
+    `chargeback_reason_code_id` BIGINT COMMENT 'Reference to the card scheme reason code record in the reference domain that classifies the basis for the chargeback (e.g., fraud, not as described, duplicate processing, credit not processed). Each card scheme (Visa, Mastercard, Amex, Discover) maintains its own reason code taxonomy.',
+    `cross_border_payment_id` BIGINT COMMENT 'Foreign key linking to fx.cross_border_payment. Business justification: Cross‑border chargebacks must reference the originating payment to satisfy audit, compliance, and settlement reconciliation.',
+    `dispute_case_id` BIGINT COMMENT 'Reference to the parent dispute case record that initiated this chargeback filing. A dispute may progress through retrieval request, first chargeback, second chargeback, and arbitration stages — this links the chargeback to its overarching dispute case.',
+    `dispute_dispute_case_id` BIGINT COMMENT 'Reference to the parent dispute case record that initiated this chargeback filing. A dispute may progress through retrieval request, first chargeback, second chargeback, and arbitration stages — this links the chargeback to its overarching dispute case.',
+    `ecosystem_partner_id` BIGINT COMMENT 'Reference to the issuing bank (cardholders bank) that initiated the chargeback on behalf of the cardholder. The issuing bank is the party that files the chargeback against the acquiring bank per card scheme rules.',
+    `journal_entry_id` BIGINT COMMENT 'Reference to the General Ledger entry in Oracle Financials (ERP) recording the financial adjustment associated with this chargeback. Enables reconciliation between the dispute management system and the financial accounting system for SOX compliance and revenue recognition.',
+    `merchant_id` BIGINT COMMENT 'Reference to the merchant record against whom the chargeback has been filed. The Merchant Identification Number (MID) is the acquiring bank-assigned identifier for the merchant in the payment network.',
+    `payment_product_id` BIGINT COMMENT 'Foreign key linking to product.payment_product. Business justification: Chargeback performance dashboard requires product‑level metrics for risk analysis and scheme reporting; linking each chargeback to its payment_product enables this.',
+    `payment_txn_id` BIGINT COMMENT 'Foreign key linking to transaction.payment_txn. Business justification: Chargeback investigations need the detailed payment transaction record for settlement, network, and device info – a standard compliance and reporting requirement.',
+    `pos_terminal_id` BIGINT COMMENT 'Foreign key linking to terminal.pos_terminal. Business justification: Chargeback Terminal Performance Report requires linking each chargeback to its originating POS terminal to monitor terminal risk and compliance.',
+    `rate_id` BIGINT COMMENT 'Foreign key linking to fx.fx_rate. Business justification: Chargeback settlement report requires original FX rate for currency conversion of the chargeback amount.',
+    `response_id` BIGINT COMMENT 'Foreign key linking to gateway.gateway_response. Business justification: Chargeback reconciliation needs the original acquirer response to verify decline reason, authorization code, and fraud flags.',
+    `scheme_id` BIGINT COMMENT 'Foreign key linking to network.scheme. Business justification: Chargebacks are filed under a specific card scheme; scheme_id enables scheme‑level chargeback reporting required by Visa/Mastercard compliance.',
+    `settlement_id` BIGINT COMMENT 'Foreign key linking to settlement.settlement. Business justification: Chargeback settlement reports must link to the settlement record that includes the chargeback amount for traceability.',
+    `transaction_id` BIGINT COMMENT 'Reference to the originating payment transaction record in the transaction domain that is the subject of this chargeback filing. Links the chargeback to the full transaction detail including authorization, capture, and settlement data.',
+    `wallet_transaction_id` BIGINT COMMENT 'Foreign key linking to wallet.wallet_transaction. Business justification: Chargeback processing for wallet transactions requires linking each chargeback to the specific wallet transaction that was disputed, enabling accurate reconciliation and reporting.',
+    `acquirer_reference` STRING COMMENT 'Acquiring banks internal reference number for this chargeback case. Used by the acquiring banks operations team to track the chargeback in their internal systems and correlate with the card scheme case identifier.',
+    `adjustment_amount` DECIMAL(18,2) COMMENT 'Net financial adjustment amount posted to the merchants account as a result of this chargeback. Includes the chargeback amount plus any applicable scheme fees, processing fees, or interchange adjustments. Negative value indicates a debit to the merchant; positive value indicates a credit (e.g., upon successful representment).',
+    `amount` DECIMAL(18,2) COMMENT 'Gross amount of the chargeback as filed by the issuing bank in the transaction currency. Represents the disputed amount that will be debited from the merchants account if the chargeback is upheld. May differ from the original transaction amount in cases of partial chargebacks.',
+    `arbitration_deadline` TIMESTAMP COMMENT 'Scheme-mandated deadline for filing an arbitration case with the card scheme after a failed pre-arbitration or second chargeback cycle. Arbitration is the final escalation path where the card scheme adjudicates the dispute and assigns liability. Missing this deadline forfeits the right to arbitration.',
+    `arbitration_filing_timestamp` TIMESTAMP COMMENT 'Actual timestamp when the arbitration case was filed with the card scheme. Populated only when the chargeback has been escalated to the arbitration stage (cycle_stage = ARBITRATION).',
+    `arn` STRING COMMENT 'Acquirer Reference Number uniquely identifying the originating payment transaction across the card scheme network. Primary linkage key between the chargeback and the settled transaction. Assigned by the acquiring bank at settlement and used by all parties to trace the transaction through the payment chain.',
+    `card_scheme` STRING COMMENT 'Payment network brand (card scheme) under whose rules this chargeback is governed. Determines the applicable reason code taxonomy, response deadlines, cycle stages, and arbitration procedures. [ENUM-REF-CANDIDATE: VISA|MASTERCARD|AMEX|DISCOVER|UNIONPAY|OTHER — promote to reference product]. Valid values are `VISA|MASTERCARD|AMEX|DISCOVER|UNIONPAY|OTHER`',
+    `cardholder_dispute_reason` STRING COMMENT 'Free-text description of the cardholders stated reason for disputing the transaction as captured by the issuing bank. Provides the narrative context behind the formal reason code classification. Used by the merchant in preparing the representment package.',
+    `case_number` STRING COMMENT 'Externally-known business identifier for the chargeback case as assigned by the Dispute and Chargeback Management System. Used by operations teams, merchants, and card schemes to reference the chargeback in correspondence, representment packages, and scheme portal submissions.',
+    `chargeback_status` STRING COMMENT 'Current disposition and lifecycle status of the chargeback record. Tracks the chargeback from initial receipt through final resolution. RECEIVED: chargeback filed by issuer; UNDER_REVIEW: internal review in progress; AWAITING_RESPONSE: merchant response pending; REPRESENTED: merchant submitted representment; ACCEPTED: merchant accepted liability; WON: merchant successfully defended; LOST: chargeback upheld; ARBITRATION: escalated to scheme arbitration; CLOSED: final resolution reached. [ENUM-REF-CANDIDATE: RECEIVED|UNDER_REVIEW|AWAITING_RESPONSE|REPRESENTED|ACCEPTED|WON|LOST|ARBITRATION|CLOSED — promote to reference product]',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the chargeback record was first created in the Dispute and Chargeback Management System (Silver Layer). Represents the system ingestion time, distinct from the filing_timestamp which is the business event time when the issuer filed the chargeback with the card scheme.',
+    `currency` STRING COMMENT 'ISO 4217 three-letter currency code for the currency in which the chargeback amount is denominated. May differ from the original transaction currency in cross-border disputes where Dynamic Currency Conversion (DCC) was applied.. Valid values are `^[A-Z]{3}$`',
+    `cycle_stage` STRING COMMENT 'Current stage in the chargeback lifecycle cycle as defined by card scheme rules. FIRST_CHARGEBACK is the initial filing by the issuer; SECOND_CHARGEBACK (also called pre-arbitration chargeback under Mastercard rules) occurs after a failed representment; PRE_ARBITRATION is the Visa pre-arbitration stage; ARBITRATION is the final scheme-level adjudication; COMPLIANCE is a scheme compliance filing.. Valid values are `FIRST_CHARGEBACK|SECOND_CHARGEBACK|PRE_ARBITRATION|ARBITRATION|COMPLIANCE`',
+    `deadline_met` BOOLEAN COMMENT 'Indicates whether the chargeback response was submitted on or before the scheme-mandated response deadline. True if response_timestamp is on or before response_deadline; False if the deadline was missed, resulting in automatic acceptance of the chargeback liability.',
+    `evidence_package_ref` STRING COMMENT 'Reference identifier for the evidence package (representment documentation) submitted by the merchant to contest the chargeback. Points to the document management system location containing delivery confirmations, signed receipts, authorization records, and other supporting evidence.',
+    `filing_timestamp` TIMESTAMP COMMENT 'The principal business event timestamp recording when the chargeback was formally filed by the issuing bank with the card scheme. This is the scheme-recognized filing date used to calculate all response deadlines and compliance windows per card scheme rules.',
+    `fraud_indicator` BOOLEAN COMMENT 'Indicates whether this chargeback is classified as fraud-related based on the reason code category (True) or non-fraud (False). Fraud chargebacks (e.g., Visa reason code 10.x, Mastercard reason code 4837/4863) are tracked separately for fraud reporting, chargeback ratio monitoring, and Fraud Detection and Prevention Platform feedback loops.',
+    `is_partial_chargeback` BOOLEAN COMMENT 'Indicates whether this chargeback is for a partial amount of the original transaction (True) or for the full transaction amount (False). Partial chargebacks occur when only a portion of the goods or services are disputed.',
+    `liability_party` STRING COMMENT 'The party determined to bear financial liability for the chargeback upon final resolution. MERCHANT: merchant absorbs the loss; ISSUER: issuing bank absorbs the loss; ACQUIRER: acquiring bank absorbs the loss; SCHEME: card scheme absorbs the loss (rare, typically in compliance cases).. Valid values are `MERCHANT|ISSUER|ACQUIRER|SCHEME`',
+    `original_transaction_amount` DECIMAL(18,2) COMMENT 'The full amount of the original payment transaction that is the subject of this chargeback, in the original transaction currency. Used to identify partial chargebacks where chargeback_amount is less than the full transaction amount.',
+    `original_transaction_currency` STRING COMMENT 'ISO 4217 three-letter currency code for the currency in which the original payment transaction was denominated. Enables currency reconciliation in cross-border dispute scenarios involving Foreign Exchange (FX) or Dynamic Currency Conversion (DCC).. Valid values are `^[A-Z]{3}$`',
+    `ratio_flag` BOOLEAN COMMENT 'Indicates whether this chargeback has been flagged as contributing to the merchants chargeback ratio threshold breach under card scheme monitoring programs (e.g., Visa Chargeback Monitoring Program - VCMP, Mastercard Excessive Chargeback Program - ECP). Merchants exceeding scheme thresholds face fines and potential termination.',
+    `representment_deadline` TIMESTAMP COMMENT 'Scheme-mandated deadline by which the merchant must submit a representment (rebuttal) package to challenge the chargeback. Distinct from response_deadline in that it specifically governs the representment submission window after the merchant elects to contest the chargeback.',
+    `representment_timestamp` TIMESTAMP COMMENT 'Actual timestamp when the merchant submitted the representment package to contest the chargeback. A representment is the merchants formal response disputing the chargeback, including evidence such as delivery confirmation, signed receipts, or fraud documentation.',
+    `resolution_outcome` STRING COMMENT 'Final resolution outcome of the chargeback after all dispute cycles are exhausted. MERCHANT_WON: representment was successful and chargeback reversed; ISSUER_WON: chargeback upheld and merchant debited; SPLIT_LIABILITY: liability shared between parties; WITHDRAWN: cardholder or issuer withdrew the dispute; EXPIRED: chargeback expired due to inaction.. Valid values are `MERCHANT_WON|ISSUER_WON|SPLIT_LIABILITY|WITHDRAWN|EXPIRED`',
+    `resolution_timestamp` TIMESTAMP COMMENT 'Timestamp when the chargeback reached its final resolution and the case was closed. Marks the end of the chargeback lifecycle. Used for SLA compliance measurement and financial reconciliation timing.',
+    `response_deadline` TIMESTAMP COMMENT 'Scheme-mandated deadline by which the acquiring bank or merchant must submit a representment or accept the chargeback. Calculated from the filing timestamp per card scheme rules (e.g., Visa typically allows 30 calendar days; Mastercard 45 calendar days). Missing this deadline results in automatic chargeback acceptance.',
+    `response_timestamp` TIMESTAMP COMMENT 'Actual timestamp when the merchant or acquiring bank submitted their response (representment package or acceptance) to the chargeback. Compared against response_deadline to determine deadline compliance status.',
+    `scheme_case_reference` STRING COMMENT 'Card scheme-assigned case identifier for the chargeback as provided by Visa, Mastercard, Amex, or Discover through their dispute resolution portals (e.g., Visa Resolve Online - VROL, Mastercard MATCH). Used for scheme-level tracking and arbitration submissions.',
+    `scheme_fee_amount` DECIMAL(18,2) COMMENT 'Fee charged by the card scheme (Visa, Mastercard, Amex, Discover) for processing the chargeback. Scheme fees are assessed per chargeback filing and may vary by scheme, reason code, and merchant chargeback ratio tier. Debited from the acquiring bank and typically passed through to the merchant.',
+    `sla_breach` BOOLEAN COMMENT 'Indicates whether the internal SLA for chargeback processing was breached (True) for this case. Internal SLAs govern the time from chargeback receipt to merchant notification, evidence collection, and representment submission, distinct from the scheme-mandated response deadlines.',
+    `source_system` STRING COMMENT 'Name of the operational system of record from which this chargeback record was sourced (e.g., Dispute and Chargeback Management System). Supports data lineage tracking and reconciliation across the lakehouse architecture.',
+    `transaction_date` DATE COMMENT 'The date on which the original payment transaction that is the subject of this chargeback was processed. Used to verify chargeback filing timeliness against scheme-mandated windows (e.g., Visa allows chargebacks up to 120 days from transaction date in most cases).',
+    `updated_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent update to the chargeback record in the system. Tracks the last modification across any field in the chargeback lifecycle, supporting audit trail requirements and change detection for downstream data consumers.',
+    CONSTRAINT pk_chargeback PRIMARY KEY(`chargeback_id`)
+) COMMENT 'Core master record for a chargeback filing initiated by an issuing bank on behalf of a cardholder. Captures the full chargeback lifecycle from initial filing through final resolution, including ARN, originating transaction reference, card scheme reason code (FK to reference domain), financial adjustment amounts, cycle stage (first chargeback, second chargeback/pre-arbitration chargeback), filing timestamps, scheme-mandated response deadlines, actual response dates, deadline compliance status, and current disposition. SSOT for all chargeback records in the dispute domain per card scheme rules (Visa, Mastercard, Amex, Discover).';
+
+CREATE OR REPLACE TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` (
+    `retrieval_request_id` BIGINT COMMENT 'Unique surrogate identifier for the retrieval request record in the Dispute and Chargeback Management System. Primary key for this entity. Role: TRANSACTION_HEADER.',
+    `assigned_analyst_employee_id` BIGINT COMMENT 'Identifier of the dispute operations analyst assigned to manage the fulfillment of this retrieval request. Used for workload management, SLA accountability, and case ownership tracking.',
+    `card_scheme_id` BIGINT COMMENT 'Foreign key linking to reference.reference_card_scheme. Business justification: Retrieval requests follow scheme‑specific documentation requirements; reference needed for compliance.',
+    `chargeback_id` BIGINT COMMENT 'Reference to the chargeback record that was escalated from this retrieval request when fulfillment was not completed within the scheme deadline. Null if the retrieval request was fulfilled and no chargeback was filed.',
+    `employee_id` BIGINT COMMENT 'Identifier of the dispute operations analyst assigned to manage the fulfillment of this retrieval request. Used for workload management, SLA accountability, and case ownership tracking.',
+    `pos_terminal_id` BIGINT COMMENT 'Foreign key linking to terminal.pos_terminal. Business justification: Regulatory retrieval requests must capture the POS terminal ID to locate the original device for audit and evidence collection.',
+    `scheme_id` BIGINT COMMENT 'Foreign key linking to network.scheme. Business justification: Retrieval requests must comply with scheme‑specific documentation standards; scheme_id provides the reference for compliance audits.',
+    `acquirer_code` BIGINT COMMENT 'Identifier of the acquiring bank responsible for fulfilling the retrieval request by providing the requested transaction documentation to the issuing bank.',
+    `arn` STRING COMMENT 'Acquirer Reference Number uniquely identifying the original payment transaction that is the subject of this retrieval request. The ARN is the primary linkage between the retrieval request and the underlying transaction across card scheme networks. Critical for dispute lifecycle traceability.',
+    `authorization_code` STRING COMMENT 'Authorization approval code issued by the issuing bank for the original transaction. Included in the retrieval request to help locate the original transaction record and validate the authorization record as part of the evidence package.',
+    `billing_amount` DECIMAL(18,2) COMMENT 'Amount billed to the cardholder in their billing currency, which may differ from the transaction amount when Dynamic Currency Conversion (DCC) or foreign exchange conversion was applied. Used in cross-border dispute resolution.',
+    `billing_currency` STRING COMMENT 'ISO 4217 three-letter currency code of the cardholders billing currency. Relevant when DCC was applied and the billing currency differs from the transaction currency.. Valid values are `^[A-Z]{3}$`',
+    `bin` STRING COMMENT 'Bank Identification Number (BIN), also known as Issuer Identification Number (IIN), representing the first 6-8 digits of the PAN. Identifies the issuing bank and card product type. Used for scheme routing and issuer identification in the retrieval request workflow.. Valid values are `^[0-9]{6,8}$`',
+    `cardholder_dispute_category` STRING COMMENT 'High-level category of the cardholders dispute underlying the retrieval request. Aligns with card scheme dispute category frameworks (Visa Dispute Resolution; Mastercard Dispute Resolution Management). Used for dispute analytics and trend reporting.. Valid values are `fraud|not_recognized|processing_error|consumer_dispute|authorization`',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this retrieval request record was first created in the system of record. Maps to RECORD_AUDIT_CREATED category for TRANSACTION_HEADER role. Formatted as yyyy-MM-ddTHH:mm:ss.SSSXXX.',
+    `days_to_fulfill` STRING COMMENT 'Number of calendar days elapsed between the request_date and the fulfillment_date. Populated upon fulfillment. Used for SLA performance analytics and scheme compliance benchmarking.',
+    `document_delivery_method` STRING COMMENT 'Method used to deliver the requested transaction documentation (sales draft, receipt, authorization record) to the issuing bank. Electronic delivery via scheme portal is the preferred method per PCI DSS and scheme rules.. Valid values are `electronic|fax|mail|scheme_portal`',
+    `document_types_requested` STRING COMMENT 'Comma-separated list or description of the specific document types requested by the issuing bank (e.g., sales draft, transaction receipt, authorization record, imprinted voucher, signed cardholder receipt). Drives the fulfillment workflow and evidence package assembly.',
+    `documents_provided` BOOLEAN COMMENT 'Boolean flag indicating whether all requested transaction documentation has been provided to the issuing bank. True when the fulfillment package is complete and delivered; False when pending or partially fulfilled.',
+    `escalated_to_chargeback` BOOLEAN COMMENT 'Boolean flag indicating whether this retrieval request was escalated to a formal chargeback due to non-fulfillment within the scheme-mandated deadline. True indicates a chargeback has been filed; False indicates the request was resolved without chargeback escalation.',
+    `escalation_date` DATE COMMENT 'Date on which the retrieval request was escalated to a formal chargeback. Populated only when escalated_to_chargeback is True. Used for SLA tracking and scheme compliance reporting.',
+    `fraud_suspected` BOOLEAN COMMENT 'Boolean flag indicating whether the retrieval request is associated with a suspected fraudulent transaction, as flagged by the issuing bank or the fraud detection platform. When True, the case may be escalated to the Fraud Detection and Prevention Platform for additional investigation.',
+    `fulfillment_date` DATE COMMENT 'Actual date on which the acquiring bank fulfilled the retrieval request by delivering the requested documentation to the issuing bank. Null if not yet fulfilled. Used to calculate response time and SLA compliance.',
+    `fulfillment_deadline` DATE COMMENT 'Scheme-mandated deadline by which the acquiring bank must fulfill the retrieval request by delivering the requested documentation. Failure to meet this deadline typically results in automatic escalation to a chargeback. Calculated from request_date per applicable card scheme rules (Visa: typically 30 days; Mastercard: varies by reason code).',
+    `fulfillment_status` STRING COMMENT 'Current fulfillment status of the retrieval request indicating whether the acquiring bank has delivered the required documentation within the scheme deadline. Maps to LIFECYCLE_STATUS category for TRANSACTION_HEADER role. escalated_to_chargeback indicates the request was not fulfilled and a formal chargeback has been filed.. Valid values are `pending|fulfilled|partially_fulfilled|overdue|escalated_to_chargeback`',
+    `issuer_code` BIGINT COMMENT 'Identifier of the issuing bank (cardholders bank) that originated the retrieval request. The issuing bank initiates the pre-chargeback inquiry to obtain transaction documentation. Maps to PARTY_REFERENCE category for TRANSACTION_HEADER role.',
+    `mcc` STRING COMMENT 'ISO 18245 four-digit Merchant Category Code classifying the type of business conducted by the merchant at the time of the original transaction. Used in dispute analysis and scheme reporting.. Valid values are `^[0-9]{4}$`',
+    `merchant_country` STRING COMMENT 'ISO 3166-1 alpha-3 country code of the merchants country of operation where the original transaction occurred. Used for cross-border dispute routing and applicable scheme rule determination.. Valid values are `^[A-Z]{3}$`',
+    `merchant_name` STRING COMMENT 'Doing-business-as name of the merchant as it appears on the cardholders statement for the original transaction. Used to identify the merchant in the retrieval request workflow and for cardholder communication.',
+    `mid` STRING COMMENT 'Merchant Identification Number of the merchant whose transaction is subject to the retrieval request. Assigned by the acquiring bank during merchant onboarding. Used to route fulfillment obligations to the correct merchant.',
+    `pan_last_four` STRING COMMENT 'Last four digits of the cardholders Primary Account Number (PAN) associated with the original transaction. Stored in truncated form per PCI DSS requirements to enable transaction identification without exposing full card data.. Valid values are `^[0-9]{4}$`',
+    `pos_entry_mode` STRING COMMENT 'Method by which the cardholders payment credentials were captured at the point of sale for the original transaction (e.g., EMV chip, magnetic stripe swipe, NFC contactless, manual key entry, e-commerce). Relevant to determining liability and document requirements in the retrieval request.. Valid values are `chip|swipe|contactless|manual_key_entry|ecommerce|recurring`',
+    `reason_code` STRING COMMENT 'Card scheme reason code classifying the basis for the retrieval request (e.g., cardholder does not recognize transaction, potential fraud, copy request). Reason codes are scheme-specific (Visa and Mastercard maintain separate code sets). Drives document requirements and fulfillment obligations. [ENUM-REF-CANDIDATE: promote to reference product as codes vary extensively by scheme]',
+    `reason_description` STRING COMMENT 'Human-readable description of the reason for the retrieval request corresponding to the reason_code. Provides context for operations teams handling the fulfillment workflow.',
+    `regulatory_reporting_flag` BOOLEAN COMMENT 'Boolean flag indicating whether this retrieval request is subject to regulatory reporting obligations (e.g., CFPB complaint reporting, FinCEN SAR-related inquiry, GDPR data subject request). Triggers inclusion in compliance reporting workflows.',
+    `request_date` DATE COMMENT 'Calendar date on which the retrieval request was formally issued by the issuing bank. This is the principal business event date that starts the fulfillment deadline clock per card scheme rules. Maps to BUSINESS_EVENT_TIMESTAMP category for TRANSACTION_HEADER role.',
+    `response_notes` STRING COMMENT 'Free-text notes entered by the acquiring bank or merchant operations team describing the fulfillment response, any issues encountered in locating documentation, or reasons for non-fulfillment. Supports case management and audit trail.',
+    `retrieval_request_number` STRING COMMENT 'Externally-known business identifier for the retrieval request, typically assigned by the card scheme or issuing bank. Used for cross-system tracking and scheme correspondence (e.g., Visa or Mastercard retrieval reference number). Maps to BUSINESS_IDENTIFIER category for TRANSACTION_HEADER role.',
+    `scheme_case_number` STRING COMMENT 'Case or reference number assigned by the card scheme (Visa or Mastercard) to track this retrieval request within their dispute management systems. Used for scheme correspondence and audit trail.',
+    `sla_breach` BOOLEAN COMMENT 'Boolean flag indicating whether the fulfillment deadline was breached (i.e., the retrieval request was not fulfilled within the card schemes mandated response window). True indicates an SLA breach; used for operational performance monitoring and scheme compliance reporting.',
+    `source_system` STRING COMMENT 'Name or identifier of the operational system of record from which this retrieval request record was ingested into the Silver Layer (e.g., Dispute and Chargeback Management System). Supports data lineage and reconciliation.',
+    `tid` STRING COMMENT 'Terminal Identification Number identifying the specific POS or mPOS terminal at which the original transaction was processed. Supports evidence collection and sales draft retrieval from the correct terminal.',
+    `transaction_amount` DECIMAL(18,2) COMMENT 'Gross monetary amount of the original payment transaction subject to this retrieval request, expressed in the transaction currency. Used to validate documentation and assess potential chargeback financial exposure.',
+    `transaction_currency` STRING COMMENT 'ISO 4217 three-letter currency code of the original transaction amount (e.g., USD, EUR, GBP). Required for accurate financial exposure assessment and cross-border dispute handling.. Valid values are `^[A-Z]{3}$`',
+    `transaction_date` DATE COMMENT 'Date on which the original payment transaction subject to this retrieval request was processed. Used to verify transaction age against scheme retrieval request eligibility windows and to locate the original sales draft.',
+    `updated_timestamp` TIMESTAMP COMMENT 'Timestamp when this retrieval request record was last modified in the system of record. Maps to RECORD_AUDIT_UPDATED category for TRANSACTION_HEADER role. Tracks status changes, fulfillment updates, and escalation events. Formatted as yyyy-MM-ddTHH:mm:ss.SSSXXX.',
+    CONSTRAINT pk_retrieval_request PRIMARY KEY(`retrieval_request_id`)
+) COMMENT 'Pre-chargeback inquiry record issued by an issuing bank requesting transaction documentation (sales draft, receipt, authorization record) from the acquiring bank before a formal chargeback is filed. Tracks retrieval request ID, ARN, MID, TID, request date, fulfillment deadline, fulfillment status, and document delivery method. Failure to fulfill a retrieval request within scheme deadlines typically escalates to a chargeback.';
+
+CREATE OR REPLACE TABLE `payments_fintech_ecm`.`dispute`.`representment` (
+    `representment_id` BIGINT COMMENT 'Unique surrogate identifier for the representment record in the Dispute and Chargeback Management System. Primary key for the representment data product. Entity role: TRANSACTION_HEADER — a discrete business event (merchant/acquirer rebuttal package) with its own lifecycle.',
+    `card_scheme_id` BIGINT COMMENT 'Foreign key linking to reference.reference_card_scheme. Business justification: Scheme‑specific representment windows are enforced; reference ensures correct rule lookup.',
+    `chargeback_id` BIGINT COMMENT 'Reference to the parent chargeback filing that this representment is rebutting. Links the representment to its originating dispute event in the chargeback lifecycle.',
+    `dispute_case_id` BIGINT COMMENT 'Reference to the overarching dispute case that encompasses the chargeback and representment. Provides traceability to the full dispute lifecycle record in the Dispute and Chargeback Management System.',
+    `dispute_dispute_case_id` BIGINT COMMENT 'Reference to the overarching dispute case that encompasses the chargeback and representment. Provides traceability to the full dispute lifecycle record in the Dispute and Chargeback Management System.',
+    `ecosystem_partner_id` BIGINT COMMENT 'Reference to the acquiring bank (merchants bank) responsible for submitting the representment on behalf of the merchant. The acquiring bank is the primary party in the representment process per card scheme rules.',
+    `financial_adjustment_id` BIGINT COMMENT 'Reference to the financial adjustment record in the ERP (Oracle Financials) or settlement system generated upon acceptance of the representment. Links the dispute outcome to the corresponding GL/AR credit entry.',
+    `mcc_id` BIGINT COMMENT 'Foreign key linking to reference.mcc. Business justification: Representments are evaluated by merchant category; linking to reference.mcc supports fee and risk analysis.',
+    `merchant_id` BIGINT COMMENT 'Reference to the merchant entity submitting the representment. The Merchant Identification Number (MID) identifies the acquiring merchant in the dispute rebuttal process.',
+    `payment_product_id` BIGINT COMMENT 'Foreign key linking to product.payment_product. Business justification: Representment fee calculation and settlement cycles depend on the underlying payment_product; the FK enables accurate fee application.',
+    `pos_terminal_id` BIGINT COMMENT 'Foreign key linking to terminal.pos_terminal. Business justification: Representment filings often include terminal logs; linking to the POS terminal enables tracking representment outcomes per terminal.',
+    `response_id` BIGINT COMMENT 'Foreign key linking to gateway.gateway_response. Business justification: Representment outcome analysis depends on the post‑representment gateway response to assess acquirer decision and any additional fees.',
+    `scheme_id` BIGINT COMMENT 'Foreign key linking to network.scheme. Business justification: Representments are evaluated according to the originating card schemes rules; scheme_id is required for the Representment Decision Engine.',
+    `amount` DECIMAL(18,2) COMMENT 'The monetary amount being contested in the representment, typically equal to or less than the original chargeback amount. Represents the gross base amount the merchant/acquirer is seeking to recover.',
+    `arn` STRING COMMENT 'Acquirer Reference Number (ARN) linking the representment to the original transaction. A 23-digit identifier assigned by the acquiring bank used to trace the transaction across card scheme networks and issuer systems.. Valid values are `^[0-9]{23}$`',
+    `assigned_analyst` STRING COMMENT 'Name or identifier of the dispute analyst or team responsible for preparing and managing this representment case. Supports workload management and accountability tracking within the Dispute and Chargeback Management System.',
+    `chargeback_amount` DECIMAL(18,2) COMMENT 'The original chargeback amount as filed by the issuing bank. Retained on the representment record for direct comparison against the representment amount to identify partial representments.',
+    `chargeback_reason_code` STRING COMMENT 'The original card scheme reason code assigned to the chargeback being rebutted. Retained on the representment for direct reference to understand the basis of the dispute and validate the representment strategy.',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the representment record was first created in the Dispute and Chargeback Management System. Represents the audit creation time, which may precede the formal submission timestamp.',
+    `currency` STRING COMMENT 'ISO 4217 three-letter currency code for the representment amount (e.g., USD, EUR, GBP). Enables multi-currency dispute processing across the 200+ countries served.. Valid values are `^[A-Z]{3}$`',
+    `days_to_deadline` STRING COMMENT 'Number of calendar days between the representment creation date and the scheme-mandated response deadline. Positive values indicate days remaining; negative values indicate overdue status. Supports operational prioritization and SLA alerting.',
+    `deadline_compliant` BOOLEAN COMMENT 'Indicates whether the representment was submitted on or before the scheme-mandated response deadline. True if submission_date is on or before response_deadline; False if submitted late. Late submissions are typically rejected by card schemes.',
+    `dispute_category` STRING COMMENT 'High-level category classifying the nature of the underlying dispute being rebutted. Derived from the chargeback reason code family per card scheme classification. Supports portfolio-level dispute analytics and fraud trend reporting.. Valid values are `fraud|authorization|processing_error|consumer_dispute|compliance`',
+    `evidence_package_reference` STRING COMMENT 'Reference identifier for the evidence package submitted with the representment (e.g., document store ID, S3 path, or case management reference). Links to the collection of supporting documents such as transaction receipts, delivery confirmations, and cardholder communications.',
+    `issuing_bank_bin` STRING COMMENT 'Bank Identification Number (BIN) / Issuer Identification Number (IIN) of the issuing bank that filed the original chargeback. Used for scheme routing, issuer analysis, and dispute pattern monitoring.. Valid values are `^[0-9]{6,8}$`',
+    `lifecycle_status` STRING COMMENT 'Current state of the representment in its workflow lifecycle. Tracks progression from initial draft through submission, scheme decision, and potential escalation to pre-arbitration or arbitration. [ENUM-REF-CANDIDATE: draft|submitted|accepted|rejected|pre_arbitration|arbitration|closed — promote to reference product]',
+    `notes` STRING COMMENT 'Free-text operational notes added by dispute analysts during the representment lifecycle. Captures escalation rationale, issuer communications, scheme correspondence, and internal case management commentary.',
+    `outcome_date` DATE COMMENT 'The date on which the card scheme or issuing bank rendered the outcome decision on the representment. Used for cycle time analysis and financial adjustment timing.',
+    `outcome_decision` STRING COMMENT 'The final or current decision rendered by the card scheme or issuing bank on the representment. Accepted means the chargeback is reversed in the merchants favor; rejected means the chargeback stands; pre_arbitration and arbitration indicate escalation paths.. Valid values are `accepted|rejected|pre_arbitration|arbitration|pending`',
+    `pre_arbitration_deadline` DATE COMMENT 'The scheme-mandated deadline by which the acquirer must file for pre-arbitration if the representment is rejected and escalation is desired. Null if pre-arbitration is not applicable or not yet triggered.',
+    `pre_arbitration_eligible` BOOLEAN COMMENT 'Indicates whether this representment is eligible for escalation to the pre-arbitration stage if the outcome decision is rejected. Eligibility is determined by card scheme rules based on reason code, dispute amount, and prior cycle history.',
+    `pre_arbitration_filed` BOOLEAN COMMENT 'Indicates whether a pre-arbitration case has been formally filed following rejection of this representment. True if pre-arbitration has been initiated; False otherwise.',
+    `reason_code` STRING COMMENT 'Scheme-specific reason code used by the merchant or acquirer to justify the representment rebuttal. Codes vary by card scheme (e.g., Visa, Mastercard) and correspond to the chargeback reason code being contested. References the dispute reason code reference domain.',
+    `rebuttal_narrative` STRING COMMENT 'Free-text narrative written by the merchant or acquirer explaining the basis for the representment rebuttal. Describes why the chargeback is invalid, referencing supporting evidence. Key input for scheme adjudication.',
+    `recovery_amount` DECIMAL(18,2) COMMENT 'The actual monetary amount recovered by the merchant/acquirer following a successful representment outcome. May differ from representment_amount in cases of partial acceptance by the issuer.',
+    `reference` STRING COMMENT 'Externally-known business identifier for the representment package, typically assigned by the acquiring bank or payment scheme upon submission. Used for cross-system tracking and scheme correspondence.',
+    `representment_type` STRING COMMENT 'Classifies the representment by its position in the dispute cycle. First chargeback representment is the initial rebuttal; second chargeback representment follows a re-presentment rejection; pre-arbitration and arbitration are escalation stages.. Valid values are `first_chargeback|second_chargeback|pre_arbitration|arbitration`',
+    `response_deadline` DATE COMMENT 'The scheme-mandated deadline by which the representment must be submitted to be considered valid. Calculated from the chargeback receipt date per card scheme rules. Critical for SLA compliance monitoring.',
+    `scheme_case_number` STRING COMMENT 'The case or tracking number assigned by the card scheme (Visa, Mastercard, etc.) to the representment filing. Used for direct correspondence with the scheme and issuer during the dispute resolution process.',
+    `scheme_fee_amount` DECIMAL(18,2) COMMENT 'Fee charged by the card scheme for processing the representment filing. Scheme fees vary by network, dispute stage, and outcome. Tracked for merchant billing and P&L reporting.',
+    `submission_channel` STRING COMMENT 'The channel through which the representment package was submitted to the card scheme or issuing bank (e.g., scheme portal, API integration, fax, mail, EDI). Supports operational analysis of submission method efficiency.. Valid values are `portal|api|fax|mail|edi`',
+    `submission_date` DATE COMMENT 'The calendar date on which the representment package was actually submitted. Used in conjunction with response_deadline to calculate deadline compliance status.',
+    `submission_timestamp` TIMESTAMP COMMENT 'The exact date and time the representment package was formally submitted to the card scheme or issuing bank. This is the principal business event timestamp for the representment transaction. Critical for deadline compliance tracking.',
+    `transaction_amount` DECIMAL(18,2) COMMENT 'The monetary amount of the original payment transaction being disputed. Provides the baseline for assessing partial chargebacks and representment amounts.',
+    `transaction_currency` STRING COMMENT 'ISO 4217 three-letter currency code for the original transaction amount. May differ from representment_currency in cross-border or Dynamic Currency Conversion (DCC) scenarios.. Valid values are `^[A-Z]{3}$`',
+    `transaction_date` DATE COMMENT 'The date of the original payment transaction that is the subject of the chargeback and representment. Retained for time-based eligibility checks and scheme rule validation (e.g., chargeback time limits from transaction date).',
+    `updated_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent modification to the representment record. Used for audit trail, change tracking, and data freshness monitoring in the Silver layer.',
+    CONSTRAINT pk_representment PRIMARY KEY(`representment_id`)
+) COMMENT 'Merchant or acquirer response package submitted to rebut a chargeback filing. Captures representment ID, linked chargeback ID, ARN, submission timestamp, representment amount, evidence package reference, rebuttal narrative, scheme-specific representment reason code (FK to reference domain), submission channel, scheme-mandated response deadline, actual submission date, deadline compliance status, and outcome decision (accepted, rejected, escalated to pre-arbitration). Tracks the full representment lifecycle including pre-arbitration escalation eligibility.';
+
+CREATE OR REPLACE TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` (
+    `arbitration_case_id` BIGINT COMMENT 'Unique surrogate identifier for the arbitration case record in the Dispute and Chargeback Management System. Primary key for this entity. Role: TRANSACTION_HEADER.',
+    `assigned_analyst_employee_id` BIGINT COMMENT 'Reference to the internal dispute analyst or case manager responsible for managing this arbitration case. PARTY_REFERENCE (internal workforce) for operational accountability and workload reporting.',
+    `card_scheme_id` BIGINT COMMENT 'Foreign key linking to reference.reference_card_scheme. Business justification: Arbitration procedures differ by card scheme; linking enables accurate arbitration fee calculation.',
+    `chargeback_id` BIGINT COMMENT 'Reference to the parent chargeback record from which this arbitration case was escalated. Links the arbitration proceeding to its originating chargeback dispute lifecycle.',
+    `ecosystem_partner_id` BIGINT COMMENT 'Reference to the acquiring bank (merchants bank) involved in the arbitration case. PARTY_REFERENCE for TRANSACTION_HEADER role — links to the acquirer master record.',
+    `employee_id` BIGINT COMMENT 'Reference to the internal dispute analyst or case manager responsible for managing this arbitration case. PARTY_REFERENCE (internal workforce) for operational accountability and workload reporting.',
+    `merchant_id` BIGINT COMMENT 'Reference to the merchant whose transaction is the subject of the arbitration. Links to the merchant master record for reporting, analytics, and merchant-level dispute rate monitoring.',
+    `payment_product_id` BIGINT COMMENT 'Foreign key linking to product.payment_product. Business justification: Arbitration decisions reference product terms and fee structures; linking to payment_product is required for regulatory arbitration reporting.',
+    `scheme_id` BIGINT COMMENT 'Foreign key linking to network.scheme. Business justification: Arbitration cases are adjudicated per scheme guidelines; scheme_id links the case to the governing scheme for regulatory reporting.',
+    `transaction_id` BIGINT COMMENT 'Reference to the original payment transaction that is the subject of the arbitration dispute. Enables traceability from arbitration back to the originating transaction record.',
+    `arbitration_decision` STRING COMMENT 'Formal outcome of the card scheme arbitration proceeding. Indicates whether the filing partys position was upheld, the respondent prevailed, liability was split, or the case was withdrawn before decision.. Valid values are `upheld_for_filer|upheld_for_respondent|split_liability|withdrawn|no_decision`',
+    `arn` STRING COMMENT 'Acquirer Reference Number uniquely identifying the original transaction within the card scheme network. Used to link the arbitration case to the specific transaction across issuer, acquirer, and scheme systems. Standard 23-digit identifier per card scheme rules.. Valid values are `^[0-9]{23}$`',
+    `case_status` STRING COMMENT 'Current lifecycle status of the arbitration case. Tracks progression from initial filing through scheme review, decision issuance, and final closure or withdrawal. LIFECYCLE_STATUS for TRANSACTION_HEADER role.. Valid values are `filed|pending_response|under_review|decided|closed|withdrawn`',
+    `closure_date` DATE COMMENT 'Date on which the arbitration case was formally closed in the Dispute and Chargeback Management System, following decision implementation, financial settlement, or withdrawal. Marks end of the arbitration lifecycle.',
+    `compliance_case_flag` BOOLEAN COMMENT 'Indicates whether this arbitration case has been designated as a compliance case (as opposed to a standard chargeback arbitration). Compliance cases arise from violations of card scheme rules rather than transaction disputes and follow a distinct scheme process.',
+    `compliance_violation_type` STRING COMMENT 'Type of card scheme rule violation cited in a compliance arbitration case (e.g., late presentment, invalid authorization, data integrity violation). Populated only when compliance_case_flag is true. [ENUM-REF-CANDIDATE: late_presentment|invalid_authorization|data_integrity|security_violation|processing_error|other — promote to reference product]',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the arbitration case record was first created in the Dispute and Chargeback Management System. RECORD_AUDIT_CREATED for TRANSACTION_HEADER role. Format: yyyy-MM-ddTHH:mm:ss.SSSXXX.',
+    `decision_date` DATE COMMENT 'Date on which the card scheme issued its formal arbitration decision. Used to track scheme turnaround time and trigger post-decision financial adjustment processing.',
+    `decision_rationale` STRING COMMENT 'Narrative explanation or scheme-provided rationale for the arbitration decision outcome. Documents the basis for liability assignment and supports internal review, representment analysis, and regulatory audit trail.',
+    `dispute_amount` DECIMAL(18,2) COMMENT 'Gross monetary amount of the original disputed transaction that is the subject of the arbitration. Expressed in the transaction currency. Part of MONETARY_TRIPLET for TRANSACTION_HEADER role.',
+    `dispute_category` STRING COMMENT 'High-level classification of the dispute type underlying the arbitration case. Groups reason codes into operational categories for reporting and analytics. Aligns with card scheme dispute category frameworks.. Valid values are `fraud|authorization|processing_error|consumer_dispute|compliance`',
+    `dispute_currency_code` STRING COMMENT 'ISO 4217 three-letter currency code for the dispute transaction amount (e.g., USD, EUR, GBP). Required for cross-border dispute processing and FX conversion calculations. Part of MONETARY_TRIPLET.. Valid values are `^[A-Z]{3}$`',
+    `escalation_cycle_count` STRING COMMENT 'Number of dispute lifecycle cycles (chargeback, representment, pre-arbitration) completed before escalation to formal arbitration. Provides context on the dispute history depth and scheme compliance with mandatory pre-arbitration steps.',
+    `evidence_package_submitted` BOOLEAN COMMENT 'Indicates whether the responding party has submitted a complete evidence package (representment documentation, transaction records, cardholder communications) in response to the arbitration filing.',
+    `evidence_submission_date` DATE COMMENT 'Date on which the evidence package was submitted to the card scheme for the arbitration proceeding. Used to verify compliance with scheme-mandated evidence submission deadlines.',
+    `filing_date` DATE COMMENT 'Calendar date on which the arbitration case was formally filed with the card scheme. BUSINESS_EVENT_TIMESTAMP (date precision) for the arbitration lifecycle. Used to calculate scheme-mandated response deadlines and compliance with filing windows.',
+    `filing_party` STRING COMMENT 'Identifies which party in the payment chain initiated the arbitration filing with the card scheme. Either the issuing bank (cardholders bank) or the acquiring bank (merchants bank). Determines the direction of liability argument.. Valid values are `issuer|acquirer`',
+    `filing_timestamp` TIMESTAMP COMMENT 'Precise date and time (with timezone offset) when the arbitration case was submitted to the card scheme. Provides exact filing time for SLA tracking and scheme deadline calculations. Format: yyyy-MM-ddTHH:mm:ss.SSSXXX.',
+    `gl_adjustment_date` DATE COMMENT 'Date on which the financial liability adjustment was posted to the General Ledger following the arbitration decision. Used for period-end financial reconciliation and revenue recognition in Oracle Financials.',
+    `gl_adjustment_posted` BOOLEAN COMMENT 'Indicates whether the financial liability adjustment resulting from the arbitration decision has been posted to the General Ledger in Oracle Financials. Supports financial close reconciliation and SOX compliance.',
+    `hearing_date` DATE COMMENT 'Scheduled or actual date of the formal arbitration hearing or review session conducted by the card scheme. May be null if the scheme resolves the case on documentary evidence without a formal hearing.',
+    `internal_case_notes` STRING COMMENT 'Free-text field for internal operational notes, analyst observations, and case management commentary related to the arbitration proceeding. Not shared with the card scheme; used for internal dispute team coordination.',
+    `issuer_bin` STRING COMMENT 'Bank Identification Number (BIN) / Issuer Identification Number (IIN) of the issuing bank involved in the arbitration. Used to identify the card-issuing institution and route scheme communications. 6-8 digit prefix per ISO 7812.. Valid values are `^[0-9]{6,8}$`',
+    `liability_amount` DECIMAL(18,2) COMMENT 'Net monetary amount of financial liability assigned to the losing party following the arbitration decision. Represents the final financial obligation resulting from the arbitration outcome. Part of MONETARY_TRIPLET — net total component.',
+    `liability_currency_code` STRING COMMENT 'ISO 4217 three-letter currency code for the financial liability assignment amount. Ensures accurate multi-currency financial reporting and GL posting.. Valid values are `^[A-Z]{3}$`',
+    `liable_party` STRING COMMENT 'Party assigned financial liability by the card scheme arbitration decision. Determines which entity bears the financial loss from the disputed transaction and scheme fees.. Valid values are `issuer|acquirer|merchant|shared|undetermined`',
+    `mid` STRING COMMENT 'Merchant Identification Number assigned by the acquirer to uniquely identify the merchant in card scheme communications. Distinct from the internal merchant_id surrogate key; this is the scheme-facing identifier used in dispute and arbitration filings.',
+    `original_transaction_date` DATE COMMENT 'Date of the original payment transaction that is the subject of the arbitration dispute. Used for aging analysis, scheme filing window compliance verification, and statute of limitations assessment.',
+    `pre_arbitration_cycle_completed` BOOLEAN COMMENT 'Indicates whether the mandatory pre-arbitration cycle (second chargeback and pre-arbitration exchange) was completed before escalation to formal arbitration. Required by card scheme rules before arbitration filing is accepted.',
+    `reason_code` STRING COMMENT 'Card scheme-specific reason code classifying the nature of the dispute underlying the arbitration (e.g., Visa reason code 10.4 for fraud, Mastercard reason code 4853 for cardholder dispute). Governs applicable arbitration rules and evidence requirements.',
+    `response_deadline` DATE COMMENT 'Card scheme-mandated deadline by which the responding party (issuer or acquirer) must submit their arbitration response package. Failure to respond by this date results in automatic liability assignment per scheme rules.',
+    `scheme_arbitration_fee_amount` DECIMAL(18,2) COMMENT 'Fee charged by the card scheme for processing the arbitration case. Typically assessed against the losing party per scheme rules. Part of MONETARY_TRIPLET — adjustment/fee component. Amount in scheme fee currency.',
+    `scheme_case_number` STRING COMMENT 'Externally assigned arbitration case number issued by the card scheme (Visa or Mastercard) upon formal arbitration filing. This is the BUSINESS_IDENTIFIER used by all parties and the scheme to reference the proceeding. Format varies by scheme.',
+    `scheme_fee_currency_code` STRING COMMENT 'ISO 4217 three-letter currency code for the scheme arbitration fee amount. May differ from the dispute transaction currency for cross-border cases.. Valid values are `^[A-Z]{3}$`',
+    `updated_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent update to the arbitration case record. RECORD_AUDIT_UPDATED for TRANSACTION_HEADER role. Used for incremental data pipeline processing and audit trail maintenance. Format: yyyy-MM-ddTHH:mm:ss.SSSXXX.',
+    CONSTRAINT pk_arbitration_case PRIMARY KEY(`arbitration_case_id`)
+) COMMENT 'Formal arbitration proceeding filed with a card scheme (Visa, Mastercard) when a dispute cannot be resolved through standard chargeback, representment, and pre-arbitration cycles. Captures arbitration case number, linked chargeback ID, filing party (issuer or acquirer), scheme arbitration fee amount, filing date, scheme-mandated response deadline, hearing date, arbitration decision, financial liability assignment, compliance case flag, and case closure date. Tracks the highest-escalation tier of the dispute lifecycle.';
+
+CREATE OR REPLACE TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` (
+    `dispute_case_id` BIGINT COMMENT 'Unique surrogate primary key for the dispute case record in the Databricks Silver Layer. Serves as the top-level container identifier for all dispute activities associated with a single disputed transaction.',
+    `account_holder_id` BIGINT COMMENT 'Internal surrogate identifier of the cardholder who initiated or is associated with the dispute. Links to the Cardholder domain for identity, contact, and account details.',
+    `analyst_employee_id` BIGINT COMMENT 'Internal surrogate identifier of the dispute analyst or case worker currently assigned to manage and resolve this dispute case. Used for workload management, SLA tracking, and audit trail purposes.',
+    `authorization_id` BIGINT COMMENT 'Foreign key linking to transaction.authorization. Business justification: Case analysts need original auth details (auth code, response) to determine liability and compliance outcomes.',
+    `capture_id` BIGINT COMMENT 'Foreign key linking to transaction.capture. Business justification: Capture information supports accurate calculation of disputed amounts and fee reversals in case settlements.',
+    `card_scheme_id` BIGINT COMMENT 'Foreign key linking to reference.reference_card_scheme. Business justification: Chargeback timelines and liability depend on card scheme; linking to reference_card_scheme standardizes rules.',
+    `cardholder_profile_id` BIGINT COMMENT 'Internal surrogate identifier of the cardholder who initiated or is associated with the dispute. Links to the Cardholder domain for identity, contact, and account details.',
+    `compliance_aml_screening_result_id` BIGINT COMMENT 'Foreign key linking to compliance.compliance_aml_screening_result. Business justification: AML screening is performed on entities involved in a dispute; attaching the screening result to the case supports compliance decision‑making.',
+    `compliance_kyc_verification_id` BIGINT COMMENT 'Foreign key linking to compliance.compliance_kyc_verification. Business justification: KYC verification of the cardholder is required for dispute investigation; linking the case to the KYC verification record ensures proper due‑diligence.',
+    `cross_border_payment_id` BIGINT COMMENT 'Foreign key linking to fx.cross_border_payment. Business justification: Dispute cases originating from cross‑border payments need the payment reference for compliance and routing analysis.',
+    `currency_id` BIGINT COMMENT 'Foreign key linking to reference.currency. Business justification: Currency conversion and cross‑border reporting require a stable ISO currency reference.',
+    `digital_wallet_id` BIGINT COMMENT 'Foreign key linking to wallet.digital_wallet. Business justification: Regulatory and analytics reports need to know which digital wallet originated a dispute case, so a FK from dispute case to digital_wallet is essential.',
+    `employee_id` BIGINT COMMENT 'Internal surrogate identifier of the dispute analyst or case worker currently assigned to manage and resolve this dispute case. Used for workload management, SLA tracking, and audit trail purposes.',
+    `gl_account_id` BIGINT COMMENT 'Foreign key linking to ledger.gl_account. Business justification: Case settlement accounting: dispute case settlements affect GL accounts; linking enables accurate ledger posting and reconciliation.',
+    `mcc_id` BIGINT COMMENT 'Foreign key linking to reference.mcc. Business justification: Regulatory reporting aggregates disputes by MCC; linking to reference.mcc ensures consistent classification.',
+    `merchant_id` BIGINT COMMENT 'Internal surrogate identifier of the merchant involved in the disputed transaction. Links to the Merchant domain for merchant profile, MID, and acquiring relationship context.',
+    `payment_product_id` BIGINT COMMENT 'Foreign key linking to product.payment_product. Business justification: Dispute case workflow applies product‑specific handling rules and compliance checks; a direct FK to payment_product supports rule engine decisions.',
+    `payment_txn_id` BIGINT COMMENT 'Foreign key linking to transaction.payment_txn. Business justification: Dispute case reports reference the original payment transaction to provide a complete audit trail and regulatory evidence.',
+    `regulatory_obligation_id` BIGINT COMMENT 'Foreign key linking to compliance.regulatory_obligation. Business justification: Regulatory reporting requires each dispute case to reference the specific regulatory obligation (e.g., PSD2, PCI DSS) it falls under for compliance audits.',
+    `request_id` BIGINT COMMENT 'Foreign key linking to gateway.gateway_request. Business justification: Dispute investigation report requires original gateway request details to trace request parameters, timestamps, and merchant context.',
+    `scheme_id` BIGINT COMMENT 'Foreign key linking to network.scheme. Business justification: Each dispute case follows the rules of a card scheme; linking to scheme supports the Dispute Case Management report per scheme.',
+    `transaction_id` BIGINT COMMENT 'Internal surrogate identifier of the originating payment transaction that is the subject of this dispute case. Links to the Transaction domain SSOT for full transaction context including amount, merchant, and cardholder details.',
+    `arbitration_filing_date` DATE COMMENT 'Date on which the dispute was escalated to card scheme arbitration after pre-arbitration failed to reach resolution. Null if the case did not reach arbitration. Arbitration decisions are binding and final per card scheme rules.',
+    `arn` STRING COMMENT 'Acquirer Reference Number — the 23-digit unique identifier assigned by the acquiring bank to the originating transaction. Primary linkage key between the dispute case and the underlying payment transaction across card scheme networks. SSOT linkage field per ISO 8583 and card scheme rules.. Valid values are `^[0-9]{23}$`',
+    `case_number` STRING COMMENT 'Externally-known, human-readable business identifier for the dispute case, assigned by the Dispute and Chargeback Management System at case creation. Used in all correspondence with cardholders, merchants, and card schemes. Format: DSP-{YYYY}-{8-digit sequence}.. Valid values are `^DSP-[0-9]{4}-[0-9]{8}$`',
+    `case_status` STRING COMMENT 'Current operational status of the dispute case within the Dispute and Chargeback Management System. Distinct from lifecycle_stage — status reflects the internal workflow state (e.g., awaiting merchant response, under analyst review) while lifecycle_stage reflects the card scheme process stage.. Valid values are `open|pending_response|under_review|escalated|closed|withdrawn`',
+    `chargeback_filing_date` DATE COMMENT 'Date on which the formal chargeback was filed with the card scheme by the issuing bank. Marks the start of the chargeback lifecycle stage and triggers merchant response deadlines. Null if the case has not yet reached chargeback stage.',
+    `chargeback_reason_code` STRING COMMENT 'Card scheme-specific reason code assigned to the chargeback, identifying the precise basis for the dispute (e.g., Visa reason code 10.4 for Other Fraud — Card Absent, Mastercard reason code 4853 for Cardholder Dispute). Null for retrieval requests that have not yet escalated to chargeback. [ENUM-REF-CANDIDATE: promote to reference product — codes vary by card scheme and are subject to periodic updates by Visa, Mastercard, Amex, and Discover]',
+    `close_timestamp` TIMESTAMP COMMENT 'Date and time when the dispute case was formally closed and all activities concluded. Null if the case is still open. Used to calculate total case duration and measure resolution cycle time against SLA targets.',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this dispute case record was first created in the data platform. Audit trail field for data lineage and SOX compliance. May differ from open_timestamp if there is a lag between case opening in the source system and ingestion into the lakehouse.',
+    `dispute_amount` DECIMAL(18,2) COMMENT 'The gross monetary amount under dispute, expressed in the transaction currency. Represents the full or partial amount of the original transaction being contested. Used for financial adjustment calculations and regulatory reporting.',
+    `dispute_channel` STRING COMMENT 'Channel through which the cardholder or issuing bank initiated the dispute. Values: online (web portal), phone (call center), branch (in-person), mobile_app (mobile banking app), scheme_portal (direct card scheme submission). Used for channel analytics and process optimization.. Valid values are `online|phone|branch|mobile_app|scheme_portal`',
+    `dispute_type` STRING COMMENT 'High-level classification of the dispute category as defined by card scheme rules. Values: fraud (unauthorized transaction), authorization (authorization-related issue), processing_error (duplicate, incorrect amount, etc.), consumer_dispute (goods/services not received or not as described), compliance (regulatory or scheme compliance violation).. Valid values are `fraud|authorization|processing_error|consumer_dispute|compliance`',
+    `evidence_submitted_flag` BOOLEAN COMMENT 'Indicates whether the merchant has submitted an evidence package (e.g., transaction receipts, delivery confirmation, signed authorization) in response to the chargeback. True = evidence package received. Used to track representment completeness and SLA compliance.',
+    `interchange_fee_amount` DECIMAL(18,2) COMMENT 'Interchange Reimbursement Fee amount associated with the disputed transaction, which may be reversed or adjusted as part of the chargeback process. Relevant for financial reconciliation between the acquiring bank and issuing bank.',
+    `is_3ds_authenticated` BOOLEAN COMMENT 'Indicates whether the original transaction was authenticated using 3-D Secure (3DS) protocol at the time of authorization. True = 3DS authentication was performed. Relevant for liability shift determination — 3DS-authenticated transactions shift chargeback liability to the issuer.',
+    `is_fraud_confirmed` BOOLEAN COMMENT 'Indicates whether the dispute has been confirmed as a fraudulent transaction by the fraud investigation team or card scheme ruling. True = confirmed fraud; False = not confirmed as fraud. Used for fraud analytics, SAR filing decisions, and AML reporting.',
+    `issuing_bank_bin` STRING COMMENT 'Bank Identification Number (BIN) / Issuer Identification Number (IIN) of the issuing bank that initiated the dispute on behalf of the cardholder. First 6-8 digits of the PAN identifying the card issuer. Used for dispute routing and interchange settlement.. Valid values are `^[0-9]{6,8}$`',
+    `last_updated_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent update to this dispute case record in the data platform. Used for incremental ETL processing, change detection, and audit trail compliance.',
+    `liability_party` STRING COMMENT 'The party determined to bear financial liability for the disputed transaction based on card scheme rules, authentication status, and dispute outcome. Drives financial adjustment routing between issuing bank, acquiring bank, and merchant.. Valid values are `issuer|acquirer|merchant|scheme|undetermined`',
+    `lifecycle_stage` STRING COMMENT 'Current stage in the dispute lifecycle workflow as governed by card scheme rules. Progresses from retrieval_request through chargeback, representment, pre_arbitration, arbitration, to closed. Drives SLA deadlines and permissible actions at each stage.. Valid values are `retrieval_request|chargeback|representment|pre_arbitration|arbitration|closed`',
+    `mid` STRING COMMENT 'Merchant Identification Number assigned by the acquiring bank to uniquely identify the merchant in card scheme networks. Denormalized from the merchant record for direct dispute reporting and card scheme submission without requiring a join.. Valid values are `^[0-9A-Z]{15}$`',
+    `notes` STRING COMMENT 'Free-text field capturing analyst notes, investigation findings, key decisions, and case narrative throughout the dispute lifecycle. Supports audit trail requirements and knowledge transfer between analysts. Not intended for structured data — structured fields take precedence.',
+    `open_timestamp` TIMESTAMP COMMENT 'Date and time when the dispute case was formally opened in the Dispute and Chargeback Management System. Serves as the principal business event timestamp and the anchor for all SLA deadline calculations per card scheme rules.',
+    `original_transaction_amount` DECIMAL(18,2) COMMENT 'The full monetary amount of the original payment transaction that is the subject of this dispute, in the original transaction currency. Provides context for partial dispute scenarios where dispute_amount is less than the full transaction value.',
+    `original_transaction_currency_code` STRING COMMENT 'ISO 4217 three-letter currency code of the original payment transaction. May differ from dispute_currency_code in Dynamic Currency Conversion (DCC) scenarios or cross-border transactions.. Valid values are `^[A-Z]{3}$`',
+    `original_transaction_date` DATE COMMENT 'Calendar date on which the original payment transaction was processed. Used to calculate dispute filing timeliness against card scheme deadlines (e.g., Visas 120-day chargeback window from transaction date).',
+    `priority_level` STRING COMMENT 'Operational priority assigned to the dispute case for analyst workqueue management. Critical cases (e.g., large-value disputes, regulatory escalations, VIP cardholders) receive expedited handling. Drives SLA tier assignment and escalation workflows.. Valid values are `critical|high|medium|low`',
+    `regulatory_reporting_flag` BOOLEAN COMMENT 'Indicates whether this dispute case is subject to mandatory regulatory reporting obligations (e.g., CFPB complaint reporting, PSD2 incident reporting, OFAC screening result). True = case must be included in regulatory submissions.',
+    `representment_date` DATE COMMENT 'Date on which the merchant submitted a representment (rebuttal) package challenging the chargeback. Null if no representment has been filed. Used to track merchant response timeliness and advance the lifecycle stage.',
+    `resolution_outcome` STRING COMMENT 'Final resolution outcome of the dispute case once closed. Indicates whether the dispute was resolved in favor of the cardholder (won), merchant (lost), mutually settled, withdrawn by the initiating party, written off, or partially recovered. Populated only when case_status = closed.. Valid values are `won|lost|settled|withdrawn|write_off|partial_recovery`',
+    `response_due_date` DATE COMMENT 'Deadline by which the merchant or acquiring bank must submit a representment response or evidence package for the current lifecycle stage. Calculated per card scheme rules (e.g., Visa allows 30 days for representment). Breach of this date results in automatic case loss.',
+    `retrieval_request_number` STRING COMMENT 'Unique identifier assigned to the pre-chargeback retrieval request (also known as a copy request) issued by the issuing bank to obtain transaction documentation from the acquirer. Null if the case was filed directly as a chargeback without a prior retrieval request.',
+    `sar_filed_flag` BOOLEAN COMMENT 'Indicates whether a Suspicious Activity Report (SAR) was filed with FinCEN in connection with this dispute case due to suspected money laundering, fraud patterns, or other financial crimes identified during the dispute investigation.',
+    `scheme_case_reference` STRING COMMENT 'Reference number assigned by the card scheme (Visa, Mastercard, etc.) to track the dispute within their own dispute management system (e.g., Visa Resolve Online - VROL, Mastercard Connect). Used for cross-referencing internal records with scheme-side tracking.',
+    `settlement_adjustment_amount` DECIMAL(18,2) COMMENT 'Net financial adjustment amount applied to the settlement account as a result of the dispute resolution. May differ from dispute_amount due to partial recoveries, fees, or write-offs. Negative value indicates a debit to the merchant; positive indicates a credit to the cardholder.',
+    CONSTRAINT pk_dispute_case PRIMARY KEY(`dispute_case_id`)
+) COMMENT 'Unified dispute case record that serves as the top-level container aggregating all dispute activities — retrieval requests, chargebacks, representments, arbitration proceedings, and financial adjustments — for a single disputed transaction. Captures case number, originating transaction ARN, dispute type (fraud, authorization, processing error, consumer dispute, compliance), case open date, case close date, current lifecycle stage, assigned analyst, and final resolution outcome. SSOT for end-to-end dispute tracking.';
+
+CREATE OR REPLACE TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` (
+    `evidence_package_id` BIGINT COMMENT 'Unique surrogate identifier for the evidence package record in the dispute and chargeback management system. Primary key for this entity.',
+    `card_scheme_id` BIGINT COMMENT 'Foreign key linking to reference.reference_card_scheme. Business justification: Evidence packages must follow scheme‑specific documentation standards; reference provides authoritative codes.',
+    `chargeback_reason_code_id` BIGINT COMMENT 'Foreign key linking to reference.chargeback_reason_code. Business justification: Reason codes drive evidence requirements; linking to reference ensures correct code usage.',
+    `dispute_case_id` BIGINT COMMENT 'Reference to the parent dispute case to which this evidence package belongs. Links the package to the full dispute lifecycle record.',
+    `employee_id` BIGINT COMMENT 'Username or employee identifier of the dispute analyst or system process that assembled the evidence package. Used for accountability, quality review, and workload reporting.',
+    `merchant_id` BIGINT COMMENT 'Reference to the merchant whose transaction is being disputed. The Merchant Identification Number (MID) links the evidence package to the merchant profile in the Merchant Management System for SLA tracking and reporting.',
+    `representment_id` BIGINT COMMENT 'Reference to the representment filing associated with this evidence package. A representment is the merchants formal rebuttal to a chargeback, supported by this evidence package.',
+    `scheme_id` BIGINT COMMENT 'Foreign key linking to network.scheme. Business justification: Evidence packages are assembled according to scheme‑specific requirements; scheme_id enables validation against scheme rules.',
+    `acquirer_reference` STRING COMMENT 'The acquiring banks internal reference or case number for this dispute, used for cross-referencing with the acquiring banks dispute management records and reconciliation.',
+    `arn` STRING COMMENT 'The Acquirer Reference Number (ARN) of the original transaction being disputed. A 23-digit unique identifier assigned by the acquiring bank that links the evidence package to the specific settled transaction across card scheme networks.. Valid values are `^[0-9]{23}$`',
+    `assembly_timestamp` TIMESTAMP COMMENT 'Date and time when the evidence package was fully assembled and marked ready for submission. Represents the principal business event time for this entity — the moment the package became a complete evidentiary artifact.',
+    `created_timestamp` TIMESTAMP COMMENT 'Date and time when this evidence package record was first created in the dispute management system. Used for audit trail and SLA tracking.',
+    `disputed_transaction_amount` DECIMAL(18,2) COMMENT 'The monetary amount of the original transaction being disputed, in the transaction currency. Used to assess financial exposure and validate that the evidence package addresses the correct transaction value.',
+    `disputed_transaction_currency` STRING COMMENT 'ISO 4217 three-letter currency code for the disputed transaction amount (e.g., USD, EUR, GBP). Required for cross-border dispute processing and FX-related chargeback reason codes.. Valid values are `^[A-Z]{3}$`',
+    `document_count` STRING COMMENT 'Total number of individual evidence documents included in this package. Used for completeness validation and scheme submission compliance checks.',
+    `evidence_types_included` STRING COMMENT 'Pipe-delimited list of evidence type codes included in this package (e.g., AUTH_RECORD|DELIVERY_CONF|3DS_PROOF). Provides a consolidated summary of all evidence categories present without requiring a join to the document-level detail table.',
+    `has_3ds_authentication_proof` BOOLEAN COMMENT 'Indicates whether the evidence package includes 3-D Secure (3DS) authentication proof (e.g., authentication value, ECI indicator, CAVV) demonstrating the transaction was authenticated under PSD2 Strong Customer Authentication (SCA) requirements.',
+    `has_authorization_record` BOOLEAN COMMENT 'Indicates whether the evidence package includes an authorization record (approval code, authorization timestamp, and response code) as evidence that the transaction was properly authorized at the time of the original payment.',
+    `has_avs_cvv_match` BOOLEAN COMMENT 'Indicates whether the evidence package includes the Address Verification System (AVS) and/or Card Verification Value (CVV) match result from the original authorization, demonstrating the cardholders identity was verified at point of sale.',
+    `has_cardholder_communication` BOOLEAN COMMENT 'Indicates whether the evidence package includes documented communication with the cardholder (e.g., email correspondence, chat logs, signed agreements) relevant to the disputed transaction.',
+    `has_delivery_confirmation` BOOLEAN COMMENT 'Indicates whether the evidence package includes a delivery confirmation document (e.g., signed proof of delivery, carrier tracking confirmation) to rebut non-receipt chargebacks.',
+    `has_shipping_record` BOOLEAN COMMENT 'Indicates whether the evidence package includes a shipping record (e.g., carrier waybill, tracking number, shipment manifest) as evidence of goods dispatch for merchandise-related disputes.',
+    `has_signed_receipt` BOOLEAN COMMENT 'Indicates whether the evidence package includes a signed transaction receipt (physical or electronic) bearing the cardholders signature or PIN-verified acknowledgment at the point of sale.',
+    `is_auto_assembled` BOOLEAN COMMENT 'Indicates whether the evidence package was assembled automatically by the dispute management systems Straight-Through Processing (STP) engine, or manually by a dispute analyst. Supports STP rate reporting and automation analytics.',
+    `issuer_reference` STRING COMMENT 'The issuing banks case or reference number for the chargeback, as communicated in the chargeback notification. Used to correlate the evidence package with the issuers dispute record.',
+    `last_updated_timestamp` TIMESTAMP COMMENT 'Date and time when this evidence package record was most recently modified. Tracks the latest change to any field in the package record for audit and change management purposes.',
+    `outcome_date` DATE COMMENT 'The date on which the final resolution outcome was received from the card scheme, issuing bank, or arbitration body. Used for financial adjustment processing and dispute analytics.',
+    `outcome_reason` STRING COMMENT 'Textual explanation or scheme-provided reason code description for the dispute outcome decision. Captures why the evidence package was accepted or rejected to support root cause analysis and process improvement.',
+    `package_notes` STRING COMMENT 'Free-text notes entered by the dispute analyst regarding the evidence package, including special circumstances, escalation context, or instructions for the reviewing party. Not transmitted to the card scheme.',
+    `package_outcome` STRING COMMENT 'Final resolution outcome of the evidence package submission: won (dispute resolved in merchants favor), lost (chargeback upheld), partial_win (partial amount recovered), withdrawn (package retracted), or pending (awaiting decision).. Valid values are `won|lost|partial_win|withdrawn|pending`',
+    `package_reference_number` STRING COMMENT 'Externally-known alphanumeric reference number assigned to the evidence package, used in scheme submissions and merchant communications. Follows the EVP- prefix convention.. Valid values are `^EVP-[A-Z0-9]{8,20}$`',
+    `package_status` STRING COMMENT 'Current lifecycle status of the evidence package: draft (being assembled), assembled (complete but not yet submitted), submitted (sent to card scheme or issuer), accepted (acknowledged by receiving party), rejected (refused by receiving party), or withdrawn (retracted before decision).. Valid values are `draft|assembled|submitted|accepted|rejected|withdrawn`',
+    `package_type` STRING COMMENT 'Classification of the evidence package by the dispute stage it supports: representment (first chargeback rebuttal), pre_arbitration (pre-arb response), arbitration (scheme arbitration filing), retrieval_response (response to retrieval request), or good_faith (voluntary compliance submission). [ENUM-REF-CANDIDATE: representment|pre_arbitration|arbitration|retrieval_response|good_faith — promote to reference product]. Valid values are `representment|pre_arbitration|arbitration|retrieval_response|good_faith`',
+    `recovered_amount` DECIMAL(18,2) COMMENT 'The monetary amount recovered in the merchants favor as a result of the evidence package submission. May be equal to the full disputed amount (full win), a partial amount (partial win), or zero (loss). Denominated in the disputed transaction currency.',
+    `rejection_reason_code` STRING COMMENT 'Card scheme or issuer-provided code indicating why the evidence package was rejected (e.g., late submission, insufficient evidence, incorrect format). Populated only when package_status is rejected. Used for defect analysis and process improvement.',
+    `response_deadline_date` DATE COMMENT 'The card scheme-mandated deadline by which the evidence package must be submitted to avoid forfeiture of the dispute. Derived from chargeback receipt date plus scheme-specific response windows (e.g., Visa 30 days, Mastercard 45 days).',
+    `scheme_case_number` STRING COMMENT 'The card scheme-assigned case or arbitration number for this dispute (e.g., Visa Resolve Online case ID, Mastercard Connect case number). Populated when the dispute has been escalated to scheme-level arbitration.',
+    `scheme_submission_confirmation` STRING COMMENT 'Confirmation or acknowledgment number returned by the card scheme portal (e.g., Visa Resolve Online, Mastercard Connect) upon successful receipt of the evidence package submission. Used for reconciliation and proof of timely submission.',
+    `sla_deadline_met` BOOLEAN COMMENT 'Indicates whether the evidence package was submitted before the card scheme response deadline. False indicates a missed SLA, which results in automatic forfeiture of the dispute. Critical for operational performance monitoring.',
+    `submission_channel` STRING COMMENT 'The channel or platform through which the evidence package was submitted to the card scheme or issuer: visa_resolve_online (Visas dispute portal), mastercard_connect (Mastercards portal), api (programmatic submission), manual_upload, fax, or email. [ENUM-REF-CANDIDATE: visa_resolve_online|mastercard_connect|api|manual_upload|fax|email — promote to reference product]. Valid values are `visa_resolve_online|mastercard_connect|api|manual_upload|fax|email`',
+    `submission_timestamp` TIMESTAMP COMMENT 'Date and time when the evidence package was formally submitted to the card scheme, issuing bank, or arbitration body. Null if the package has not yet been submitted.',
+    `submitted_by_user` STRING COMMENT 'Username or employee identifier of the individual or automated process that submitted the evidence package to the card scheme or issuer. Supports audit trail requirements under SOX and PCI DSS.',
+    `total_file_size_bytes` BIGINT COMMENT 'Aggregate file size in bytes of all documents included in the evidence package. Used to validate compliance with card scheme maximum submission size limits (e.g., Visa 5MB per package).',
+    CONSTRAINT pk_evidence_package PRIMARY KEY(`evidence_package_id`)
+) COMMENT 'Collection of evidentiary documents and artifacts assembled to support a representment, pre-arbitration, or arbitration response. Each package contains one or more individual evidence documents tracked at the document level (type, file reference, upload timestamp, validity status). Captures package ID, linked dispute case ID, representment ID, evidence types included (authorization record, delivery confirmation, cardholder communication, AVS/CVV match result, 3DS authentication proof, signed receipt, shipping record), document count, total file size, package assembly date, submission timestamp, submission channel, and package status. Manages the full evidence lifecycle from document collection through scheme submission and supports granular per-document tracking within the package.';
+
+CREATE OR REPLACE TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` (
+    `financial_adjustment_id` BIGINT COMMENT 'Primary key for financial_adjustment',
+    `card_scheme_id` BIGINT COMMENT 'Foreign key linking to reference.reference_card_scheme. Business justification: Adjustments are settled per scheme rules; reference needed for accurate fee and liability handling.',
+    `dispute_case_id` BIGINT COMMENT 'Reference to the parent dispute case that triggered this financial adjustment. Links the monetary movement back to the originating dispute lifecycle record.',
+    `ecosystem_partner_id` BIGINT COMMENT 'Reference to the acquiring bank (merchants bank) responsible for processing the original transaction and managing the financial adjustment in the dispute lifecycle.',
+    `gl_account_id` BIGINT COMMENT 'Foreign key linking to ledger.gl_account. Business justification: Adjustment posting: financial adjustments are recorded against a specific GL account to reflect balance‑sheet impact and audit trails.',
+    `mcc_id` BIGINT COMMENT 'Foreign key linking to reference.mcc. Business justification: MCC determines interchange and fee adjustments; linking to reference.mcc standardizes calculations.',
+    `merchant_id` BIGINT COMMENT 'Reference to the merchant involved in the disputed transaction that generated this financial adjustment. Used for merchant-level dispute reporting, MDR reconciliation, and chargeback ratio monitoring.',
+    `transaction_id` BIGINT COMMENT 'Reference to the original payment transaction record that is the subject of the dispute. Enables traceability from the financial adjustment back to the source authorization and capture event.',
+    `rate_id` BIGINT COMMENT 'Foreign key linking to fx.fx_rate. Business justification: Financial adjustments often involve currency conversion; audit requires the FX rate used for the adjustment.',
+    `reversal_reference_financial_adjustment_id` BIGINT COMMENT 'Reference to the original financial adjustment record that this entry reverses. Populated only when reversal_flag is True, enabling full audit trail of reversal chains.',
+    `scheme_id` BIGINT COMMENT 'Foreign key linking to network.scheme. Business justification: Financial adjustments (fees, refunds) are charged per scheme fee schedule; scheme_id ties adjustments to the correct scheme for accounting.',
+    `adjustment_amount` DECIMAL(18,2) COMMENT 'Gross monetary value of the financial adjustment in the transaction currency. Represents the principal amount being debited or credited as a result of the dispute event.',
+    `adjustment_currency_code` STRING COMMENT 'ISO 4217 three-letter currency code for the adjustment amount. Identifies the currency in which the financial adjustment is denominated.. Valid values are `^[A-Z]{3}$`',
+    `adjustment_event_timestamp` TIMESTAMP COMMENT 'Precise date and time when the financial adjustment event was triggered in the Dispute and Chargeback Management System. Represents the real-world business event time, distinct from the GL posting date.',
+    `adjustment_notes` STRING COMMENT 'Free-text operational notes or comments recorded by dispute analysts regarding the financial adjustment, such as manual override justifications, scheme correspondence references, or exception handling details.',
+    `adjustment_reference_number` STRING COMMENT 'Externally-known business identifier for this financial adjustment, used in reconciliation, GL posting, and scheme communications. Assigned by the Dispute and Chargeback Management System or card scheme.. Valid values are `^ADJ-[A-Z0-9]{10,20}$`',
+    `adjustment_status` STRING COMMENT 'Current lifecycle state of the financial adjustment record within the dispute processing workflow. Drives GL posting eligibility and settlement batch inclusion.. Valid values are `pending|posted|reversed|failed|under_review`',
+    `adjustment_type` STRING COMMENT 'Classification of the financial adjustment event within the dispute lifecycle. Determines the direction of fund flow and the applicable card scheme rules. [ENUM-REF-CANDIDATE: chargeback_debit|representment_credit|arbitration_fee|compliance_assessment|final_settlement|pre_arbitration_debit|pre_compliance_fee|good_faith_collection — promote to reference product]. Valid values are `chargeback_debit|representment_credit|arbitration_fee|compliance_assessment|final_settlement|pre_arbitration_debit`',
+    `arn` STRING COMMENT 'Acquirer Reference Number (ARN) linking this financial adjustment to the original payment transaction. The ARN is the primary cross-system linkage key used by card schemes, acquirers, and issuers to trace dispute-related monetary movements back to the originating transaction.. Valid values are `^[0-9]{23}$`',
+    `auto_posted_flag` BOOLEAN COMMENT 'Indicates whether this financial adjustment was automatically posted to the GL via Straight-Through Processing (STP) (True) or required manual intervention before posting (False). Supports operational efficiency reporting and STP rate analytics.',
+    `bin` STRING COMMENT 'Bank Identification Number (BIN) / Issuer Identification Number (IIN) of the payment card involved in the disputed transaction. Used for issuer-level dispute analytics and scheme reporting segmentation.. Valid values are `^[0-9]{6,8}$`',
+    `chargeback_reason_code` STRING COMMENT 'Card scheme-assigned reason code classifying the basis for the chargeback or dispute (e.g., Visa reason code 10.4 for fraud, Mastercard reason code 4853 for cardholder dispute). Determines applicable dispute rights, response deadlines, and financial liability rules.',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this financial adjustment record was first created in the system. Used for audit trail, data lineage, and SLA compliance tracking.',
+    `debit_credit_indicator` STRING COMMENT 'Indicates whether this financial adjustment represents a debit (funds withdrawn from the merchant or acquirer) or a credit (funds returned). Critical for GL double-entry accounting and settlement reconciliation.. Valid values are `debit|credit`',
+    `dispute_resolution_outcome` STRING COMMENT 'Final outcome of the dispute case associated with this financial adjustment. Determines whether the adjustment represents a permanent financial liability or will be reversed upon successful representment or arbitration.. Valid values are `won|lost|settled|withdrawn|pending`',
+    `dispute_stage` STRING COMMENT 'Stage in the dispute lifecycle at which this financial adjustment was generated. Determines the applicable card scheme rules, financial liability, and response rights for each party.. Valid values are `retrieval_request|first_chargeback|second_chargeback|pre_arbitration|arbitration|compliance`',
+    `financial_period` STRING COMMENT 'Accounting period (YYYY-MM) to which this financial adjustment is attributed for revenue recognition, period-end close, and regulatory financial reporting. Aligned with Oracle Financials GL calendar.. Valid values are `^[0-9]{4}-(0[1-9]|1[0-2])$`',
+    `fx_conversion_rate` DECIMAL(18,2) COMMENT 'Exchange rate applied when converting the adjustment amount from the transaction currency to the settlement currency. Applicable for cross-border disputes involving Dynamic Currency Conversion (DCC) or multi-currency settlement.',
+    `gl_cost_center_code` STRING COMMENT 'Oracle Financials cost center dimension code associated with this adjustment for internal financial reporting and P&L attribution within the dispute operations function.',
+    `interchange_amount` DECIMAL(18,2) COMMENT 'Interchange Reimbursement Fee (IRF) component of the financial adjustment, representing the fee paid between the acquiring bank and issuing bank as part of the dispute resolution. Relevant for chargeback debits and representment credits.',
+    `issuer_code` BIGINT COMMENT 'Reference to the issuing bank (cardholders bank) that initiated the chargeback or dispute. Used for issuer-level financial reporting and scheme compliance tracking.',
+    `liability_party` STRING COMMENT 'Card scheme-assigned party bearing financial liability for this adjustment. Determined by the dispute reason code, evidence outcome, and applicable card scheme rules (Visa Core Rules or Mastercard Rules).. Valid values are `issuer|acquirer|merchant|scheme|cardholder`',
+    `posting_date` DATE COMMENT 'Calendar date on which the financial adjustment was posted to the General Ledger (GL) and included in the settlement batch. Drives financial period recognition and regulatory reporting.',
+    `regulatory_reporting_flag` BOOLEAN COMMENT 'Indicates whether this financial adjustment must be included in regulatory reports (True), such as FinCEN BSA filings, CFPB complaint reporting, or scheme compliance submissions. Drives automated regulatory data aggregation.',
+    `response_deadline_date` DATE COMMENT 'Card scheme-mandated deadline by which the liable party must respond to or contest this financial adjustment. Failure to meet this deadline results in automatic financial liability assignment per Visa or Mastercard rules.',
+    `reversal_flag` BOOLEAN COMMENT 'Indicates whether this financial adjustment has been reversed (True) or remains active (False). A reversal occurs when a chargeback is rescinded, a representment is accepted, or an error correction is applied.',
+    `scheme_case_number` STRING COMMENT 'Unique case reference number assigned by the card scheme (Visa or Mastercard) for arbitration or compliance proceedings associated with this financial adjustment. Used for scheme-level dispute tracking and correspondence.',
+    `scheme_fee_amount` DECIMAL(18,2) COMMENT 'Fee assessed by the card scheme (Visa or Mastercard) for processing the dispute event, such as arbitration filing fees or compliance assessment charges. Included in the net settlement calculation.',
+    `settlement_amount` DECIMAL(18,2) COMMENT 'Net amount posted to the settlement batch after applying any scheme fees, interchange adjustments, or currency conversion. May differ from adjustment_amount when FX conversion or fee netting applies.',
+    `settlement_batch_reference` STRING COMMENT 'Identifier of the settlement batch in which this financial adjustment was included for clearing and fund transfer. Links to the Transaction Processing Platform batch processing records.. Valid values are `^BATCH-[A-Z0-9]{8,20}$`',
+    `settlement_currency_code` STRING COMMENT 'ISO 4217 three-letter currency code for the settlement amount. May differ from adjustment_currency_code when Dynamic Currency Conversion (DCC) or cross-border settlement applies.. Valid values are `^[A-Z]{3}$`',
+    `source_system_code` STRING COMMENT 'Identifies the operational system of record that originated this financial adjustment record (e.g., Dispute and Chargeback Management System, ERP Oracle Financials, card scheme network feed, or manual entry). Supports data lineage and reconciliation.. Valid values are `dispute_mgmt|erp_oracle|scheme_network|manual_entry`',
+    `updated_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent modification to this financial adjustment record. Supports change data capture (CDC) in the Databricks Silver Layer and audit compliance.',
+    CONSTRAINT pk_financial_adjustment PRIMARY KEY(`financial_adjustment_id`)
+) COMMENT 'Financial adjustment record generated as a result of a dispute event — chargeback debit, representment credit, arbitration fee, scheme compliance assessment, or final settlement adjustment. Captures adjustment ID, dispute case ID, adjustment type, adjustment amount, currency, debit/credit indicator, settlement batch reference, GL account code, posting date, reversal flag, and scheme-assigned financial liability party. SSOT for all monetary movements originating from the dispute lifecycle.';
+
+CREATE OR REPLACE TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` (
+    `dispute_lifecycle_event_id` BIGINT COMMENT 'Unique surrogate identifier for each immutable event record in the dispute lifecycle event log. Primary key for this append-only audit table. Role: EVENT_LOG.',
+    `card_scheme_id` BIGINT COMMENT 'Foreign key linking to reference.reference_card_scheme. Business justification: Lifecycle events (e.g., deadline breaches) are scheme‑dependent; reference provides rule context.',
+    `dispute_case_id` BIGINT COMMENT 'Reference to the parent dispute case that this lifecycle event belongs to. Links all events in the audit trail back to a single dispute case record. EVENT_SOURCE_REFERENCE per EVENT_LOG role.',
+    `employee_id` BIGINT COMMENT 'Identifier of the specific party (issuer BIN, acquirer MID, scheme network code, merchant ID, or analyst user ID) that performed this lifecycle event. Provides granular accountability for each state transition. EVENT_SOURCE_REFERENCE complement per EVENT_LOG role.',
+    `evidence_package_id` BIGINT COMMENT 'Reference identifier for the evidence package (documents, transaction records, cardholder correspondence) submitted as part of a representment or arbitration response at this event stage. Links to the document management system within the Dispute and Chargeback Management System.',
+    `mcc_id` BIGINT COMMENT 'Foreign key linking to reference.mcc. Business justification: Event analytics often filter by MCC; linking enables consistent reporting.',
+    `transaction_id` BIGINT COMMENT 'The internal transaction identifier of the original payment transaction that is the subject of this dispute. Enables cross-referencing with the Transaction Processing Platform for clearing and settlement reconciliation.',
+    `scheme_id` BIGINT COMMENT 'Foreign key linking to network.scheme. Business justification: Lifecycle events track status changes of disputes; scheme_id is needed for the Dispute Lifecycle Dashboard segmented by scheme.',
+    `acquirer_mid` STRING COMMENT 'The Merchant Identification Number assigned by the acquiring bank to the merchant involved in this dispute event. Used for merchant-level dispute tracking, chargeback ratio monitoring, and acquirer reporting.',
+    `actor_type` STRING COMMENT 'Category of the party that triggered or performed this lifecycle event. Identifies whether the action was taken by the issuing bank, acquiring bank, card scheme, merchant, or an internal analyst. Critical for accountability and regulatory audit trails.. Valid values are `issuer|acquirer|scheme|merchant|analyst`',
+    `arbitration_outcome` STRING COMMENT 'The final decision rendered by the card scheme in arbitration proceedings. Populated only when event_type is arbitration_decided. Determines final financial liability allocation between issuer and acquirer.. Valid values are `issuer_won|acquirer_won|split|withdrawn|pending`',
+    `arn` STRING COMMENT 'The Acquirer Reference Number uniquely identifying the original financial transaction linked to this dispute event. Industry-standard 23-digit identifier used by card schemes to trace transactions across the payment network. Enables cross-system reconciliation.. Valid values are `^[0-9]{23}$`',
+    `channel` STRING COMMENT 'The payment channel through which the original disputed transaction was conducted. Influences applicable chargeback reason codes, liability rules, and fraud classification under card scheme rules. [ENUM-REF-CANDIDATE: card_present|card_not_present|atm|contactless|ecommerce|mobile|recurring — promote to reference product]',
+    `chargeback_cycle` STRING COMMENT 'Identifies the current cycle stage of the chargeback process at the time of this event. Distinguishes first chargeback from second chargeback (re-presentment response), pre-arbitration, and formal arbitration stages per card scheme rules.. Valid values are `first_chargeback|second_chargeback|pre_arbitration|arbitration`',
+    `chargeback_reason_code` STRING COMMENT 'Card scheme-specific reason code classifying the basis for a chargeback filing (e.g., Visa reason code 10.4 for fraud, 13.1 for merchandise not received; Mastercard reason code 4853 for cardholder dispute). Populated when event_type is chargeback_filed or representment_submitted.',
+    `created_timestamp` TIMESTAMP COMMENT 'The date and time at which this lifecycle event record was first written to the data platform. Distinct from event_timestamp (business event time). Used for data lineage, ETL audit trails, and Silver layer ingestion tracking.',
+    `dispute_amount` DECIMAL(18,2) COMMENT 'The monetary value under dispute at the time of this lifecycle event, expressed in the dispute currency. May differ from the original transaction amount due to partial chargebacks or adjustments applied during the dispute process.',
+    `dispute_currency_code` STRING COMMENT 'ISO 4217 three-letter currency code for the dispute amount at the time of this event (e.g., USD, EUR, GBP). Required for cross-border dispute processing and FX reconciliation.. Valid values are `^[A-Z]{3}$`',
+    `event_notes` STRING COMMENT 'Free-text narrative describing the context, rationale, or outcome of this lifecycle event. Captures analyst commentary, scheme decision rationale, or system-generated explanations. EVENT_PAYLOAD_OR_VALUE per EVENT_LOG role.',
+    `event_sequence_number` STRING COMMENT 'Monotonically increasing sequence number of this event within the parent dispute case, starting at 1 for the first event. Enables ordered reconstruction of the complete dispute lifecycle timeline and detection of out-of-order event ingestion.',
+    `event_timestamp` TIMESTAMP COMMENT 'The precise date and time (with timezone offset) at which this lifecycle event occurred. Authoritative event time used for SLA deadline tracking, regulatory audit trails, and dispute analytics. Conforms to yyyy-MM-ddTHH:mm:ss.SSSXXX format. EVENT_TIMESTAMP per EVENT_LOG role.',
+    `event_type` STRING COMMENT 'Discriminator classifying the kind of lifecycle event that occurred in the dispute workflow. Drives downstream routing, SLA monitoring, and regulatory reporting. EVENT_TYPE_OR_CHANNEL per EVENT_LOG role. [ENUM-REF-CANDIDATE: case_opened|retrieval_sent|chargeback_filed|representment_submitted|pre_arbitration_filed|arbitration_decided|case_closed|deadline_breached — promote to reference product]',
+    `financial_adjustment_amount` DECIMAL(18,2) COMMENT 'The monetary value of the financial adjustment (debit, credit, fee, or reversal) associated with this lifecycle event. Used for settlement reconciliation, GL posting, and dispute financial reporting. Expressed in dispute_currency_code.',
+    `financial_adjustment_type` STRING COMMENT 'Classifies the type of financial adjustment triggered by this lifecycle event (e.g., debit to acquirer for chargeback, credit to issuer, reversal for representment win, scheme fee). Drives GL posting and settlement reconciliation in ERP - Oracle Financials.. Valid values are `debit|credit|reversal|fee|none`',
+    `is_deadline_breached` BOOLEAN COMMENT 'Indicates whether the response deadline for this lifecycle event stage was breached (True) or met on time (False). Drives automatic escalation workflows, scheme penalty assessments, and SLA reporting.',
+    `is_fraud_related` BOOLEAN COMMENT 'Indicates whether this dispute event is classified as fraud-related (True) based on the chargeback reason code or fraud detection platform signals. Drives SAR/STR filing obligations, fraud analytics, and scheme fraud reporting thresholds.',
+    `issuer_bin` STRING COMMENT 'The Bank Identification Number (BIN) / Issuer Identification Number (IIN) of the issuing bank involved in this dispute event. Used for scheme routing, interchange settlement, and issuer-level dispute analytics.. Valid values are `^[0-9]{6,8}$`',
+    `new_state` STRING COMMENT 'The dispute case state immediately after this event was applied. Represents the current state of the dispute case as of this event. Used for SLA tracking, workflow routing, and regulatory reporting. [ENUM-REF-CANDIDATE: new|retrieval_pending|chargeback_pending|representment_pending|pre_arbitration_pending|arbitration_pending|resolved|closed — 8 candidates stripped; promote to reference product]',
+    `original_transaction_date` DATE COMMENT 'The date on which the original payment transaction subject to this dispute was processed. Used to calculate dispute filing timeliness, scheme deadline windows, and statute of limitations compliance.',
+    `pan_last_four` STRING COMMENT 'The last four digits of the cardholders Primary Account Number (PAN) associated with the disputed transaction. Retained for dispute identification and cardholder communication while complying with PCI DSS data minimization requirements.. Valid values are `^[0-9]{4}$`',
+    `previous_state` STRING COMMENT 'The dispute case state immediately before this event was applied. Together with new_state, provides a complete state-transition record for audit and analytics. Enables reconstruction of the full dispute lifecycle history. [ENUM-REF-CANDIDATE: new|retrieval_pending|chargeback_pending|representment_pending|pre_arbitration_pending|arbitration_pending|resolved|closed — 8 candidates stripped; promote to reference product]',
+    `processing_region` STRING COMMENT 'ISO 3166-1 alpha-3 country code of the region where this dispute event was processed. Determines applicable regulatory framework (e.g., PSD2 in EU, Regulation E in US), jurisdiction for compliance reporting, and cross-border dispute rules.. Valid values are `^[A-Z]{3}$`',
+    `regulatory_reporting_flag` BOOLEAN COMMENT 'Indicates whether this lifecycle event triggers a mandatory regulatory reporting obligation (True), such as SAR/STR filing with FinCEN, CFPB complaint reporting, or scheme fraud reporting. Drives compliance workflow routing in the Risk and Compliance Management System.',
+    `resolution_outcome` STRING COMMENT 'The final resolution outcome for the dispute case as recorded at this event. Populated when event_type is case_closed. Indicates whether the dispute was won, lost, partially resolved, withdrawn by the claimant, or expired due to deadline breach.. Valid values are `won|lost|partial|withdrawn|expired`',
+    `response_deadline` TIMESTAMP COMMENT 'The date and time by which the responding party (acquirer, merchant, or issuer) must submit their response or evidence package for this event stage. Derived from card scheme rules and the event timestamp. Critical for SLA breach detection.',
+    `response_submitted_timestamp` TIMESTAMP COMMENT 'The actual date and time at which the required response or evidence package was submitted for this event stage. Compared against response_deadline to determine SLA compliance and deadline breach status.',
+    `retrieval_request_number` STRING COMMENT 'The unique reference number assigned to a retrieval request (pre-chargeback inquiry) issued by the issuing bank to obtain transaction documentation. Populated when event_type is retrieval_sent. Precedes formal chargeback filing in the dispute lifecycle.',
+    `scheme_case_reference` STRING COMMENT 'The external case or tracking reference number assigned by the card scheme (Visa, Mastercard, etc.) for this dispute. Used for cross-referencing with scheme portals (e.g., Visa Resolve Online - VROL, Mastercard Connect) and scheme correspondence.',
+    `scheme_fee_amount` DECIMAL(18,2) COMMENT 'The fee levied by the card scheme (Visa, Mastercard, etc.) for processing this dispute event stage (e.g., arbitration filing fee, chargeback processing fee). Expressed in dispute_currency_code. Used for cost allocation and P&L reporting.',
+    `sla_target_hours` STRING COMMENT 'The number of hours within which the required action for this event type must be completed per card scheme rules and internal SLA commitments. Used to compute response_deadline and monitor SLA compliance.',
+    `source_system` STRING COMMENT 'Identifies the operational system of record that originated this lifecycle event record (e.g., Dispute and Chargeback Management System, Payment Gateway and Authorization Engine). Supports data lineage, reconciliation, and Silver layer provenance tracking.. Valid values are `dispute_chargeback_mgmt|payment_gateway|transaction_platform|risk_compliance|manual_entry`',
+    `three_ds_authentication_result` STRING COMMENT 'The outcome of 3-D Secure (3DS) authentication for the original disputed transaction. Determines liability shift applicability under card scheme rules — authenticated transactions shift liability to the issuer, affecting dispute outcome and representment strategy.. Valid values are `authenticated|not_authenticated|attempted|not_applicable`',
+    CONSTRAINT pk_dispute_lifecycle_event PRIMARY KEY(`dispute_lifecycle_event_id`)
+) COMMENT 'Immutable event log capturing every state transition and significant activity in a dispute case lifecycle. Captures event ID, dispute case ID, event type (case opened, retrieval sent, chargeback filed, representment submitted, pre-arbitration filed, arbitration decided, case closed, deadline breached), event timestamp, actor type (issuer, acquirer, scheme, merchant, analyst), actor ID, previous state, new state, and event notes. Provides full audit trail for regulatory compliance and dispute analytics.';
+
+CREATE OR REPLACE TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` (
+    `pre_arbitration_id` BIGINT COMMENT 'Unique identifier for the pre-arbitration case record. Primary key for the pre-arbitration entity.',
+    `assigned_analyst_employee_id` BIGINT COMMENT 'Reference to the dispute analyst or case manager responsible for managing this pre-arbitration case.',
+    `card_scheme_id` BIGINT COMMENT 'Foreign key linking to reference.reference_card_scheme. Business justification: Pre‑arbitration timelines vary by scheme; reference needed for SLA monitoring.',
+    `chargeback_id` BIGINT COMMENT 'Reference to the originating chargeback case that was escalated to pre-arbitration after representment rejection.',
+    `ecosystem_partner_id` BIGINT COMMENT 'Bank Identification Number (BIN) or Issuer Identification Number (IIN) of the cardholders issuing bank, typically the first 6-11 digits of the card number.',
+    `employee_id` BIGINT COMMENT 'Reference to the dispute analyst or case manager responsible for managing this pre-arbitration case.',
+    `merchant_id` BIGINT COMMENT 'Reference to the merchant whose transaction is subject to this pre-arbitration case.',
+    `representment_id` BIGINT COMMENT 'Reference to the representment case that was rejected by the issuer, triggering this pre-arbitration escalation.',
+    `scheme_id` BIGINT COMMENT 'Foreign key linking to network.scheme. Business justification: Pre‑arbitration processes follow scheme‑defined timelines; scheme_id links each pre‑arbitration record to its governing scheme.',
+    `transaction_id` BIGINT COMMENT 'Reference to the original payment transaction that is the subject of this pre-arbitration dispute.',
+    `acquirer_bank_code` STRING COMMENT 'Bank Identification Number (BIN) of the merchants acquiring bank that processed the original transaction.. Valid values are `^[0-9]{6,11}$`',
+    `arn` STRING COMMENT 'Unique 23-digit reference number assigned by the acquiring bank to track the transaction through the dispute lifecycle, including pre-arbitration.. Valid values are `^[0-9]{23}$`',
+    `case_notes` STRING COMMENT 'Internal notes and commentary regarding the pre-arbitration case, including strategy considerations, evidence assessment, and communication history.',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this pre-arbitration record was first created in the dispute management system.',
+    `currency_code` STRING COMMENT 'Three-letter ISO 4217 currency code for the liability amount (e.g., USD, EUR, GBP).. Valid values are `^[A-Z]{3}$`',
+    `deadline_compliance_status` STRING COMMENT 'Indicates whether the responding party met the scheme-mandated response deadline: compliant (on time), late (submitted after deadline but accepted), or missed (no response submitted).. Valid values are `compliant|late|missed`',
+    `escalation_reason` STRING COMMENT 'Detailed explanation of why the case was escalated to pre-arbitration after representment rejection, including the basis for challenging the issuers decision.',
+    `evidence_submission_count` STRING COMMENT 'Number of evidence documents or packages submitted by the filing party to support their pre-arbitration claim.',
+    `fee_amount` DECIMAL(18,2) COMMENT 'Fee charged by the card scheme for filing a pre-arbitration case. This fee is typically assessed to the losing party upon case resolution.',
+    `filing_date` DATE COMMENT 'Date when the pre-arbitration case was officially filed with the card scheme by the filing party.',
+    `filing_party` STRING COMMENT 'Identifies which party initiated the pre-arbitration: issuer (cardholders bank) or acquirer (merchants bank).. Valid values are `issuer|acquirer`',
+    `filing_timestamp` TIMESTAMP COMMENT 'Precise timestamp when the pre-arbitration case was submitted to the card scheme system, including time zone information.',
+    `liability_amount` DECIMAL(18,2) COMMENT 'Financial amount in dispute for this pre-arbitration case, representing the transaction amount plus any applicable fees that will be assigned to the losing party.',
+    `liability_party` STRING COMMENT 'Party assigned financial liability for the disputed transaction as a result of the pre-arbitration outcome: issuer (cardholders bank), acquirer (merchants bank), merchant, or pending (not yet determined).. Valid values are `issuer|acquirer|merchant|pending`',
+    `modified_timestamp` TIMESTAMP COMMENT 'Timestamp when this pre-arbitration record was last updated, tracking any changes to status, outcome, or case details.',
+    `outcome` STRING COMMENT 'Final outcome of the pre-arbitration case: accepted (filing party wins, liability assigned), rejected (responding party wins, original decision stands), escalated_to_arbitration (unresolved, proceeding to formal arbitration), withdrawn (filing party withdrew claim), or pending (outcome not yet determined).. Valid values are `accepted|rejected|escalated_to_arbitration|withdrawn|pending`',
+    `pre_arbitration_status` STRING COMMENT 'Current lifecycle status of the pre-arbitration case: filed (submitted to scheme), pending_response (awaiting counterparty response), under_review (scheme reviewing submissions), accepted (pre-arb claim accepted), rejected (pre-arb claim denied), escalated_to_arbitration (proceeding to formal arbitration), withdrawn (filing party withdrew), or expired (deadline passed without resolution). [ENUM-REF-CANDIDATE: filed|pending_response|under_review|accepted|rejected|escalated_to_arbitration|withdrawn|expired — 8 candidates stripped; promote to reference product]',
+    `reason_code` STRING COMMENT 'Card scheme-specific reason code that categorizes the dispute type (e.g., Visa 10.4 Fraud, Mastercard 4853 Cardholder Dispute). Inherited from the originating chargeback.',
+    `reason_description` STRING COMMENT 'Human-readable description of the chargeback reason code explaining the nature of the dispute (e.g., Fraudulent Transaction - Card Not Present).',
+    `resolution_date` DATE COMMENT 'Date when the pre-arbitration case reached final resolution (accepted, rejected, or escalated to arbitration). Null if case is still pending.',
+    `response_date` DATE COMMENT 'Actual date when the responding party submitted their response to the pre-arbitration case. Null if no response has been received.',
+    `response_deadline_date` DATE COMMENT 'Card scheme-mandated deadline by which the responding party must submit their response to the pre-arbitration filing. Typically 10-45 days depending on scheme and reason code.',
+    `response_received_flag` BOOLEAN COMMENT 'Boolean indicator of whether a response has been received from the responding party. True if response submitted, False if pending or no response.',
+    `response_timestamp` TIMESTAMP COMMENT 'Precise timestamp when the response was received by the card scheme system, used for deadline compliance verification.',
+    `scheme_case_number` STRING COMMENT 'Unique case identifier assigned by the card scheme (Visa, Mastercard, etc.) for tracking the pre-arbitration proceeding within their dispute resolution system.',
+    `scheme_decision_date` DATE COMMENT 'Date when the card scheme issued their official decision on the pre-arbitration case, determining liability assignment.',
+    `withdrawal_date` DATE COMMENT 'Date when the filing party voluntarily withdrew the pre-arbitration case. Null if case was not withdrawn.',
+    `withdrawal_reason` STRING COMMENT 'Explanation for why the filing party withdrew the pre-arbitration case, such as settlement reached, insufficient evidence, or strategic decision.',
+    CONSTRAINT pk_pre_arbitration PRIMARY KEY(`pre_arbitration_id`)
+) COMMENT 'Pre-arbitration filing record representing the escalation step between representment rejection and formal arbitration. Captures pre-arbitration ID, linked chargeback ID, linked representment ID, filing party (issuer or acquirer), filing date, scheme pre-arbitration case number, scheme-mandated response deadline, actual response date, deadline compliance status, response received flag, outcome (accepted, rejected, escalated to arbitration), and financial liability amount. Tracks the intermediate escalation tier before formal scheme arbitration.';
+
+CREATE OR REPLACE TABLE `payments_fintech_ecm`.`dispute`.`rule_config` (
+    `rule_config_id` BIGINT COMMENT 'Primary key for rule_config',
+    `card_scheme_id` BIGINT COMMENT 'Foreign key linking to reference.reference_card_scheme. Business justification: Rule engine applies scheme‑specific thresholds; linking ensures correct rule application.',
+    `scheme_id` BIGINT COMMENT 'Foreign key linking to network.scheme. Business justification: Dispute rule configurations are defined per card scheme; scheme_id is required for the Rule Engine to select appropriate rules.',
+    `action_parameters` STRING COMMENT 'Configuration parameters or metadata required to execute the auto action, stored as JSON or key-value pairs.',
+    `approval_status` STRING COMMENT 'Approval workflow status indicating whether the rule configuration has been reviewed and authorized for production use.. Valid values are `pending|approved|rejected`',
+    `approved_by` STRING COMMENT 'Identifier or name of the user or role who approved this rule configuration for production deployment.',
+    `approved_timestamp` TIMESTAMP COMMENT 'Date and time when this rule configuration was approved, recorded in ISO 8601 format.',
+    `auto_action_type` STRING COMMENT 'Automated action to be taken when the rule conditions are met during dispute processing.. Valid values are `accept|representment|escalate|hold|decline`',
+    `compliance_notes` STRING COMMENT 'Free-text field capturing compliance considerations, regulatory alignment, or audit notes related to this rule configuration.',
+    `condition_expression` STRING COMMENT 'Structured or semi-structured expression defining the logical conditions under which this rule is triggered. May be JSON, XML, or domain-specific language.',
+    `created_timestamp` TIMESTAMP COMMENT 'Date and time when this dispute rule configuration record was first created in the system, recorded in ISO 8601 format.',
+    `dispute_age_threshold_days` STRING COMMENT 'Maximum age of the dispute in days for this rule to apply, enabling time-sensitive rule logic.',
+    `effective_date` DATE COMMENT 'Date from which this dispute rule configuration becomes active and applicable to dispute processing.',
+    `evidence_required_flag` BOOLEAN COMMENT 'Indicates whether supporting evidence must be present for the rule action to be executed.',
+    `evidence_type_list` STRING COMMENT 'Comma-separated or pipe-separated list of evidence types required for this rule to trigger, such as delivery_confirmation, signature, invoice.',
+    `execution_count` BIGINT COMMENT 'Cumulative count of how many times this rule has been executed since activation, used for monitoring and analytics.',
+    `expiry_date` DATE COMMENT 'Date on which this dispute rule configuration ceases to be active. Null indicates no expiration.',
+    `failure_count` BIGINT COMMENT 'Cumulative count of failed rule executions where the rule action could not be completed due to errors or exceptions.',
+    `is_active` BOOLEAN COMMENT 'Boolean flag indicating whether this rule configuration is currently active and being applied in dispute processing workflows.',
+    `last_executed_timestamp` TIMESTAMP COMMENT 'Date and time when this rule was last executed in a dispute processing workflow, recorded in ISO 8601 format.',
+    `max_dispute_count` STRING COMMENT 'Maximum number of disputes this rule can process within a defined time window, used for rate limiting or risk control.',
+    `merchant_segment` STRING COMMENT 'Merchant classification or segment to which this rule applies, enabling segment-specific dispute handling strategies. May reference MCC (Merchant Category Code) ranges or internal merchant tiers.',
+    `mid` STRING COMMENT 'Specific Merchant Identification Number to which this rule applies. Null indicates the rule applies broadly per merchant segment or globally.',
+    `modified_by` STRING COMMENT 'Identifier or name of the user or system process that last modified this rule configuration record.',
+    `modified_timestamp` TIMESTAMP COMMENT 'Date and time when this dispute rule configuration record was last modified, recorded in ISO 8601 format.',
+    `notification_recipient_list` STRING COMMENT 'Comma-separated list of email addresses or user identifiers to be notified when this rule is triggered.',
+    `notification_required_flag` BOOLEAN COMMENT 'Indicates whether a notification must be sent to stakeholders when this rule is triggered.',
+    `priority_rank` STRING COMMENT 'Numeric priority ranking for rule evaluation order when multiple rules may apply to the same dispute. Lower numbers indicate higher priority.',
+    `reason_code` STRING COMMENT 'Chargeback or dispute reason code to which this rule applies. May be a specific code or a wildcard pattern for multiple codes. Aligns with card scheme reason code taxonomies.',
+    `rule_code` STRING COMMENT 'Unique business identifier code for the dispute rule configuration, used for external reference and system integration.. Valid values are `^[A-Z0-9_]{3,20}$`',
+    `rule_description` STRING COMMENT 'Detailed textual description of the rule logic, business rationale, and intended use case for this dispute rule configuration.',
+    `rule_name` STRING COMMENT 'Human-readable name of the dispute rule configuration describing its purpose and scope.',
+    `rule_owner` STRING COMMENT 'Business owner or team responsible for maintaining and governing this dispute rule configuration.',
+    `rule_status` STRING COMMENT 'Current lifecycle status of the dispute rule configuration indicating whether it is actively applied in dispute processing.. Valid values are `draft|pending_approval|active|inactive|expired|suspended`',
+    `rule_type` STRING COMMENT 'Classification of the dispute rule configuration indicating the type of automated action or decision logic it governs.. Valid values are `auto_accept|auto_representment|routing|threshold|merchant_override|reason_code_strategy`',
+    `success_count` BIGINT COMMENT 'Cumulative count of successful rule executions where the rule conditions were met and the action was successfully applied.',
+    `threshold_amount` DECIMAL(18,2) COMMENT 'Monetary threshold value that triggers or qualifies the rule action. Used for auto-accept or auto-representment eligibility based on dispute amount.',
+    `threshold_currency` STRING COMMENT 'Three-letter ISO 4217 currency code for the threshold amount.. Valid values are `^[A-Z]{3}$`',
+    `time_window_hours` STRING COMMENT 'Time window in hours for evaluating max dispute count or other time-bound rule conditions.',
+    `transaction_age_threshold_days` STRING COMMENT 'Maximum age of the original transaction in days for this rule to apply, used for representment eligibility assessment.',
+    `version_number` STRING COMMENT 'Version number of this rule configuration, incremented with each modification to support audit trail and rollback capabilities.',
+    `win_rate_threshold_pct` DECIMAL(18,2) COMMENT 'Minimum historical win rate percentage for similar disputes required for auto-representment eligibility under this rule.',
+    `created_by` STRING COMMENT 'Identifier or name of the user or system process that created this rule configuration record.',
+    CONSTRAINT pk_rule_config PRIMARY KEY(`rule_config_id`)
+) COMMENT 'Business rule configuration governing automated dispute handling decisions — auto-accept thresholds, auto-representment eligibility criteria, reason-code-specific response strategies, merchant-level dispute handling overrides, and scheme-specific processing rules. Captures rule ID, rule name, rule type, applicable reason code scope, merchant segment scope, threshold amount, currency, auto-action type, effective date, expiry date, and approval status. Enables configurable dispute automation without code changes.';
+
+CREATE OR REPLACE TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` (
+    `ratio_monitor_id` BIGINT COMMENT 'Primary key for ratio_monitor',
+    `card_scheme_id` BIGINT COMMENT 'Foreign key linking to reference.reference_card_scheme. Business justification: Chargeback ratio monitoring uses scheme‑specific limits; reference provides those limits.',
+    `scheme_id` BIGINT COMMENT 'Foreign key linking to network.scheme. Business justification: Chargeback ratio monitoring is performed per scheme; scheme_id enables the Ratio Monitoring Report used for compliance.',
+    `acquirer_notification_date` DATE COMMENT 'The date the acquiring bank notified the merchant of the chargeback ratio threshold breach and required remediation actions.',
+    `assessment_fee_amount` DECIMAL(18,2) COMMENT 'The monetary penalty or assessment fee imposed by the card scheme for the chargeback ratio threshold breach during this monitoring period. Fees escalate with severity and duration of non-compliance.',
+    `assessment_fee_currency` STRING COMMENT 'Three-letter ISO 4217 currency code for the assessment fee amount (e.g., USD, EUR, GBP).. Valid values are `^[A-Z]{3}$`',
+    `chargeback_ratio_percentage` DECIMAL(18,2) COMMENT 'The calculated chargeback ratio expressed as a percentage: (total_chargeback_count / total_transaction_count) * 100. Core metric for determining scheme program threshold breaches.',
+    `compliance_status` STRING COMMENT 'Current compliance status of the merchant with respect to card scheme chargeback ratio requirements for this monitoring period.. Valid values are `Compliant|At Risk|Non-Compliant|Under Review|Remediation in Progress`',
+    `consecutive_months_in_program` STRING COMMENT 'The number of consecutive months the merchant has been enrolled in the chargeback monitoring program as of this monitoring period. Used to track escalation and potential termination risk.',
+    `created_timestamp` TIMESTAMP COMMENT 'The date and time when this chargeback ratio monitoring record was first created in the system. Audit trail for record lifecycle tracking.',
+    `excessive_threshold_percentage` DECIMAL(18,2) COMMENT 'The excessive chargeback ratio threshold percentage defined by the card scheme program for this monitoring period. Typically 1.8% for Visa VDMP excessive threshold.',
+    `fraud_chargeback_count` BIGINT COMMENT 'The subset of total chargebacks that were classified as fraud-related (reason codes 10.4, 4837, etc.) during the monitoring period. Used for Visa Fraud Monitoring Program (VFM) tracking.',
+    `fraud_ratio_percentage` DECIMAL(18,2) COMMENT 'The calculated fraud chargeback ratio expressed as a percentage: (fraud_chargeback_count / total_transaction_count) * 100. Used for Visa Fraud Monitoring Program (VFM) compliance.',
+    `high_risk_indicator` BOOLEAN COMMENT 'Boolean flag indicating whether the merchant is classified as high-risk by the acquirer or card scheme, which may result in stricter chargeback ratio thresholds or enhanced monitoring.',
+    `mcc` STRING COMMENT 'Four-digit code classifying the merchants business type. Certain MCCs have different chargeback ratio thresholds or heightened monitoring requirements.. Valid values are `^[0-9]{4}$`',
+    `mid` STRING COMMENT 'Unique merchant identifier assigned by the acquiring bank. Links this monitoring record to the specific merchant being tracked for chargeback ratio compliance.. Valid values are `^[A-Z0-9]{8,15}$`',
+    `minimum_chargeback_threshold` BIGINT COMMENT 'The minimum number of chargebacks required during the monitoring period for the merchant to be subject to the chargeback monitoring program. Typically 100 chargebacks for Visa VDMP standard threshold.',
+    `minimum_transaction_threshold` BIGINT COMMENT 'The minimum number of transactions required during the monitoring period for the merchant to be subject to the chargeback monitoring program. Typically 1,000 transactions for Visa VDMP.',
+    `monitoring_period_month` DATE COMMENT 'The calendar month for which this chargeback ratio is calculated and monitored. Typically the first day of the month (YYYY-MM-01 format).',
+    `monitoring_program_type` STRING COMMENT 'The specific card scheme chargeback monitoring program under which this merchant is being tracked. Examples: VDMP (Visa Dispute Monitoring Program), VFM (Visa Fraud Monitoring), MCP (Mastercard Chargeback Program), ECMP (Excessive Chargeback Merchant Program).. Valid values are `VDMP|VFM|VFMP|MCP|ECMP|GCMS`',
+    `monitoring_record_status` STRING COMMENT 'Current lifecycle status of this monitoring record. Active indicates ongoing monitoring; Closed indicates the monitoring period has concluded; Under Review indicates pending scheme or acquirer review.. Valid values are `Active|Closed|Under Review|Disputed|Archived`',
+    `notes` STRING COMMENT 'Free-text field for operational notes, comments, or context regarding this monitoring record, remediation efforts, or communications with the merchant or card scheme.',
+    `program_enrollment_date` DATE COMMENT 'The date the merchant was enrolled into the card scheme chargeback monitoring program due to threshold breach. Null if merchant is not currently enrolled.',
+    `program_exit_date` DATE COMMENT 'The date the merchant successfully exited the card scheme chargeback monitoring program by achieving compliance. Null if merchant is still enrolled or was never enrolled.',
+    `region_code` STRING COMMENT 'Three-letter ISO 3166-1 alpha-3 country or region code where the merchant operates. Card scheme monitoring programs may have regional variations in thresholds and rules.. Valid values are `^[A-Z]{3}$`',
+    `remediation_plan_reference` STRING COMMENT 'Reference identifier or document number for the merchants chargeback remediation plan submitted to address the threshold breach. Required for merchants enrolled in monitoring programs.',
+    `review_period_end_date` DATE COMMENT 'The end date of the rolling review period used to calculate the chargeback ratio.',
+    `review_period_start_date` DATE COMMENT 'The start date of the rolling review period used to calculate the chargeback ratio. Card schemes typically use a rolling 12-month or 6-month window.',
+    `scheme_notification_date` DATE COMMENT 'The date the card scheme officially notified the acquirer and merchant of the chargeback ratio threshold breach and program enrollment.',
+    `standard_threshold_percentage` DECIMAL(18,2) COMMENT 'The standard chargeback ratio threshold percentage defined by the card scheme program for this monitoring period. Typically 0.9% for Visa VDMP standard threshold.',
+    `threshold_level_breached` STRING COMMENT 'The severity level of the chargeback ratio threshold breach, if any. Indicates which tier of the card scheme monitoring program the merchant has entered. None indicates compliance; other values indicate escalating severity.. Valid values are `None|Early Warning|Standard|Excessive|High Risk`',
+    `total_chargeback_count` BIGINT COMMENT 'The total number of chargebacks received against the merchant during the monitoring period month. Numerator for chargeback ratio calculation.',
+    `total_transaction_count` BIGINT COMMENT 'The total number of transactions processed by the merchant during the monitoring period month. Denominator for chargeback ratio calculation.',
+    `updated_timestamp` TIMESTAMP COMMENT 'The date and time when this chargeback ratio monitoring record was last modified. Audit trail for record lifecycle tracking.',
+    CONSTRAINT pk_ratio_monitor PRIMARY KEY(`ratio_monitor_id`)
+) COMMENT 'Operational monitoring record tracking a merchants chargeback ratio against card scheme program thresholds (Visa VDMP, Mastercard MCP) on a monthly basis. Captures monitor record ID, MID, monitoring period month, total transaction count, total chargeback count, chargeback ratio percentage, scheme program threshold breached (standard, excessive), program enrollment date, remediation plan reference, and scheme notification date. Distinct from analytics — this is the operational compliance record used to manage merchant scheme program status.';
+
+CREATE OR REPLACE TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` (
+    `dispute_compliance_case_id` BIGINT COMMENT 'Primary key for compliance_case',
+    `card_scheme_id` BIGINT COMMENT 'Foreign key linking to reference.reference_card_scheme. Business justification: Compliance cases depend on scheme‑defined violation criteria; reference needed for accurate assessment.',
+    `dispute_case_id` BIGINT COMMENT 'Reference to the primary dispute record that triggered or is associated with this compliance case, if applicable.',
+    `dispute_dispute_case_id` BIGINT COMMENT 'Reference to the primary dispute record that triggered or is associated with this compliance case, if applicable.',
+    `employee_id` BIGINT COMMENT 'Name of the internal compliance officer assigned to manage and resolve the compliance case.',
+    `merchant_id` BIGINT COMMENT 'Unique identifier for the merchant associated with the compliance violation.',
+    `scheme_id` BIGINT COMMENT 'Foreign key linking to network.scheme. Business justification: Compliance cases reference specific scheme violations; scheme_id is essential for regulatory filing and scheme‑level audit trails.',
+    `acquirer_bin` STRING COMMENT 'Bank Identification Number of the acquiring bank responsible for the merchant under compliance review.. Valid values are `^[0-9]{6,8}$`',
+    `acquirer_reference_number` STRING COMMENT 'Unique 23-character reference number assigned by the acquiring bank to track the transaction lifecycle, used for linking compliance cases to specific transaction disputes.. Valid values are `^[A-Z0-9]{23}$`',
+    `assessed_fine_amount` DECIMAL(18,2) COMMENT 'Monetary fine amount assessed by the card scheme for the compliance violation.',
+    `case_closure_date` DATE COMMENT 'Date when the compliance case was officially closed by the card scheme after all requirements were met.',
+    `case_closure_reason` STRING COMMENT 'Reason code indicating why the compliance case was closed (e.g., remediation completed, fine paid, violation resolved, case withdrawn, escalated to arbitration).. Valid values are `remediation_completed|fine_paid|violation_resolved|case_withdrawn|escalated_to_arbitration`',
+    `case_opened_date` DATE COMMENT 'Date when the compliance case was officially opened by the card scheme or internal compliance team.',
+    `case_status` STRING COMMENT 'Current lifecycle status of the compliance case (e.g., open, under review, pending response, remediation in progress, closed, escalated).. Valid values are `open|under_review|pending_response|remediation_in_progress|closed|escalated`',
+    `chargeback_count` STRING COMMENT 'Total number of chargebacks associated with the merchant during the violation period that contributed to the compliance case.',
+    `chargeback_ratio` DECIMAL(18,2) COMMENT 'Ratio of chargebacks to total transactions for the merchant during the violation period, expressed as a decimal (e.g., 0.0125 for 1.25%).',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the compliance case record was first created in the system.',
+    `escalation_level` STRING COMMENT 'Current escalation level of the compliance case within the internal compliance management hierarchy (e.g., level 1, level 2, level 3, executive escalation).. Valid values are `level_1|level_2|level_3|executive_escalation`',
+    `fine_currency_code` STRING COMMENT 'Three-letter ISO 4217 currency code for the assessed fine amount (e.g., USD, EUR, GBP).. Valid values are `^[A-Z]{3}$`',
+    `fine_due_date` DATE COMMENT 'Date by which the assessed fine must be paid to the card scheme to avoid further penalties.',
+    `fine_paid_date` DATE COMMENT 'Date when the assessed fine was fully paid to the card scheme.',
+    `fine_payment_status` STRING COMMENT 'Current payment status of the assessed fine (e.g., unpaid, partially paid, paid, waived, disputed).. Valid values are `unpaid|partially_paid|paid|waived|disputed`',
+    `internal_notes` STRING COMMENT 'Internal notes and comments regarding the compliance case, remediation efforts, and communications with the card scheme.',
+    `last_modified_timestamp` TIMESTAMP COMMENT 'Timestamp when the compliance case record was last updated or modified.',
+    `pci_dss_violation_flag` BOOLEAN COMMENT 'Boolean flag indicating whether the compliance case involves a PCI DSS data security violation (True) or not (False).',
+    `regulatory_reporting_required_flag` BOOLEAN COMMENT 'Boolean flag indicating whether the compliance case requires regulatory reporting to authorities such as FinCEN, CFPB, or FCA (True) or not (False).',
+    `remediation_completed_date` DATE COMMENT 'Date when all required remediation actions were completed and accepted by the card scheme.',
+    `remediation_due_date` DATE COMMENT 'Deadline date by which the required remediation actions must be completed and submitted to the card scheme.',
+    `remediation_requirement` STRING COMMENT 'Detailed description of corrective actions and remediation steps required by the card scheme to resolve the compliance violation and prevent recurrence.',
+    `remediation_status` STRING COMMENT 'Current status of the remediation efforts (e.g., not started, in progress, submitted, accepted by scheme, rejected).. Valid values are `not_started|in_progress|submitted|accepted|rejected`',
+    `scheme_case_reference_number` STRING COMMENT 'External case reference number assigned by the card scheme (Visa, Mastercard) for tracking the compliance violation case.. Valid values are `^[A-Z0-9]{8,20}$`',
+    `scheme_contact_email` STRING COMMENT 'Email address of the card scheme representative managing the compliance case.. Valid values are `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$`',
+    `scheme_contact_name` STRING COMMENT 'Name of the card scheme representative or contact person managing the compliance case on behalf of the scheme.',
+    `scheme_threshold_breached` STRING COMMENT 'Description of the specific card scheme threshold or program requirement that was breached (e.g., Visa Fraud Monitoring Program threshold, Mastercard Excessive Chargeback Merchant threshold).',
+    `violation_description` STRING COMMENT 'Detailed narrative description of the specific scheme rule violation, including context and circumstances that led to the compliance case.',
+    `violation_period_end_date` DATE COMMENT 'End date of the period during which the scheme rule violations occurred.',
+    `violation_period_start_date` DATE COMMENT 'Start date of the period during which the scheme rule violations occurred.',
+    `violation_type` STRING COMMENT 'Category of scheme rule violation that triggered the compliance case (e.g., excessive chargebacks, non-compliance with representment procedures, scheme program requirement failures).. Valid values are `excessive_chargebacks|non_compliance_representment|scheme_program_violation|fraud_threshold_breach|data_security_breach|authorization_non_compliance`',
+    CONSTRAINT pk_dispute_compliance_case PRIMARY KEY(`dispute_compliance_case_id`)
+) COMMENT 'Card scheme compliance case record initiated when a merchant or acquirer violates scheme rules related to dispute handling — excessive chargebacks, non-compliance with representment procedures, or failure to meet scheme program requirements. Captures compliance case ID, scheme case reference, scheme (Visa, Mastercard), violation type, MID, acquirer BIN, violation period, assessed fine amount, currency, fine due date, payment status, remediation requirement, and case closure date.';
+
+CREATE OR REPLACE TABLE `payments_fintech_ecm`.`dispute`.`claim` (
+    `claim_id` BIGINT COMMENT 'Primary key for claim',
+    `assigned_agent_employee_id` BIGINT COMMENT 'Reference to the customer service or dispute resolution agent assigned to handle this claim.',
+    `cardholder_account_id` BIGINT COMMENT 'Reference to the cardholder account that initiated the dispute claim.',
+    `chargeback_case_chargeback_id` BIGINT COMMENT 'Reference to the formal chargeback case record if this claim was escalated to the chargeback process.',
+    `chargeback_id` BIGINT COMMENT 'Reference to the formal chargeback case record if this claim was escalated to the chargeback process.',
+    `employee_id` BIGINT COMMENT 'Reference to the customer service or dispute resolution agent assigned to handle this claim.',
+    `merchant_id` BIGINT COMMENT 'Reference to the merchant involved in the disputed transaction.',
+    `payment_product_id` BIGINT COMMENT 'Foreign key linking to product.payment_product. Business justification: Cardholder dispute claims are analyzed per payment_product to assess product‑level risk and offer product‑specific resolutions.',
+    `scheme_id` BIGINT COMMENT 'Foreign key linking to network.scheme. Business justification: Cardholder dispute claims are adjudicated under a card scheme; scheme_id links each claim to the governing scheme for settlement.',
+    `wallet_transaction_id` BIGINT COMMENT 'Foreign key linking to wallet.wallet_transaction. Business justification: Cardholder dispute claims often stem from a specific wallet transaction; linking claim to wallet_transaction enables claim validation and settlement.',
+    `actual_resolution_date` DATE COMMENT 'The actual date on which the claim was resolved (approved, denied, or withdrawn).',
+    `amount` DECIMAL(18,2) COMMENT 'The monetary amount the cardholder is claiming as disputed, which may differ from the full transaction amount if disputing a partial charge.',
+    `cardholder_statement` STRING COMMENT 'Free-text narrative provided by the cardholder describing the reason for the dispute and supporting details.',
+    `claim_number` STRING COMMENT 'Externally-visible unique claim identifier provided to the cardholder for tracking and reference purposes.. Valid values are `^CLM[0-9]{10,15}$`',
+    `claim_status` STRING COMMENT 'Current lifecycle status of the dispute claim: submitted, under review, pending documentation, approved, denied, withdrawn, or escalated to chargeback. [ENUM-REF-CANDIDATE: submitted|under_review|pending_documentation|approved|denied|withdrawn|escalated_to_chargeback — 7 candidates stripped; promote to reference product]',
+    `claim_type` STRING COMMENT 'Classification of the dispute claim based on the nature of the cardholders assertion: unauthorized transaction, item not received, item not as described, duplicate charge, credit not processed, or service not rendered.. Valid values are `unauthorized_transaction|item_not_received|item_not_as_described|duplicate_charge|credit_not_processed|service_not_rendered`',
+    `contact_attempt_count` STRING COMMENT 'The number of times the dispute resolution team attempted to contact the cardholder for additional information or clarification.',
+    `created_timestamp` TIMESTAMP COMMENT 'The date and time when this claim record was first created in the dispute management system.',
+    `currency_code` STRING COMMENT 'Three-letter ISO 4217 currency code for the claim and disputed transaction amounts.. Valid values are `^[A-Z]{3}$`',
+    `disputed_transaction_amount` DECIMAL(18,2) COMMENT 'The monetary amount of the original transaction that is being disputed by the cardholder.',
+    `disputed_transaction_date` DATE COMMENT 'The original transaction date of the payment being disputed by the cardholder.',
+    `documentation_reference_code` STRING COMMENT 'Reference identifier linking to the document management system where supporting evidence files are stored.',
+    `escalated_to_chargeback_flag` BOOLEAN COMMENT 'Boolean indicator of whether this claim was escalated to a formal chargeback filing with the card network.',
+    `expected_resolution_date` DATE COMMENT 'The target date by which the claim investigation and resolution is expected to be completed, based on regulatory timelines and internal SLAs.',
+    `fraud_indicator_flag` BOOLEAN COMMENT 'Boolean indicator of whether the claim was flagged as potentially fraudulent and routed to the fraud investigation team.',
+    `fraud_score` DECIMAL(18,2) COMMENT 'Numerical fraud risk score assigned by the fraud detection platform, ranging from 0.00 (low risk) to 100.00 (high risk).',
+    `initial_triage_outcome` STRING COMMENT 'The outcome of the initial automated or manual triage assessment: accepted for review, rejected due to insufficient information, rejected as out of timeframe, escalated to fraud investigation, or provisional credit issued.. Valid values are `accepted_for_review|rejected_insufficient_info|rejected_out_of_timeframe|escalated_to_fraud|provisional_credit_issued`',
+    `last_contact_timestamp` TIMESTAMP COMMENT 'The date and time of the most recent contact attempt or successful communication with the cardholder regarding this claim.',
+    `last_modified_timestamp` TIMESTAMP COMMENT 'The date and time when this claim record was last updated in the dispute management system.',
+    `merchant_category_code` STRING COMMENT 'Four-digit code classifying the type of goods or services provided by the merchant involved in the disputed transaction.. Valid values are `^[0-9]{4}$`',
+    `provisional_credit_amount` DECIMAL(18,2) COMMENT 'The monetary amount of provisional credit issued to the cardholder, if applicable.',
+    `provisional_credit_date` DATE COMMENT 'The date on which provisional credit was posted to the cardholder account.',
+    `provisional_credit_issued_flag` BOOLEAN COMMENT 'Boolean indicator of whether a provisional credit was issued to the cardholder account while the claim is under investigation, as required by Regulation E for certain dispute types.',
+    `regulatory_reporting_flag` BOOLEAN COMMENT 'Boolean indicator of whether this claim must be included in regulatory reporting submissions to CFPB, card networks, or other governing bodies.',
+    `resolution_notes` STRING COMMENT 'Internal notes documenting the investigation findings, decision rationale, and resolution details.',
+    `resolution_reason_code` STRING COMMENT 'Standardized code indicating the reason for the claim resolution outcome, aligned with card scheme reason code taxonomies.. Valid values are `^[A-Z0-9]{2,10}$`',
+    `submission_channel` STRING COMMENT 'The channel through which the cardholder submitted the dispute claim: mobile app, call center, online portal, branch, email, or chat.. Valid values are `mobile_app|call_center|online_portal|branch|email|chat`',
+    `submission_timestamp` TIMESTAMP COMMENT 'The date and time when the cardholder submitted the dispute claim, representing the principal business event timestamp for this transaction.',
+    `supporting_documentation_provided_flag` BOOLEAN COMMENT 'Boolean indicator of whether the cardholder provided supporting documentation (receipts, correspondence, delivery confirmations) with the claim submission.',
+    `transaction_arn` STRING COMMENT 'The 23-digit Acquirer Reference Number uniquely identifying the disputed transaction across the payment network.. Valid values are `^[0-9]{23}$`',
+    `triage_timestamp` TIMESTAMP COMMENT 'The date and time when the initial triage assessment was completed.',
+    CONSTRAINT pk_claim PRIMARY KEY(`claim_id`)
+) COMMENT 'Cardholder-initiated dispute claim record capturing the consumers assertion of a transaction problem before or during the formal chargeback process. Captures claim ID, cardholder account reference, disputed transaction ARN, claim type (unauthorized transaction, item not received, item not as described, duplicate charge, credit not processed), claim submission channel (mobile app, call center, online portal), claim date, claim amount, supporting statement, and initial triage outcome. Represents the consumer-facing entry point into the dispute lifecycle.';
+
+CREATE OR REPLACE TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` (
+    `merchant_response_id` BIGINT COMMENT 'Primary key for merchant_response',
+    `card_scheme_id` BIGINT COMMENT 'Foreign key linking to reference.reference_card_scheme. Business justification: Merchant responses must align with scheme‑specific rebuttal rules; reference ensures correct mapping.',
+    `dispute_case_id` BIGINT COMMENT 'Reference to the parent dispute case that this merchant response addresses. Links to the dispute lifecycle record.',
+    `employee_id` BIGINT COMMENT 'Identifier of the acquirer staff member or system user who reviewed and approved or rejected the merchant response.',
+    `last_modified_by_user_employee_id` BIGINT COMMENT 'Identifier of the user or system process that last modified this merchant response record. Supports audit trail and accountability requirements.',
+    `merchant_id` BIGINT COMMENT 'Unique identifier for the merchant submitting the response. Links to merchant master data.',
+    `representment_id` BIGINT COMMENT 'Reference to the formal representment record created from this merchant response if the acquirer approved it for submission to the issuer. Null if not yet represented.',
+    `scheme_id` BIGINT COMMENT 'Foreign key linking to network.scheme. Business justification: Merchant responses must comply with scheme‑specific rebuttal rules; scheme_id provides the reference for compliance checks.',
+    `acquirer_feedback_notes` STRING COMMENT 'Internal notes or feedback provided by the acquirer reviewer regarding the quality, completeness, or deficiencies of the merchant response.',
+    `acquirer_review_completed_timestamp` TIMESTAMP COMMENT 'Date and time when the acquirer completed their review of the merchant response and made a decision on whether to proceed with representment.',
+    `acquirer_review_status` STRING COMMENT 'Status of the acquirers internal review of the merchant response. Indicates whether the response meets quality standards for formal representment to the issuer.. Valid values are `pending_review|in_review|approved_for_representment|rejected_insufficient_evidence|returned_for_revision`',
+    `arn` STRING COMMENT 'Unique 23-digit reference number assigned by the acquirer to the original transaction. Used to link the response to the specific transaction under dispute.. Valid values are `^[0-9]{23}$`',
+    `automated_response_flag` BOOLEAN COMMENT 'Indicates whether this response was generated automatically by the merchants dispute management system or submitted manually by a merchant representative. True if automated.',
+    `cardholder_name` STRING COMMENT 'Name of the cardholder who initiated the dispute. Included for merchant reference and evidence matching purposes.',
+    `created_timestamp` TIMESTAMP COMMENT 'Date and time when this merchant response record was first created in the dispute management system. Audit trail for record lifecycle tracking.',
+    `dispute_notification_date` DATE COMMENT 'Date when the merchant was first notified of the dispute or retrieval request. Used to calculate response deadline and track merchant response time.',
+    `evidence_document_count` STRING COMMENT 'Total number of supporting documents or evidence files submitted by the merchant as part of this response package.',
+    `evidence_submitted_flag` BOOLEAN COMMENT 'Indicates whether the merchant has attached supporting documentation or evidence files to substantiate their response. True if evidence package is included.',
+    `evidence_type_list` STRING COMMENT 'Comma-separated list of evidence types included in the response package (e.g., receipt, delivery_confirmation, customer_signature, terms_and_conditions, communication_log).',
+    `last_modified_timestamp` TIMESTAMP COMMENT 'Date and time when this merchant response record was last updated. Tracks changes throughout the response lifecycle from draft to final submission.',
+    `liability_acceptance_amount` DECIMAL(18,2) COMMENT 'Monetary amount that the merchant accepts liability for in cases of partial acceptance. Null if merchant contests the full dispute amount.',
+    `liability_acceptance_currency_code` STRING COMMENT 'Three-letter ISO 4217 currency code for the liability acceptance amount. Typically matches the original transaction currency.. Valid values are `^[A-Z]{3}$`',
+    `merchant_contact_email` STRING COMMENT 'Email address of the merchant representative for follow-up communication regarding this response.. Valid values are `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$`',
+    `merchant_contact_name` STRING COMMENT 'Name of the merchant representative or contact person who prepared and submitted this response.',
+    `merchant_contact_phone` STRING COMMENT 'Phone number of the merchant representative for urgent communication regarding this response.',
+    `merchant_rebuttal_narrative` STRING COMMENT 'Free-text explanation provided by the merchant describing their position, justification, and defense against the dispute claim. May include transaction details, customer interaction history, and policy references.',
+    `original_transaction_amount` DECIMAL(18,2) COMMENT 'Monetary value of the original transaction under dispute. Provided for merchant reference and partial acceptance calculations.',
+    `original_transaction_currency_code` STRING COMMENT 'Three-letter ISO 4217 currency code of the original transaction under dispute.. Valid values are `^[A-Z]{3}$`',
+    `original_transaction_date` DATE COMMENT 'Date of the original payment transaction that is the subject of the dispute. Included for merchant reference and evidence correlation.',
+    `reason_code` STRING COMMENT 'Card scheme reason code associated with the original dispute that this response addresses. Used to determine required evidence types and response strategy.. Valid values are `^[A-Z0-9]{2,5}$`',
+    `representment_eligible_flag` BOOLEAN COMMENT 'Indicates whether this merchant response qualifies for formal representment to the issuer based on acquirer review, evidence quality, and card scheme rules. True if eligible.',
+    `response_channel` STRING COMMENT 'Channel or interface through which the merchant submitted their response to the acquirer (e.g., dispute management portal, API integration, email submission).. Valid values are `web_portal|api|email|manual_upload|fax|phone`',
+    `response_confidence_score` DECIMAL(18,2) COMMENT 'Automated confidence score (0-100) indicating the predicted likelihood of winning the dispute based on evidence quality, reason code, and historical outcomes. Used for prioritization and strategy.',
+    `response_deadline_date` DATE COMMENT 'Final date by which the merchant must submit their response to preserve representment rights per card scheme rules. Typically 7-30 days from dispute notification.',
+    `response_language_code` STRING COMMENT 'Two-letter ISO 639-1 language code indicating the language in which the merchant rebuttal narrative and evidence were submitted.. Valid values are `^[a-z]{2}$`',
+    `response_reference_number` STRING COMMENT 'Externally-known unique reference number assigned to this merchant response for tracking and correspondence purposes.. Valid values are `^[A-Z0-9]{10,30}$`',
+    `response_status` STRING COMMENT 'Current lifecycle status of the merchant response in the dispute workflow. Tracks progression from draft through acquirer review to final disposition.. Valid values are `draft|submitted|under_review|accepted|rejected|withdrawn`',
+    `response_submitted_timestamp` TIMESTAMP COMMENT 'Date and time when the merchant formally submitted the response to the acquirer for review. Critical for deadline tracking and SLA compliance.',
+    `response_turnaround_days` STRING COMMENT 'Number of calendar days between dispute notification and merchant response submission. Used for performance tracking and SLA monitoring.',
+    `response_type` STRING COMMENT 'Classification of the merchants position in response to the dispute notification. Indicates whether merchant accepts, contests, or partially accepts the chargeback claim.. Valid values are `accept_liability|contest_dispute|partial_acceptance|request_extension|provide_evidence`',
+    `response_version_number` STRING COMMENT 'Version number tracking revisions to the merchant response. Incremented each time the merchant updates their response before final submission.',
+    `sla_breach_flag` BOOLEAN COMMENT 'Indicates whether the merchant response was submitted after the deadline, resulting in automatic forfeiture of representment rights. True if deadline missed.',
+    `withdrawal_reason` STRING COMMENT 'Explanation provided by the merchant for withdrawing their response and accepting liability. Null if no withdrawal requested.',
+    `withdrawal_requested_flag` BOOLEAN COMMENT 'Indicates whether the merchant has requested to withdraw this response and accept the chargeback liability. True if withdrawal requested.',
+    CONSTRAINT pk_merchant_response PRIMARY KEY(`merchant_response_id`)
+) COMMENT 'Merchant-submitted response record to a dispute notification or retrieval request, capturing the merchants position and supporting documentation prior to formal representment. Captures response ID, dispute case ID, MID, merchant response date, response type (accept liability, contest dispute, partial acceptance), merchant rebuttal narrative, evidence submitted flag, response channel, and acquirer review status. Distinct from representment — this is the merchants raw input before the acquirer packages the formal representment.';
+
+CREATE OR REPLACE TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` (
+    `dispute_notification_id` BIGINT COMMENT 'Unique identifier for the dispute notification record. Primary key.',
+    `card_scheme_id` BIGINT COMMENT 'Foreign key linking to reference.reference_card_scheme. Business justification: Notifications include scheme‑specific language and deadlines; linking standardizes content.',
+    `dispute_case_id` BIGINT COMMENT 'Reference to the parent dispute case that triggered this notification. Links notification to the underlying chargeback, retrieval request, or arbitration case.',
+    `merchant_id` BIGINT COMMENT 'The unique Merchant Identification Number (MID) of the merchant involved in the dispute. Populated when recipient_type is merchant.',
+    `scheme_id` BIGINT COMMENT 'Foreign key linking to network.scheme. Business justification: Dispute notifications include scheme context for routing and regulatory logging; scheme_id enables accurate notification analytics.',
+    `notification_template_id` BIGINT COMMENT 'Reference to the message template used to generate this notification, enabling template performance tracking and version control.',
+    `acknowledgment_method` STRING COMMENT 'The method by which the recipient acknowledged the notification: email open tracking, link click, webhook callback, portal view, API response, or manual confirmation.. Valid values are `email_open|link_click|webhook_callback|portal_view|api_response|manual_confirmation`',
+    `acknowledgment_timestamp` TIMESTAMP COMMENT 'The date and time when the recipient acknowledged receipt or opened the notification (e.g., email open, webhook callback, portal view). Null if not acknowledged. Format: yyyy-MM-ddTHH:mm:ss.SSSXXX.',
+    `arn` STRING COMMENT 'The 23-digit Acquirer Reference Number linking this notification to the original transaction and dispute case per card scheme standards.. Valid values are `^[0-9]{23}$`',
+    `body` STRING COMMENT 'The full text content of the notification message, including event details, action items, deadlines, and instructions.',
+    `channel` STRING COMMENT 'The communication channel through which the notification was delivered: email, API webhook, portal alert (in-app notification), SFTP file (batch file delivery), SMS, or fax.. Valid values are `email|api_webhook|portal_alert|sftp_file|sms|fax`',
+    `created_timestamp` TIMESTAMP COMMENT 'The date and time when this notification record was first created in the system. Format: yyyy-MM-ddTHH:mm:ss.SSSXXX.',
+    `delivery_status` STRING COMMENT 'Current delivery status of the notification: pending (queued for send), sent (transmitted to channel), delivered (confirmed receipt by recipient system), failed (transmission error), bounced (recipient address invalid), rejected (recipient system refused).. Valid values are `pending|sent|delivered|failed|bounced|rejected`',
+    `delivery_timestamp` TIMESTAMP COMMENT 'The date and time when the notification was confirmed delivered to the recipient system or mailbox. Null if not yet delivered. Format: yyyy-MM-ddTHH:mm:ss.SSSXXX.',
+    `dispute_amount` DECIMAL(18,2) COMMENT 'The monetary amount in dispute that is the subject of this notification. Expressed in the transaction currency.',
+    `dispute_currency_code` STRING COMMENT 'The three-letter ISO 4217 currency code for the dispute amount (e.g., USD, EUR, GBP).. Valid values are `^[A-Z]{3}$`',
+    `dispute_reason_code` STRING COMMENT 'The card scheme reason code for the dispute that triggered this notification (e.g., Visa reason code 10.4, Mastercard reason code 4853). Enables recipient to understand the dispute type.',
+    `event_type` STRING COMMENT 'The specific dispute lifecycle milestone that triggered this notification: chargeback received, representment deadline approaching, arbitration decision issued, financial adjustment posted, retrieval request received, or case closed.. Valid values are `chargeback_received|representment_deadline_approaching|arbitration_decision_issued|financial_adjustment_posted|retrieval_request_received|case_closed`',
+    `failure_reason` STRING COMMENT 'Detailed explanation of why the notification delivery failed, including error codes and system messages. Null if delivery was successful.',
+    `language_code` STRING COMMENT 'The two-letter ISO 639-1 language code in which the notification content was generated (e.g., en for English, es for Spanish, fr for French).. Valid values are `^[a-z]{2}$`',
+    `last_retry_timestamp` TIMESTAMP COMMENT 'The date and time of the most recent retry attempt. Null if no retries occurred. Format: yyyy-MM-ddTHH:mm:ss.SSSXXX.',
+    `notification_status` STRING COMMENT 'Overall lifecycle status of the notification: draft (being prepared), scheduled (queued for send), sent (transmitted), delivered (confirmed receipt), acknowledged (recipient confirmed), failed (delivery unsuccessful), cancelled (notification voided before send). [ENUM-REF-CANDIDATE: draft|scheduled|sent|delivered|acknowledged|failed|cancelled — 7 candidates stripped; promote to reference product]',
+    `priority` STRING COMMENT 'The urgency level of the notification: critical (immediate action required, deadline imminent), high (action required soon), normal (informational with action needed), low (informational only).. Valid values are `critical|high|normal|low`',
+    `recipient_email` STRING COMMENT 'Primary email address where the notification was sent. Used for email channel notifications.. Valid values are `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$`',
+    `recipient_name` STRING COMMENT 'The legal or business name of the notification recipient (merchant name, bank name, cardholder name, partner name).',
+    `recipient_reference_code` STRING COMMENT 'The identifier of the recipient entity (MID for merchant, institution ID for acquirer/issuer, customer ID for cardholder, partner ID for partner). Format varies by recipient type.',
+    `recipient_type` STRING COMMENT 'Classification of the notification recipient: merchant (the business being notified), acquirer (acquiring bank), cardholder (end consumer), issuer (issuing bank), partner (third-party service provider), or internal (internal operations team).. Valid values are `merchant|acquirer|cardholder|issuer|partner|internal`',
+    `reference_number` STRING COMMENT 'Externally-visible unique reference number for this notification, used for tracking and acknowledgment by recipients.. Valid values are `^[A-Z0-9]{8,20}$`',
+    `response_deadline_date` DATE COMMENT 'The date by which the recipient must respond to the dispute event (e.g., representment deadline, evidence submission deadline). Format: yyyy-MM-dd.',
+    `retry_count` STRING COMMENT 'The number of times the system attempted to resend this notification after initial delivery failure. Zero indicates successful first-attempt delivery.',
+    `scheduled_send_timestamp` TIMESTAMP COMMENT 'The date and time when the notification was originally scheduled to be sent. May differ from actual send_timestamp if delays occurred. Format: yyyy-MM-ddTHH:mm:ss.SSSXXX.',
+    `send_timestamp` TIMESTAMP COMMENT 'The date and time when the notification was sent from the system to the recipient channel. Format: yyyy-MM-ddTHH:mm:ss.SSSXXX.',
+    `sftp_file_name` STRING COMMENT 'The name of the notification file deposited on the SFTP server. Populated only for sftp_file channel notifications.',
+    `sftp_file_path` STRING COMMENT 'The full file path on the SFTP server where the notification file was deposited. Populated only for sftp_file channel notifications.',
+    `sla_deadline_timestamp` TIMESTAMP COMMENT 'The contractual or regulatory deadline by which this notification must be delivered to meet Service Level Agreement (SLA) obligations. Format: yyyy-MM-ddTHH:mm:ss.SSSXXX.',
+    `sla_met_flag` BOOLEAN COMMENT 'Boolean indicator of whether the notification was delivered within the SLA deadline. True if delivered on time, False if SLA was breached.',
+    `subject` STRING COMMENT 'The subject line or title of the notification message, summarizing the event and action required.',
+    `updated_timestamp` TIMESTAMP COMMENT 'The date and time when this notification record was last modified. Format: yyyy-MM-ddTHH:mm:ss.SSSXXX.',
+    `webhook_response_body` STRING COMMENT 'The response payload returned by the recipient webhook endpoint, used for troubleshooting and confirmation tracking. Null for non-webhook channels.',
+    `webhook_response_code` STRING COMMENT 'The HTTP response status code returned by the recipient webhook endpoint (e.g., 200 for success, 4xx for client error, 5xx for server error). Null for non-webhook channels.',
+    `webhook_url` STRING COMMENT 'The HTTPS endpoint URL where the API webhook notification was posted. Populated only for api_webhook channel notifications.',
+    CONSTRAINT pk_dispute_notification PRIMARY KEY(`dispute_notification_id`)
+) COMMENT 'Outbound notification record sent to merchants, acquirers, or cardholders at key dispute lifecycle milestones — chargeback received, representment deadline approaching, arbitration decision issued, financial adjustment posted. Captures notification ID, dispute case ID, recipient type, recipient reference, notification channel (email, API webhook, portal alert, SFTP file), notification event type, send timestamp, delivery status, and acknowledgment timestamp. Supports SLA-driven communication obligations.';
+
+CREATE OR REPLACE TABLE `payments_fintech_ecm`.`dispute`.`fee` (
+    `fee_id` BIGINT COMMENT 'Primary key for fee',
+    `card_scheme_id` BIGINT COMMENT 'Foreign key linking to reference.reference_card_scheme. Business justification: Fee assessment rules vary by card scheme; reference needed for correct fee calculation.',
+    `dispute_case_id` BIGINT COMMENT 'Reference to the parent dispute case record to which this fee is associated. Links the fee to the full dispute lifecycle including chargeback filings, representment, and arbitration.',
+    `employee_id` BIGINT COMMENT 'Entity that assessed or levied this fee. Identifies whether the fee originates from a card scheme (Visa, Mastercard), an acquiring bank, an issuing bank, the payment network, or is an internally generated processing charge.',
+    `gl_account_id` BIGINT COMMENT 'Foreign key linking to ledger.gl_account. Business justification: Dispute fee expense tracking: fees arising from disputes need a GL account for expense recognition and reporting.',
+    `rate_id` BIGINT COMMENT 'Foreign key linking to fx.fx_rate. Business justification: Dispute fee calculations may be converted; fee reporting needs the exact FX rate applied.',
+    `scheme_fee_schedule_id` BIGINT COMMENT 'Reference to the fee schedule or pricing configuration that determined the assessed fee amount. Links to the applicable scheme fee table or internal pricing rule used to calculate this charge.',
+    `amount` DECIMAL(18,2) COMMENT 'Gross monetary amount of the fee assessed in the fee currency. Represents the base charge before any waivers or adjustments. Stored with four decimal places to support multi-currency precision.',
+    `amount_usd` DECIMAL(18,2) COMMENT 'Fee amount converted to US Dollars (USD) using the FX rate applied at assessment date. Enables normalized cross-currency reporting and analytics across all dispute fee records.',
+    `arn` STRING COMMENT 'Acquirer Reference Number uniquely identifying the original transaction linked to the dispute that generated this fee. Enables end-to-end traceability from fee back to the originating payment transaction per card scheme rules.',
+    `assessing_entity_name` STRING COMMENT 'Human-readable name of the specific entity that assessed the fee (e.g., Visa Inc., Mastercard International, Chase Merchant Services). Complements assessed_by for reporting and reconciliation.',
+    `assessment_date` DATE COMMENT 'Calendar date on which the fee was formally assessed or levied by the assessing entity. Used as the primary business event date for billing period assignment and regulatory reporting.',
+    `assessment_timestamp` TIMESTAMP COMMENT 'Precise date and time (with timezone offset) when the fee was assessed. Provides sub-day precision for SLA tracking, real-time processing audit, and dispute deadline calculations.',
+    `billing_period` STRING COMMENT 'The billing cycle period (YYYY-MM format) to which this fee is attributed for invoicing and financial reporting. Aligns with monthly scheme billing cycles and ERP accounts payable periods.. Valid values are `^d{4}-(0[1-9]|1[0-2])$`',
+    `cost_center_code` STRING COMMENT 'Internal cost center code to which this dispute fee expense is allocated. Supports departmental P&L reporting and internal cost attribution for dispute operations.',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this fee record was first created in the Silver layer data product. Provides audit trail for data lineage and SOX compliance.',
+    `currency` STRING COMMENT 'ISO 4217 three-letter currency code in which the fee amount is denominated (e.g., USD, EUR, GBP). Required for multi-currency dispute processing across 200+ countries.. Valid values are `^[A-Z]{3}$`',
+    `dispute_fee_notes` STRING COMMENT 'Free-text notes or comments entered by dispute operations staff regarding this fee record. May include waiver justification details, scheme correspondence references, or escalation context.',
+    `dispute_stage` STRING COMMENT 'Stage of the dispute lifecycle at which this fee was assessed. Identifies whether the fee relates to a retrieval request, first chargeback, second chargeback, pre-arbitration, arbitration, or compliance filing.. Valid values are `retrieval_request|first_chargeback|second_chargeback|pre_arbitration|arbitration|compliance`',
+    `due_date` DATE COMMENT 'Contractual or scheme-mandated deadline by which the fee must be paid. Drives overdue detection, collections escalation, and SLA compliance monitoring.',
+    `fee_status` STRING COMMENT 'Current lifecycle status of the fee record. Tracks progression from initial assessment through invoicing, payment, waiver, or secondary dispute of the fee itself.. Valid values are `pending|assessed|invoiced|paid|waived|disputed`',
+    `fee_type` STRING COMMENT 'Classification of the fee assessed in connection with the dispute. Distinguishes scheme chargeback fees, arbitration filing fees, compliance assessment fines, retrieval request fees, pre-arbitration fees, and internal processing fees. [ENUM-REF-CANDIDATE: chargeback_fee|arbitration_fee|compliance_assessment|retrieval_request_fee|internal_processing_fee|pre_arbitration_fee|scheme_penalty|network_fine — promote to reference product]. Valid values are `chargeback_fee|arbitration_fee|compliance_assessment|retrieval_request_fee|internal_processing_fee|pre_arbitration_fee`',
+    `fx_rate_applied` DECIMAL(18,2) COMMENT 'The FX exchange rate used to convert the fee amount from the fee currency to USD at the time of assessment. Supports audit trail for currency conversion and DCC-related fee reconciliation.',
+    `invoice_reference` STRING COMMENT 'Reference number of the invoice or billing statement on which this fee appears. Links the fee record to the ERP accounts payable or accounts receivable invoice for payment tracking and reconciliation.',
+    `mid` STRING COMMENT 'Merchant Identification Number of the merchant associated with the disputed transaction that triggered this fee. Used for merchant-level fee reporting, MDR reconciliation, and chargeback ratio monitoring.',
+    `net_fee_amount` DECIMAL(18,2) COMMENT 'Final collectible fee amount after applying any waivers or adjustments (fee_amount minus waiver_amount). Represents the actual amount due for billing and GL posting.',
+    `payment_date` DATE COMMENT 'Date on which the fee was settled or paid. Populated when payment_status transitions to paid or partially_paid. Used for cash flow reporting and aging analysis.',
+    `payment_status` STRING COMMENT 'Current payment collection status of the net fee amount. Tracks whether the fee has been paid, remains outstanding, is overdue, or has been written off. Distinct from fee_status which tracks the assessment lifecycle.. Valid values are `unpaid|paid|partially_paid|overdue|written_off`',
+    `reference_number` STRING COMMENT 'Externally-known alphanumeric identifier for this fee record as assigned by the assessing entity (card scheme, acquirer, or internal billing system). Used for reconciliation and invoice matching.',
+    `regulatory_reporting_flag` BOOLEAN COMMENT 'Indicates whether this fee record must be included in regulatory or compliance reports (e.g., FinCEN, CFPB, or scheme compliance filings). Supports automated regulatory data aggregation.',
+    `scheme_reason_code` STRING COMMENT 'Card scheme-specific reason code associated with the chargeback or dispute event that triggered this fee (e.g., Visa reason code 10.4, Mastercard reason code 4853). Aligns with ISO 8583 and scheme rule classifications.',
+    `source_system` STRING COMMENT 'Operational system of record from which this fee record originated. Identifies whether the fee was generated by the Dispute and Chargeback Management System, ERP Oracle Financials, a card scheme network feed, or manual entry.. Valid values are `dispute_chargeback_mgmt|erp_oracle|scheme_network|manual_entry`',
+    `updated_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent update to this fee record in the Silver layer. Supports change data capture, incremental ETL processing, and audit trail requirements.',
+    `waiver_amount` DECIMAL(18,2) COMMENT 'Monetary amount waived from the original fee_amount. Supports partial waivers where only a portion of the assessed fee is forgiven. Zero if no waiver applied.',
+    `waiver_flag` BOOLEAN COMMENT 'Indicates whether this fee has been fully waived by the assessing entity. When True, the fee amount is not expected to be collected. Distinct from partial adjustments tracked in fee_waiver_amount.',
+    `waiver_reason` STRING COMMENT 'Reason code explaining why the fee was waived. Applicable only when waiver_flag is True. Supports audit and compliance reporting for fee waiver decisions.. Valid values are `goodwill|error_correction|first_occurrence|regulatory_mandate|contractual_agreement|other`',
+    CONSTRAINT pk_fee PRIMARY KEY(`fee_id`)
+) COMMENT 'Fee record for all charges assessed in connection with dispute processing — scheme chargeback fees, arbitration filing fees, compliance assessment fines, retrieval request fees, and internal processing fees. Captures fee ID, dispute case ID, fee type, fee amount, currency, fee assessed by (scheme, acquirer, internal), fee assessment date, billing period, invoice reference, payment status, and waiver flag. Distinct from dispute_financial_adjustment which tracks transaction-level debits/credits; this tracks fee-based charges.';
+
+CREATE OR REPLACE TABLE `payments_fintech_ecm`.`dispute`.`notification_template` (
+    `notification_template_id` BIGINT COMMENT 'Primary key for notification_template',
+    `base_notification_template_id` BIGINT COMMENT 'Self-referencing FK on notification_template (base_notification_template_id)',
+    `body` STRING COMMENT 'Main message body of the notification; may contain placeholders for dynamic data.',
+    `notification_template_code` STRING COMMENT 'Business identifier code used to reference the template in integrations.',
+    `compliance_category` STRING COMMENT 'Classification of the template for compliance and regulatory reporting purposes.',
+    `created_timestamp` TIMESTAMP COMMENT 'Date and time when the template record was first created.',
+    `expiration_date` DATE COMMENT 'Date after which the template should no longer be used.',
+    `is_html` BOOLEAN COMMENT 'True if the body content is HTML formatted; otherwise false.',
+    `language` STRING COMMENT 'ISO 639‑1 language code indicating the language of the template.',
+    `notification_template_name` STRING COMMENT 'Human‑readable name of the notification template.',
+    `priority` STRING COMMENT 'Business priority for sending the notification.',
+    `schedule_timestamp` TIMESTAMP COMMENT 'Planned date and time for sending the notification when using scheduled delivery.',
+    `sender_email` STRING COMMENT 'Email address used as the sender for email notifications.',
+    `sender_name` STRING COMMENT 'Name shown as the sender of the notification.',
+    `notification_template_status` STRING COMMENT 'Current lifecycle state of the template.',
+    `subject` STRING COMMENT 'Subject text used for email or push notifications.',
+    `notification_template_type` STRING COMMENT 'Channel or medium for which the template is designed (e.g., email, SMS, push notification).',
+    `updated_by` STRING COMMENT 'Identifier of the user or system that performed the most recent update.',
+    `updated_timestamp` TIMESTAMP COMMENT 'Date and time of the most recent modification to the template.',
+    `version_number` STRING COMMENT 'Incremental version of the template for change management.',
+    `created_by` STRING COMMENT 'Identifier of the user or system that created the template record.',
+    CONSTRAINT pk_notification_template PRIMARY KEY(`notification_template_id`)
+) COMMENT 'Master reference table for notification_template. Referenced by template_id.';
+
+-- ========= FOREIGN KEYS =========
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ADD CONSTRAINT `fk_dispute_chargeback_dispute_case_id` FOREIGN KEY (`dispute_case_id`) REFERENCES `payments_fintech_ecm`.`dispute`.`dispute_case`(`dispute_case_id`);
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ADD CONSTRAINT `fk_dispute_chargeback_dispute_dispute_case_id` FOREIGN KEY (`dispute_dispute_case_id`) REFERENCES `payments_fintech_ecm`.`dispute`.`dispute_case`(`dispute_case_id`);
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ADD CONSTRAINT `fk_dispute_retrieval_request_chargeback_id` FOREIGN KEY (`chargeback_id`) REFERENCES `payments_fintech_ecm`.`dispute`.`chargeback`(`chargeback_id`);
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ADD CONSTRAINT `fk_dispute_representment_chargeback_id` FOREIGN KEY (`chargeback_id`) REFERENCES `payments_fintech_ecm`.`dispute`.`chargeback`(`chargeback_id`);
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ADD CONSTRAINT `fk_dispute_representment_dispute_case_id` FOREIGN KEY (`dispute_case_id`) REFERENCES `payments_fintech_ecm`.`dispute`.`dispute_case`(`dispute_case_id`);
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ADD CONSTRAINT `fk_dispute_representment_dispute_dispute_case_id` FOREIGN KEY (`dispute_dispute_case_id`) REFERENCES `payments_fintech_ecm`.`dispute`.`dispute_case`(`dispute_case_id`);
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ADD CONSTRAINT `fk_dispute_representment_financial_adjustment_id` FOREIGN KEY (`financial_adjustment_id`) REFERENCES `payments_fintech_ecm`.`dispute`.`financial_adjustment`(`financial_adjustment_id`);
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ADD CONSTRAINT `fk_dispute_arbitration_case_chargeback_id` FOREIGN KEY (`chargeback_id`) REFERENCES `payments_fintech_ecm`.`dispute`.`chargeback`(`chargeback_id`);
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ADD CONSTRAINT `fk_dispute_evidence_package_dispute_case_id` FOREIGN KEY (`dispute_case_id`) REFERENCES `payments_fintech_ecm`.`dispute`.`dispute_case`(`dispute_case_id`);
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ADD CONSTRAINT `fk_dispute_evidence_package_representment_id` FOREIGN KEY (`representment_id`) REFERENCES `payments_fintech_ecm`.`dispute`.`representment`(`representment_id`);
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ADD CONSTRAINT `fk_dispute_financial_adjustment_dispute_case_id` FOREIGN KEY (`dispute_case_id`) REFERENCES `payments_fintech_ecm`.`dispute`.`dispute_case`(`dispute_case_id`);
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ADD CONSTRAINT `fk_dispute_financial_adjustment_reversal_reference_financial_adjustment_id` FOREIGN KEY (`reversal_reference_financial_adjustment_id`) REFERENCES `payments_fintech_ecm`.`dispute`.`financial_adjustment`(`financial_adjustment_id`);
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ADD CONSTRAINT `fk_dispute_dispute_lifecycle_event_dispute_case_id` FOREIGN KEY (`dispute_case_id`) REFERENCES `payments_fintech_ecm`.`dispute`.`dispute_case`(`dispute_case_id`);
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ADD CONSTRAINT `fk_dispute_dispute_lifecycle_event_evidence_package_id` FOREIGN KEY (`evidence_package_id`) REFERENCES `payments_fintech_ecm`.`dispute`.`evidence_package`(`evidence_package_id`);
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ADD CONSTRAINT `fk_dispute_pre_arbitration_chargeback_id` FOREIGN KEY (`chargeback_id`) REFERENCES `payments_fintech_ecm`.`dispute`.`chargeback`(`chargeback_id`);
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ADD CONSTRAINT `fk_dispute_pre_arbitration_representment_id` FOREIGN KEY (`representment_id`) REFERENCES `payments_fintech_ecm`.`dispute`.`representment`(`representment_id`);
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ADD CONSTRAINT `fk_dispute_dispute_compliance_case_dispute_case_id` FOREIGN KEY (`dispute_case_id`) REFERENCES `payments_fintech_ecm`.`dispute`.`dispute_case`(`dispute_case_id`);
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ADD CONSTRAINT `fk_dispute_dispute_compliance_case_dispute_dispute_case_id` FOREIGN KEY (`dispute_dispute_case_id`) REFERENCES `payments_fintech_ecm`.`dispute`.`dispute_case`(`dispute_case_id`);
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ADD CONSTRAINT `fk_dispute_claim_chargeback_case_chargeback_id` FOREIGN KEY (`chargeback_case_chargeback_id`) REFERENCES `payments_fintech_ecm`.`dispute`.`chargeback`(`chargeback_id`);
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ADD CONSTRAINT `fk_dispute_claim_chargeback_id` FOREIGN KEY (`chargeback_id`) REFERENCES `payments_fintech_ecm`.`dispute`.`chargeback`(`chargeback_id`);
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ADD CONSTRAINT `fk_dispute_merchant_response_dispute_case_id` FOREIGN KEY (`dispute_case_id`) REFERENCES `payments_fintech_ecm`.`dispute`.`dispute_case`(`dispute_case_id`);
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ADD CONSTRAINT `fk_dispute_merchant_response_representment_id` FOREIGN KEY (`representment_id`) REFERENCES `payments_fintech_ecm`.`dispute`.`representment`(`representment_id`);
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ADD CONSTRAINT `fk_dispute_dispute_notification_dispute_case_id` FOREIGN KEY (`dispute_case_id`) REFERENCES `payments_fintech_ecm`.`dispute`.`dispute_case`(`dispute_case_id`);
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ADD CONSTRAINT `fk_dispute_dispute_notification_notification_template_id` FOREIGN KEY (`notification_template_id`) REFERENCES `payments_fintech_ecm`.`dispute`.`notification_template`(`notification_template_id`);
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ADD CONSTRAINT `fk_dispute_fee_dispute_case_id` FOREIGN KEY (`dispute_case_id`) REFERENCES `payments_fintech_ecm`.`dispute`.`dispute_case`(`dispute_case_id`);
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`notification_template` ADD CONSTRAINT `fk_dispute_notification_template_base_notification_template_id` FOREIGN KEY (`base_notification_template_id`) REFERENCES `payments_fintech_ecm`.`dispute`.`notification_template`(`notification_template_id`);
+
+-- ========= TAGS =========
+ALTER SCHEMA `payments_fintech_ecm`.`dispute` SET TAGS ('dbx_division' = 'business');
+ALTER SCHEMA `payments_fintech_ecm`.`dispute` SET TAGS ('dbx_domain' = 'dispute');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` SET TAGS ('dbx_subdomain' = 'dispute_processing');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `chargeback_id` SET TAGS ('dbx_business_glossary_term' = 'Chargeback ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `authorization_id` SET TAGS ('dbx_business_glossary_term' = 'Authorization Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `capture_id` SET TAGS ('dbx_business_glossary_term' = 'Capture Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `chargeback_reason_code_id` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Reason Code ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `cross_border_payment_id` SET TAGS ('dbx_business_glossary_term' = 'Cross Border Payment Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `dispute_case_id` SET TAGS ('dbx_business_glossary_term' = 'Dispute ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `dispute_dispute_case_id` SET TAGS ('dbx_business_glossary_term' = 'Dispute ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `ecosystem_partner_id` SET TAGS ('dbx_business_glossary_term' = 'Issuing Bank ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `journal_entry_id` SET TAGS ('dbx_business_glossary_term' = 'General Ledger (GL) Entry ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `merchant_id` SET TAGS ('dbx_business_glossary_term' = 'Merchant ID (MID)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `payment_product_id` SET TAGS ('dbx_business_glossary_term' = 'Payment Product Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `payment_txn_id` SET TAGS ('dbx_business_glossary_term' = 'Payment Txn Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `pos_terminal_id` SET TAGS ('dbx_business_glossary_term' = 'Pos Terminal Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `rate_id` SET TAGS ('dbx_business_glossary_term' = 'Fx Rate Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `response_id` SET TAGS ('dbx_business_glossary_term' = 'Gateway Response Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `settlement_id` SET TAGS ('dbx_business_glossary_term' = 'Settlement Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `transaction_id` SET TAGS ('dbx_business_glossary_term' = 'Transaction ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `wallet_transaction_id` SET TAGS ('dbx_business_glossary_term' = 'Wallet Transaction Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `acquirer_reference` SET TAGS ('dbx_business_glossary_term' = 'Acquirer Internal Reference');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `adjustment_amount` SET TAGS ('dbx_business_glossary_term' = 'Financial Adjustment Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `adjustment_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `adjustment_amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `amount` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `arbitration_deadline` SET TAGS ('dbx_business_glossary_term' = 'Arbitration Filing Deadline');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `arbitration_filing_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Arbitration Filing Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `arn` SET TAGS ('dbx_business_glossary_term' = 'Acquirer Reference Number (ARN)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `card_scheme` SET TAGS ('dbx_business_glossary_term' = 'Card Scheme');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `card_scheme` SET TAGS ('dbx_value_regex' = 'VISA|MASTERCARD|AMEX|DISCOVER|UNIONPAY|OTHER');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `cardholder_dispute_reason` SET TAGS ('dbx_business_glossary_term' = 'Cardholder Dispute Reason');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `case_number` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Case Number');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `chargeback_status` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Status');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `currency` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Currency Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `currency` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `cycle_stage` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Cycle Stage');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `cycle_stage` SET TAGS ('dbx_value_regex' = 'FIRST_CHARGEBACK|SECOND_CHARGEBACK|PRE_ARBITRATION|ARBITRATION|COMPLIANCE');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `deadline_met` SET TAGS ('dbx_business_glossary_term' = 'Response Deadline Met Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `evidence_package_ref` SET TAGS ('dbx_business_glossary_term' = 'Evidence Package Reference');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `filing_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Filing Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `fraud_indicator` SET TAGS ('dbx_business_glossary_term' = 'Fraud-Related Chargeback Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `is_partial_chargeback` SET TAGS ('dbx_business_glossary_term' = 'Partial Chargeback Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `liability_party` SET TAGS ('dbx_business_glossary_term' = 'Liability Party');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `liability_party` SET TAGS ('dbx_value_regex' = 'MERCHANT|ISSUER|ACQUIRER|SCHEME');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `original_transaction_amount` SET TAGS ('dbx_business_glossary_term' = 'Original Transaction Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `original_transaction_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `original_transaction_amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `original_transaction_currency` SET TAGS ('dbx_business_glossary_term' = 'Original Transaction Currency Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `original_transaction_currency` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `ratio_flag` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Ratio Monitoring Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `representment_deadline` SET TAGS ('dbx_business_glossary_term' = 'Representment Deadline');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `representment_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Representment Submission Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `resolution_outcome` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Resolution Outcome');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `resolution_outcome` SET TAGS ('dbx_value_regex' = 'MERCHANT_WON|ISSUER_WON|SPLIT_LIABILITY|WITHDRAWN|EXPIRED');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `resolution_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Resolution Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `response_deadline` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Response Deadline');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `response_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Response Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `scheme_case_reference` SET TAGS ('dbx_business_glossary_term' = 'Card Scheme Case ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `scheme_fee_amount` SET TAGS ('dbx_business_glossary_term' = 'Card Scheme Chargeback Fee Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `scheme_fee_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `scheme_fee_amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `sla_breach` SET TAGS ('dbx_business_glossary_term' = 'Service Level Agreement (SLA) Breach Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `source_system` SET TAGS ('dbx_business_glossary_term' = 'Source System');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `transaction_date` SET TAGS ('dbx_business_glossary_term' = 'Original Transaction Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`chargeback` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Last Updated Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` SET TAGS ('dbx_data_type' = 'transactional_data');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` SET TAGS ('dbx_subdomain' = 'dispute_processing');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `retrieval_request_id` SET TAGS ('dbx_business_glossary_term' = 'Retrieval Request ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `assigned_analyst_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Assigned Analyst ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `card_scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Reference Card Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `chargeback_id` SET TAGS ('dbx_business_glossary_term' = 'Chargeback ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Assigned Analyst ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `pos_terminal_id` SET TAGS ('dbx_business_glossary_term' = 'Pos Terminal Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `acquirer_code` SET TAGS ('dbx_business_glossary_term' = 'Acquiring Bank ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `arn` SET TAGS ('dbx_business_glossary_term' = 'Acquirer Reference Number (ARN)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `authorization_code` SET TAGS ('dbx_business_glossary_term' = 'Authorization Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `billing_amount` SET TAGS ('dbx_business_glossary_term' = 'Cardholder Billing Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `billing_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `billing_amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `billing_currency` SET TAGS ('dbx_business_glossary_term' = 'Cardholder Billing Currency Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `billing_currency` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `bin` SET TAGS ('dbx_business_glossary_term' = 'Bank Identification Number (BIN)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `bin` SET TAGS ('dbx_value_regex' = '^[0-9]{6,8}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `cardholder_dispute_category` SET TAGS ('dbx_business_glossary_term' = 'Cardholder Dispute Category');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `cardholder_dispute_category` SET TAGS ('dbx_value_regex' = 'fraud|not_recognized|processing_error|consumer_dispute|authorization');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `days_to_fulfill` SET TAGS ('dbx_business_glossary_term' = 'Days to Fulfill');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `document_delivery_method` SET TAGS ('dbx_business_glossary_term' = 'Document Delivery Method');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `document_delivery_method` SET TAGS ('dbx_value_regex' = 'electronic|fax|mail|scheme_portal');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `document_types_requested` SET TAGS ('dbx_business_glossary_term' = 'Requested Document Types');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `documents_provided` SET TAGS ('dbx_business_glossary_term' = 'Documents Provided Indicator');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `escalated_to_chargeback` SET TAGS ('dbx_business_glossary_term' = 'Escalated to Chargeback Indicator');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `escalation_date` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Escalation Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `fraud_suspected` SET TAGS ('dbx_business_glossary_term' = 'Fraud Suspected Indicator');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `fulfillment_date` SET TAGS ('dbx_business_glossary_term' = 'Fulfillment Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `fulfillment_deadline` SET TAGS ('dbx_business_glossary_term' = 'Fulfillment Deadline Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `fulfillment_status` SET TAGS ('dbx_business_glossary_term' = 'Fulfillment Status');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `fulfillment_status` SET TAGS ('dbx_value_regex' = 'pending|fulfilled|partially_fulfilled|overdue|escalated_to_chargeback');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `issuer_code` SET TAGS ('dbx_business_glossary_term' = 'Issuing Bank ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `mcc` SET TAGS ('dbx_business_glossary_term' = 'Merchant Category Code (MCC)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `mcc` SET TAGS ('dbx_value_regex' = '^[0-9]{4}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `merchant_country` SET TAGS ('dbx_business_glossary_term' = 'Merchant Country Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `merchant_country` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `merchant_name` SET TAGS ('dbx_business_glossary_term' = 'Merchant Name');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `mid` SET TAGS ('dbx_business_glossary_term' = 'Merchant Identification Number (MID)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `pan_last_four` SET TAGS ('dbx_business_glossary_term' = 'Primary Account Number (PAN) Last Four Digits');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `pan_last_four` SET TAGS ('dbx_value_regex' = '^[0-9]{4}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `pan_last_four` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `pan_last_four` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `pos_entry_mode` SET TAGS ('dbx_business_glossary_term' = 'Point of Sale (POS) Entry Mode');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `pos_entry_mode` SET TAGS ('dbx_value_regex' = 'chip|swipe|contactless|manual_key_entry|ecommerce|recurring');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `reason_code` SET TAGS ('dbx_business_glossary_term' = 'Retrieval Request Reason Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `reason_description` SET TAGS ('dbx_business_glossary_term' = 'Retrieval Request Reason Description');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `regulatory_reporting_flag` SET TAGS ('dbx_business_glossary_term' = 'Regulatory Reporting Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `request_date` SET TAGS ('dbx_business_glossary_term' = 'Retrieval Request Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `response_notes` SET TAGS ('dbx_business_glossary_term' = 'Fulfillment Response Notes');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `retrieval_request_number` SET TAGS ('dbx_business_glossary_term' = 'Retrieval Request Number');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `scheme_case_number` SET TAGS ('dbx_business_glossary_term' = 'Card Scheme Case Number');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `sla_breach` SET TAGS ('dbx_business_glossary_term' = 'Service Level Agreement (SLA) Breach Indicator');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `source_system` SET TAGS ('dbx_business_glossary_term' = 'Source System');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `tid` SET TAGS ('dbx_business_glossary_term' = 'Terminal Identification Number (TID)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `transaction_amount` SET TAGS ('dbx_business_glossary_term' = 'Original Transaction Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `transaction_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `transaction_amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `transaction_currency` SET TAGS ('dbx_business_glossary_term' = 'Transaction Currency Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `transaction_currency` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `transaction_date` SET TAGS ('dbx_business_glossary_term' = 'Original Transaction Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`retrieval_request` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Updated Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` SET TAGS ('dbx_data_type' = 'transactional_data');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` SET TAGS ('dbx_subdomain' = 'dispute_processing');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `representment_id` SET TAGS ('dbx_business_glossary_term' = 'Representment ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `card_scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Reference Card Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `chargeback_id` SET TAGS ('dbx_business_glossary_term' = 'Chargeback ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `dispute_case_id` SET TAGS ('dbx_business_glossary_term' = 'Dispute ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `dispute_dispute_case_id` SET TAGS ('dbx_business_glossary_term' = 'Dispute ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `ecosystem_partner_id` SET TAGS ('dbx_business_glossary_term' = 'Acquiring Bank ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `financial_adjustment_id` SET TAGS ('dbx_business_glossary_term' = 'Financial Adjustment ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `mcc_id` SET TAGS ('dbx_business_glossary_term' = 'Mcc Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `merchant_id` SET TAGS ('dbx_business_glossary_term' = 'Merchant ID (MID)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `payment_product_id` SET TAGS ('dbx_business_glossary_term' = 'Payment Product Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `pos_terminal_id` SET TAGS ('dbx_business_glossary_term' = 'Pos Terminal Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `response_id` SET TAGS ('dbx_business_glossary_term' = 'Gateway Response Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `amount` SET TAGS ('dbx_business_glossary_term' = 'Representment Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `arn` SET TAGS ('dbx_business_glossary_term' = 'Acquirer Reference Number (ARN)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `arn` SET TAGS ('dbx_value_regex' = '^[0-9]{23}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `assigned_analyst` SET TAGS ('dbx_business_glossary_term' = 'Assigned Dispute Analyst');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `chargeback_amount` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `chargeback_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `chargeback_amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `chargeback_reason_code` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Reason Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `currency` SET TAGS ('dbx_business_glossary_term' = 'Representment Currency Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `currency` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `days_to_deadline` SET TAGS ('dbx_business_glossary_term' = 'Days Remaining to Deadline');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `deadline_compliant` SET TAGS ('dbx_business_glossary_term' = 'Deadline Compliance Status');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `dispute_category` SET TAGS ('dbx_business_glossary_term' = 'Dispute Category');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `dispute_category` SET TAGS ('dbx_value_regex' = 'fraud|authorization|processing_error|consumer_dispute|compliance');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `evidence_package_reference` SET TAGS ('dbx_business_glossary_term' = 'Evidence Package Reference');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `issuing_bank_bin` SET TAGS ('dbx_business_glossary_term' = 'Issuing Bank Identification Number (BIN)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `issuing_bank_bin` SET TAGS ('dbx_value_regex' = '^[0-9]{6,8}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `lifecycle_status` SET TAGS ('dbx_business_glossary_term' = 'Representment Lifecycle Status');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Representment Case Notes');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `outcome_date` SET TAGS ('dbx_business_glossary_term' = 'Outcome Decision Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `outcome_decision` SET TAGS ('dbx_business_glossary_term' = 'Representment Outcome Decision');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `outcome_decision` SET TAGS ('dbx_value_regex' = 'accepted|rejected|pre_arbitration|arbitration|pending');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `pre_arbitration_deadline` SET TAGS ('dbx_business_glossary_term' = 'Pre-Arbitration Filing Deadline');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `pre_arbitration_eligible` SET TAGS ('dbx_business_glossary_term' = 'Pre-Arbitration Escalation Eligibility');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `pre_arbitration_filed` SET TAGS ('dbx_business_glossary_term' = 'Pre-Arbitration Filed Indicator');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `reason_code` SET TAGS ('dbx_business_glossary_term' = 'Representment Reason Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `rebuttal_narrative` SET TAGS ('dbx_business_glossary_term' = 'Rebuttal Narrative');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `recovery_amount` SET TAGS ('dbx_business_glossary_term' = 'Recovered Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `recovery_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `recovery_amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `reference` SET TAGS ('dbx_business_glossary_term' = 'Representment Reference Number');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `representment_type` SET TAGS ('dbx_business_glossary_term' = 'Representment Type');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `representment_type` SET TAGS ('dbx_value_regex' = 'first_chargeback|second_chargeback|pre_arbitration|arbitration');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `response_deadline` SET TAGS ('dbx_business_glossary_term' = 'Scheme-Mandated Response Deadline');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `scheme_case_number` SET TAGS ('dbx_business_glossary_term' = 'Card Scheme Case Number');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `scheme_fee_amount` SET TAGS ('dbx_business_glossary_term' = 'Card Scheme Dispute Fee Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `scheme_fee_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `scheme_fee_amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `submission_channel` SET TAGS ('dbx_business_glossary_term' = 'Representment Submission Channel');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `submission_channel` SET TAGS ('dbx_value_regex' = 'portal|api|fax|mail|edi');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `submission_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Submission Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `submission_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Representment Submission Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `transaction_amount` SET TAGS ('dbx_business_glossary_term' = 'Original Transaction Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `transaction_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `transaction_amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `transaction_currency` SET TAGS ('dbx_business_glossary_term' = 'Original Transaction Currency Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `transaction_currency` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `transaction_date` SET TAGS ('dbx_business_glossary_term' = 'Original Transaction Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`representment` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Last Updated Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` SET TAGS ('dbx_data_type' = 'transactional_data');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` SET TAGS ('dbx_subdomain' = 'dispute_processing');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `arbitration_case_id` SET TAGS ('dbx_business_glossary_term' = 'Arbitration Case ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `assigned_analyst_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Assigned Dispute Analyst ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `card_scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Reference Card Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `chargeback_id` SET TAGS ('dbx_business_glossary_term' = 'Chargeback ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `ecosystem_partner_id` SET TAGS ('dbx_business_glossary_term' = 'Acquiring Bank ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Assigned Dispute Analyst ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `merchant_id` SET TAGS ('dbx_business_glossary_term' = 'Merchant ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `payment_product_id` SET TAGS ('dbx_business_glossary_term' = 'Payment Product Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `transaction_id` SET TAGS ('dbx_business_glossary_term' = 'Transaction ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `arbitration_decision` SET TAGS ('dbx_business_glossary_term' = 'Arbitration Decision Outcome');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `arbitration_decision` SET TAGS ('dbx_value_regex' = 'upheld_for_filer|upheld_for_respondent|split_liability|withdrawn|no_decision');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `arn` SET TAGS ('dbx_business_glossary_term' = 'Acquirer Reference Number (ARN)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `arn` SET TAGS ('dbx_value_regex' = '^[0-9]{23}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `case_status` SET TAGS ('dbx_business_glossary_term' = 'Arbitration Case Status');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `case_status` SET TAGS ('dbx_value_regex' = 'filed|pending_response|under_review|decided|closed|withdrawn');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `closure_date` SET TAGS ('dbx_business_glossary_term' = 'Case Closure Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `compliance_case_flag` SET TAGS ('dbx_business_glossary_term' = 'Compliance Case Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `compliance_violation_type` SET TAGS ('dbx_business_glossary_term' = 'Compliance Violation Type');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `decision_date` SET TAGS ('dbx_business_glossary_term' = 'Arbitration Decision Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `decision_rationale` SET TAGS ('dbx_business_glossary_term' = 'Arbitration Decision Rationale');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `dispute_amount` SET TAGS ('dbx_business_glossary_term' = 'Dispute Transaction Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `dispute_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `dispute_amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `dispute_category` SET TAGS ('dbx_business_glossary_term' = 'Dispute Category');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `dispute_category` SET TAGS ('dbx_value_regex' = 'fraud|authorization|processing_error|consumer_dispute|compliance');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `dispute_currency_code` SET TAGS ('dbx_business_glossary_term' = 'Dispute Currency Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `dispute_currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `escalation_cycle_count` SET TAGS ('dbx_business_glossary_term' = 'Dispute Escalation Cycle Count');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `evidence_package_submitted` SET TAGS ('dbx_business_glossary_term' = 'Evidence Package Submitted Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `evidence_submission_date` SET TAGS ('dbx_business_glossary_term' = 'Evidence Submission Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `filing_date` SET TAGS ('dbx_business_glossary_term' = 'Arbitration Filing Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `filing_party` SET TAGS ('dbx_business_glossary_term' = 'Arbitration Filing Party');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `filing_party` SET TAGS ('dbx_value_regex' = 'issuer|acquirer');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `filing_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Arbitration Filing Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `gl_adjustment_date` SET TAGS ('dbx_business_glossary_term' = 'General Ledger (GL) Adjustment Posting Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `gl_adjustment_posted` SET TAGS ('dbx_business_glossary_term' = 'General Ledger (GL) Adjustment Posted Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `hearing_date` SET TAGS ('dbx_business_glossary_term' = 'Arbitration Hearing Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `internal_case_notes` SET TAGS ('dbx_business_glossary_term' = 'Internal Arbitration Case Notes');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `issuer_bin` SET TAGS ('dbx_business_glossary_term' = 'Issuer Bank Identification Number (BIN)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `issuer_bin` SET TAGS ('dbx_value_regex' = '^[0-9]{6,8}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `liability_amount` SET TAGS ('dbx_business_glossary_term' = 'Financial Liability Assignment Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `liability_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `liability_amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `liability_currency_code` SET TAGS ('dbx_business_glossary_term' = 'Liability Currency Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `liability_currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `liable_party` SET TAGS ('dbx_business_glossary_term' = 'Liable Party');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `liable_party` SET TAGS ('dbx_value_regex' = 'issuer|acquirer|merchant|shared|undetermined');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `mid` SET TAGS ('dbx_business_glossary_term' = 'Merchant Identification Number (MID)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `original_transaction_date` SET TAGS ('dbx_business_glossary_term' = 'Original Transaction Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `pre_arbitration_cycle_completed` SET TAGS ('dbx_business_glossary_term' = 'Pre-Arbitration Cycle Completed Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `reason_code` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Reason Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `response_deadline` SET TAGS ('dbx_business_glossary_term' = 'Scheme-Mandated Response Deadline');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `scheme_arbitration_fee_amount` SET TAGS ('dbx_business_glossary_term' = 'Card Scheme Arbitration Fee Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `scheme_arbitration_fee_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `scheme_arbitration_fee_amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `scheme_case_number` SET TAGS ('dbx_business_glossary_term' = 'Card Scheme Arbitration Case Number');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `scheme_fee_currency_code` SET TAGS ('dbx_business_glossary_term' = 'Scheme Fee Currency Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `scheme_fee_currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`arbitration_case` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Last Updated Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` SET TAGS ('dbx_subdomain' = 'dispute_processing');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `dispute_case_id` SET TAGS ('dbx_business_glossary_term' = 'Dispute Case ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `account_holder_id` SET TAGS ('dbx_business_glossary_term' = 'Cardholder ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `analyst_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Assigned Analyst ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `authorization_id` SET TAGS ('dbx_business_glossary_term' = 'Authorization Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `capture_id` SET TAGS ('dbx_business_glossary_term' = 'Capture Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `card_scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Reference Card Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `cardholder_profile_id` SET TAGS ('dbx_business_glossary_term' = 'Cardholder ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `compliance_aml_screening_result_id` SET TAGS ('dbx_business_glossary_term' = 'Compliance Aml Screening Result Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `compliance_kyc_verification_id` SET TAGS ('dbx_business_glossary_term' = 'Compliance Kyc Verification Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `cross_border_payment_id` SET TAGS ('dbx_business_glossary_term' = 'Cross Border Payment Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `currency_id` SET TAGS ('dbx_business_glossary_term' = 'Currency Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `digital_wallet_id` SET TAGS ('dbx_business_glossary_term' = 'Wallet Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Assigned Analyst ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `gl_account_id` SET TAGS ('dbx_business_glossary_term' = 'Gl Account Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `mcc_id` SET TAGS ('dbx_business_glossary_term' = 'Mcc Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `merchant_id` SET TAGS ('dbx_business_glossary_term' = 'Merchant ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `payment_product_id` SET TAGS ('dbx_business_glossary_term' = 'Payment Product Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `payment_txn_id` SET TAGS ('dbx_business_glossary_term' = 'Payment Txn Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `regulatory_obligation_id` SET TAGS ('dbx_business_glossary_term' = 'Regulatory Obligation Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `request_id` SET TAGS ('dbx_business_glossary_term' = 'Gateway Request Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `transaction_id` SET TAGS ('dbx_business_glossary_term' = 'Transaction ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `arbitration_filing_date` SET TAGS ('dbx_business_glossary_term' = 'Arbitration Filing Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `arn` SET TAGS ('dbx_business_glossary_term' = 'Acquirer Reference Number (ARN)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `arn` SET TAGS ('dbx_value_regex' = '^[0-9]{23}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `case_number` SET TAGS ('dbx_business_glossary_term' = 'Dispute Case Number');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `case_number` SET TAGS ('dbx_value_regex' = '^DSP-[0-9]{4}-[0-9]{8}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `case_status` SET TAGS ('dbx_business_glossary_term' = 'Dispute Case Status');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `case_status` SET TAGS ('dbx_value_regex' = 'open|pending_response|under_review|escalated|closed|withdrawn');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `chargeback_filing_date` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Filing Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `chargeback_reason_code` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Reason Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `close_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Case Close Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `dispute_amount` SET TAGS ('dbx_business_glossary_term' = 'Dispute Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `dispute_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `dispute_amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `dispute_channel` SET TAGS ('dbx_business_glossary_term' = 'Dispute Initiation Channel');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `dispute_channel` SET TAGS ('dbx_value_regex' = 'online|phone|branch|mobile_app|scheme_portal');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `dispute_type` SET TAGS ('dbx_business_glossary_term' = 'Dispute Type');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `dispute_type` SET TAGS ('dbx_value_regex' = 'fraud|authorization|processing_error|consumer_dispute|compliance');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `evidence_submitted_flag` SET TAGS ('dbx_business_glossary_term' = 'Evidence Submitted Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `interchange_fee_amount` SET TAGS ('dbx_business_glossary_term' = 'Interchange Reimbursement Fee (IRF) Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `interchange_fee_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `interchange_fee_amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `is_3ds_authenticated` SET TAGS ('dbx_business_glossary_term' = '3-D Secure (3DS) Authentication Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `is_fraud_confirmed` SET TAGS ('dbx_business_glossary_term' = 'Fraud Confirmed Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `issuing_bank_bin` SET TAGS ('dbx_business_glossary_term' = 'Issuing Bank BIN (Bank Identification Number)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `issuing_bank_bin` SET TAGS ('dbx_value_regex' = '^[0-9]{6,8}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `last_updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Last Updated Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `liability_party` SET TAGS ('dbx_business_glossary_term' = 'Liability Party');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `liability_party` SET TAGS ('dbx_value_regex' = 'issuer|acquirer|merchant|scheme|undetermined');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `lifecycle_stage` SET TAGS ('dbx_business_glossary_term' = 'Dispute Lifecycle Stage');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `lifecycle_stage` SET TAGS ('dbx_value_regex' = 'retrieval_request|chargeback|representment|pre_arbitration|arbitration|closed');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `mid` SET TAGS ('dbx_business_glossary_term' = 'Merchant Identification Number (MID)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `mid` SET TAGS ('dbx_value_regex' = '^[0-9A-Z]{15}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Case Notes');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `open_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Case Open Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `original_transaction_amount` SET TAGS ('dbx_business_glossary_term' = 'Original Transaction Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `original_transaction_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `original_transaction_amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `original_transaction_currency_code` SET TAGS ('dbx_business_glossary_term' = 'Original Transaction Currency Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `original_transaction_currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `original_transaction_date` SET TAGS ('dbx_business_glossary_term' = 'Original Transaction Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `priority_level` SET TAGS ('dbx_business_glossary_term' = 'Case Priority Level');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `priority_level` SET TAGS ('dbx_value_regex' = 'critical|high|medium|low');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `regulatory_reporting_flag` SET TAGS ('dbx_business_glossary_term' = 'Regulatory Reporting Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `representment_date` SET TAGS ('dbx_business_glossary_term' = 'Representment Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `resolution_outcome` SET TAGS ('dbx_business_glossary_term' = 'Dispute Resolution Outcome');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `resolution_outcome` SET TAGS ('dbx_value_regex' = 'won|lost|settled|withdrawn|write_off|partial_recovery');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `response_due_date` SET TAGS ('dbx_business_glossary_term' = 'Response Due Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `retrieval_request_number` SET TAGS ('dbx_business_glossary_term' = 'Retrieval Request Number');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `sar_filed_flag` SET TAGS ('dbx_business_glossary_term' = 'Suspicious Activity Report (SAR) Filed Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `scheme_case_reference` SET TAGS ('dbx_business_glossary_term' = 'Card Scheme Case Reference Number');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `settlement_adjustment_amount` SET TAGS ('dbx_business_glossary_term' = 'Settlement Adjustment Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `settlement_adjustment_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_case` ALTER COLUMN `settlement_adjustment_amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` SET TAGS ('dbx_subdomain' = 'dispute_processing');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `evidence_package_id` SET TAGS ('dbx_business_glossary_term' = 'Evidence Package ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `card_scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Reference Card Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `chargeback_reason_code_id` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Reason Code Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `dispute_case_id` SET TAGS ('dbx_business_glossary_term' = 'Dispute Case ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Assembled By User');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `merchant_id` SET TAGS ('dbx_business_glossary_term' = 'Merchant ID (MID)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `representment_id` SET TAGS ('dbx_business_glossary_term' = 'Representment ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `acquirer_reference` SET TAGS ('dbx_business_glossary_term' = 'Acquirer Reference');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `arn` SET TAGS ('dbx_business_glossary_term' = 'Acquirer Reference Number (ARN)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `arn` SET TAGS ('dbx_value_regex' = '^[0-9]{23}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `assembly_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Package Assembly Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `disputed_transaction_amount` SET TAGS ('dbx_business_glossary_term' = 'Disputed Transaction Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `disputed_transaction_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `disputed_transaction_amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `disputed_transaction_currency` SET TAGS ('dbx_business_glossary_term' = 'Disputed Transaction Currency');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `disputed_transaction_currency` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `document_count` SET TAGS ('dbx_business_glossary_term' = 'Document Count');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `evidence_types_included` SET TAGS ('dbx_business_glossary_term' = 'Evidence Types Included');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `has_3ds_authentication_proof` SET TAGS ('dbx_business_glossary_term' = 'Has 3-D Secure (3DS) Authentication Proof');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `has_authorization_record` SET TAGS ('dbx_business_glossary_term' = 'Has Authorization Record');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `has_avs_cvv_match` SET TAGS ('dbx_business_glossary_term' = 'Has Address Verification System / Card Verification Value (AVS/CVV) Match Result');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `has_avs_cvv_match` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `has_avs_cvv_match` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `has_cardholder_communication` SET TAGS ('dbx_business_glossary_term' = 'Has Cardholder Communication');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `has_delivery_confirmation` SET TAGS ('dbx_business_glossary_term' = 'Has Delivery Confirmation');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `has_shipping_record` SET TAGS ('dbx_business_glossary_term' = 'Has Shipping Record');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `has_signed_receipt` SET TAGS ('dbx_business_glossary_term' = 'Has Signed Receipt');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `is_auto_assembled` SET TAGS ('dbx_business_glossary_term' = 'Is Auto-Assembled');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `issuer_reference` SET TAGS ('dbx_business_glossary_term' = 'Issuer Reference');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `last_updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Last Updated Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `outcome_date` SET TAGS ('dbx_business_glossary_term' = 'Outcome Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `outcome_reason` SET TAGS ('dbx_business_glossary_term' = 'Outcome Reason');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `package_notes` SET TAGS ('dbx_business_glossary_term' = 'Package Notes');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `package_outcome` SET TAGS ('dbx_business_glossary_term' = 'Evidence Package Outcome');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `package_outcome` SET TAGS ('dbx_value_regex' = 'won|lost|partial_win|withdrawn|pending');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `package_reference_number` SET TAGS ('dbx_business_glossary_term' = 'Evidence Package Reference Number');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `package_reference_number` SET TAGS ('dbx_value_regex' = '^EVP-[A-Z0-9]{8,20}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `package_status` SET TAGS ('dbx_business_glossary_term' = 'Evidence Package Status');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `package_status` SET TAGS ('dbx_value_regex' = 'draft|assembled|submitted|accepted|rejected|withdrawn');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `package_type` SET TAGS ('dbx_business_glossary_term' = 'Evidence Package Type');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `package_type` SET TAGS ('dbx_value_regex' = 'representment|pre_arbitration|arbitration|retrieval_response|good_faith');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `recovered_amount` SET TAGS ('dbx_business_glossary_term' = 'Recovered Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `recovered_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `recovered_amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `rejection_reason_code` SET TAGS ('dbx_business_glossary_term' = 'Rejection Reason Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `response_deadline_date` SET TAGS ('dbx_business_glossary_term' = 'Response Deadline Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `scheme_case_number` SET TAGS ('dbx_business_glossary_term' = 'Card Scheme Case Number');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `scheme_submission_confirmation` SET TAGS ('dbx_business_glossary_term' = 'Scheme Submission Confirmation Number');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `sla_deadline_met` SET TAGS ('dbx_business_glossary_term' = 'Service Level Agreement (SLA) Deadline Met');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `submission_channel` SET TAGS ('dbx_business_glossary_term' = 'Submission Channel');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `submission_channel` SET TAGS ('dbx_value_regex' = 'visa_resolve_online|mastercard_connect|api|manual_upload|fax|email');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `submission_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Package Submission Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `submitted_by_user` SET TAGS ('dbx_business_glossary_term' = 'Submitted By User');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`evidence_package` ALTER COLUMN `total_file_size_bytes` SET TAGS ('dbx_business_glossary_term' = 'Total File Size (Bytes)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` SET TAGS ('dbx_data_type' = 'transactional_data');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` SET TAGS ('dbx_subdomain' = 'financial_settlement');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `financial_adjustment_id` SET TAGS ('dbx_business_glossary_term' = 'Financial Adjustment Identifier');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `card_scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Reference Card Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `dispute_case_id` SET TAGS ('dbx_business_glossary_term' = 'Dispute Case ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `ecosystem_partner_id` SET TAGS ('dbx_business_glossary_term' = 'Acquiring Bank ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `gl_account_id` SET TAGS ('dbx_business_glossary_term' = 'Gl Account Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `mcc_id` SET TAGS ('dbx_business_glossary_term' = 'Mcc Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `merchant_id` SET TAGS ('dbx_business_glossary_term' = 'Merchant Identification Number (MID)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `transaction_id` SET TAGS ('dbx_business_glossary_term' = 'Original Transaction ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `rate_id` SET TAGS ('dbx_business_glossary_term' = 'Fx Rate Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `reversal_reference_financial_adjustment_id` SET TAGS ('dbx_business_glossary_term' = 'Reversal Reference ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `adjustment_amount` SET TAGS ('dbx_business_glossary_term' = 'Adjustment Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `adjustment_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `adjustment_amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `adjustment_currency_code` SET TAGS ('dbx_business_glossary_term' = 'Adjustment Currency Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `adjustment_currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `adjustment_event_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Adjustment Event Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `adjustment_notes` SET TAGS ('dbx_business_glossary_term' = 'Adjustment Notes');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `adjustment_reference_number` SET TAGS ('dbx_business_glossary_term' = 'Adjustment Reference Number');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `adjustment_reference_number` SET TAGS ('dbx_value_regex' = '^ADJ-[A-Z0-9]{10,20}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `adjustment_status` SET TAGS ('dbx_business_glossary_term' = 'Adjustment Status');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `adjustment_status` SET TAGS ('dbx_value_regex' = 'pending|posted|reversed|failed|under_review');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `adjustment_type` SET TAGS ('dbx_business_glossary_term' = 'Adjustment Type');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `adjustment_type` SET TAGS ('dbx_value_regex' = 'chargeback_debit|representment_credit|arbitration_fee|compliance_assessment|final_settlement|pre_arbitration_debit');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `arn` SET TAGS ('dbx_business_glossary_term' = 'Acquirer Reference Number (ARN)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `arn` SET TAGS ('dbx_value_regex' = '^[0-9]{23}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `auto_posted_flag` SET TAGS ('dbx_business_glossary_term' = 'Auto-Posted Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `bin` SET TAGS ('dbx_business_glossary_term' = 'Bank Identification Number (BIN)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `bin` SET TAGS ('dbx_value_regex' = '^[0-9]{6,8}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `chargeback_reason_code` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Reason Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `debit_credit_indicator` SET TAGS ('dbx_business_glossary_term' = 'Debit/Credit Indicator');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `debit_credit_indicator` SET TAGS ('dbx_value_regex' = 'debit|credit');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `dispute_resolution_outcome` SET TAGS ('dbx_business_glossary_term' = 'Dispute Resolution Outcome');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `dispute_resolution_outcome` SET TAGS ('dbx_value_regex' = 'won|lost|settled|withdrawn|pending');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `dispute_stage` SET TAGS ('dbx_business_glossary_term' = 'Dispute Stage');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `dispute_stage` SET TAGS ('dbx_value_regex' = 'retrieval_request|first_chargeback|second_chargeback|pre_arbitration|arbitration|compliance');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `financial_period` SET TAGS ('dbx_business_glossary_term' = 'Financial Reporting Period');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `financial_period` SET TAGS ('dbx_value_regex' = '^[0-9]{4}-(0[1-9]|1[0-2])$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `fx_conversion_rate` SET TAGS ('dbx_business_glossary_term' = 'Foreign Exchange (FX) Conversion Rate');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `gl_cost_center_code` SET TAGS ('dbx_business_glossary_term' = 'General Ledger (GL) Cost Center Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `interchange_amount` SET TAGS ('dbx_business_glossary_term' = 'Interchange Reimbursement Fee (IRF) Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `interchange_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `interchange_amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `issuer_code` SET TAGS ('dbx_business_glossary_term' = 'Issuing Bank ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `liability_party` SET TAGS ('dbx_business_glossary_term' = 'Scheme-Assigned Financial Liability Party');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `liability_party` SET TAGS ('dbx_value_regex' = 'issuer|acquirer|merchant|scheme|cardholder');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `posting_date` SET TAGS ('dbx_business_glossary_term' = 'Posting Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `regulatory_reporting_flag` SET TAGS ('dbx_business_glossary_term' = 'Regulatory Reporting Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `response_deadline_date` SET TAGS ('dbx_business_glossary_term' = 'Dispute Response Deadline Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `reversal_flag` SET TAGS ('dbx_business_glossary_term' = 'Reversal Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `scheme_case_number` SET TAGS ('dbx_business_glossary_term' = 'Card Scheme Case Number');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `scheme_fee_amount` SET TAGS ('dbx_business_glossary_term' = 'Card Scheme Fee Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `scheme_fee_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `scheme_fee_amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `settlement_amount` SET TAGS ('dbx_business_glossary_term' = 'Settlement Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `settlement_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `settlement_amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `settlement_batch_reference` SET TAGS ('dbx_business_glossary_term' = 'Settlement Batch Reference');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `settlement_batch_reference` SET TAGS ('dbx_value_regex' = '^BATCH-[A-Z0-9]{8,20}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `settlement_currency_code` SET TAGS ('dbx_business_glossary_term' = 'Settlement Currency Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `settlement_currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `source_system_code` SET TAGS ('dbx_business_glossary_term' = 'Source System Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `source_system_code` SET TAGS ('dbx_value_regex' = 'dispute_mgmt|erp_oracle|scheme_network|manual_entry');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`financial_adjustment` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Updated Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` SET TAGS ('dbx_data_type' = 'transactional_data');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` SET TAGS ('dbx_subdomain' = 'dispute_processing');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `dispute_lifecycle_event_id` SET TAGS ('dbx_business_glossary_term' = 'Dispute Lifecycle Event ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `card_scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Reference Card Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `dispute_case_id` SET TAGS ('dbx_business_glossary_term' = 'Dispute Case ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Dispute Actor ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `evidence_package_id` SET TAGS ('dbx_business_glossary_term' = 'Evidence Package ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `mcc_id` SET TAGS ('dbx_business_glossary_term' = 'Mcc Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `transaction_id` SET TAGS ('dbx_business_glossary_term' = 'Original Transaction ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `acquirer_mid` SET TAGS ('dbx_business_glossary_term' = 'Acquirer Merchant Identification Number (MID)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `actor_type` SET TAGS ('dbx_business_glossary_term' = 'Dispute Actor Type');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `actor_type` SET TAGS ('dbx_value_regex' = 'issuer|acquirer|scheme|merchant|analyst');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `arbitration_outcome` SET TAGS ('dbx_business_glossary_term' = 'Arbitration Outcome');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `arbitration_outcome` SET TAGS ('dbx_value_regex' = 'issuer_won|acquirer_won|split|withdrawn|pending');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `arn` SET TAGS ('dbx_business_glossary_term' = 'Acquirer Reference Number (ARN)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `arn` SET TAGS ('dbx_value_regex' = '^[0-9]{23}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `channel` SET TAGS ('dbx_business_glossary_term' = 'Transaction Channel');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `chargeback_cycle` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Cycle');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `chargeback_cycle` SET TAGS ('dbx_value_regex' = 'first_chargeback|second_chargeback|pre_arbitration|arbitration');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `chargeback_reason_code` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Reason Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `dispute_amount` SET TAGS ('dbx_business_glossary_term' = 'Dispute Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `dispute_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `dispute_amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `dispute_currency_code` SET TAGS ('dbx_business_glossary_term' = 'Dispute Currency Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `dispute_currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `event_notes` SET TAGS ('dbx_business_glossary_term' = 'Dispute Event Notes');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `event_sequence_number` SET TAGS ('dbx_business_glossary_term' = 'Event Sequence Number');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `event_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Event Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `event_type` SET TAGS ('dbx_business_glossary_term' = 'Dispute Lifecycle Event Type');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `financial_adjustment_amount` SET TAGS ('dbx_business_glossary_term' = 'Financial Adjustment Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `financial_adjustment_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `financial_adjustment_amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `financial_adjustment_type` SET TAGS ('dbx_business_glossary_term' = 'Financial Adjustment Type');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `financial_adjustment_type` SET TAGS ('dbx_value_regex' = 'debit|credit|reversal|fee|none');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `is_deadline_breached` SET TAGS ('dbx_business_glossary_term' = 'Deadline Breached Indicator');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `is_fraud_related` SET TAGS ('dbx_business_glossary_term' = 'Fraud-Related Dispute Indicator');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `issuer_bin` SET TAGS ('dbx_business_glossary_term' = 'Issuer Bank Identification Number (BIN)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `issuer_bin` SET TAGS ('dbx_value_regex' = '^[0-9]{6,8}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `new_state` SET TAGS ('dbx_business_glossary_term' = 'New Dispute Case State');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `original_transaction_date` SET TAGS ('dbx_business_glossary_term' = 'Original Transaction Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `pan_last_four` SET TAGS ('dbx_business_glossary_term' = 'Primary Account Number (PAN) Last Four Digits');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `pan_last_four` SET TAGS ('dbx_value_regex' = '^[0-9]{4}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `pan_last_four` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `pan_last_four` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `previous_state` SET TAGS ('dbx_business_glossary_term' = 'Previous Dispute Case State');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `processing_region` SET TAGS ('dbx_business_glossary_term' = 'Processing Region Country Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `processing_region` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `regulatory_reporting_flag` SET TAGS ('dbx_business_glossary_term' = 'Regulatory Reporting Required Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `resolution_outcome` SET TAGS ('dbx_business_glossary_term' = 'Dispute Resolution Outcome');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `resolution_outcome` SET TAGS ('dbx_value_regex' = 'won|lost|partial|withdrawn|expired');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `response_deadline` SET TAGS ('dbx_business_glossary_term' = 'Dispute Response Deadline');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `response_submitted_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Response Submitted Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `retrieval_request_number` SET TAGS ('dbx_business_glossary_term' = 'Retrieval Request Number');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `scheme_case_reference` SET TAGS ('dbx_business_glossary_term' = 'Card Scheme Case Reference Number');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `scheme_fee_amount` SET TAGS ('dbx_business_glossary_term' = 'Card Scheme Fee Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `scheme_fee_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `scheme_fee_amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `sla_target_hours` SET TAGS ('dbx_business_glossary_term' = 'Service Level Agreement (SLA) Target Hours');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `source_system` SET TAGS ('dbx_business_glossary_term' = 'Source System');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `source_system` SET TAGS ('dbx_value_regex' = 'dispute_chargeback_mgmt|payment_gateway|transaction_platform|risk_compliance|manual_entry');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `three_ds_authentication_result` SET TAGS ('dbx_business_glossary_term' = '3-D Secure (3DS) Authentication Result');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_lifecycle_event` ALTER COLUMN `three_ds_authentication_result` SET TAGS ('dbx_value_regex' = 'authenticated|not_authenticated|attempted|not_applicable');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` SET TAGS ('dbx_data_type' = 'transactional_data');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` SET TAGS ('dbx_subdomain' = 'dispute_processing');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `pre_arbitration_id` SET TAGS ('dbx_business_glossary_term' = 'Pre-Arbitration Identifier (ID)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `assigned_analyst_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Assigned Analyst Identifier (ID)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `card_scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Reference Card Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `chargeback_id` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Identifier (ID)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `ecosystem_partner_id` SET TAGS ('dbx_business_glossary_term' = 'Issuer Bank Identification Number (BIN/IIN)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Assigned Analyst Identifier (ID)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `merchant_id` SET TAGS ('dbx_business_glossary_term' = 'Merchant Identifier (ID)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `representment_id` SET TAGS ('dbx_business_glossary_term' = 'Representment Identifier (ID)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `transaction_id` SET TAGS ('dbx_business_glossary_term' = 'Transaction Identifier (ID)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `acquirer_bank_code` SET TAGS ('dbx_business_glossary_term' = 'Acquirer Bank Identification Number (BIN)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `acquirer_bank_code` SET TAGS ('dbx_value_regex' = '^[0-9]{6,11}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `arn` SET TAGS ('dbx_business_glossary_term' = 'Acquirer Reference Number (ARN)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `arn` SET TAGS ('dbx_value_regex' = '^[0-9]{23}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `case_notes` SET TAGS ('dbx_business_glossary_term' = 'Pre-Arbitration Case Notes');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `case_notes` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `deadline_compliance_status` SET TAGS ('dbx_business_glossary_term' = 'Response Deadline Compliance Status');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `deadline_compliance_status` SET TAGS ('dbx_value_regex' = 'compliant|late|missed');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `escalation_reason` SET TAGS ('dbx_business_glossary_term' = 'Pre-Arbitration Escalation Reason');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `evidence_submission_count` SET TAGS ('dbx_business_glossary_term' = 'Evidence Submission Count');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `fee_amount` SET TAGS ('dbx_business_glossary_term' = 'Pre-Arbitration Filing Fee Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `filing_date` SET TAGS ('dbx_business_glossary_term' = 'Pre-Arbitration Filing Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `filing_party` SET TAGS ('dbx_business_glossary_term' = 'Pre-Arbitration Filing Party');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `filing_party` SET TAGS ('dbx_value_regex' = 'issuer|acquirer');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `filing_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Pre-Arbitration Filing Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `liability_amount` SET TAGS ('dbx_business_glossary_term' = 'Pre-Arbitration Liability Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `liability_party` SET TAGS ('dbx_business_glossary_term' = 'Liability Assignment Party');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `liability_party` SET TAGS ('dbx_value_regex' = 'issuer|acquirer|merchant|pending');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Last Modified Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `outcome` SET TAGS ('dbx_business_glossary_term' = 'Pre-Arbitration Outcome');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `outcome` SET TAGS ('dbx_value_regex' = 'accepted|rejected|escalated_to_arbitration|withdrawn|pending');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `pre_arbitration_status` SET TAGS ('dbx_business_glossary_term' = 'Pre-Arbitration Case Status');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `reason_code` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Reason Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `reason_description` SET TAGS ('dbx_business_glossary_term' = 'Reason Code Description');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `resolution_date` SET TAGS ('dbx_business_glossary_term' = 'Pre-Arbitration Resolution Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `response_date` SET TAGS ('dbx_business_glossary_term' = 'Pre-Arbitration Response Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `response_deadline_date` SET TAGS ('dbx_business_glossary_term' = 'Pre-Arbitration Response Deadline Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `response_received_flag` SET TAGS ('dbx_business_glossary_term' = 'Response Received Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `response_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Pre-Arbitration Response Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `scheme_case_number` SET TAGS ('dbx_business_glossary_term' = 'Card Scheme Pre-Arbitration Case Number');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `scheme_decision_date` SET TAGS ('dbx_business_glossary_term' = 'Card Scheme Decision Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `withdrawal_date` SET TAGS ('dbx_business_glossary_term' = 'Pre-Arbitration Withdrawal Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`pre_arbitration` ALTER COLUMN `withdrawal_reason` SET TAGS ('dbx_business_glossary_term' = 'Pre-Arbitration Withdrawal Reason');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` SET TAGS ('dbx_data_type' = 'reference_data');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` SET TAGS ('dbx_subdomain' = 'compliance_governance');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `rule_config_id` SET TAGS ('dbx_business_glossary_term' = 'Rule Config Identifier');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `card_scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Reference Card Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `action_parameters` SET TAGS ('dbx_business_glossary_term' = 'Action Parameters');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `approval_status` SET TAGS ('dbx_business_glossary_term' = 'Approval Status');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `approval_status` SET TAGS ('dbx_value_regex' = 'pending|approved|rejected');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Approved By');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `approved_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Approved Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `auto_action_type` SET TAGS ('dbx_business_glossary_term' = 'Auto Action Type');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `auto_action_type` SET TAGS ('dbx_value_regex' = 'accept|representment|escalate|hold|decline');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `compliance_notes` SET TAGS ('dbx_business_glossary_term' = 'Compliance Notes');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `condition_expression` SET TAGS ('dbx_business_glossary_term' = 'Condition Expression');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `dispute_age_threshold_days` SET TAGS ('dbx_business_glossary_term' = 'Dispute Age Threshold Days');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `effective_date` SET TAGS ('dbx_business_glossary_term' = 'Effective Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `evidence_required_flag` SET TAGS ('dbx_business_glossary_term' = 'Evidence Required Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `evidence_type_list` SET TAGS ('dbx_business_glossary_term' = 'Evidence Type List');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `execution_count` SET TAGS ('dbx_business_glossary_term' = 'Execution Count');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `expiry_date` SET TAGS ('dbx_business_glossary_term' = 'Expiry Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `failure_count` SET TAGS ('dbx_business_glossary_term' = 'Failure Count');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `is_active` SET TAGS ('dbx_business_glossary_term' = 'Is Active');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `last_executed_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Executed Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `max_dispute_count` SET TAGS ('dbx_business_glossary_term' = 'Maximum Dispute Count');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `merchant_segment` SET TAGS ('dbx_business_glossary_term' = 'Merchant Segment');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `mid` SET TAGS ('dbx_business_glossary_term' = 'Merchant Identification Number (MID)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `modified_by` SET TAGS ('dbx_business_glossary_term' = 'Modified By');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `notification_recipient_list` SET TAGS ('dbx_business_glossary_term' = 'Notification Recipient List');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `notification_required_flag` SET TAGS ('dbx_business_glossary_term' = 'Notification Required Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `priority_rank` SET TAGS ('dbx_business_glossary_term' = 'Priority Rank');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `reason_code` SET TAGS ('dbx_business_glossary_term' = 'Reason Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `rule_code` SET TAGS ('dbx_business_glossary_term' = 'Rule Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `rule_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9_]{3,20}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `rule_description` SET TAGS ('dbx_business_glossary_term' = 'Rule Description');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `rule_name` SET TAGS ('dbx_business_glossary_term' = 'Rule Name');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `rule_owner` SET TAGS ('dbx_business_glossary_term' = 'Rule Owner');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `rule_status` SET TAGS ('dbx_business_glossary_term' = 'Rule Status');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `rule_status` SET TAGS ('dbx_value_regex' = 'draft|pending_approval|active|inactive|expired|suspended');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `rule_type` SET TAGS ('dbx_business_glossary_term' = 'Rule Type');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `rule_type` SET TAGS ('dbx_value_regex' = 'auto_accept|auto_representment|routing|threshold|merchant_override|reason_code_strategy');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `success_count` SET TAGS ('dbx_business_glossary_term' = 'Success Count');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `threshold_amount` SET TAGS ('dbx_business_glossary_term' = 'Threshold Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `threshold_currency` SET TAGS ('dbx_business_glossary_term' = 'Threshold Currency');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `threshold_currency` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `time_window_hours` SET TAGS ('dbx_business_glossary_term' = 'Time Window Hours');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `transaction_age_threshold_days` SET TAGS ('dbx_business_glossary_term' = 'Transaction Age Threshold Days');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `version_number` SET TAGS ('dbx_business_glossary_term' = 'Version Number');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `win_rate_threshold_pct` SET TAGS ('dbx_business_glossary_term' = 'Win Rate Threshold Percentage');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`rule_config` ALTER COLUMN `created_by` SET TAGS ('dbx_business_glossary_term' = 'Created By');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` SET TAGS ('dbx_data_type' = 'transactional_data');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` SET TAGS ('dbx_subdomain' = 'compliance_governance');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `ratio_monitor_id` SET TAGS ('dbx_business_glossary_term' = 'Ratio Monitor Identifier');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `card_scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Reference Card Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `acquirer_notification_date` SET TAGS ('dbx_business_glossary_term' = 'Acquirer Notification Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `assessment_fee_amount` SET TAGS ('dbx_business_glossary_term' = 'Assessment Fee Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `assessment_fee_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `assessment_fee_currency` SET TAGS ('dbx_business_glossary_term' = 'Assessment Fee Currency');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `assessment_fee_currency` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `chargeback_ratio_percentage` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Ratio Percentage');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `compliance_status` SET TAGS ('dbx_business_glossary_term' = 'Compliance Status');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `compliance_status` SET TAGS ('dbx_value_regex' = 'Compliant|At Risk|Non-Compliant|Under Review|Remediation in Progress');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `consecutive_months_in_program` SET TAGS ('dbx_business_glossary_term' = 'Consecutive Months in Program');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `excessive_threshold_percentage` SET TAGS ('dbx_business_glossary_term' = 'Excessive Threshold Percentage');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `fraud_chargeback_count` SET TAGS ('dbx_business_glossary_term' = 'Fraud Chargeback Count');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `fraud_ratio_percentage` SET TAGS ('dbx_business_glossary_term' = 'Fraud Ratio Percentage');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `high_risk_indicator` SET TAGS ('dbx_business_glossary_term' = 'High Risk Indicator');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `mcc` SET TAGS ('dbx_business_glossary_term' = 'Merchant Category Code (MCC)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `mcc` SET TAGS ('dbx_value_regex' = '^[0-9]{4}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `mid` SET TAGS ('dbx_business_glossary_term' = 'Merchant Identification Number (MID)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `mid` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{8,15}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `minimum_chargeback_threshold` SET TAGS ('dbx_business_glossary_term' = 'Minimum Chargeback Threshold');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `minimum_transaction_threshold` SET TAGS ('dbx_business_glossary_term' = 'Minimum Transaction Threshold');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `monitoring_period_month` SET TAGS ('dbx_business_glossary_term' = 'Monitoring Period Month');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `monitoring_program_type` SET TAGS ('dbx_business_glossary_term' = 'Monitoring Program Type');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `monitoring_program_type` SET TAGS ('dbx_value_regex' = 'VDMP|VFM|VFMP|MCP|ECMP|GCMS');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `monitoring_record_status` SET TAGS ('dbx_business_glossary_term' = 'Monitoring Record Status');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `monitoring_record_status` SET TAGS ('dbx_value_regex' = 'Active|Closed|Under Review|Disputed|Archived');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Notes');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `program_enrollment_date` SET TAGS ('dbx_business_glossary_term' = 'Program Enrollment Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `program_exit_date` SET TAGS ('dbx_business_glossary_term' = 'Program Exit Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `region_code` SET TAGS ('dbx_business_glossary_term' = 'Region Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `region_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `remediation_plan_reference` SET TAGS ('dbx_business_glossary_term' = 'Remediation Plan Reference');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `review_period_end_date` SET TAGS ('dbx_business_glossary_term' = 'Review Period End Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `review_period_start_date` SET TAGS ('dbx_business_glossary_term' = 'Review Period Start Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `scheme_notification_date` SET TAGS ('dbx_business_glossary_term' = 'Scheme Notification Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `standard_threshold_percentage` SET TAGS ('dbx_business_glossary_term' = 'Standard Threshold Percentage');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `threshold_level_breached` SET TAGS ('dbx_business_glossary_term' = 'Threshold Level Breached');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `threshold_level_breached` SET TAGS ('dbx_value_regex' = 'None|Early Warning|Standard|Excessive|High Risk');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `total_chargeback_count` SET TAGS ('dbx_business_glossary_term' = 'Total Chargeback Count');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `total_transaction_count` SET TAGS ('dbx_business_glossary_term' = 'Total Transaction Count');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`ratio_monitor` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Updated Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` SET TAGS ('dbx_data_type' = 'transactional_data');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` SET TAGS ('dbx_subdomain' = 'compliance_governance');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `dispute_compliance_case_id` SET TAGS ('dbx_business_glossary_term' = 'Compliance Case Identifier');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `card_scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Reference Card Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `dispute_case_id` SET TAGS ('dbx_business_glossary_term' = 'Dispute ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `dispute_dispute_case_id` SET TAGS ('dbx_business_glossary_term' = 'Dispute ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Assigned Compliance Officer');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `merchant_id` SET TAGS ('dbx_business_glossary_term' = 'Merchant Identification Number (MID)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `acquirer_bin` SET TAGS ('dbx_business_glossary_term' = 'Acquirer Bank Identification Number (BIN)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `acquirer_bin` SET TAGS ('dbx_value_regex' = '^[0-9]{6,8}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `acquirer_reference_number` SET TAGS ('dbx_business_glossary_term' = 'Acquirer Reference Number (ARN)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `acquirer_reference_number` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{23}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `assessed_fine_amount` SET TAGS ('dbx_business_glossary_term' = 'Assessed Fine Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `case_closure_date` SET TAGS ('dbx_business_glossary_term' = 'Case Closure Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `case_closure_reason` SET TAGS ('dbx_business_glossary_term' = 'Case Closure Reason');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `case_closure_reason` SET TAGS ('dbx_value_regex' = 'remediation_completed|fine_paid|violation_resolved|case_withdrawn|escalated_to_arbitration');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `case_opened_date` SET TAGS ('dbx_business_glossary_term' = 'Case Opened Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `case_status` SET TAGS ('dbx_business_glossary_term' = 'Case Status');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `case_status` SET TAGS ('dbx_value_regex' = 'open|under_review|pending_response|remediation_in_progress|closed|escalated');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `chargeback_count` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Count');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `chargeback_ratio` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Ratio');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `escalation_level` SET TAGS ('dbx_business_glossary_term' = 'Escalation Level');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `escalation_level` SET TAGS ('dbx_value_regex' = 'level_1|level_2|level_3|executive_escalation');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `fine_currency_code` SET TAGS ('dbx_business_glossary_term' = 'Fine Currency Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `fine_currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `fine_due_date` SET TAGS ('dbx_business_glossary_term' = 'Fine Due Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `fine_paid_date` SET TAGS ('dbx_business_glossary_term' = 'Fine Paid Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `fine_payment_status` SET TAGS ('dbx_business_glossary_term' = 'Fine Payment Status');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `fine_payment_status` SET TAGS ('dbx_value_regex' = 'unpaid|partially_paid|paid|waived|disputed');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `internal_notes` SET TAGS ('dbx_business_glossary_term' = 'Internal Notes');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `internal_notes` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `pci_dss_violation_flag` SET TAGS ('dbx_business_glossary_term' = 'Payment Card Industry Data Security Standard (PCI DSS) Violation Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `regulatory_reporting_required_flag` SET TAGS ('dbx_business_glossary_term' = 'Regulatory Reporting Required Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `remediation_completed_date` SET TAGS ('dbx_business_glossary_term' = 'Remediation Completed Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `remediation_due_date` SET TAGS ('dbx_business_glossary_term' = 'Remediation Due Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `remediation_requirement` SET TAGS ('dbx_business_glossary_term' = 'Remediation Requirement');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `remediation_status` SET TAGS ('dbx_business_glossary_term' = 'Remediation Status');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `remediation_status` SET TAGS ('dbx_value_regex' = 'not_started|in_progress|submitted|accepted|rejected');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `scheme_case_reference_number` SET TAGS ('dbx_business_glossary_term' = 'Scheme Case Reference Number');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `scheme_case_reference_number` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{8,20}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `scheme_contact_email` SET TAGS ('dbx_business_glossary_term' = 'Scheme Contact Email');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `scheme_contact_email` SET TAGS ('dbx_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `scheme_contact_email` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `scheme_contact_email` SET TAGS ('dbx_pii_email' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `scheme_contact_name` SET TAGS ('dbx_business_glossary_term' = 'Scheme Contact Name');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `scheme_contact_name` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `scheme_threshold_breached` SET TAGS ('dbx_business_glossary_term' = 'Scheme Threshold Breached');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `violation_description` SET TAGS ('dbx_business_glossary_term' = 'Violation Description');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `violation_period_end_date` SET TAGS ('dbx_business_glossary_term' = 'Violation Period End Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `violation_period_start_date` SET TAGS ('dbx_business_glossary_term' = 'Violation Period Start Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `violation_type` SET TAGS ('dbx_business_glossary_term' = 'Violation Type');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_compliance_case` ALTER COLUMN `violation_type` SET TAGS ('dbx_value_regex' = 'excessive_chargebacks|non_compliance_representment|scheme_program_violation|fraud_threshold_breach|data_security_breach|authorization_non_compliance');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` SET TAGS ('dbx_data_type' = 'transactional_data');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` SET TAGS ('dbx_subdomain' = 'dispute_processing');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `claim_id` SET TAGS ('dbx_business_glossary_term' = 'Claim Identifier');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `assigned_agent_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Assigned Agent ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `cardholder_account_id` SET TAGS ('dbx_business_glossary_term' = 'Cardholder Account ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `chargeback_case_chargeback_id` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Case ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `chargeback_id` SET TAGS ('dbx_business_glossary_term' = 'Chargeback Case ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Assigned Agent ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `merchant_id` SET TAGS ('dbx_business_glossary_term' = 'Merchant Identification Number (MID)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `payment_product_id` SET TAGS ('dbx_business_glossary_term' = 'Payment Product Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `wallet_transaction_id` SET TAGS ('dbx_business_glossary_term' = 'Wallet Transaction Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `actual_resolution_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Resolution Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `amount` SET TAGS ('dbx_business_glossary_term' = 'Claim Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `cardholder_statement` SET TAGS ('dbx_business_glossary_term' = 'Cardholder Statement');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `cardholder_statement` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `claim_number` SET TAGS ('dbx_business_glossary_term' = 'Claim Number');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `claim_number` SET TAGS ('dbx_value_regex' = '^CLM[0-9]{10,15}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `claim_status` SET TAGS ('dbx_business_glossary_term' = 'Claim Status');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `claim_type` SET TAGS ('dbx_business_glossary_term' = 'Claim Type');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `claim_type` SET TAGS ('dbx_value_regex' = 'unauthorized_transaction|item_not_received|item_not_as_described|duplicate_charge|credit_not_processed|service_not_rendered');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `contact_attempt_count` SET TAGS ('dbx_business_glossary_term' = 'Contact Attempt Count');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `disputed_transaction_amount` SET TAGS ('dbx_business_glossary_term' = 'Disputed Transaction Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `disputed_transaction_date` SET TAGS ('dbx_business_glossary_term' = 'Disputed Transaction Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `documentation_reference_code` SET TAGS ('dbx_business_glossary_term' = 'Documentation Reference ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `escalated_to_chargeback_flag` SET TAGS ('dbx_business_glossary_term' = 'Escalated to Chargeback Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `expected_resolution_date` SET TAGS ('dbx_business_glossary_term' = 'Expected Resolution Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `fraud_indicator_flag` SET TAGS ('dbx_business_glossary_term' = 'Fraud Indicator Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `fraud_score` SET TAGS ('dbx_business_glossary_term' = 'Fraud Score');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `initial_triage_outcome` SET TAGS ('dbx_business_glossary_term' = 'Initial Triage Outcome');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `initial_triage_outcome` SET TAGS ('dbx_value_regex' = 'accepted_for_review|rejected_insufficient_info|rejected_out_of_timeframe|escalated_to_fraud|provisional_credit_issued');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `last_contact_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Contact Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `merchant_category_code` SET TAGS ('dbx_business_glossary_term' = 'Merchant Category Code (MCC)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `merchant_category_code` SET TAGS ('dbx_value_regex' = '^[0-9]{4}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `provisional_credit_amount` SET TAGS ('dbx_business_glossary_term' = 'Provisional Credit Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `provisional_credit_date` SET TAGS ('dbx_business_glossary_term' = 'Provisional Credit Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `provisional_credit_issued_flag` SET TAGS ('dbx_business_glossary_term' = 'Provisional Credit Issued Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `regulatory_reporting_flag` SET TAGS ('dbx_business_glossary_term' = 'Regulatory Reporting Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `resolution_notes` SET TAGS ('dbx_business_glossary_term' = 'Resolution Notes');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `resolution_notes` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `resolution_reason_code` SET TAGS ('dbx_business_glossary_term' = 'Resolution Reason Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `resolution_reason_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{2,10}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `submission_channel` SET TAGS ('dbx_business_glossary_term' = 'Submission Channel');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `submission_channel` SET TAGS ('dbx_value_regex' = 'mobile_app|call_center|online_portal|branch|email|chat');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `submission_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Claim Submission Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `supporting_documentation_provided_flag` SET TAGS ('dbx_business_glossary_term' = 'Supporting Documentation Provided Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `transaction_arn` SET TAGS ('dbx_business_glossary_term' = 'Acquirer Reference Number (ARN)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `transaction_arn` SET TAGS ('dbx_value_regex' = '^[0-9]{23}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`claim` ALTER COLUMN `triage_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Triage Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` SET TAGS ('dbx_data_type' = 'transactional_data');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` SET TAGS ('dbx_subdomain' = 'dispute_processing');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `merchant_response_id` SET TAGS ('dbx_business_glossary_term' = 'Merchant Response Identifier');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `card_scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Reference Card Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `dispute_case_id` SET TAGS ('dbx_business_glossary_term' = 'Dispute Case ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Acquirer Reviewer ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `last_modified_by_user_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Last Modified By User ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `last_modified_by_user_employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `merchant_id` SET TAGS ('dbx_business_glossary_term' = 'Merchant Identification Number (MID)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `representment_id` SET TAGS ('dbx_business_glossary_term' = 'Representment ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `acquirer_feedback_notes` SET TAGS ('dbx_business_glossary_term' = 'Acquirer Feedback Notes');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `acquirer_feedback_notes` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `acquirer_review_completed_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Acquirer Review Completed Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `acquirer_review_status` SET TAGS ('dbx_business_glossary_term' = 'Acquirer Review Status');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `acquirer_review_status` SET TAGS ('dbx_value_regex' = 'pending_review|in_review|approved_for_representment|rejected_insufficient_evidence|returned_for_revision');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `arn` SET TAGS ('dbx_business_glossary_term' = 'Acquirer Reference Number (ARN)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `arn` SET TAGS ('dbx_value_regex' = '^[0-9]{23}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `automated_response_flag` SET TAGS ('dbx_business_glossary_term' = 'Automated Response Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `cardholder_name` SET TAGS ('dbx_business_glossary_term' = 'Cardholder Name');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `cardholder_name` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `cardholder_name` SET TAGS ('dbx_pii_name' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `dispute_notification_date` SET TAGS ('dbx_business_glossary_term' = 'Dispute Notification Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `evidence_document_count` SET TAGS ('dbx_business_glossary_term' = 'Evidence Document Count');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `evidence_submitted_flag` SET TAGS ('dbx_business_glossary_term' = 'Evidence Submitted Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `evidence_type_list` SET TAGS ('dbx_business_glossary_term' = 'Evidence Type List');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `liability_acceptance_amount` SET TAGS ('dbx_business_glossary_term' = 'Liability Acceptance Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `liability_acceptance_currency_code` SET TAGS ('dbx_business_glossary_term' = 'Liability Acceptance Currency Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `liability_acceptance_currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `merchant_contact_email` SET TAGS ('dbx_business_glossary_term' = 'Merchant Contact Email');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `merchant_contact_email` SET TAGS ('dbx_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `merchant_contact_email` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `merchant_contact_email` SET TAGS ('dbx_pii_email' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `merchant_contact_name` SET TAGS ('dbx_business_glossary_term' = 'Merchant Contact Name');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `merchant_contact_name` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `merchant_contact_phone` SET TAGS ('dbx_business_glossary_term' = 'Merchant Contact Phone');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `merchant_contact_phone` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `merchant_contact_phone` SET TAGS ('dbx_pii_phone' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `merchant_rebuttal_narrative` SET TAGS ('dbx_business_glossary_term' = 'Merchant Rebuttal Narrative');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `merchant_rebuttal_narrative` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `original_transaction_amount` SET TAGS ('dbx_business_glossary_term' = 'Original Transaction Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `original_transaction_currency_code` SET TAGS ('dbx_business_glossary_term' = 'Original Transaction Currency Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `original_transaction_currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `original_transaction_date` SET TAGS ('dbx_business_glossary_term' = 'Original Transaction Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `reason_code` SET TAGS ('dbx_business_glossary_term' = 'Reason Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `reason_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{2,5}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `representment_eligible_flag` SET TAGS ('dbx_business_glossary_term' = 'Representment Eligible Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `response_channel` SET TAGS ('dbx_business_glossary_term' = 'Response Channel');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `response_channel` SET TAGS ('dbx_value_regex' = 'web_portal|api|email|manual_upload|fax|phone');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `response_confidence_score` SET TAGS ('dbx_business_glossary_term' = 'Response Confidence Score');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `response_deadline_date` SET TAGS ('dbx_business_glossary_term' = 'Response Deadline Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `response_language_code` SET TAGS ('dbx_business_glossary_term' = 'Response Language Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `response_language_code` SET TAGS ('dbx_value_regex' = '^[a-z]{2}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `response_reference_number` SET TAGS ('dbx_business_glossary_term' = 'Response Reference Number');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `response_reference_number` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{10,30}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `response_status` SET TAGS ('dbx_business_glossary_term' = 'Response Status');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `response_status` SET TAGS ('dbx_value_regex' = 'draft|submitted|under_review|accepted|rejected|withdrawn');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `response_submitted_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Response Submitted Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `response_turnaround_days` SET TAGS ('dbx_business_glossary_term' = 'Response Turnaround Days');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `response_type` SET TAGS ('dbx_business_glossary_term' = 'Response Type');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `response_type` SET TAGS ('dbx_value_regex' = 'accept_liability|contest_dispute|partial_acceptance|request_extension|provide_evidence');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `response_version_number` SET TAGS ('dbx_business_glossary_term' = 'Response Version Number');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `sla_breach_flag` SET TAGS ('dbx_business_glossary_term' = 'Service Level Agreement (SLA) Breach Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `withdrawal_reason` SET TAGS ('dbx_business_glossary_term' = 'Withdrawal Reason');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`merchant_response` ALTER COLUMN `withdrawal_requested_flag` SET TAGS ('dbx_business_glossary_term' = 'Withdrawal Requested Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` SET TAGS ('dbx_data_type' = 'transactional_data');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` SET TAGS ('dbx_subdomain' = 'dispute_processing');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `dispute_notification_id` SET TAGS ('dbx_business_glossary_term' = 'Dispute Notification ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `card_scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Reference Card Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `dispute_case_id` SET TAGS ('dbx_business_glossary_term' = 'Dispute Case ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `merchant_id` SET TAGS ('dbx_business_glossary_term' = 'Merchant Identification Number (MID)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `notification_template_id` SET TAGS ('dbx_business_glossary_term' = 'Notification Template ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `acknowledgment_method` SET TAGS ('dbx_business_glossary_term' = 'Acknowledgment Method');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `acknowledgment_method` SET TAGS ('dbx_value_regex' = 'email_open|link_click|webhook_callback|portal_view|api_response|manual_confirmation');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `acknowledgment_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Acknowledgment Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `arn` SET TAGS ('dbx_business_glossary_term' = 'Acquirer Reference Number (ARN)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `arn` SET TAGS ('dbx_value_regex' = '^[0-9]{23}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `body` SET TAGS ('dbx_business_glossary_term' = 'Notification Body');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `channel` SET TAGS ('dbx_business_glossary_term' = 'Notification Channel');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `channel` SET TAGS ('dbx_value_regex' = 'email|api_webhook|portal_alert|sftp_file|sms|fax');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `delivery_status` SET TAGS ('dbx_business_glossary_term' = 'Delivery Status');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `delivery_status` SET TAGS ('dbx_value_regex' = 'pending|sent|delivered|failed|bounced|rejected');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `delivery_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Delivery Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `dispute_amount` SET TAGS ('dbx_business_glossary_term' = 'Dispute Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `dispute_currency_code` SET TAGS ('dbx_business_glossary_term' = 'Dispute Currency Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `dispute_currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `dispute_reason_code` SET TAGS ('dbx_business_glossary_term' = 'Dispute Reason Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `event_type` SET TAGS ('dbx_business_glossary_term' = 'Notification Event Type');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `event_type` SET TAGS ('dbx_value_regex' = 'chargeback_received|representment_deadline_approaching|arbitration_decision_issued|financial_adjustment_posted|retrieval_request_received|case_closed');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `failure_reason` SET TAGS ('dbx_business_glossary_term' = 'Failure Reason');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `language_code` SET TAGS ('dbx_business_glossary_term' = 'Notification Language Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `language_code` SET TAGS ('dbx_value_regex' = '^[a-z]{2}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `last_retry_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Retry Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `notification_status` SET TAGS ('dbx_business_glossary_term' = 'Notification Status');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `priority` SET TAGS ('dbx_business_glossary_term' = 'Notification Priority');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `priority` SET TAGS ('dbx_value_regex' = 'critical|high|normal|low');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `recipient_email` SET TAGS ('dbx_business_glossary_term' = 'Recipient Email Address');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `recipient_email` SET TAGS ('dbx_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `recipient_email` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `recipient_email` SET TAGS ('dbx_pii_email' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `recipient_name` SET TAGS ('dbx_business_glossary_term' = 'Recipient Name');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `recipient_name` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `recipient_reference_code` SET TAGS ('dbx_business_glossary_term' = 'Recipient Reference ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `recipient_type` SET TAGS ('dbx_business_glossary_term' = 'Recipient Type');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `recipient_type` SET TAGS ('dbx_value_regex' = 'merchant|acquirer|cardholder|issuer|partner|internal');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `reference_number` SET TAGS ('dbx_business_glossary_term' = 'Notification Reference Number');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `reference_number` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{8,20}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `response_deadline_date` SET TAGS ('dbx_business_glossary_term' = 'Response Deadline Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `retry_count` SET TAGS ('dbx_business_glossary_term' = 'Retry Count');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `scheduled_send_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Scheduled Send Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `send_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Send Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `sftp_file_name` SET TAGS ('dbx_business_glossary_term' = 'SFTP File Name');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `sftp_file_path` SET TAGS ('dbx_business_glossary_term' = 'SFTP File Path');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `sftp_file_path` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `sla_deadline_timestamp` SET TAGS ('dbx_business_glossary_term' = 'SLA Deadline Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `sla_met_flag` SET TAGS ('dbx_business_glossary_term' = 'SLA Met Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `subject` SET TAGS ('dbx_business_glossary_term' = 'Notification Subject');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Updated Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `webhook_response_body` SET TAGS ('dbx_business_glossary_term' = 'Webhook Response Body');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `webhook_response_code` SET TAGS ('dbx_business_glossary_term' = 'Webhook Response Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `webhook_url` SET TAGS ('dbx_business_glossary_term' = 'Webhook URL');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`dispute_notification` ALTER COLUMN `webhook_url` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` SET TAGS ('dbx_data_type' = 'transactional_data');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` SET TAGS ('dbx_subdomain' = 'financial_settlement');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `fee_id` SET TAGS ('dbx_business_glossary_term' = 'Fee Identifier');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `card_scheme_id` SET TAGS ('dbx_business_glossary_term' = 'Reference Card Scheme Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `dispute_case_id` SET TAGS ('dbx_business_glossary_term' = 'Dispute Case ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Fee Assessed By');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `gl_account_id` SET TAGS ('dbx_business_glossary_term' = 'Gl Account Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `rate_id` SET TAGS ('dbx_business_glossary_term' = 'Fx Rate Id (Foreign Key)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `scheme_fee_schedule_id` SET TAGS ('dbx_business_glossary_term' = 'Fee Schedule ID');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `amount` SET TAGS ('dbx_business_glossary_term' = 'Fee Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `amount_usd` SET TAGS ('dbx_business_glossary_term' = 'Fee Amount USD');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `amount_usd` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `amount_usd` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `arn` SET TAGS ('dbx_business_glossary_term' = 'Acquirer Reference Number (ARN)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `assessing_entity_name` SET TAGS ('dbx_business_glossary_term' = 'Assessing Entity Name');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `assessment_date` SET TAGS ('dbx_business_glossary_term' = 'Fee Assessment Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `assessment_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Fee Assessment Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `billing_period` SET TAGS ('dbx_business_glossary_term' = 'Billing Period');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `billing_period` SET TAGS ('dbx_value_regex' = '^d{4}-(0[1-9]|1[0-2])$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `cost_center_code` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `currency` SET TAGS ('dbx_business_glossary_term' = 'Fee Currency Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `currency` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `dispute_fee_notes` SET TAGS ('dbx_business_glossary_term' = 'Dispute Fee Notes');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `dispute_stage` SET TAGS ('dbx_business_glossary_term' = 'Dispute Stage');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `dispute_stage` SET TAGS ('dbx_value_regex' = 'retrieval_request|first_chargeback|second_chargeback|pre_arbitration|arbitration|compliance');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `due_date` SET TAGS ('dbx_business_glossary_term' = 'Fee Due Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `fee_status` SET TAGS ('dbx_business_glossary_term' = 'Fee Status');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `fee_status` SET TAGS ('dbx_value_regex' = 'pending|assessed|invoiced|paid|waived|disputed');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `fee_type` SET TAGS ('dbx_business_glossary_term' = 'Fee Type');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `fee_type` SET TAGS ('dbx_value_regex' = 'chargeback_fee|arbitration_fee|compliance_assessment|retrieval_request_fee|internal_processing_fee|pre_arbitration_fee');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `fx_rate_applied` SET TAGS ('dbx_business_glossary_term' = 'Foreign Exchange (FX) Rate Applied');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `invoice_reference` SET TAGS ('dbx_business_glossary_term' = 'Invoice Reference Number');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `mid` SET TAGS ('dbx_business_glossary_term' = 'Merchant Identification Number (MID)');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `net_fee_amount` SET TAGS ('dbx_business_glossary_term' = 'Net Fee Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `net_fee_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `net_fee_amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `payment_date` SET TAGS ('dbx_business_glossary_term' = 'Fee Payment Date');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `payment_status` SET TAGS ('dbx_business_glossary_term' = 'Fee Payment Status');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `payment_status` SET TAGS ('dbx_value_regex' = 'unpaid|paid|partially_paid|overdue|written_off');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `reference_number` SET TAGS ('dbx_business_glossary_term' = 'Fee Reference Number');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `regulatory_reporting_flag` SET TAGS ('dbx_business_glossary_term' = 'Regulatory Reporting Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `scheme_reason_code` SET TAGS ('dbx_business_glossary_term' = 'Card Scheme Reason Code');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `source_system` SET TAGS ('dbx_business_glossary_term' = 'Source System');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `source_system` SET TAGS ('dbx_value_regex' = 'dispute_chargeback_mgmt|erp_oracle|scheme_network|manual_entry');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Updated Timestamp');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `waiver_amount` SET TAGS ('dbx_business_glossary_term' = 'Fee Waiver Amount');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `waiver_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `waiver_amount` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `waiver_flag` SET TAGS ('dbx_business_glossary_term' = 'Fee Waiver Flag');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `waiver_reason` SET TAGS ('dbx_business_glossary_term' = 'Fee Waiver Reason');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`fee` ALTER COLUMN `waiver_reason` SET TAGS ('dbx_value_regex' = 'goodwill|error_correction|first_occurrence|regulatory_mandate|contractual_agreement|other');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`notification_template` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`notification_template` SET TAGS ('dbx_subdomain' = 'compliance_governance');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`notification_template` ALTER COLUMN `notification_template_id` SET TAGS ('dbx_business_glossary_term' = 'Notification Template Identifier');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`notification_template` ALTER COLUMN `base_notification_template_id` SET TAGS ('dbx_self_ref_fk' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`notification_template` ALTER COLUMN `sender_email` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `payments_fintech_ecm`.`dispute`.`notification_template` ALTER COLUMN `sender_email` SET TAGS ('dbx_pii_email' = 'true');

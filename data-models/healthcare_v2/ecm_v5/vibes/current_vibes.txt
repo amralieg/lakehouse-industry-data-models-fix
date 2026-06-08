@@ -1,0 +1,425 @@
+══════════════════════════════════════════════════════════════════════════════
+USER-KING DIRECTIVE - VERBATIM HEALTHCARE DATA MODEL REVIEW BY DATABRICKS HEALTHCARE SOLUTIONS ARCHITECT
+══════════════════════════════════════════════════════════════════════════════
+
+This is the EXACT review document written by SME (Databricks
+Solutions Architect - Healthcare) on 2026-05-13, sourced from:
+https://docs.google.com/document/d/1xkCrfIU1ovKBVBu4QuQvoW8_jnr8V49Jsp6W67AmSK4
+
+ABSOLUTE AUTHORITY (CLAUDE.md §3c): Every "Recommendation" and every "Priority:
+Must Fix / Should Fix / High Priority" item below is a USER-KING directive that
+outranks every heuristic, scoring formula, autofix rule, blacklist, or LLM
+preference. If a downstream prompt suggests dropping or substituting any
+recommendation, the agent MUST refuse and treat the recommendation as
+contractual.
+
+THIS ITERATION MUST:
+1. Address EVERY numbered recommendation in "What the Model Could Improve On" (10 items)
+2. Fix EVERY structural issue in "Agent's Own Known Issues" (facility.organization,
+   TIME datatype, charge/prescription FK splits, redundant prefix attribute renames,
+   boilerplate description rewrites)
+3. Reconcile EVERY MVM/ECM inconsistency listed (encounter.authorization,
+   provider.location, radiology.study, etc.)
+4. Add EVERY missing domain/area called out for AMCs/IDNs (genomics, post_acute_care,
+   population health cohort mgmt, clinical_trial_matching eligibility, clinical_ai
+   governance with model_card / bias_monitoring / fda_samd tables)
+5. Add the "Top 5 Recommended Next Steps" - UC tag definitions, RLS predicate
+   examples, Delta TBLPROPERTIES, HIPAA retention annotations
+6. Honour the Slack-thread "industry outcome plugin" concept - keep base model
+   keyed clean so plugins like readmission_forecast / sepsis_score can attach.
+
+DO NOT remove or rename any of the 22 v2 healthcare domains:
+patient, encounter, provider, clinical, order, pharmacy, laboratory, radiology,
+scheduling, billing, claim, supply, facility, workforce, quality, research,
+reference, compliance, finance, insurance, consent, interoperability.
+
+══════════════════════════════════════════════════════════════════════════════
+VERBATIM GOOGLE DOC REVIEW TEXT
+══════════════════════════════════════════════════════════════════════════════
+
+﻿Healthcare Data Model Review: vibe-business-data-models
+Reviewer: SME, Databricks Solutions Architect - Healthcare  
+Date: May 13, 2026  
+Repo: github.com/amralieg/vibe-business-data-models/tree/main/healthcare  
+Model Agent: github.com/amralieg/vibe-modelling-agent  
+Model Version: v1 (ECM + MVM) | Generated May 4, 2026
+---
+Overview
+This is a review of the Healthcare Lakehouse Data Model produced by the Vibe Modelling Agent. The model is available in two tiers:
+* MVM (Minimum Viable Model): 16 domains, 43 subdomains, 189 tables, 8,502 attributes, 1,940 FKs
+* ECM (Expanded Coverage Model): 22 domains, 76 subdomains, 541 tables, 22,423 attributes, 4,093 FKs
+The agent's own quality score for this release is 66/100 deterministic / 62/100 LLM-assessed, with 123 known warnings documented in the release notes. The next_vibes.txt file contains 140 prioritized recommended changes from the agent's own static analysis.
+This review focuses on high-level structural, healthcare-domain, and Databricks-platform concerns - not line-by-line schema review.
+---
+What the Model Does Well
+1. Exceptional Domain Breadth
+22 domains cover the full spectrum of healthcare operations: clinical care, revenue cycle, insurance, compliance, research, interoperability, supply chain, workforce, and more. This is the most complete open healthcare data model I have reviewed for a Lakehouse context, with breadth that rivals comprehensive commercial healthcare data models in scope.
+2. Smart Two-Tier Architecture (MVM / ECM)
+The MVM/ECM design is genuinely valuable for healthcare customers. Most health systems start with 3-5 high-priority domains and expand over time. The MVM gives them a deployable starting point without overwhelming complexity. This is exactly the right approach for Databricks POCs and production onboarding.
+3. Strong Regulatory Alignment
+The model reflects real healthcare regulatory requirements:
+* Dedicated compliance domain covers HIPAA, CMS Conditions of Participation, Joint Commission, OIG/CIA, OSHA
+* consent domain covers HIPAA authorization, behavioral health consent, minor consent, research consent, HIE directives (all ECM-tier)
+* interoperability domain covers HL7v2, FHIR R4, CDA, X12 EDI, DICOM
+* Quality measures include HEDIS, CAHPS, VBP programs (ECM-tier)
+4. Correct MPI / Patient Identity Architecture
+Using patient.mpi_record as the enterprise SSOT for patient identity is the correct pattern for multi-facility health systems. The mpirecord table is included in both MVM and ECM. In the ECM, this is extended with full mrncrosswalk and identitymergehistory tables for comprehensive multi-system identity resolution - appropriate for the expanded tier.
+5. Rich Column Documentation
+Most attributes include a detailed business-justification comment explaining why the column exists, what it supports, and how it relates to clinical or financial workflows. This is unusually thorough for an open data model and makes the schemas largely self-documenting - a significant advantage for onboarding teams.
+6. Multi-Format Output
+The model ships as SQL DDL, RDF/Turtle ontology, DBML diagram, pre-built metric views (117 views), CSV/Excel docs, and a human-readable README. This is well-suited for Databricks customers who need both technical and business stakeholder artifacts.
+7. Research Domain Coverage
+The research domain covers IRB submissions, informed consent, biospecimen, study management, grant/financial oversight, and protocol management. This is directly relevant to Academic Medical Centers (like Cleveland Clinic) and health systems with active clinical trial programs.
+8. Interoperability Infrastructure Detail
+The interoperability domain goes beyond just FHIR endpoints - it models interface engines (Mirth, Rhapsody, Ensemble), trading partner onboarding, message-level tracking, HIE participation, and exchange standard versioning. This is operationally realistic for health system integration teams.
+---
+What the Model Could Improve On
+1. PII / PHI Classification is a Critical Gap
+Priority: Must Fix for Healthcare
+The agent's own analysis flags 656 attributes matching person-data patterns that lack pii_ classification tags. In a healthcare context, this is a HIPAA compliance risk. Every Databricks healthcare customer using this model will need Unity Catalog column-level tags for PHI/PII before they can govern data access, apply dynamic data masking, or pass a compliance audit.
+Recommendation: Add pii_phi, pii_pii, and pii_sensitive classification tags to all PHI-containing attributes as part of the next vibe iteration. These should map to Unity Catalog tag values so customers can directly apply row-level security and dynamic masking policies.
+2. facility.organization is Completely Disconnected
+Priority: Must Fix
+facility.organization has zero inbound and zero outbound FK relationships - it is a completely isolated table. For healthcare, the organization hierarchy (health system → hospital → clinic → department → unit) is foundational to almost every analytic and operational workflow. This is listed as Priority 1 in next_vibes.txt and needs to be resolved before v1 is considered production-ready.
+Recommendation: Add self-referential parentorganizationid and FK to facility.care_site as the anchor point of the facility hierarchy.
+3. Behavioral Health and 42 CFR Part 2 Are Missing
+Priority: High for US Healthcare
+There is no dedicated behavioral health / mental health domain. Mental health and substance use disorder (SUD) treatment data are subject to 42 CFR Part 2 - a federal privacy law more restrictive than HIPAA - requiring explicit patient consent before any disclosure. A healthcare model that does not model this separately creates a data governance risk for customers.
+Specific gaps:
+* No psychiatric assessment tables (PHQ-9, GAD-7, Columbia Suicide Severity Rating Scale)
+* No SUD treatment episode tables
+* No 42 CFR Part 2 consent tracking (the ECM consent domain includes substance_use_consent and behavioral_health_consent tables, but these are consent records only - there are no linked behavioral health clinical tables to govern)
+* No medication-assisted treatment (MAT) or opioid treatment program (OTP) tables
+Recommendation: Add a behavioral_health domain (or subdomain) with: psychiatricassessment, sudepisode, mattreatment, otpenrollment, crisisepisode, and a full 42cfr_part2 consent workflow that links to clinical treatment tables.
+4. No AI/ML Result or Feature Store Layer[a]
+Priority: High for Databricks Customers
+This is a Databricks healthcare model - yet there are no tables for storing ML model outputs, risk scores, or feature vectors. Healthcare AI use cases (readmission prediction, sepsis scores, care gap identification, prior auth automation) all require storing model inference results back to the lakehouse.
+Specific gaps:
+* No patientriskscore table (readmission risk, sepsis risk, fall risk, deterioration index)
+* No clinicalnlpresult table (NER extractions from clinical notes)
+* No care_gap table (patient x measure x gap status for quality programs)
+* No modelinferencelog table (MLflow model lineage to clinical decision)
+* No featurestoreentity table (patient/encounter-level feature snapshots)
+Recommendation: Add a clinical_ai or population_health domain with risk score storage, NLP result tables, and model inference log linking back to MLflow run IDs.
+5. SDOH Coverage is Thin
+Priority: High - CMS and Joint Commission now require SDOH screening
+Social Determinants of Health (SDOH) are increasingly mandatory. CMS requires SDOH screening for many value-based programs; The Joint Commission added SDOH to accreditation standards. The model includes patient.sdoh_assessment (ECM only) and quality.sdoh_screening (ECM only) but lacks:
+* SDOH referral and community resource linkage tables
+* SDOH need closure tracking (was the housing/food need resolved?)
+* Community health worker (CHW) intervention tables
+* SDOH risk stratification / priority score storage
+* ICD-10-Z code (Z-codes) mapping to SDOH categories
+Recommendation: Expand SDOH into a proper subdomain with referral management, need closure tracking, and community resource directory.
+6. Cross-Domain SSOT Violations (network_participation duplicated 4x)
+Priority: Should Fix
+The agent identified 19 cross-domain SSOT violations. One example is network_participation appearing across four domains:
+* billing.billing_network_participation
+* insurance.insurance_network_participation
+* pharmacy.pharmacy_network_participation (pharmacy benefit network participation - more specialized)
+* provider.provider_network_participation
+While the pharmacy variant covers pharmacy benefit networks specifically, the billing, insurance, and provider variants represent the same underlying concept split across domains, creating join complexity for customers building provider network analytics.
+Recommendation: Consolidate the billing, insurance, and provider variants into a single insurance.network_participation table with a participant_type column. Retain pharmacy.pharmacy_network_participation as a separate entity given its distinct business domain (PBM/pharmacy benefit network contracts differ materially from medical network participation).
+7. Generic Table Names Create SQL Reserved Word Conflicts
+Priority: Should Fix Before Production
+Several tables in the consent domain use SQL reserved words as table names: consent.record, consent.event, consent.exception, consent.translation, consent.verification, consent.workflow. Similarly, order.set and research.grant are SQL reserved words.
+These will cause issues for customers who use these table names in queries without proper escaping. The next_vibes.txt already lists renaming these as priorities 56-74.
+Recommendation: Apply the next_vibes.txt renaming pass before publishing v1 as production-ready.
+8. Patient-Generated Health Data / Remote Patient Monitoring is Missing
+Priority: Medium - Growing Rapidly in Healthcare
+Wearable devices, RPM (Remote Patient Monitoring), and patient-reported outcomes (PROs) are increasingly central to chronic disease management programs. The model has no tables for:
+* Device/sensor readings (heart rate, glucose, SpO2, weight)
+* RPM program enrollment and alert thresholds
+* Patient-reported outcome measures (PROMs) - standardized questionnaire responses
+* Patient portal engagement metrics (message reads, portal logins, appointment self-scheduling)
+Recommendation: Add a patient_engagement subdomain or digital_health domain covering RPM device readings, PROM responses, and portal engagement events.
+9. Value-Based Care / MIPS / APM Reporting is Underdeveloped
+Priority: Medium
+VBC and MIPS reporting are core analytics use cases for health systems. The model has insurance.vbc_performance (ECM only) and HEDIS/CAHPS tables (ECM only) but lacks:
+* MIPS (Merit-based Incentive Payment System) measure tracking per clinician
+* APM (Alternative Payment Model) participant registry
+* Care gap closure tracking per patient per payer contract per measurement period
+* Quality measure attribution (which patients are attributed to which clinician under which program)
+* Risk adjustment factor (RAF) score storage per member per year
+Recommendation: Expand the quality domain with MIPS clinician-level measure reporting, APM program enrollment, and care gap closure tables.
+10. Missing Databricks-Specific Governance Patterns
+Priority: Medium - Specific to Databricks Deployment
+The model is missing patterns that healthcare customers deploying on Databricks will immediately need:
+
+
+Gap
+	Why It Matters
+	No Unity Catalog tag definitions in DDL
+	Customers need column-level `pii_phi` tags to apply masking policies
+	No row-level security (RLS) example predicates
+	Multi-tenant health systems need care_site-scoped RLS
+	No SCD Type 2 (effective_from/effective_to) on reference tables
+	ICD/CPT code sets change annually; version history is required
+	No Delta table properties (TBLPROPERTIES)
+	OPTIMIZE/ZORDER hints, delta.autoOptimize not included
+	No liquid clustering recommendations
+	High-cardinality patient/encounter tables would benefit from liquid clustering
+	No data retention annotations
+	HIPAA requires 6-year retention for many record types
+	Recommendation: Add a Databricks deployment guide section to the README with Unity Catalog tag definitions, RLS predicate examples, and Delta table property recommendations.
+---
+Other Observations
+Agent's Own Known Issues (from next_vibes.txt)
+The model ships with 140 prioritized recommended changes and a quality score of 66/100. The most impactful ones to address before broader distribution:
+
+
+Priority
+	Issue
+	Impact
+	1
+	facility.organization completely isolated
+	Blocks facility hierarchy queries
+	Auto
+	TIME datatype in facility.block_assignment
+	Breaks Databricks/Spark SQL DDL execution
+	Auto
+	billing.charge has 26 outgoing FKs (max 25)
+	FK density suggests table should be split
+	Auto
+	pharmacy.prescription has 27 outgoing FKs
+	Same - consider splitting prescriptions from encounters
+	Auto
+	89 attributes with redundant product-name prefix
+	Naming inconsistency
+	Auto
+	18 attributes contain banned boilerplate phrases
+	Description quality
+	MVM Inconsistencies Worth Noting
+Several tables appear in the MVM but NOT in the ECM (marked "MVM only (stub or new)"), which is architecturally backwards - the ECM should be a superset of the MVM. Examples:
+* scheduling.appointment (MVM) vs scheduling.scheduling_appointment (ECM) - these appear to be the same concept with different names
+* encounter.authorization (MVM only)
+* provider.location, provider.location_specialty (MVM only)
+* radiology.study (MVM only)
+Recommendation: Reconcile MVM-only tables to ensure the ECM is a true superset. The appointment naming inconsistency in particular will create confusion.
+What's Notably Absent for Academic Medical Centers / IDNs
+For large health systems like Cleveland Clinic or Advocate (top-tier Databricks customers):
+* Genomics / Precision Medicine - No genetic variant, biobank, or pharmacogenomics tables
+* Post-Acute Care - No SNF (skilled nursing facility), home health, or hospice data
+* Population Health Cohort Management - No dynamic cohort definition or membership tracking tables
+* Clinical Trial Matching - No eligibility criteria evaluation tables (relevant for CCF's cancer trial matching use case)
+* Clinical AI Governance - No model card, bias monitoring, or FDA SaMD (Software as a Medical Device) regulatory tracking tables
+---
+Summary Scorecard
+
+
+Dimension
+	Score
+	Notes
+	Domain Coverage
+	9/10
+	Exceptional breadth; only gaps are behavioral health and digital health
+	Structural Integrity
+	6/10
+	66/100 agent score; facility.organization isolated; FK density issues
+	Healthcare Regulatory Fit
+	7/10
+	Strong HIPAA/CMS/JC coverage; 42 CFR Part 2 and SDOH gaps
+	Databricks Platform Fit
+	5/10
+	Missing UC tags, RLS patterns, Delta properties
+	AI/ML Readiness
+	4/10
+	No risk score storage, NLP results, or feature store tables
+	Naming Conventions
+	6/10
+	SQL reserved word conflicts; cross-domain SSOT violations
+	Documentation Quality
+	9/10
+	Column-level comments are thorough for most attributes
+	MVM/ECM Design
+	8/10
+	Smart architecture; MVM-only stub inconsistencies need resolution
+	---
+Top 5 Recommended Next Steps
+1. Run next_vibes.txt iteration through the Vibe Modelling Agent to address the 140 flagged structural issues (especially facility.organization isolation, generic table naming, and FK deduplication). This is the fastest path to quality score improvement.
+2. Add PHI/PII classification tags to all 656 flagged attributes, mapped to Unity Catalog tag values (pii_phi, pii_pii, pii_de_identified). This is non-negotiable for healthcare customer adoption.
+3. Add behavioral health subdomain with 42 CFR Part 2 consent tracking linked to clinical tables, and psychiatric/SUD assessment tables. US health systems cannot use a healthcare model that does not address this regulatory dimension.
+4. Add AI/ML result storage layer - at minimum a patient_risk_score table and clinical_ai_inference_log. This directly enables the Databricks AI/ML use cases that are the primary reason customers adopt the platform.
+5. Add a Databricks deployment guide to the README covering: Unity Catalog tag definitions, row-level security predicate patterns, recommended Delta table properties, and HIPAA data retention annotations.
+---
+Review conducted by SME (sme@example.com). Model repo: [github.com/amralieg/vibe-business-data-models](https://github.com/amralieg/vibe-business-data-models). Agent repo: [github.com/amralieg/vibe-modelling-agent](https://github.com/amralieg/vibe-modelling-agent).
+
+
+[a]just adding my comment from Slack
+
+
+the one thing I found most interesting was its suggestion #4 of the AIML layer / feature store aspects of a model
+
+
+I think it'd be really cool to have:
+
+
+
+
+industry outcome map
+mapped to specific DB schemas we would install into your environment to support
+and those could be "plugins" into the vibed models
+[12:51 PM]so think of patient readmission forecast
+
+
+
+
+base inputs from vibe model = patient, admissions, medical history, etc.
+you "plug in" readmission forecast
+now we put a new in schema inyour model = readmission_scores, all keyed in from your base inputs + new columns
+[12:52 PM]so basically "base" model is what you bring to use from your existing relational data outside Databricks, and then we have plugins for outcomes Databricks can deliver on top
+
+══════════════════════════════════════════════════════════════════════════════
+NEXT_VIBES from ecm_v4 - APPLY THESE IN ADDITION to the user-king-directive above
+══════════════════════════════════════════════════════════════════════════════
+
+The following priorities were emitted by static analysis after ecm_v4. They are
+SECONDARY to the USER-KING-DIRECTIVE above. Apply them faithfully where they do
+NOT conflict with the user-king-directive. If a priority targets a product that
+has been removed in this iteration, skip it (v0.8.3 P57 next-vibes-sa-target-filter).
+
+**Model Quality Score: 84/100**
+
+**Static Analysis Findings (22 actionable):**
+  - [SA:unlinked_fk] Column pharmacy.prescription.clinical_order_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column scheduling.scheduling_appointment.visit_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column insurance.provider_network.network_id looks like an FK but has no foreign_key_to reference
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_coverage' and 'patient.patient_coverage' have the same entity name 'coverage' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_network_participation' and 'insurance.insurance_network_participation' have the same entity name 'network_participation' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_network_participation' and 'pharmacy.pharmacy_network_participation' have the same entity name 'network_participation' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_network_participation' and 'provider.provider_network_participation' have the same entity name 'network_participation' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'insurance.insurance_network_participation' and 'pharmacy.pharmacy_network_participation' have the same entity name 'network_participation' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'insurance.insurance_network_participation' and 'provider.provider_network_participation' have the same entity name 'network_participation' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'pharmacy.pharmacy_network_participation' and 'provider.provider_network_participation' have the same entity name 'network_participation' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'claim.status_history' and 'order.order_status_history' have the same entity name 'status_history' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'clinical.clinical_finding' and 'radiology.radiology_finding' have the same entity name 'finding' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'compliance.compliance_program' and 'quality.quality_program' have the same entity name 'program' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'compliance.compliance_regulatory_submission' and 'research.research_regulatory_submission' have the same entity name 'regulatory_submission' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'encounter.encounter_authorization' and 'order.order_authorization' have the same entity name 'authorization' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'facility.facility_program_participation' and 'quality.quality_program_participation' have the same entity name 'program_participation' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'insurance.insurance_payer_enrollment' and 'provider.provider_payer_enrollment' have the same entity name 'payer_enrollment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'pharmacy.pharmacy_location' and 'provider.provider_location' have the same entity name 'location' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'provider.provider_committee' and 'quality.quality_committee' have the same entity name 'committee' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'quality.quality_peer_review' and 'radiology.radiology_peer_review' have the same entity name 'peer_review' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'radiology.radiology_study' and 'research.research_study' have the same entity name 'study' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'radiology.radiology_appointment' and 'scheduling.scheduling_appointment' have the same entity name 'appointment' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 - rename_attribute: clinical.note_template** - rename column parent_note_template_id to superseded_note_template_id because the column was renamed but the FK was dropped, leaving an orphaned self-reference pattern that needs proper naming for versioning semantics
+**PRIORITY 2 - connect_table: clinical.note_template** - add column parent_note_template_id (BIGINT) with FK to clinical.note_template.note_template_id - clinical note templates require hierarchical parent-child relationships for template inheritance and organization
+**PRIORITY 3 - rename_attribute: finance.transaction_batch** - rename column tertiary_reversed_transaction_batch_id to reversed_transaction_batch_id because tertiary prefix is non-standard and unclear for a reversal relationship
+**PRIORITY 4 - rename_attribute: claim.claim_attachment** - rename column primary_original_claim_attachment_id to original_claim_attachment_id because primary prefix is redundant for a simple self-referential original document link
+**PRIORITY 5 - rename_attribute: compliance.compliance_regulatory_submission** - rename column primary_original_compliance_regulatory_submission_id to original_compliance_regulatory_submission_id because primary prefix is redundant and column name is excessively long
+**PRIORITY 6 - rename_attribute: consent.consent_policy** - rename column primary_superseded_by_consent_policy_id to superseded_by_consent_policy_id because primary prefix is redundant for versioning self-reference
+**PRIORITY 7 - rename_attribute: consent.form_template** - rename column primary_superseded_by_form_template_id to superseded_by_form_template_id because primary prefix is redundant for versioning self-reference
+**PRIORITY 8 - rename_attribute: insurance.coverage_policy** - rename column primary_superseded_by_coverage_policy_id to superseded_by_coverage_policy_id because primary prefix is redundant for versioning self-reference
+**PRIORITY 9 - rename_attribute: insurance.fee_schedule** - rename column primary_predecessor_schedule_fee_schedule_id to predecessor_fee_schedule_id because naming is overly verbose and redundant
+**PRIORITY 10 - rename_attribute: insurance.fee_schedule_line** - rename column primary_superseded_by_fee_schedule_line_id to superseded_by_fee_schedule_line_id because primary prefix is redundant
+**PRIORITY 11 - rename_attribute: insurance.formulary_tier** - rename column primary_superseded_by_formulary_tier_id to superseded_by_formulary_tier_id because primary prefix is redundant
+**PRIORITY 12 - rename_attribute: interoperability.mapping_definition** - rename column primary_superseded_by_mapping_definition_id to superseded_by_mapping_definition_id because primary prefix is redundant
+**PRIORITY 13 - rename_attribute: interoperability.terminology_mapping** - rename column primary_superseded_by_terminology_mapping_id to superseded_by_terminology_mapping_id because primary prefix is redundant
+**PRIORITY 14 - rename_attribute: research.research_document** - rename column primary_superseded_by_research_document_id to superseded_by_research_document_id because primary prefix is redundant
+**PRIORITY 15 - rename_attribute: provider.npdb_query** - rename column original_query_npdb_query_id to original_npdb_query_id because query is redundant in the column name
+**PRIORITY 16 - rename_attribute: provider.provider_committee** - rename column primary_reporting_provider_committee_id to reporting_provider_committee_id because primary prefix is redundant
+**PRIORITY 17 - rename_attribute: finance.bank_reconciliation** - rename column primary_prior_period_reconciliation_bank_reconciliation_id to prior_period_bank_reconciliation_id because naming is excessively verbose
+**PRIORITY 18 - rename_attribute: finance.budget_transfer** - rename column primary_original_transfer_budget_transfer_id to original_budget_transfer_id because naming is excessively verbose
+**PRIORITY 19 - rename_attribute: finance.cost_allocation** - rename column primary_original_allocation_cost_allocation_id to original_cost_allocation_id because naming is excessively verbose
+**PRIORITY 20 - rename_attribute: finance.journal_entry_line** - rename column primary_reversed_line_journal_entry_line_id to reversed_journal_entry_line_id because naming is excessively verbose
+**PRIORITY 21 - rename_attribute: quality.standard_finding** - rename column prior_finding_standard_finding_id to prior_standard_finding_id because finding is redundant in the column name
+**PRIORITY 22 - rename_attribute: quality.safety_event_review** - rename column prior_review_safety_event_review_id to prior_safety_event_review_id because review is redundant in the column name
+**PRIORITY 23 - rename_attribute: research.data_governance_committee** - rename column parent_committee_data_governance_committee_id to parent_data_governance_committee_id because committee is redundant in the column name
+**PRIORITY 24 - rename_attribute: research.data_governance_committee** - rename column primary_escalation_committee_data_governance_committee_id to escalation_data_governance_committee_id because naming is excessively verbose
+**PRIORITY 25 - rename_attribute: research.dua_document** - rename column primary_superseded_dua_document_id to superseded_dua_document_id because primary prefix is redundant
+**PRIORITY 26 - rename_attribute: scheduling.booking_rule** - rename column superseded_rule_booking_rule_id to superseded_booking_rule_id because rule is redundant in the column name
+**PRIORITY 27 - rename_attribute: scheduling.resource_assignment** - rename column substitute_for_resource_assignment_id to substituted_resource_assignment_id because substitute_for is awkward naming convention
+**PRIORITY 28 - rename_attribute: facility.inspection_finding** - rename column previous_finding_inspection_finding_id to previous_inspection_finding_id because finding is redundant in the column name
+**PRIORITY 29 - rename_attribute: consent.consent_event** - rename column primary_previous_consent_event_id to previous_consent_event_id because primary prefix is redundant
+**PRIORITY 30 - rename_attribute: claim.diagnosis_link** - rename column diagnosis_link_id to claim_diagnosis_id because diagnosis_link is a weak name for a claim-diagnosis association
+**PRIORITY 31 - rename_attribute: insurance.accountable_care_organization** - rename column parent_organization_accountable_care_organization_id to parent_aco_id because naming is excessively verbose and redundant
+**PRIORITY 32 - rename_attribute: compliance.cms_condition_status** - rename column prior_condition_status_cms_condition_status_id to prior_cms_condition_status_id because naming is excessively verbose
+**PRIORITY 33 - rename_attribute: radiology.radiology_order_status_history** - rename column corrected_history_id to corrected_radiology_order_status_history_id because corrected_history_id is ambiguous without table context
+**PRIORITY 34 - rename_attribute: radiology.reader_assignment** - rename column prior_assignment_reader_assignment_id to prior_reader_assignment_id because assignment is redundant in the column name
+**PRIORITY 35 - connect_table: billing.charge** - add column anesthesia_provider_clinician_id (BIGINT) with FK to provider.clinician.clinician_id - surgical and procedural charges often require tracking of anesthesia provider separately from performing provider
+**PRIORITY 36 - connect_table: clinical.procedure_event** - add column anesthesia_clinician_id (BIGINT) with FK to provider.clinician.clinician_id - procedures require tracking anesthesiologist separately from surgeon for clinical documentation and billing
+**PRIORITY 37 - connect_table: encounter.visit** - add column admitting_clinician_id (BIGINT) with FK to provider.clinician.clinician_id - visits need to track admitting physician separately from attending physician for regulatory compliance
+**PRIORITY 38 - connect_table: encounter.visit** - add column discharge_clinician_id (BIGINT) with FK to provider.clinician.clinician_id - discharge documentation requires tracking the discharging physician for continuity of care
+**PRIORITY 39 - connect_table: billing.invoice** - add column billing_provider_clinician_id (BIGINT) with FK to provider.clinician.clinician_id - professional billing requires distinction between rendering and billing provider per CMS requirements
+**PRIORITY 40 - connect_table: claim.claim** - add column billing_provider_clinician_id (BIGINT) with FK to provider.clinician.clinician_id - claims require billing provider NPI separate from rendering provider for proper adjudication
+**PRIORITY 41 - connect_table: claim.claim** - add column referring_clinician_id (BIGINT) with FK to provider.clinician.clinician_id - claims often require referring provider information for specialist services
+**PRIORITY 42 - connect_table: pharmacy.prescription** - add column supervising_clinician_id (BIGINT) with FK to provider.clinician.clinician_id - prescriptions by mid-level providers require supervising physician tracking for DEA compliance
+**PRIORITY 43 - connect_table: laboratory.lab_order** - add column ordering_location_care_site_id (BIGINT) with FK to facility.care_site.care_site_id - lab orders need to track where the order originated separately from where it is performed
+**PRIORITY 44 - connect_table: radiology.imaging_order** - add column ordering_location_care_site_id (BIGINT) with FK to facility.care_site.care_site_id - imaging orders need to track ordering location for proper routing and billing
+**PRIORITY 45 - connect_table: clinical.immunization** - add column administered_location_care_site_id (BIGINT) with FK to facility.care_site.care_site_id - immunizations may be administered at different locations than where ordered for public health reporting
+**PRIORITY 46 - connect_table: patient.mpi_record** - add column primary_language_code (BIGINT) with FK to reference.code_set_version.code_set_version_id - patient language preference is critical for consent and communication compliance
+**PRIORITY 47 - connect_table: encounter.discharge_summary** - add column primary_diagnosis_icd_code_id (BIGINT) with FK to reference.icd_code.icd_code_id - discharge summaries should directly reference the principal diagnosis for DRG assignment
+**PRIORITY 48 - connect_table: scheduling.surgical_case** - add column primary_surgeon_clinician_id (BIGINT) with FK to provider.clinician.clinician_id - surgical cases need explicit primary surgeon designation separate from case team
+**PRIORITY 49 - connect_table: scheduling.surgical_case** - add column anesthesiologist_clinician_id (BIGINT) with FK to provider.clinician.clinician_id - surgical cases require anesthesiologist assignment for scheduling and billing
+**PRIORITY 50 - connect_table: quality.patient_safety_event** - add column reported_by_employee_id (BIGINT) with FK to workforce.employee.employee_id - safety events need to track who reported the event for follow-up and non-retaliation compliance
+**PRIORITY 51 - connect_table: compliance.hipaa_privacy_incident** - add column reported_by_employee_id (BIGINT) with FK to workforce.employee.employee_id - HIPAA incidents require tracking of reporter for investigation and breach notification
+**PRIORITY 52 - connect_table: research.adverse_event** - add column reported_by_employee_id (BIGINT) with FK to workforce.employee.employee_id - research adverse events require reporter identification for FDA compliance
+**PRIORITY 53 - connect_table: finance.ap_invoice** - add column approved_by_employee_id (BIGINT) with FK to workforce.employee.employee_id - AP invoices require approval tracking for internal controls and audit
+**PRIORITY 54 - connect_table: supply.purchase_order** - add column approved_by_employee_id (BIGINT) with FK to workforce.employee.employee_id - purchase orders require approval tracking for procurement compliance
+**PRIORITY 55 - connect_table: supply.requisition** - add column approved_by_employee_id (BIGINT) with FK to workforce.employee.employee_id - requisitions require approval workflow tracking
+**PRIORITY 56 - connect_table: billing.payment** - add column deposit_bank_account_id (BIGINT) with FK to finance.bank_account.bank_account_id - payments need to track which bank account received the deposit for reconciliation
+**PRIORITY 57 - connect_table: claim.remittance** - add column deposit_bank_account_id (BIGINT) with FK to finance.bank_account.bank_account_id - ERA remittances need bank account tracking for cash reconciliation
+**PRIORITY 58 - connect_table: insurance.capitation_payment** - add column bank_account_id (BIGINT) with FK to finance.bank_account.bank_account_id - capitation payments need bank account tracking for reconciliation
+**PRIORITY 59 - connect_table: workforce.employee** - add column primary_work_location_care_site_id (BIGINT) with FK to facility.care_site.care_site_id - employees need primary work location for scheduling and compliance reporting
+**PRIORITY 60 - connect_table: workforce.shift_schedule** - add column room_id (BIGINT) with FK to facility.room.room_id - shift schedules may need room assignment for clinical staff
+**PRIORITY 61 - connect_table: clinical.care_plan** - add column primary_diagnosis_icd_code_id (BIGINT) with FK to reference.icd_code.icd_code_id - care plans should reference the primary diagnosis driving the plan
+**PRIORITY 62 - connect_table: clinical.problem** - add column onset_encounter_visit_id (BIGINT) with FK to encounter.visit.visit_id - problems should track the encounter where the condition was first identified
+**PRIORITY 63 - connect_table: pharmacy.adverse_drug_event** - add column mar_record_id (BIGINT) with FK to pharmacy.mar_record.mar_record_id - adverse drug events should link to the specific medication administration that caused the event
+**PRIORITY 64 - connect_table: laboratory.test_result** - add column performing_lab_care_site_id (BIGINT) with FK to facility.care_site.care_site_id - test results need to track which lab performed the test for CLIA compliance
+**PRIORITY 65 - connect_table: radiology.report** - add column performing_facility_care_site_id (BIGINT) with FK to facility.care_site.care_site_id - radiology reports need performing facility for billing and accreditation
+**PRIORITY 66 - connect_table: encounter.readmission** - add column original_visit_id (BIGINT) with FK to encounter.visit.visit_id - readmissions need explicit link to the original admission for CMS penalty calculations
+**PRIORITY 67 - connect_table: encounter.readmission** - add column readmit_visit_id (BIGINT) with FK to encounter.visit.visit_id - readmissions need explicit link to the readmission visit for tracking
+**PRIORITY 68 - remove_fk: insurance.dependent** - remove FK on column primary_dependent_id because self-reference named primary_dependent_id is semantically unclear and likely erroneous
+**PRIORITY 69 - rename_attribute: insurance.dependent** - rename column primary_dependent_id to spouse_dependent_id because if this tracks family relationships it should have meaningful relationship name
+**PRIORITY 70 - connect_table: billing.cdm_entry** - add column revenue_code (BIGINT) with FK to reference.hcpcs_code.hcpcs_code_id - CDM entries need revenue code assignment for UB-04 billing
+**PRIORITY 71 - connect_table: claim.claim_line** - add column revenue_code_id (BIGINT) with FK to reference.hcpcs_code.hcpcs_code_id - claim lines need revenue codes for institutional billing
+**PRIORITY 72 - connect_table: billing.invoice_line** - add column revenue_code_id (BIGINT) with FK to reference.hcpcs_code.hcpcs_code_id - invoice lines need revenue codes for facility billing
+**PRIORITY 73 - connect_table: quality.hedis_result** - add column attributed_clinician_id (BIGINT) with FK to provider.clinician.clinician_id - HEDIS results need provider attribution for quality reporting
+**PRIORITY 74 - connect_table: insurance.member_attribution** - add column attributed_org_provider_id (BIGINT) with FK to provider.org_provider.org_provider_id - member attribution may be to organization rather than individual clinician
+**PRIORITY 75 - connect_table: research.subject_enrollment** - add column consenting_clinician_id (BIGINT) with FK to provider.clinician.clinician_id - research enrollment needs to track who obtained consent for regulatory compliance
+**PRIORITY 76 - connect_table: consent.consent_record** - add column witness_employee_id (BIGINT) with FK to workforce.employee.employee_id - consent records often require witness documentation for validity
+**PRIORITY 77 - connect_table: clinical.advance_directive** - add column witness_employee_id (BIGINT) with FK to workforce.employee.employee_id - advance directives require witness for legal validity
+**PRIORITY 78 - connect_table: consent.treatment_consent** - add column witness_employee_id (BIGINT) with FK to workforce.employee.employee_id - treatment consents require witness documentation
+**PRIORITY 79 - connect_table: facility.bed** - add column current_patient_mpi_record_id (BIGINT) with FK to patient.mpi_record.mpi_record_id - beds should track current occupant for real-time census
+**PRIORITY 80 - connect_table: facility.equipment_asset** - add column current_location_room_id (BIGINT) with FK to facility.room.room_id - equipment assets need current location tracking for utilization
+**PRIORITY 81 - connect_table: supply.inventory_balance** - add column last_count_employee_id (BIGINT) with FK to workforce.employee.employee_id - inventory balances need to track who performed last physical count
+**PRIORITY 82 - connect_table: finance.journal_entry** - add column approved_by_employee_id (BIGINT) with FK to workforce.employee.employee_id - journal entries require approval for SOX compliance
+**PRIORITY 83 - connect_table: finance.budget** - add column approved_by_employee_id (BIGINT) with FK to workforce.employee.employee_id - budgets require approval workflow tracking
+**PRIORITY 84 - connect_table: compliance.audit** - add column lead_auditor_employee_id (BIGINT) with FK to workforce.employee.employee_id - audits need lead auditor assignment for accountability
+**PRIORITY 85 - connect_table: quality.accreditation_survey** - add column lead_surveyor_employee_id (BIGINT) with FK to workforce.employee.employee_id - surveys need lead surveyor tracking for follow-up
+**PRIORITY 86 - connect_table: research.irb_submission** - add column principal_investigator_clinician_id (BIGINT) with FK to provider.clinician.clinician_id - IRB submissions require PI identification for regulatory compliance
+**PRIORITY 87 - connect_table: research.research_study** - add column principal_investigator_clinician_id (BIGINT) with FK to provider.clinician.clinician_id - research studies require PI designation for FDA compliance
+**PRIORITY 88 - connect_table: pharmacy.compounding_record** - add column verified_by_employee_id (BIGINT) with FK to workforce.employee.employee_id - compounding requires pharmacist verification for safety
+**PRIORITY 89 - connect_table: pharmacy.dispense_event** - add column verified_by_employee_id (BIGINT) with FK to workforce.employee.employee_id - dispensing requires pharmacist verification
+**PRIORITY 90 - connect_table: laboratory.test_result** - add column verified_by_employee_id (BIGINT) with FK to workforce.employee.employee_id - lab results require technologist verification for CLIA
+**PRIORITY 91 - connect_table: radiology.report** - add column transcribed_by_employee_id (BIGINT) with FK to workforce.employee.employee_id - radiology reports may need transcriptionist tracking
+**PRIORITY 92 - connect_table: clinical.note** - add column cosigner_clinician_id (BIGINT) with FK to provider.clinician.clinician_id - clinical notes by residents and mid-levels require attending co-signature
+**PRIORITY 93 - connect_table: order.verbal_order** - add column read_back_by_employee_id (BIGINT) with FK to workforce.employee.employee_id - verbal orders require read-back verification per Joint Commission
+**PRIORITY 94 - connect_table: encounter.triage_assessment** - add column acuity_level_code_id (BIGINT) with FK to reference.snomed_concept.snomed_concept_id - triage assessments need standardized acuity coding
+**PRIORITY 95 - connect_table: clinical.nursing_assessment** - add column braden_score_observation_id (BIGINT) with FK to clinical.observation.observation_id - nursing assessments should link to pressure ulcer risk scores
+**PRIORITY 96 - connect_table: clinical.vital_sign** - add column device_equipment_asset_id (BIGINT) with FK to facility.equipment_asset.equipment_asset_id - vital signs should track which device captured the measurement
+
+Other known issues from static analysis (20):
+  - Attribute 'outbreak_notes' in clinical.outbreak has redundant product prefix 'outbreak_'. Rename to 'notes'
+  - Attribute 'formulary_tier' in pharmacy.formulary has redundant product prefix 'formulary_'. Rename to 'tier'
+  - Attribute 'claim_appeal_filed_date' in claim.claim has redundant product prefix 'claim_'. Rename to 'appeal_filed_date'
+  - Attribute 'claim_appeal_filed_flag' in claim.claim has redundant product prefix 'claim_'. Rename to 'appeal_filed_flag'
+  - Attribute 'claim_denial_reason_code' in claim.claim has redundant product prefix 'claim_'. Rename to 'denial_reason_code'
+  - Attribute 'claim_denial_reason_description' in claim.claim has redundant product prefix 'claim_'. Rename to 'denial_reason_description'
+  - Attribute 'donor_segment' in finance.donor has redundant product prefix 'donor_'. Rename to 'segment'
+  - Attribute 'payer_tier' in insurance.payer has redundant product prefix 'payer_'. Rename to 'tier'
+  - Attribute 'benefit_tier' in insurance.benefit has redundant product prefix 'benefit_'. Rename to 'tier'
+  - Table radiology.radiology_order_status_history has self-referencing FK on column 'corrected_history_id' with same name as PK 'radiology_order_status_history_id' - the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table workforce.shift_schedule has self-referencing FK on column 'swap_source_schedule_id' with same name as PK 'shift_schedule_id' - the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table finance.ar_transaction has self-referencing FK on column 'applied_to_transaction_id' with same name as PK 'ar_transaction_id' - the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table patient.message_template has 3 FK columns pointing to workforce.employee (created_by_user_employee_id, employee_id, last_modified_by_user_employee_id) (generic/unlabeled: employee_id) - rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table clinical.flowsheet_template has 4 FK columns pointing to workforce.employee (created_by_user_employee_id, employee_id, last_modified_by_user_employee_id, workforce_employee_id) (generic/unlabeled: employee_id) - rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.asset_book has 2 FK columns pointing to workforce.employee (employee_id, last_modified_by_user_employee_id) (generic/unlabeled: employee_id) - rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Product 'billing.charge' has 26 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'quality.patient_safety_event' has 26 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - 17 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 622 attribute(s) match person-data patterns but lack pii_ tags
+  - 29 non-PK attributes redundantly prefixed with their product name
+
+Deterministic score: 84/100 (LLM assessment: 82/100)

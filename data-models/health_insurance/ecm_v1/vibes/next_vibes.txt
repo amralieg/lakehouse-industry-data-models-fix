@@ -1,0 +1,414 @@
+**Model Quality Score: 50/100**
+
+**Static Analysis Findings (45 actionable):**
+  - [SA:unlinked_fk] Column contract.contract_provider_contract.fee_schedule_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column member.subscriber.member_address_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column care.question_set.care_program_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column care.question_set.superseded_by_set_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column employer.broker_agreement.broker_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column employer.broker_agreement.employer_group_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column employer.broker_agreement.general_agent_id looks like an FK but has no foreign_key_to reference
+  - [SA:duplicate_product_pair] Domain 'care' has both 'coordinator_assignment' and 'care_coordinator_assignment' — SSOT violation. Merge into 'coordinator_assignment'.
+  - [SA:denormalized_natural_key] Product 'workforce.training_record' has both FK 'course_id' and natural key 'course_code' for entity 'course'. The natural key is redundant — use the FK join instead.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'appeal.appeal_grievance' and 'member.member_grievance' have the same entity name 'grievance' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'appeal.appeal_document' and 'credential.credential_document' have the same entity name 'document' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'appeal.appeal_document' and 'vendor.vendor_document' have the same entity name 'document' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'credential.credential_document' and 'vendor.vendor_document' have the same entity name 'document' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'appeal.appeal_communication' and 'member.member_communication' have the same entity name 'communication' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'appeal.appeal_regulatory_filing' and 'finance.finance_regulatory_filing' have the same entity name 'regulatory_filing' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_dispute' and 'contract.contract_dispute' have the same entity name 'dispute' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_dispute' and 'vendor.vendor_dispute' have the same entity name 'dispute' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.contract_dispute' and 'vendor.vendor_dispute' have the same entity name 'dispute' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.payer' and 'claim.payer' have the same entity name 'payer' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'care.care_enrollment' and 'member.member_enrollment' have the same entity name 'enrollment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'compliance.compliance_regulatory_obligation' and 'plan.plan_regulatory_obligation' have the same entity name 'regulatory_obligation' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'compliance.compliance_attestation' and 'credential.credential_attestation' have the same entity name 'attestation' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.contract_provider_contract' and 'plan.plan_provider_contract' have the same entity name 'provider_contract' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.amendment' and 'plan.plan_amendment' have the same entity name 'amendment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.contract_lifecycle_event' and 'credential.credential_lifecycle_event' have the same entity name 'lifecycle_event' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.contract_lifecycle_event' and 'member.member_lifecycle_event' have the same entity name 'lifecycle_event' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.contract_lifecycle_event' and 'vendor.vendor_lifecycle_event' have the same entity name 'lifecycle_event' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'credential.credential_lifecycle_event' and 'member.member_lifecycle_event' have the same entity name 'lifecycle_event' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'credential.credential_lifecycle_event' and 'vendor.vendor_lifecycle_event' have the same entity name 'lifecycle_event' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'member.member_lifecycle_event' and 'vendor.vendor_lifecycle_event' have the same entity name 'lifecycle_event' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.network_participation' and 'provider.provider_network_participation' have the same entity name 'network_participation' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'credential.credential_outreach' and 'provider.provider_outreach' have the same entity name 'outreach' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'employer.employer_underwriting_case' and 'risk.risk_underwriting_case' have the same entity name 'underwriting_case' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'employer.employer_contract' and 'pharmacy.pharmacy_contract' have the same entity name 'contract' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'employer.employer_contract' and 'vendor.vendor_contract' have the same entity name 'contract' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'pharmacy.pharmacy_contract' and 'vendor.vendor_contract' have the same entity name 'contract' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'enrollment.enrollment_eligibility_span' and 'member.member_eligibility_span' have the same entity name 'eligibility_span' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'enrollment.enrollment_cms_submission' and 'risk.risk_cms_submission' have the same entity name 'cms_submission' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'member.member_address' and 'vendor.vendor_address' have the same entity name 'address' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'member.member_contact' and 'vendor.vendor_contact' have the same entity name 'contact' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'network.network_provider' and 'provider.provider_provider' have the same entity name 'provider' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'network.network_service_area' and 'plan.plan_service_area' have the same entity name 'service_area' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'network.network_directory_verification' and 'provider.provider_directory_verification' have the same entity name 'directory_verification' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'network.network_recruitment' and 'workforce.workforce_recruitment' have the same entity name 'recruitment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'vendor.vendor_certification' and 'workforce.workforce_certification' have the same entity name 'certification' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — connect_table: billing.rate_schedule** — add column plan_health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — rate schedules must be associated with specific health plans for premium calculation
+**PRIORITY 2 — connect_table: claim.payer** — add column vendor_vendor_id (BIGINT) with FK to vendor.vendor.vendor_id — external payers are third-party entities that should link to vendor master
+**PRIORITY 3 — connect_table: enrollment.open_enrollment_period** — add column plan_health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — open enrollment periods are specific to health plan offerings
+**PRIORITY 4 — connect_table: network.adequacy_standard** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.compliance_regulatory_obligation.compliance_regulatory_obligation_id — adequacy standards derive from regulatory requirements
+**PRIORITY 5 — connect_table: network.vbc_program** — add column plan_health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — VBC programs operate within specific health plan contexts
+**PRIORITY 6 — connect_table: utilization.um_reviewer** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — UM reviewers are internal staff members requiring workforce linkage
+**PRIORITY 7 — connect_table: utilization.um_reviewer** — add column credential_record_id (BIGINT) with FK to credential.record.record_id — UM reviewers require clinical credentials for medical necessity determinations
+**PRIORITY 8 — connect_table: workforce.job_role** — add column workforce_org_unit_id (BIGINT) with FK to workforce.org_unit.org_unit_id — job roles are defined within organizational unit contexts
+**PRIORITY 9 — connect_table: member.member_contact** — add column member_subscriber_id (BIGINT) with FK to member.subscriber.subscriber_id — member contacts must link to the subscriber they represent
+**PRIORITY 10 — connect_table: care.coordinator_assignment** — add column member_subscriber_id (BIGINT) with FK to member.subscriber.subscriber_id — coordinator assignments must specify which member is being assigned
+**PRIORITY 11 — connect_table: care.hedis_measure** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.compliance_regulatory_obligation.compliance_regulatory_obligation_id — HEDIS measures are regulatory quality requirements
+**PRIORITY 12 — connect_table: employer.wellness_program** — add column employer_group_id (BIGINT) with FK to employer.group.group_id — wellness programs are offered to specific employer groups
+**PRIORITY 13 — connect_table: employer.tpa** — add column vendor_vendor_id (BIGINT) with FK to vendor.vendor.vendor_id — TPAs are third-party vendors requiring vendor master linkage
+**PRIORITY 14 — connect_table: employer.broker** — add column vendor_vendor_id (BIGINT) with FK to vendor.vendor.vendor_id — brokers are external business partners tracked in vendor master
+**PRIORITY 15 — rename_product: provider.provider_provider** — rename to provider because redundant domain-name prefix creates confusing naming pattern
+**PRIORITY 16 — rename_product: contract.contract_provider_contract** — rename to provider_contract because redundant contract prefix creates confusing naming pattern
+**PRIORITY 17 — rename_product: compliance.compliance_regulatory_obligation** — rename to regulatory_obligation because redundant compliance prefix creates confusing naming pattern
+**PRIORITY 18 — rename_product: compliance.compliance_attestation** — rename to attestation because redundant compliance prefix creates confusing naming pattern
+**PRIORITY 19 — rename_product: member.member_eligibility_span** — rename to eligibility_span because redundant member prefix creates confusing naming pattern
+**PRIORITY 20 — rename_product: member.member_enrollment** — rename to enrollment because redundant member prefix creates confusing naming pattern
+**PRIORITY 21 — rename_product: member.member_communication** — rename to communication because redundant member prefix creates confusing naming pattern
+**PRIORITY 22 — rename_product: member.member_grievance** — rename to grievance because redundant member prefix creates confusing naming pattern
+**PRIORITY 23 — rename_product: member.member_lifecycle_event** — rename to lifecycle_event because redundant member prefix creates confusing naming pattern
+**PRIORITY 24 — rename_product: member.member_address** — rename to address because redundant member prefix creates confusing naming pattern
+**PRIORITY 25 — rename_product: enrollment.enrollment_eligibility_span** — rename to eligibility_span because redundant enrollment prefix creates confusing naming pattern
+**PRIORITY 26 — rename_product: enrollment.enrollment_batch** — rename to batch because redundant enrollment prefix creates confusing naming pattern
+**PRIORITY 27 — rename_product: enrollment.enrollment_cms_submission** — rename to cms_submission because redundant enrollment prefix creates confusing naming pattern
+**PRIORITY 28 — rename_product: provider.provider_directory_verification** — rename to directory_verification because redundant provider prefix creates confusing naming pattern
+**PRIORITY 29 — rename_product: provider.provider_network_participation** — rename to network_participation because redundant provider prefix creates confusing naming pattern
+**PRIORITY 30 — rename_product: provider.provider_outreach** — rename to outreach because redundant provider prefix creates confusing naming pattern
+**PRIORITY 31 — rename_product: network.network_service_area** — rename to service_area because redundant network prefix creates confusing naming pattern
+**PRIORITY 32 — rename_product: network.network_provider** — rename to provider_assignment because redundant network prefix and clearer semantic meaning
+**PRIORITY 33 — rename_product: network.network_directory_verification** — rename to directory_verification because redundant network prefix creates confusing naming pattern
+**PRIORITY 34 — rename_product: network.network_recruitment** — rename to recruitment because redundant network prefix creates confusing naming pattern
+**PRIORITY 35 — rename_product: credential.credential_document** — rename to document because redundant credential prefix creates confusing naming pattern
+**PRIORITY 36 — rename_product: credential.credential_appeal** — rename to appeal because redundant credential prefix creates confusing naming pattern
+**PRIORITY 37 — rename_product: credential.credential_attestation** — rename to attestation because redundant credential prefix creates confusing naming pattern
+**PRIORITY 38 — rename_product: credential.credential_lifecycle_event** — rename to lifecycle_event because redundant credential prefix creates confusing naming pattern
+**PRIORITY 39 — rename_product: credential.credential_outreach** — rename to outreach because redundant credential prefix creates confusing naming pattern
+**PRIORITY 40 — rename_product: vendor.vendor_contract** — rename to contract because redundant vendor prefix creates confusing naming pattern
+**PRIORITY 41 — rename_product: vendor.vendor_address** — rename to address because redundant vendor prefix creates confusing naming pattern
+**PRIORITY 42 — rename_product: vendor.vendor_audit** — rename to audit because redundant vendor prefix creates confusing naming pattern
+**PRIORITY 43 — rename_product: vendor.vendor_certification** — rename to certification because redundant vendor prefix creates confusing naming pattern
+**PRIORITY 44 — rename_product: vendor.vendor_contact** — rename to contact because redundant vendor prefix creates confusing naming pattern
+**PRIORITY 45 — rename_product: vendor.vendor_dispute** — rename to dispute because redundant vendor prefix creates confusing naming pattern
+**PRIORITY 46 — rename_product: vendor.vendor_document** — rename to document because redundant vendor prefix creates confusing naming pattern
+**PRIORITY 47 — rename_product: vendor.vendor_lifecycle_event** — rename to lifecycle_event because redundant vendor prefix creates confusing naming pattern
+**PRIORITY 48 — rename_product: risk.risk_underwriting_case** — rename to underwriting_case because redundant risk prefix creates confusing naming pattern
+**PRIORITY 49 — rename_product: risk.risk_cms_submission** — rename to cms_submission because redundant risk prefix creates confusing naming pattern
+**PRIORITY 50 — rename_product: appeal.appeal_communication** — rename to communication because redundant appeal prefix creates confusing naming pattern
+**PRIORITY 51 — rename_product: appeal.appeal_document** — rename to document because redundant appeal prefix creates confusing naming pattern
+**PRIORITY 52 — rename_product: appeal.appeal_grievance** — rename to grievance because redundant appeal prefix creates confusing naming pattern
+**PRIORITY 53 — rename_product: appeal.appeal_regulatory_filing** — rename to regulatory_filing because redundant appeal prefix creates confusing naming pattern
+**PRIORITY 54 — rename_product: finance.finance_regulatory_filing** — rename to regulatory_filing because redundant finance prefix creates confusing naming pattern
+**PRIORITY 55 — rename_product: workforce.workforce_certification** — rename to certification because redundant workforce prefix creates confusing naming pattern
+**PRIORITY 56 — rename_product: workforce.workforce_recruitment** — rename to recruitment because redundant workforce prefix creates confusing naming pattern
+**PRIORITY 57 — connect_table: utilization.clinical_criteria** — add column vendor_vendor_id (BIGINT) with FK to vendor.vendor.vendor_id — clinical criteria sets like InterQual/MCG are licensed from vendors
+**PRIORITY 58 — connect_table: care.population_segment** — add column plan_health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — population segments are defined within health plan contexts
+**PRIORITY 59 — connect_table: care.member_risk_tier** — add column risk_pool_id (BIGINT) with FK to risk.pool.pool_id — member risk tiers feed into risk pool stratification
+**PRIORITY 60 — connect_table: pharmacy.drug_master** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.compliance_regulatory_obligation.compliance_regulatory_obligation_id — drug classifications have FDA regulatory requirements
+**PRIORITY 61 — connect_table: claim.ibnr** — add column risk_pool_id (BIGINT) with FK to risk.pool.pool_id — IBNR reserves are calculated at risk pool level
+**PRIORITY 62 — connect_table: claim.ibnr** — add column plan_health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — IBNR reserves are tracked by health plan
+**PRIORITY 63 — connect_table: finance.actuarial_reserve** — add column risk_pool_id (BIGINT) with FK to risk.pool.pool_id — actuarial reserves are calculated at risk pool level
+**PRIORITY 64 — connect_table: billing.retro_adjustment** — add column billing_premium_invoice_id (BIGINT) with FK to billing.premium_invoice.premium_invoice_id — retroactive adjustments apply to specific invoices
+**PRIORITY 65 — connect_table: billing.aptc_subsidy** — add column plan_health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — APTC subsidies are specific to ACA marketplace plans
+**PRIORITY 66 — connect_table: employer.group_amendment** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — group amendments require tracking of who processed them
+**PRIORITY 67 — connect_table: employer.group_contact** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — group contacts may be assigned internal account managers
+**PRIORITY 68 — connect_table: employer.group_document** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — document uploads require audit trail of uploader
+**PRIORITY 69 — connect_table: employer.cobra_administration** — add column vendor_vendor_id (BIGINT) with FK to vendor.vendor.vendor_id — COBRA administration is often outsourced to vendors
+**PRIORITY 70 — connect_table: employer.stop_loss_policy** — add column vendor_vendor_id (BIGINT) with FK to vendor.vendor.vendor_id — stop loss policies are purchased from reinsurance vendors
+**PRIORITY 71 — connect_table: employer.aso_fee_schedule** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — fee schedules require tracking of who created/approved them
+**PRIORITY 72 — connect_table: employer.participation_requirement** — add column plan_health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — participation requirements vary by plan offering
+**PRIORITY 73 — connect_table: employer.open_enrollment_window** — add column plan_health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — enrollment windows are specific to plan offerings
+**PRIORITY 74 — connect_table: plan.plan_regulatory_obligation** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.compliance_regulatory_obligation.compliance_regulatory_obligation_id — plan regulatory obligations must link to master obligation list
+**PRIORITY 75 — connect_table: employer.erisa_plan_document** — add column employer_group_id (BIGINT) with FK to employer.group.group_id — ERISA documents are filed for specific employer groups
+**PRIORITY 76 — connect_table: employer.broker_agreement** — add column vendor_vendor_id (BIGINT) with FK to vendor.vendor.vendor_id — broker agreements are contracts with external vendor entities
+**PRIORITY 77 — remove_fk: appeal.appeal_grievance** — remove FK on risk_member_risk_score_id because grievances are member complaints unrelated to actuarial risk scoring
+**PRIORITY 78 — remove_fk: appeal.case** — remove FK on risk_member_risk_score_id because appeal cases are administrative processes unrelated to actuarial risk scoring
+**PRIORITY 79 — connect_table: contract.bundled_payment_episode** — add column plan_health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — bundled payment episodes operate within specific plan contexts
+**PRIORITY 80 — connect_table: contract.bundled_payment_episode** — add column provider_provider_id (BIGINT) with FK to provider.provider_provider.provider_provider_id — bundled payments are made to specific providers
+**PRIORITY 81 — connect_table: risk.rate_development** — add column plan_health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — rate development is performed for specific health plans
+**PRIORITY 82 — connect_table: risk.rbc_calculation** — add column finance_legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — RBC calculations are performed at legal entity level
+**PRIORITY 83 — connect_table: risk.ibnr_reserve** — add column plan_health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — IBNR reserves are tracked by health plan
+**PRIORITY 84 — connect_table: risk.actuarial_assumption_set** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — assumption sets require actuary sign-off tracking
+**PRIORITY 85 — connect_table: risk.hcc_mapping** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.compliance_regulatory_obligation.compliance_regulatory_obligation_id — HCC mappings follow CMS regulatory requirements
+**PRIORITY 86 — connect_table: compliance.fwa_case** — add column member_subscriber_id (BIGINT) with FK to member.subscriber.subscriber_id — FWA cases often involve specific member fraud
+**PRIORITY 87 — connect_table: compliance.fwa_case** — add column provider_provider_id (BIGINT) with FK to provider.provider_provider.provider_provider_id — FWA cases often involve specific provider fraud
+**PRIORITY 88 — connect_table: compliance.fwa_case** — add column claim_header_id (BIGINT) with FK to claim.header.header_id — FWA cases are triggered by suspicious claims
+**PRIORITY 89 — connect_table: utilization.um_delegation** — add column vendor_vendor_id (BIGINT) with FK to vendor.vendor.vendor_id — UM delegation is to external vendor organizations
+**PRIORITY 90 — connect_table: utilization.um_delegation** — add column contract_provider_contract_id (BIGINT) with FK to contract.contract_provider_contract.contract_provider_contract_id — UM delegation requires contractual agreement
+**PRIORITY 91 — connect_table: care.question_set** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — question sets require tracking of creator/owner
+**PRIORITY 92 — connect_table: pharmacy.mtm_service** — add column pharmacy_dispensing_pharmacy_id (BIGINT) with FK to pharmacy.dispensing_pharmacy.dispensing_pharmacy_id — MTM services are delivered by pharmacies
+**PRIORITY 93 — connect_table: pharmacy.specialty_drug_program** — add column vendor_vendor_id (BIGINT) with FK to vendor.vendor.vendor_id — specialty drug programs often involve specialty pharmacy vendors
+**PRIORITY 94 — connect_table: network.access_standard** — add column plan_health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — access standards are defined per health plan
+**PRIORITY 95 — connect_table: finance.mlr_financial_entry** — add column employer_group_id (BIGINT) with FK to employer.group.group_id — MLR entries may be tracked at employer group level for large groups
+**PRIORITY 96 — connect_table: claim.drg** — add column provider_facility_id (BIGINT) with FK to provider.facility.facility_id — DRG assignments are specific to facility admissions
+**PRIORITY 97 — connect_table: claim.diagnosis** — add column member_identity_id (BIGINT) with FK to member.identity.identity_id — diagnoses are associated with specific members
+**PRIORITY 98 — connect_table: claim.procedure** — add column member_identity_id (BIGINT) with FK to member.identity.identity_id — procedures are performed on specific members
+
+Other known issues from static analysis (263):
+  - Attribute 'vendor_tier' in vendor.vendor has redundant product prefix 'vendor_'. Rename to 'tier'
+  - Attribute 'policy_effective_date' in member.policy has redundant product prefix 'policy_'. Rename to 'effective_date'
+  - Attribute 'policy_expiration_date' in member.policy has redundant product prefix 'policy_'. Rename to 'expiration_date'
+  - Attribute 'policy_renewal_amount' in member.policy has redundant product prefix 'policy_'. Rename to 'renewal_amount'
+  - Attribute 'policy_renewal_currency' in member.policy has redundant product prefix 'policy_'. Rename to 'renewal_currency'
+  - Attribute 'policy_renewal_date' in member.policy has redundant product prefix 'policy_'. Rename to 'renewal_date'
+  - Attribute 'policy_renewal_deductible_amount' in member.policy has redundant product prefix 'policy_'. Rename to 'renewal_deductible_amount'
+  - Attribute 'policy_renewal_deductible_currency' in member.policy has redundant product prefix 'policy_'. Rename to 'renewal_deductible_currency'
+  - Attribute 'policy_renewal_out_of_pocket_max_amount' in member.policy has redundant product prefix 'policy_'. Rename to 'renewal_out_of_pocket_max_amount'
+  - Attribute 'policy_renewal_out_of_pocket_max_currency' in member.policy has redundant product prefix 'policy_'. Rename to 'renewal_out_of_pocket_max_currency'
+  - Attribute 'policy_renewal_premium_amount' in member.policy has redundant product prefix 'policy_'. Rename to 'renewal_premium_amount'
+  - Attribute 'policy_renewal_premium_currency' in member.policy has redundant product prefix 'policy_'. Rename to 'renewal_premium_currency'
+  - Attribute 'policy_renewal_status' in member.policy has redundant product prefix 'policy_'. Rename to 'renewal_status'
+  - Attribute 'policy_termination_date' in member.policy has redundant product prefix 'policy_'. Rename to 'termination_date'
+  - Attribute 'policy_termination_reason' in member.policy has redundant product prefix 'policy_'. Rename to 'termination_reason'
+  - Attribute 'payer_address_line1' in billing.payer has redundant product prefix 'payer_'. Rename to 'address_line1'
+  - Attribute 'payer_address_line2' in billing.payer has redundant product prefix 'payer_'. Rename to 'address_line2'
+  - Attribute 'payer_balance_due' in billing.payer has redundant product prefix 'payer_'. Rename to 'balance_due'
+  - Attribute 'payer_balance_outstanding' in billing.payer has redundant product prefix 'payer_'. Rename to 'balance_outstanding'
+  - Attribute 'payer_balance_paid' in billing.payer has redundant product prefix 'payer_'. Rename to 'balance_paid'
+  - Attribute 'payer_city' in billing.payer has redundant product prefix 'payer_'. Rename to 'city'
+  - Attribute 'payer_communication_contact_preference' in billing.payer has redundant product prefix 'payer_'. Rename to 'communication_contact_preference'
+  - Attribute 'payer_communication_language' in billing.payer has redundant product prefix 'payer_'. Rename to 'communication_language'
+  - Attribute 'payer_communication_method' in billing.payer has redundant product prefix 'payer_'. Rename to 'communication_method'
+  - Attribute 'payer_communication_preference' in billing.payer has redundant product prefix 'payer_'. Rename to 'communication_preference'
+  - Attribute 'payer_communication_time_zone' in billing.payer has redundant product prefix 'payer_'. Rename to 'communication_time_zone'
+  - Attribute 'payer_contact_email' in billing.payer has redundant product prefix 'payer_'. Rename to 'contact_email'
+  - Attribute 'payer_contact_name' in billing.payer has redundant product prefix 'payer_'. Rename to 'contact_name'
+  - Attribute 'payer_contact_phone' in billing.payer has redundant product prefix 'payer_'. Rename to 'contact_phone'
+  - Attribute 'payer_contact_role' in billing.payer has redundant product prefix 'payer_'. Rename to 'contact_role'
+  - Attribute 'payer_country' in billing.payer has redundant product prefix 'payer_'. Rename to 'country'
+  - Attribute 'payer_created_at' in billing.payer has redundant product prefix 'payer_'. Rename to 'created_at'
+  - Attribute 'payer_credit_limit' in billing.payer has redundant product prefix 'payer_'. Rename to 'credit_limit'
+  - Attribute 'payer_currency' in billing.payer has redundant product prefix 'payer_'. Rename to 'currency'
+  - Attribute 'payer_ein' in billing.payer has redundant product prefix 'payer_'. Rename to 'ein'
+  - Attribute 'payer_email' in billing.payer has redundant product prefix 'payer_'. Rename to 'email'
+  - Attribute 'payer_fax' in billing.payer has redundant product prefix 'payer_'. Rename to 'fax'
+  - Attribute 'payer_language' in billing.payer has redundant product prefix 'payer_'. Rename to 'language'
+  - Attribute 'payer_last_payment_amount' in billing.payer has redundant product prefix 'payer_'. Rename to 'last_payment_amount'
+  - Attribute 'payer_last_payment_date' in billing.payer has redundant product prefix 'payer_'. Rename to 'last_payment_date'
+  - Attribute 'payer_last_payment_method' in billing.payer has redundant product prefix 'payer_'. Rename to 'last_payment_method'
+  - Attribute 'payer_last_payment_status' in billing.payer has redundant product prefix 'payer_'. Rename to 'last_payment_status'
+  - Attribute 'payer_legal_name' in billing.payer has redundant product prefix 'payer_'. Rename to 'legal_name'
+  - Attribute 'payer_payment_terms' in billing.payer has redundant product prefix 'payer_'. Rename to 'payment_terms'
+  - Attribute 'payer_phone' in billing.payer has redundant product prefix 'payer_'. Rename to 'phone'
+  - Attribute 'payer_postal_code' in billing.payer has redundant product prefix 'payer_'. Rename to 'postal_code'
+  - Attribute 'payer_tax_number' in billing.payer has redundant product prefix 'payer_'. Rename to 'tax_number'
+  - Attribute 'payer_time_zone' in billing.payer has redundant product prefix 'payer_'. Rename to 'time_zone'
+  - Attribute 'payer_updated_at' in billing.payer has redundant product prefix 'payer_'. Rename to 'updated_at'
+  - Attribute 'payer_website' in billing.payer has redundant product prefix 'payer_'. Rename to 'website'
+  - Attribute 'payer_account_balance' in claim.payer has redundant product prefix 'payer_'. Rename to 'account_balance'
+  - Attribute 'payer_account_currency' in claim.payer has redundant product prefix 'payer_'. Rename to 'account_currency'
+  - Attribute 'payer_account_number' in claim.payer has redundant product prefix 'payer_'. Rename to 'account_number'
+  - Attribute 'payer_account_status' in claim.payer has redundant product prefix 'payer_'. Rename to 'account_status'
+  - Attribute 'payer_address_line1' in claim.payer has redundant product prefix 'payer_'. Rename to 'address_line1'
+  - Attribute 'payer_address_line2' in claim.payer has redundant product prefix 'payer_'. Rename to 'address_line2'
+  - Attribute 'payer_business_number' in claim.payer has redundant product prefix 'payer_'. Rename to 'business_number'
+  - Attribute 'payer_city' in claim.payer has redundant product prefix 'payer_'. Rename to 'city'
+  - Attribute 'payer_contact_email' in claim.payer has redundant product prefix 'payer_'. Rename to 'contact_email'
+  - Attribute 'payer_contact_name' in claim.payer has redundant product prefix 'payer_'. Rename to 'contact_name'
+  - Attribute 'payer_contact_phone' in claim.payer has redundant product prefix 'payer_'. Rename to 'contact_phone'
+  - Attribute 'payer_contract_end_date' in claim.payer has redundant product prefix 'payer_'. Rename to 'contract_end_date'
+  - Attribute 'payer_contract_number' in claim.payer has redundant product prefix 'payer_'. Rename to 'contract_number'
+  - Attribute 'payer_contract_start_date' in claim.payer has redundant product prefix 'payer_'. Rename to 'contract_start_date'
+  - Attribute 'payer_contract_status' in claim.payer has redundant product prefix 'payer_'. Rename to 'contract_status'
+  - Attribute 'payer_country' in claim.payer has redundant product prefix 'payer_'. Rename to 'country'
+  - Attribute 'payer_coverage_end_date' in claim.payer has redundant product prefix 'payer_'. Rename to 'coverage_end_date'
+  - Attribute 'payer_coverage_start_date' in claim.payer has redundant product prefix 'payer_'. Rename to 'coverage_start_date'
+  - Attribute 'payer_created_at' in claim.payer has redundant product prefix 'payer_'. Rename to 'created_at'
+  - Attribute 'payer_deleted_at' in claim.payer has redundant product prefix 'payer_'. Rename to 'deleted_at'
+  - Attribute 'payer_lei' in claim.payer has redundant product prefix 'payer_'. Rename to 'lei'
+  - Attribute 'payer_logo_url' in claim.payer has redundant product prefix 'payer_'. Rename to 'logo_url'
+  - Attribute 'payer_notes' in claim.payer has redundant product prefix 'payer_'. Rename to 'notes'
+  - Attribute 'payer_payment_cycle' in claim.payer has redundant product prefix 'payer_'. Rename to 'payment_cycle'
+  - Attribute 'payer_payment_frequency' in claim.payer has redundant product prefix 'payer_'. Rename to 'payment_frequency'
+  - Attribute 'payer_payment_method' in claim.payer has redundant product prefix 'payer_'. Rename to 'payment_method'
+  - Attribute 'payer_payment_terms' in claim.payer has redundant product prefix 'payer_'. Rename to 'payment_terms'
+  - Attribute 'payer_rating' in claim.payer has redundant product prefix 'payer_'. Rename to 'rating'
+  - Attribute 'payer_rating_source' in claim.payer has redundant product prefix 'payer_'. Rename to 'rating_source'
+  - Attribute 'payer_risk_category' in claim.payer has redundant product prefix 'payer_'. Rename to 'risk_category'
+  - Attribute 'payer_risk_score' in claim.payer has redundant product prefix 'payer_'. Rename to 'risk_score'
+  - Attribute 'payer_tax_number' in claim.payer has redundant product prefix 'payer_'. Rename to 'tax_number'
+  - Attribute 'payer_updated_at' in claim.payer has redundant product prefix 'payer_'. Rename to 'updated_at'
+  - Attribute 'payer_website' in claim.payer has redundant product prefix 'payer_'. Rename to 'website'
+  - Attribute 'payer_zip' in claim.payer has redundant product prefix 'payer_'. Rename to 'zip'
+  - Attribute 'committee_approval_document_id' in credential.committee has redundant product prefix 'committee_'. Rename to 'approval_document_id'
+  - Attribute 'committee_approval_by' in credential.committee has redundant product prefix 'committee_'. Rename to 'approval_by'
+  - Attribute 'committee_approval_comments' in credential.committee has redundant product prefix 'committee_'. Rename to 'approval_comments'
+  - Attribute 'committee_approval_date' in credential.committee has redundant product prefix 'committee_'. Rename to 'approval_date'
+  - Attribute 'committee_approval_document_checksum' in credential.committee has redundant product prefix 'committee_'. Rename to 'approval_document_checksum'
+  - Attribute 'committee_approval_document_created_at' in credential.committee has redundant product prefix 'committee_'. Rename to 'approval_document_created_at'
+  - Attribute 'committee_approval_document_format' in credential.committee has redundant product prefix 'committee_'. Rename to 'approval_document_format'
+  - Attribute 'committee_approval_document_size' in credential.committee has redundant product prefix 'committee_'. Rename to 'approval_document_size'
+  - Attribute 'committee_approval_document_type' in credential.committee has redundant product prefix 'committee_'. Rename to 'approval_document_type'
+  - Attribute 'committee_approval_document_updated_at' in credential.committee has redundant product prefix 'committee_'. Rename to 'approval_document_updated_at'
+  - Attribute 'committee_approval_document_url' in credential.committee has redundant product prefix 'committee_'. Rename to 'approval_document_url'
+  - Attribute 'committee_approval_document_version' in credential.committee has redundant product prefix 'committee_'. Rename to 'approval_document_version'
+  - Attribute 'committee_approval_status' in credential.committee has redundant product prefix 'committee_'. Rename to 'approval_status'
+  - Attribute 'committee_contact_address' in credential.committee has redundant product prefix 'committee_'. Rename to 'contact_address'
+  - Attribute 'committee_contact_email' in credential.committee has redundant product prefix 'committee_'. Rename to 'contact_email'
+  - Attribute 'committee_contact_name' in credential.committee has redundant product prefix 'committee_'. Rename to 'contact_name'
+  - Attribute 'committee_contact_phone' in credential.committee has redundant product prefix 'committee_'. Rename to 'contact_phone'
+  - Attribute 'committee_created_at' in credential.committee has redundant product prefix 'committee_'. Rename to 'created_at'
+  - Attribute 'committee_created_by' in credential.committee has redundant product prefix 'committee_'. Rename to 'created_by'
+  - Attribute 'committee_end_date' in credential.committee has redundant product prefix 'committee_'. Rename to 'end_date'
+  - Attribute 'committee_is_active' in credential.committee has redundant product prefix 'committee_'. Rename to 'is_active'
+  - Attribute 'committee_is_approved' in credential.committee has redundant product prefix 'committee_'. Rename to 'is_approved'
+  - Attribute 'committee_is_default' in credential.committee has redundant product prefix 'committee_'. Rename to 'is_default'
+  - Attribute 'committee_location' in credential.committee has redundant product prefix 'committee_'. Rename to 'location'
+  - Attribute 'committee_start_date' in credential.committee has redundant product prefix 'committee_'. Rename to 'start_date'
+  - Attribute 'committee_updated_at' in credential.committee has redundant product prefix 'committee_'. Rename to 'updated_at'
+  - Attribute 'committee_updated_by' in credential.committee has redundant product prefix 'committee_'. Rename to 'updated_by'
+  - Attribute 'decision_document_created_at' in credential.decision_document has redundant product prefix 'decision_document_'. Rename to 'created_at'
+  - Attribute 'decision_document_created_by' in credential.decision_document has redundant product prefix 'decision_document_'. Rename to 'created_by'
+  - Attribute 'decision_document_format' in credential.decision_document has redundant product prefix 'decision_document_'. Rename to 'format'
+  - Attribute 'decision_document_hash' in credential.decision_document has redundant product prefix 'decision_document_'. Rename to 'hash'
+  - Attribute 'decision_document_language' in credential.decision_document has redundant product prefix 'decision_document_'. Rename to 'language'
+  - Attribute 'decision_document_revision' in credential.decision_document has redundant product prefix 'decision_document_'. Rename to 'revision'
+  - Attribute 'decision_document_size_bytes' in credential.decision_document has redundant product prefix 'decision_document_'. Rename to 'size_bytes'
+  - Attribute 'decision_document_source_system' in credential.decision_document has redundant product prefix 'decision_document_'. Rename to 'source_system'
+  - Attribute 'decision_document_source_system_code' in credential.decision_document has redundant product prefix 'decision_document_'. Rename to 'source_system_code'
+  - Attribute 'decision_document_source_system_description' in credential.decision_document has redundant product prefix 'decision_document_'. Rename to 'source_system_description'
+  - Attribute 'decision_document_source_system_owner' in credential.decision_document has redundant product prefix 'decision_document_'. Rename to 'source_system_owner'
+  - Attribute 'decision_document_source_system_owner_address' in credential.decision_document has redundant product prefix 'decision_document_'. Rename to 'source_system_owner_address'
+  - Attribute 'decision_document_source_system_owner_code' in credential.decision_document has redundant product prefix 'decision_document_'. Rename to 'source_system_owner_code'
+  - Attribute 'decision_document_source_system_owner_email' in credential.decision_document has redundant product prefix 'decision_document_'. Rename to 'source_system_owner_email'
+  - Attribute 'decision_document_source_system_owner_name' in credential.decision_document has redundant product prefix 'decision_document_'. Rename to 'source_system_owner_name'
+  - Attribute 'decision_document_source_system_owner_phone' in credential.decision_document has redundant product prefix 'decision_document_'. Rename to 'source_system_owner_phone'
+  - Attribute 'decision_document_source_system_status' in credential.decision_document has redundant product prefix 'decision_document_'. Rename to 'source_system_status'
+  - Attribute 'decision_document_source_system_timestamp' in credential.decision_document has redundant product prefix 'decision_document_'. Rename to 'source_system_timestamp'
+  - Attribute 'decision_document_source_system_version' in credential.decision_document has redundant product prefix 'decision_document_'. Rename to 'source_system_version'
+  - Attribute 'decision_document_updated_at' in credential.decision_document has redundant product prefix 'decision_document_'. Rename to 'updated_at'
+  - Attribute 'decision_document_updated_by' in credential.decision_document has redundant product prefix 'decision_document_'. Rename to 'updated_by'
+  - Attribute 'decision_document_url' in credential.decision_document has redundant product prefix 'decision_document_'. Rename to 'url'
+  - Attribute 'decision_document_version' in credential.decision_document has redundant product prefix 'decision_document_'. Rename to 'version'
+  - Attribute 'credential_document_created_at' in credential.credential_document has redundant product prefix 'credential_document_'. Rename to 'created_at'
+  - Attribute 'credential_document_created_by' in credential.credential_document has redundant product prefix 'credential_document_'. Rename to 'created_by'
+  - Attribute 'credential_document_format' in credential.credential_document has redundant product prefix 'credential_document_'. Rename to 'format'
+  - Attribute 'credential_document_language' in credential.credential_document has redundant product prefix 'credential_document_'. Rename to 'language'
+  - Attribute 'credential_document_language_code' in credential.credential_document has redundant product prefix 'credential_document_'. Rename to 'language_code'
+  - Attribute 'credential_document_language_description' in credential.credential_document has redundant product prefix 'credential_document_'. Rename to 'language_description'
+  - Attribute 'credential_document_page_count' in credential.credential_document has redundant product prefix 'credential_document_'. Rename to 'page_count'
+  - Attribute 'credential_document_size_bytes' in credential.credential_document has redundant product prefix 'credential_document_'. Rename to 'size_bytes'
+  - Attribute 'credential_document_status_reason' in credential.credential_document has redundant product prefix 'credential_document_'. Rename to 'status_reason'
+  - Attribute 'credential_document_title' in credential.credential_document has redundant product prefix 'credential_document_'. Rename to 'title'
+  - Attribute 'credential_document_updated_at' in credential.credential_document has redundant product prefix 'credential_document_'. Rename to 'updated_at'
+  - Attribute 'credential_document_updated_by' in credential.credential_document has redundant product prefix 'credential_document_'. Rename to 'updated_by'
+  - Attribute 'credential_document_url' in credential.credential_document has redundant product prefix 'credential_document_'. Rename to 'url'
+  - Attribute 'credential_document_version' in credential.credential_document has redundant product prefix 'credential_document_'. Rename to 'version'
+  - Attribute 'tpa_address_line1' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'address_line1'
+  - Attribute 'tpa_city' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'city'
+  - Attribute 'tpa_contact_email' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'contact_email'
+  - Attribute 'tpa_contact_name' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'contact_name'
+  - Attribute 'tpa_contact_phone' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'contact_phone'
+  - Attribute 'tpa_contract_currency' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'contract_currency'
+  - Attribute 'tpa_contract_end_date' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'contract_end_date'
+  - Attribute 'tpa_contract_notes' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'contract_notes'
+  - Attribute 'tpa_contract_number' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'contract_number'
+  - Attribute 'tpa_contract_start_date' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'contract_start_date'
+  - Attribute 'tpa_contract_status' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'contract_status'
+  - Attribute 'tpa_contract_type' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'contract_type'
+  - Attribute 'tpa_contract_value' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'contract_value'
+  - Attribute 'tpa_country' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'country'
+  - Attribute 'tpa_coverage_end_date' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'coverage_end_date'
+  - Attribute 'tpa_coverage_limit_amount' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'coverage_limit_amount'
+  - Attribute 'tpa_coverage_limit_currency' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'coverage_limit_currency'
+  - Attribute 'tpa_coverage_start_date' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'coverage_start_date'
+  - Attribute 'tpa_coverage_status' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'coverage_status'
+  - Attribute 'tpa_coverage_type' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'coverage_type'
+  - Attribute 'tpa_created_at' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'created_at'
+  - Attribute 'tpa_renewal_date' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'renewal_date'
+  - Attribute 'tpa_renewal_status' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'renewal_status'
+  - Attribute 'tpa_sla_end' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'sla_end'
+  - Attribute 'tpa_sla_notes' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'sla_notes'
+  - Attribute 'tpa_sla_start' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'sla_start'
+  - Attribute 'tpa_sla_status' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'sla_status'
+  - Attribute 'tpa_tax_number' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'tax_number'
+  - Attribute 'tpa_termination_date' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'termination_date'
+  - Attribute 'tpa_termination_reason' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'termination_reason'
+  - Attribute 'tpa_updated_at' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'updated_at'
+  - Attribute 'tpa_zip' in employer.tpa has redundant product prefix 'tpa_'. Rename to 'zip'
+  - Attribute 'legal_entity_address_line1' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'address_line1'
+  - Attribute 'legal_entity_annual_revenue' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'annual_revenue'
+  - Attribute 'legal_entity_bank_account_currency' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'bank_account_currency'
+  - Attribute 'legal_entity_bank_account_number' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'bank_account_number'
+  - Attribute 'legal_entity_bank_account_type' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'bank_account_type'
+  - Attribute 'legal_entity_bank_name' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'bank_name'
+  - Attribute 'legal_entity_bank_routing_number' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'bank_routing_number'
+  - Attribute 'legal_entity_city' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'city'
+  - Attribute 'legal_entity_compliance_notes' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'compliance_notes'
+  - Attribute 'legal_entity_compliance_status' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'compliance_status'
+  - Attribute 'legal_entity_country' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'country'
+  - Attribute 'legal_entity_expiration_date' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'expiration_date'
+  - Attribute 'legal_entity_fax' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'fax'
+  - Attribute 'legal_entity_industry_code' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'industry_code'
+  - Attribute 'legal_entity_industry_description' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'industry_description'
+  - Attribute 'legal_entity_legal_status' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'legal_status'
+  - Attribute 'legal_entity_legal_structure' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'legal_structure'
+  - Attribute 'legal_entity_nature_of_business' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'nature_of_business'
+  - Attribute 'legal_entity_number_of_employees' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'number_of_employees'
+  - Attribute 'legal_entity_ownership_percentage' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'ownership_percentage'
+  - Attribute 'legal_entity_ownership_type' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'ownership_type'
+  - Attribute 'legal_entity_postal_code' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'postal_code'
+  - Attribute 'legal_entity_primary_contact_email' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'primary_contact_email'
+  - Attribute 'legal_entity_primary_contact_name' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'primary_contact_name'
+  - Attribute 'legal_entity_primary_contact_phone' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'primary_contact_phone'
+  - Attribute 'legal_entity_registration_date' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'registration_date'
+  - Attribute 'legal_entity_tax_exempt_certificate_expiration_date' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'tax_exempt_certificate_expiration_date'
+  - Attribute 'legal_entity_tax_exempt_certificate_number' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'tax_exempt_certificate_number'
+  - Attribute 'legal_entity_tax_exempt_status' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'tax_exempt_status'
+  - Attribute 'legal_entity_website' in finance.legal_entity has redundant product prefix 'legal_entity_'. Rename to 'website'
+  - Attribute 'training_course_certification_id' in workforce.training_course has redundant product prefix 'training_course_'. Rename to 'certification_id'
+  - Attribute 'training_course_certification_awarded' in workforce.training_course has redundant product prefix 'training_course_'. Rename to 'certification_awarded'
+  - Attribute 'training_course_certification_validity_end' in workforce.training_course has redundant product prefix 'training_course_'. Rename to 'certification_validity_end'
+  - Attribute 'training_course_certification_validity_start' in workforce.training_course has redundant product prefix 'training_course_'. Rename to 'certification_validity_start'
+  - Attribute 'training_course_compliance_due_date' in workforce.training_course has redundant product prefix 'training_course_'. Rename to 'compliance_due_date'
+  - Attribute 'training_course_compliance_status' in workforce.training_course has redundant product prefix 'training_course_'. Rename to 'compliance_status'
+  - Attribute 'training_course_cost' in workforce.training_course has redundant product prefix 'training_course_'. Rename to 'cost'
+  - Attribute 'training_course_cost_center' in workforce.training_course has redundant product prefix 'training_course_'. Rename to 'cost_center'
+  - Attribute 'training_course_cost_currency' in workforce.training_course has redundant product prefix 'training_course_'. Rename to 'cost_currency'
+  - Attribute 'training_course_created_at' in workforce.training_course has redundant product prefix 'training_course_'. Rename to 'created_at'
+  - Attribute 'training_course_delivery_mode' in workforce.training_course has redundant product prefix 'training_course_'. Rename to 'delivery_mode'
+  - Attribute 'training_course_duration_hours' in workforce.training_course has redundant product prefix 'training_course_'. Rename to 'duration_hours'
+  - Attribute 'training_course_end_date' in workforce.training_course has redundant product prefix 'training_course_'. Rename to 'end_date'
+  - Attribute 'training_course_format' in workforce.training_course has redundant product prefix 'training_course_'. Rename to 'format'
+  - Attribute 'training_course_language' in workforce.training_course has redundant product prefix 'training_course_'. Rename to 'language'
+  - Attribute 'training_course_learning_objectives' in workforce.training_course has redundant product prefix 'training_course_'. Rename to 'learning_objectives'
+  - Attribute 'training_course_prerequisites' in workforce.training_course has redundant product prefix 'training_course_'. Rename to 'prerequisites'
+  - Attribute 'training_course_provider_address' in workforce.training_course has redundant product prefix 'training_course_'. Rename to 'provider_address'
+  - Attribute 'training_course_provider_email' in workforce.training_course has redundant product prefix 'training_course_'. Rename to 'provider_email'
+  - Attribute 'training_course_provider_name' in workforce.training_course has redundant product prefix 'training_course_'. Rename to 'provider_name'
+  - Attribute 'training_course_provider_phone' in workforce.training_course has redundant product prefix 'training_course_'. Rename to 'provider_phone'
+  - Attribute 'training_course_required_by' in workforce.training_course has redundant product prefix 'training_course_'. Rename to 'required_by'
+  - Attribute 'training_course_start_date' in workforce.training_course has redundant product prefix 'training_course_'. Rename to 'start_date'
+  - Attribute 'training_course_updated_at' in workforce.training_course has redundant product prefix 'training_course_'. Rename to 'updated_at'
+  - Table billing.premium_statement has 2 FK columns pointing to workforce.employee (employee_id, updated_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table claim.header has 2 FK columns pointing to employer.group (claim_adjustment_group_id, group_id) (generic/unlabeled: group_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table compliance.mlr_calculation has 2 FK columns pointing to plan.health_plan (health_plan_id, product_health_plan_id) (generic/unlabeled: health_plan_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table compliance.training_completion has 3 FK columns pointing to workforce.employee (employee_id, primary_training_employee_id, updated_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table member.consent has 2 FK columns pointing to workforce.employee (employee_id, updated_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table pharmacy.pharmacy_claim has 2 FK columns pointing to enrollment.transaction (pbm_transaction_id, transaction_id) (generic/unlabeled: transaction_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table plan.plan_amendment has 3 FK columns pointing to workforce.employee (created_by_user_employee_id, employee_id, updated_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table provider.practice_location has 3 FK columns pointing to provider.provider_provider (medicaid_provider_id, medicare_provider_id, provider_id) (generic/unlabeled: provider_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table utilization.peer_to_peer_review has 2 FK columns pointing to utilization.pa_request (pa_request_id, review_request_id) (generic/unlabeled: pa_request_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.background_check has 3 FK columns pointing to workforce.employee (created_by_user_employee_id, employee_id, updated_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.rbac_assignment has 3 FK columns pointing to workforce.employee (employee_id, primary_rbac_employee_id, updated_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.headcount_plan has 3 FK columns pointing to workforce.employee (employee_id, primary_headcount_employee_id, updated_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table care.questionnaire has 2 FK columns pointing to workforce.employee (employee_id, owner_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table credential.decision_document has 2 FK columns pointing to workforce.employee (decision_approver_employee_id, employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.training_course has 2 FK columns pointing to workforce.employee (employee_id, training_course_updated_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - PII-candidate attribute finance.ap_invoice.bank_account_id has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute finance.ap_payment.bank_account_id has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute billing.payer.payer_postal_code has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute employer.tpa.tpa_contact_name has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute finance.legal_entity.legal_entity_bank_account_currency has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute finance.legal_entity.legal_entity_bank_account_type has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute utilization.episode_of_care.primary_diagnosis_code has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute utilization.episode_of_care.secondary_diagnosis_codes has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute employer.broker_agreement.compensation_method has no classification tags — expected restricted/confidential + PII tag
+  - Product 'claim.header' has 27 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - 289 attribute(s) match person-data patterns but lack pii_ tags
+  - 253 non-PK attributes redundantly prefixed with their product name
+  - 2 attribute(s) have value_regex on typed columns (DATE/BOOLEAN/INT/etc.) — regex is redundant when data_type constrains format
+
+Deterministic score: 50/100 (LLM assessment: 72/100)

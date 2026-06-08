@@ -1,0 +1,226 @@
+**Model Quality Score: 64/100**
+
+**Static Analysis Findings (60 actionable):**
+  - [SA:unlinked_fk] Column billing.dispute.credit_memo_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column collection.transfer_station.district_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column workforce.org_unit.epa_facility_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column billing.refund_transaction.adjustment_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column billing.refund_transaction.customer_account_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column billing.refund_transaction.dispute_case_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column billing.refund_transaction.invoice_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column billing.refund_transaction.original_payment_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column billing.refund_transaction.service_location_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column collection.sampling_event.approved_by_employee_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column collection.sampling_event.collection_route_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column collection.sampling_event.facility_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column collection.sampling_event.laboratory_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column collection.sampling_event.monitoring_point_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column collection.sampling_event.sampler_employee_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column compliance.laboratory.hazardous_waste_handler_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column compliance.sampling_event.facility_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column compliance.sampling_event.laboratory_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column compliance.sampling_event.laboratory_sample_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column compliance.sampling_event.parent_sampling_event_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column compliance.sampling_event.permit_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column compliance.sampling_event.sampler_employee_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column landfill.laboratory.regulatory_agency_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column procurement.legal_entity.parent_legal_entity_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column workforce.department.division_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column workforce.department.location_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column workforce.department.manager_employee_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column workforce.department.parent_department_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column workforce.department.workday_department_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column workforce.division.business_unit_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column workforce.division.division_manager_employee_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column workforce.division.osha_establishment_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column workforce.division.parent_division_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column workforce.division.primary_facility_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column workforce.division.region_id looks like an FK but has no foreign_key_to reference
+  - [SA:denormalized_natural_key] Product 'landfill.laboratory' has both FK 'laboratory_id' and natural key 'laboratory_code' for entity 'laboratory'. The natural key is redundant — use the FK join instead.
+  - [SA:denormalized_natural_key] Product 'compliance.laboratory' has both FK 'laboratory_id' and natural key 'laboratory_code' for entity 'laboratory'. The natural key is redundant — use the FK join instead.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'asset.asset_container' and 'hazmat.hazmat_container' have the same entity name 'container' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'asset.asset_inspection' and 'compliance.compliance_inspection' have the same entity name 'inspection' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'asset.asset_insurance' and 'fleet.fleet_insurance' have the same entity name 'insurance' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_rate_schedule' and 'energy.energy_rate_schedule' have the same entity name 'rate_schedule' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_rate_schedule' and 'service.service_rate_schedule' have the same entity name 'rate_schedule' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'energy.energy_rate_schedule' and 'service.service_rate_schedule' have the same entity name 'rate_schedule' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_tipping_fee_schedule' and 'landfill.landfill_tipping_fee_schedule' have the same entity name 'tipping_fee_schedule' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_account' and 'customer.customer_account' have the same entity name 'account' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_program_enrollment' and 'customer.customer_program_enrollment' have the same entity name 'program_enrollment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_program_enrollment' and 'sustainability.sustainability_program_enrollment' have the same entity name 'program_enrollment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'customer.customer_program_enrollment' and 'sustainability.sustainability_program_enrollment' have the same entity name 'program_enrollment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'collection.collection_stop' and 'customer.customer_stop' have the same entity name 'stop' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'collection.collection_environmental_monitoring' and 'compliance.compliance_environmental_monitoring' have the same entity name 'environmental_monitoring' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'collection.environmental_sample' and 'compliance.environmental_sample' have the same entity name 'environmental_sample' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'collection.laboratory' and 'compliance.laboratory' have the same entity name 'laboratory' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'collection.laboratory' and 'landfill.laboratory' have the same entity name 'laboratory' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'compliance.laboratory' and 'landfill.laboratory' have the same entity name 'laboratory' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'collection.sampling_event' and 'compliance.sampling_event' have the same entity name 'sampling_event' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.contract_service_commitment' and 'customer.customer_service_commitment' have the same entity name 'service_commitment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'customer.customer_buyer_contract' and 'recycling.recycling_buyer_contract' have the same entity name 'buyer_contract' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'fleet.fleet_dot_inspection' and 'maintenance.maintenance_dot_inspection' have the same entity name 'dot_inspection' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'recycling.recycling_program' and 'safety.safety_program' have the same entity name 'program' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'safety.safety_training_record' and 'workforce.workforce_training_record' have the same entity name 'training_record' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — connect_table: compliance.laboratory** — add column facility_id (BIGINT) with FK to asset.facility.facility_id — compliance laboratory is ISOLATED with zero inbound and zero outbound FKs; laboratories operate at physical facilities
+**PRIORITY 2 — connect_table: landfill.laboratory** — add column site_id (BIGINT) with FK to landfill.site.site_id — landfill laboratory is ISOLATED with zero inbound and zero outbound FKs; landfill labs serve specific landfill sites
+**PRIORITY 3 — connect_table: compliance.sampling_event** — add column facility_id (BIGINT) with FK to asset.facility.facility_id — compliance sampling_event is ISOLATED with zero inbound and zero outbound FKs; sampling events occur at regulated facilities
+**PRIORITY 4 — connect_table: procurement.legal_entity** — add column facility_id (BIGINT) with FK to asset.facility.facility_id — legal_entity is ISOLATED with zero inbound and zero outbound FKs; legal entities operate from physical locations
+**PRIORITY 5 — connect_table: contract.agreement_type** — add column parent_agreement_type_id (BIGINT) with FK to contract.agreement_type.agreement_type_id — agreement_type has zero outbound FKs and no self-referential hierarchy; agreement types typically form a hierarchy
+**PRIORITY 6 — connect_table: workforce.department** — add column division_id (BIGINT) with FK to workforce.division.division_id — department is ISOLATED with zero inbound and zero outbound FKs; departments belong to divisions
+**PRIORITY 7 — connect_table: workforce.division** — add column org_unit_id (BIGINT) with FK to workforce.org_unit.org_unit_id — division is ISOLATED with zero inbound and zero outbound FKs; divisions are organizational units
+**PRIORITY 8 — connect_table: workforce.union_agreement** — add column org_unit_id (BIGINT) with FK to workforce.org_unit.org_unit_id — union_agreement has zero outbound FKs; union agreements cover specific organizational units
+**PRIORITY 9 — connect_table: workforce.certification** — add column regulatory_requirement_id (BIGINT) with FK to compliance.regulatory_requirement.regulatory_requirement_id — certifications often fulfill regulatory requirements
+**PRIORITY 10 — connect_table: service.frequency_plan** — add column service_line_id (BIGINT) with FK to service.line.line_id — frequency_plan has zero outbound FKs; frequency plans belong to service lines
+**PRIORITY 11 — connect_table: compliance.regulatory_requirement** — add column permit_id (BIGINT) with FK to compliance.permit.permit_id — regulatory_requirement is ISOLATED with zero outbound FKs; requirements derive from permits or regulations
+**PRIORITY 12 — connect_table: hazmat.dot_hazmat_classification** — add column regulatory_requirement_id (BIGINT) with FK to compliance.regulatory_requirement.regulatory_requirement_id — DOT classifications are driven by regulatory requirements
+**PRIORITY 13 — connect_table: hazmat.waste_code** — add column regulatory_requirement_id (BIGINT) with FK to compliance.regulatory_requirement.regulatory_requirement_id — waste codes are defined by EPA/state regulations
+**PRIORITY 14 — connect_table: hazmat.epa_id_registration** — add column facility_id (BIGINT) with FK to asset.facility.facility_id — EPA ID registrations are issued to specific facilities
+**PRIORITY 15 — connect_table: maintenance.failure_mode** — add column asset_class_id (BIGINT) with FK to asset.class.class_id — failure modes are associated with specific asset classes
+**PRIORITY 16 — connect_table: billing.payment_method** — add column customer_account_id (BIGINT) with FK to customer.customer_account.customer_account_id — payment methods belong to customer accounts
+**PRIORITY 17 — connect_table: billing.refund_transaction** — add column customer_account_id (BIGINT) with FK to customer.customer_account.customer_account_id — refunds are issued to customer accounts
+**PRIORITY 18 — connect_table: recycling.commodity_buyer** — add column vendor_id (BIGINT) with FK to procurement.vendor.vendor_id — commodity buyers are vendors in the procurement system
+**PRIORITY 19 — connect_table: recycling.commodity_grade** — add column commodity_id (BIGINT) with FK to recycling.commodity.commodity_id — commodity grades classify specific commodities
+**PRIORITY 20 — connect_table: asset.lifecycle_stage** — add column parent_lifecycle_stage_id (BIGINT) with FK to asset.lifecycle_stage.lifecycle_stage_id — lifecycle stages may form a sequential hierarchy
+**PRIORITY 21 — remove_fk: billing.dispute** — remove FK on column fleet_driver_id because billing disputes should not directly reference fleet drivers; driver involvement is captured through pickup_event or route_execution
+**PRIORITY 22 — remove_fk: billing.dispute** — remove FK on column fleet_vehicle_id because billing disputes should not directly reference fleet vehicles; vehicle involvement is captured through pickup_event or route_execution
+**PRIORITY 23 — remove_fk: customer.service_address** — remove FK on column hazmat_hazardous_waste_generator_id because service addresses should not directly reference hazardous waste generators; this relationship belongs on waste_generator_profile
+**PRIORITY 24 — remove_fk: landfill.lfg_extraction_well** — remove FK on column customer_segment_id because landfill extraction wells have no business relationship to customer segments
+**PRIORITY 25 — connect_table: collection.disposal_routing** — add column waste_stream_id (BIGINT) with FK to service.waste_stream.waste_stream_id — disposal routing decisions depend on waste stream type
+**PRIORITY 26 — connect_table: collection.disposal_routing** — add column effective_date_from (BIGINT) with FK to compliance.permit.permit_id — disposal routing must comply with permitted disposal paths
+**PRIORITY 27 — rename_product: billing.collection_action** — rename to ar_collection_action because it conflicts semantically with the collection domain's operational meaning
+**PRIORITY 28 — rename_product: maintenance.cost** — rename to maintenance_cost because "cost" is too generic and conflicts with fleet.cost_allocation and other cost-related tables
+**PRIORITY 29 — rename_product: maintenance.type** — rename to maintenance_type because "type" is too generic and ambiguous as a standalone table name
+**PRIORITY 30 — rename_product: service.code** — rename to service_code because "code" is too generic and ambiguous as a standalone table name
+**PRIORITY 31 — rename_product: service.assignment** — rename to service_assignment because "assignment" is too generic and conflicts with multiple other assignment tables
+**PRIORITY 32 — rename_product: service.restriction** — rename to service_restriction because "restriction" is too generic
+**PRIORITY 33 — rename_product: service.channel** — rename to service_channel because "channel" is too generic
+**PRIORITY 34 — connect_table: energy.wte_facility** — add column facility_id (BIGINT) with FK to asset.facility.facility_id — WTE facilities are physical facilities that should link to the asset facility master
+**PRIORITY 35 — connect_table: collection.laboratory** — add column facility_id (BIGINT) with FK to asset.facility.facility_id — collection laboratories operate at physical facilities
+**PRIORITY 36 — connect_table: billing.dunning_sequence** — add column billing_account_id (BIGINT) with FK to billing.billing_account.billing_account_id — dunning sequences are configured per billing account or account type
+**PRIORITY 37 — move_product: collection.environmental_sample** — move to compliance because environmental sampling is a compliance/regulatory activity, not a collection operation
+**PRIORITY 38 — move_product: collection.collection_environmental_monitoring** — move to compliance because environmental monitoring at transfer stations is a compliance function
+**PRIORITY 39 — move_product: asset.safety_compliance** — move to safety because safety compliance tracking belongs in the safety domain
+**PRIORITY 40 — move_product: asset.facility_safety_program_implementation** — move to safety because safety program implementation belongs in the safety domain
+**PRIORITY 41 — connect_table: fleet.driver** — add column cdl_license_id (BIGINT) with FK to workforce.cdl_license.cdl_license_id — drivers must have CDL licenses tracked in workforce domain
+**PRIORITY 42 — connect_table: sustainability.report_period** — add column ghg_inventory_id (BIGINT) with FK to sustainability.ghg_inventory.ghg_inventory_id — report periods produce GHG inventories
+**PRIORITY 43 — connect_table: contract.municipality** — add column service_area_id (BIGINT) with FK to service.area.area_id — municipalities correspond to service areas for franchise agreements
+**PRIORITY 44 — connect_table: billing.billing_program_enrollment** — add column customer_account_id (BIGINT) with FK to customer.customer_account.customer_account_id — program enrollments need direct customer linkage for reporting
+**PRIORITY 45 — remove_fk: maintenance.maintenance_dot_inspection** — remove FK on column sustainability_fleet_fuel_consumption_id because DOT inspections have no direct relationship to fuel consumption records
+**PRIORITY 46 — remove_fk: hazmat.hazwoper_training** — remove FK on column sustainability_esg_disclosure_id because individual training records should not directly reference ESG disclosures
+**PRIORITY 47 — connect_table: workforce.pay_period** — add column org_unit_id (BIGINT) with FK to workforce.org_unit.org_unit_id — pay periods may vary by organizational unit
+**PRIORITY 48 — connect_table: collection.sampling_event** — add column facility_id (BIGINT) with FK to asset.facility.facility_id — sampling events occur at specific facilities
+**PRIORITY 49 — connect_table: energy.energy_rate_schedule** — add column offtake_agreement_id (BIGINT) with FK to energy.offtake_agreement.offtake_agreement_id — energy rate schedules are tied to offtake agreements
+**PRIORITY 50 — remove_fk: customer.facility_allocation_agreement** — remove FK on column energy_wte_facility_id because this creates a direct dependency that should go through contract domain
+**PRIORITY 51 — connect_table: billing.cycle** — add column service_area_id (BIGINT) with FK to service.area.area_id — billing cycles are typically organized by service area
+**PRIORITY 52 — rename_product: asset.location** — rename to asset_location because "location" is too generic and could conflict with address/geo concepts
+**PRIORITY 53 — rename_product: asset.transfer** — rename to asset_transfer because "transfer" conflicts semantically with collection.transfer_station
+**PRIORITY 54 — rename_product: contract.party** — rename to contract_party because "party" is too generic
+**PRIORITY 55 — rename_product: contract.pricing** — rename to contract_pricing because "pricing" is too generic and conflicts with service.pricing_tier
+**PRIORITY 56 — rename_product: fleet.driver** — rename to fleet_driver because "driver" is too generic; however this is a core entity so verify naming convention allows domain-prefixed names
+**PRIORITY 57 — connect_table: recycling.commodity** — add column waste_stream_id (BIGINT) with FK to service.waste_stream.waste_stream_id — commodities are recovered from specific waste streams
+**PRIORITY 58 — connect_table: collection.route_driver_qualification** — add column fleet_driver_id (BIGINT) with FK to fleet.driver.driver_id — route driver qualifications should reference the driver entity, not just workforce employee
+**PRIORITY 59 — connect_table: sustainability.reduction_target** — add column facility_id (BIGINT) with FK to asset.facility.facility_id — reduction targets are often set at facility level
+**PRIORITY 60 — connect_table: sustainability.emission_factor** — add column waste_stream_id (BIGINT) with FK to service.waste_stream.waste_stream_id — emission factors vary by waste stream type
+**PRIORITY 61 — remove_fk: customer.account_note** — remove FK on column safety_jha_id because customer account notes should not directly reference job hazard analyses
+**PRIORITY 62 — remove_fk: customer.nps_response** — remove FK on column hazmat_service_order_id because NPS survey responses should not directly reference hazmat service orders
+**PRIORITY 63 — connect_table: landfill.disposal_routing** — add column permit_id (BIGINT) with FK to compliance.permit.permit_id — disposal routing must reference the governing permit
+**PRIORITY 64 — connect_table: procurement.vendor** — add column service_area_id (BIGINT) with FK to service.area.area_id — vendors serve specific geographic service areas
+**PRIORITY 65 — connect_table: workforce.payroll_record** — add column pay_period_id (BIGINT) with FK to workforce.pay_period.pay_period_id — payroll records belong to specific pay periods
+**PRIORITY 66 — remove_fk: customer.service_enrollment** — remove FK on column maintenance_type_id because customer service enrollments should not directly reference maintenance types
+**PRIORITY 67 — connect_table: billing.run** — add column billing_account_id (BIGINT) with FK to billing.billing_account.billing_account_id — billing runs process specific billing accounts or account groups
+**PRIORITY 68 — connect_table: asset.container_inventory** — add column facility_id (BIGINT) with FK to asset.facility.facility_id — container inventory is tracked at specific facilities (already has asset.facility FK but verify column name)
+**PRIORITY 69 — remove_fk: safety.alert** — remove FK on column service_offering_id because safety alerts should not directly reference service offerings
+**PRIORITY 70 — remove_fk: safety.alert** — remove FK on column service_waste_stream_id because safety alerts should not directly reference waste streams; hazard context comes from incident or JHA
+**PRIORITY 71 — connect_table: collection.disposal_routing** — add column destination_facility_id (BIGINT) with FK to collection.destination_facility.destination_facility_id — disposal routing must specify the destination facility
+**PRIORITY 72 — connect_table: workforce.disciplinary_action** — add column corrective_action_id (BIGINT) with FK to safety.corrective_action.corrective_action_id — disciplinary actions often result from safety corrective actions
+**PRIORITY 73 — connect_table: customer.portal_account** — add column contact_id (BIGINT) with FK to customer.contact.contact_id — portal accounts are used by specific customer contacts
+
+Other known issues from static analysis (85):
+  - Attribute 'permit_tier' in compliance.permit has redundant product prefix 'permit_'. Rename to 'tier'
+  - Attribute 'survey_language' in customer.survey has redundant product prefix 'survey_'. Rename to 'language'
+  - Attribute 'survey_owner' in customer.survey has redundant product prefix 'survey_'. Rename to 'owner'
+  - Attribute 'survey_platform' in customer.survey has redundant product prefix 'survey_'. Rename to 'platform'
+  - Attribute 'survey_purpose' in customer.survey has redundant product prefix 'survey_'. Rename to 'purpose'
+  - Attribute 'survey_url' in customer.survey has redundant product prefix 'survey_'. Rename to 'url'
+  - Attribute 'survey_version' in customer.survey has redundant product prefix 'survey_'. Rename to 'version'
+  - Attribute 'stack_diameter_meters' in energy.stack has redundant product prefix 'stack_'. Rename to 'diameter_meters'
+  - Attribute 'stack_height_meters' in energy.stack has redundant product prefix 'stack_'. Rename to 'height_meters'
+  - Attribute 'stack_testing_frequency_months' in energy.stack has redundant product prefix 'stack_'. Rename to 'testing_frequency_months'
+  - Attribute 'division_manager_employee_id' in workforce.division has redundant product prefix 'division_'. Rename to 'manager_employee_id'
+  - Table asset.rfid_tag has self-referencing FK on column 'replaced_by_tag_id' with same name as PK 'rfid_tag_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table workforce.grievance has self-referencing FK on column 'related_grievance_id' with same name as PK 'grievance_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table workforce.job_position has self-referencing FK on column 'reports_to_position_id' with same name as PK 'job_position_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table safety.incident has self-referencing FK on column 'related_incident_id' with same name as PK 'incident_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table safety.medical_case has self-referencing FK on column 'related_medical_case_id' with same name as PK 'medical_case_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table safety.near_miss has self-referencing FK on column 'related_near_miss_id' with same name as PK 'near_miss_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table energy.stack has self-referencing FK on column 'linked_stack_id' with same name as PK 'stack_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table asset.rfid_tag has 2 FK columns pointing to workforce.employee (employee_id, primary_rfid_installed_by_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table collection.on_demand_request has 2 FK columns pointing to workforce.employee (employee_id, supervisor_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table collection.weight_ticket has 2 FK columns pointing to workforce.employee (employee_id, modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table hazmat.chain_of_custody has 2 FK columns pointing to hazmat.epa_id_registration (epa_id_registration_id, transferring_party_epa_id_registration_id) (generic/unlabeled: epa_id_registration_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table hazmat.disposal_record has 3 FK columns pointing to hazmat.epa_id_registration (epa_id_registration_id, generator_epa_id_registration_id, transporter_epa_epa_id_registration_id) (generic/unlabeled: epa_id_registration_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table hazmat.exception_report has 2 FK columns pointing to hazmat.epa_id_registration (epa_id_registration_id, generator_epa_id_registration_id) (generic/unlabeled: epa_id_registration_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table hazmat.hazmat_container has 3 FK columns pointing to hazmat.epa_id_registration (epa_id_registration_id, generator_epa_id_registration_id, tsdf_epa_epa_id_registration_id) (generic/unlabeled: epa_id_registration_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table hazmat.service_order has 2 FK columns pointing to hazmat.epa_id_registration (epa_id_registration_id, generator_epa_id_registration_id) (generic/unlabeled: epa_id_registration_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table hazmat.land_disposal_restriction has 2 FK columns pointing to hazmat.epa_id_registration (epa_id_registration_id, generator_epa_id_registration_id) (generic/unlabeled: epa_id_registration_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table hazmat.manifest has 5 FK columns pointing to hazmat.epa_id_registration (alternate_facility_epa_epa_id_registration_id, epa_id_registration_id, generator_epa_id_registration_id, transporter_2_epa_epa_id_registration_id, tsdf_epa_epa_id_registration_id) (generic/unlabeled: epa_id_registration_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table hazmat.treatment_record has 3 FK columns pointing to hazmat.epa_id_registration (epa_id_registration_id, transporter_epa_epa_id_registration_id, treatment_facility_epa_id_registration_id) (generic/unlabeled: epa_id_registration_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table hazmat.waste_shipment has 3 FK columns pointing to hazmat.epa_id_registration (epa_id_registration_id, generator_epa_id_registration_id, transporter_epa_epa_id_registration_id) (generic/unlabeled: epa_id_registration_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table landfill.daily_cover has 4 FK columns pointing to workforce.employee (employee_id, inspector_employee_id, last_modified_by_user_employee_id, primary_daily_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table procurement.disposal_purchase_order has 4 FK columns pointing to workforce.employee (approver_employee_id, employee_id, last_modified_by_user_employee_id, requester_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table recycling.recycling_buyer_contract has 2 FK columns pointing to contract.contract (contract_id, salesforce_contract_id) (generic/unlabeled: contract_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table recycling.commodity_sale has 3 FK columns pointing to workforce.employee (created_by_user_employee_id, employee_id, modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table sustainability.sustainability_program_enrollment has 3 FK columns pointing to workforce.employee (employee_id, last_modified_by_user_employee_id, primary_sustainability_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.labor_cost_allocation has 3 FK columns pointing to workforce.employee (employee_id, modified_by_user_employee_id, primary_labor_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.time_entry has 2 FK columns pointing to workforce.employee (employee_id, primary_time_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table collection.route_driver_qualification has 2 FK columns pointing to workforce.employee (employee_id, qualification_verified_by_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table customer.subscription has 2 FK columns pointing to customer.customer_account (account_customer_account_id, customer_account_id) (generic/unlabeled: customer_account_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table asset.facility_access_authorization has 2 FK columns pointing to customer.customer_account (account_customer_account_id, customer_account_id) (generic/unlabeled: customer_account_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table service.assignment has 2 FK columns pointing to workforce.employee (assigned_by_employee_id, employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table service.bundle_composition has 2 FK columns pointing to service.bundle (bundle_id, service_bundle_id) (generic/unlabeled: bundle_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table billing.billing_program_enrollment has 2 FK columns pointing to billing.billing_account (account_billing_account_id, billing_account_id) (generic/unlabeled: billing_account_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table asset.facility_safety_program_implementation has 2 FK columns pointing to safety.safety_program (program_safety_program_id, safety_program_id) (generic/unlabeled: safety_program_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table recycling.equipment_certification has 2 FK columns pointing to workforce.employee (certifying_instructor_employee_id, employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table billing.credit_memo has 4 FK columns pointing to workforce.employee (created_by_user_employee_id, employee_id, last_modified_by_user_employee_id, voided_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table maintenance.maintenance_plan has 3 FK columns pointing to workforce.employee (created_by_user_employee_id, employee_id, last_modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table maintenance.maintenance_plan has 2 FK columns pointing to maintenance.type (type_id, work_order_type_id) (generic/unlabeled: type_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table procurement.sourcing_event has 2 FK columns pointing to workforce.employee (approver_employee_id, employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - PII-candidate attribute billing.billing_account.service_address_id has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute asset.inspection_checklist.mobile_enabled_flag has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute billing.credit_memo.service_address_id has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute billing.payment_method.requires_bank_account has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute energy.stack.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute energy.stack.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute fleet.fueling_station.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute fleet.fueling_station.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute fleet.geofence_zone.center_latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute fleet.geofence_zone.center_longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute landfill.collection_point.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute landfill.collection_point.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute landfill.monitoring_point.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute landfill.monitoring_point.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute landfill.outfall.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute landfill.outfall.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute procurement.bank_account.account_holder_name has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute procurement.bank_account.bank_contact_name has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute procurement.bank_account.branch_postal_code has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute procurement.bank_account.swift_code has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute collection.laboratory.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute collection.laboratory.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute collection.sampling_event.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute collection.sampling_event.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute compliance.laboratory.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute compliance.laboratory.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute compliance.sampling_event.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute compliance.sampling_event.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute landfill.laboratory.is_mobile_laboratory has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute landfill.laboratory.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute landfill.laboratory.longitude has no classification tags — expected restricted/confidential + PII tag
+  - 7 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 538 attribute(s) match person-data patterns but lack pii_ tags
+  - 70 non-PK attributes redundantly prefixed with their product name
+  - 23 attribute(s) have value_regex on typed columns (DATE/BOOLEAN/INT/etc.) — regex is redundant when data_type constrains format
+  - 1 attribute(s) have pipe-enum value_regex with >8 values — consider creating a reference product instead
+
+Deterministic score: 64/100 (LLM assessment: 62/100)

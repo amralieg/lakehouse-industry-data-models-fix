@@ -1,0 +1,133 @@
+**Model Quality Score: 83/100**
+
+**Static Analysis Findings (15 actionable):**
+  - [SA:unlinked_fk] Column safety.corrective_action.risk_assessment_id looks like an FK but has no foreign_key_to reference
+  - [SA:denormalized_natural_key] Product 'revenue.fare_rule' has both FK 'fare_class_id' and natural key 'fare_class_code' for entity 'fare_class'. The natural key is redundant — use the FK join instead.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'airport.airport_irop_event' and 'flight.flight_irop_event' have the same entity name 'irop_event' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'airport.airport_slot_allocation' and 'route.route_slot_allocation' have the same entity name 'slot_allocation' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'ancillary.ancillary_category' and 'procurement.procurement_category' have the same entity name 'category' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'ancillary.ancillary_bundle_component' and 'revenue.revenue_bundle_component' have the same entity name 'bundle_component' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'ancillary.ancillary_refund' and 'revenue.revenue_refund' have the same entity name 'refund' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'cargo.cargo_booking' and 'passenger.passenger_booking' have the same entity name 'booking' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'cargo.cargo_allotment' and 'flight.flight_allotment' have the same entity name 'allotment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'cargo.cargo_surcharge' and 'revenue.revenue_surcharge' have the same entity name 'surcharge' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'fleet.fleet_plan' and 'flight.flight_plan' have the same entity name 'plan' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'flight.flight_performance' and 'route.route_performance' have the same entity name 'performance' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'loyalty.loyalty_promotion' and 'route.route_promotion' have the same entity name 'promotion' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'loyalty.loyalty_promotion_enrollment' and 'passenger.passenger_promotion_enrollment' have the same entity name 'promotion_enrollment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'passenger.passenger_booking_passenger' and 'reservation.reservation_booking_passenger' have the same entity name 'booking_passenger' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — connect_table: finance.company_code** — add column legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — company codes must be linked to their owning legal entity for consolidation and statutory reporting
+**PRIORITY 2 — connect_table: safety.performance_indicator** — add column regulatory_requirement_id (BIGINT) with FK to compliance.regulatory_requirement.regulatory_requirement_id — safety KPIs are typically mandated by regulatory frameworks and need traceability
+**PRIORITY 3 — connect_table: workforce.training_course** — add column regulatory_requirement_id (BIGINT) with FK to compliance.regulatory_requirement.regulatory_requirement_id — training courses are often mandated by regulatory requirements and need that linkage
+**PRIORITY 4 — connect_table: revenue.fare_family** — add column cabin_class_id (BIGINT) with FK to inventory.cabin_class.cabin_class_id — fare families are always associated with a cabin class (economy, business, first)
+**PRIORITY 5 — connect_table: loyalty.tier_status** — add column loyalty_program_id (BIGINT) with FK to loyalty.coalition_program.coalition_program_id — tier statuses belong to a specific loyalty program
+**PRIORITY 6 — connect_table: route.schedule_season** — add column regulatory_authority_id (BIGINT) with FK to compliance.regulatory_authority.regulatory_authority_id — IATA schedule seasons are governed by regulatory bodies (IATA Slot Conference)
+**PRIORITY 7 — connect_table: fleet.aircraft_type** — add column regulatory_authority_id (BIGINT) with FK to compliance.regulatory_authority.regulatory_authority_id — aircraft types are certified by a regulatory authority (FAA/EASA type certificate holder)
+**PRIORITY 8 — connect_table: finance.legal_entity** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — legal entities operate through company codes in ERP systems
+**PRIORITY 9 — connect_table: revenue.revenue_surcharge** — add column fare_id (BIGINT) with FK to revenue.fare.fare_id — surcharges are applied to specific fares and need that association
+**PRIORITY 10 — connect_table: revenue.tax_fee** — add column fare_id (BIGINT) with FK to revenue.fare.fare_id — taxes and fees are calculated against specific fare structures
+**PRIORITY 11 — remove_fk: loyalty.qualification_cycle** — remove FK on column maintenance.program because a loyalty qualification cycle has no business relationship to MRO maintenance programs
+**PRIORITY 12 — connect_table: loyalty.qualification_cycle** — add column coalition_program_id (BIGINT) with FK to loyalty.coalition_program.coalition_program_id — qualification cycles belong to a specific loyalty/coalition program
+**PRIORITY 13 — connect_table: flight.flight_irop_event** — add column flight_leg_id (BIGINT) with FK to flight.flight_leg.flight_leg_id — IROP events must be linked to the specific flight leg affected
+**PRIORITY 14 — connect_table: airport.airport_irop_event** — add column flight_leg_id (BIGINT) with FK to flight.flight_leg.flight_leg_id — airport IROP events typically affect specific flight legs and need direct linkage
+**PRIORITY 15 — remove_fk: safety.occurrence** — remove FK on column marketing.campaign because safety occurrences have no valid business relationship to marketing campaigns
+**PRIORITY 16 — remove_fk: safety.hazard** — remove FK on column marketing.campaign because hazard identification has no valid business relationship to marketing campaigns
+**PRIORITY 17 — remove_fk: safety.investigation** — remove FK on column marketing.campaign because safety investigations have no valid business relationship to marketing campaigns
+**PRIORITY 18 — remove_fk: safety.alert** — remove FK on column marketing.campaign because safety alerts have no valid business relationship to marketing campaigns
+**PRIORITY 19 — remove_fk: safety.emergency_drill** — remove FK on column marketing.campaign because emergency drills have no valid business relationship to marketing campaigns
+**PRIORITY 20 — remove_fk: safety.corrective_action** — remove FK on column route.route because corrective actions are not route-specific in a meaningful FK sense
+**PRIORITY 21 — remove_fk: safety.recommendation** — remove FK on column marketing.campaign because safety recommendations have no valid business relationship to marketing campaigns
+**PRIORITY 22 — remove_fk: route.hub_spoke_topology** — remove FK on column safety.occurrence because network topology definitions should not reference individual safety occurrences
+**PRIORITY 23 — remove_fk: route.authority** — remove FK on column safety.occurrence because route authority records should not reference individual safety occurrences
+**PRIORITY 24 — remove_fk: route.interline_agreement** — remove FK on column safety.occurrence because interline agreements should not reference individual safety occurrences
+**PRIORITY 25 — connect_table: flight.cancellation** — add column flight_irop_event_id (BIGINT) with FK to flight.flight_irop_event.flight_irop_event_id — cancellations should link to the IROP event that caused them (current FK exists but flight_irop_event lacks flight_leg linkage making this note about the IROP table itself)
+**PRIORITY 26 — connect_table: cargo.service_product** — add column cargo_surcharge_id (BIGINT) with FK to cargo.cargo_surcharge.cargo_surcharge_id — cargo service products should reference applicable surcharges
+**PRIORITY 27 — connect_table: cargo.cargo_surcharge** — add column route_id (BIGINT) with FK to route.route.route_id — cargo surcharges are typically route-specific
+**PRIORITY 28 — connect_table: finance.hedge_contract** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — hedge contracts must be associated with the legal/company entity holding the position
+**PRIORITY 29 — connect_table: finance.interline_billing** — add column carrier_id (BIGINT) with FK to route.carrier.carrier_id — interline billing is always between specific carriers
+**PRIORITY 30 — connect_table: finance.bank** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — bank relationships are maintained at the company code level
+**PRIORITY 31 — connect_table: loyalty.miles_balance** — add column tier_status_id (BIGINT) with FK to loyalty.tier_status.tier_status_id — miles balance snapshots should reflect the member's tier at time of balance
+**PRIORITY 32 — connect_table: loyalty.award_inventory** — add column flight_inventory_id (BIGINT) with FK to inventory.flight_inventory.flight_inventory_id — award inventory is carved from flight inventory and needs direct linkage
+**PRIORITY 33 — connect_table: ancillary.upgrade_offer** — add column route_id (BIGINT) with FK to route.route.route_id — upgrade offers are typically route-specific
+**PRIORITY 34 — connect_table: ancillary.upgrade_offer** — add column fare_family_id (BIGINT) with FK to revenue.fare_family.fare_family_id — upgrade offers target specific fare family transitions
+**PRIORITY 35 — connect_table: workforce.union_agreement** — add column org_unit_id (BIGINT) with FK to workforce.org_unit.org_unit_id — union agreements apply to specific organizational units
+**PRIORITY 36 — connect_table: workforce.grievance** — add column union_agreement_id (BIGINT) with FK to workforce.union_agreement.union_agreement_id — grievances are filed under specific union agreements
+**PRIORITY 37 — connect_table: workforce.staff_travel_entitlement** — add column route_id (BIGINT) with FK to route.route.route_id — staff travel entitlements may be restricted to specific routes
+**PRIORITY 38 — connect_table: revenue.corporate_account** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — corporate accounts are managed under specific company codes
+**PRIORITY 39 — remove_fk: cargo.shipper** — remove FK on column marketing.email_send because shippers should not directly reference individual email sends; the relationship should be through campaign responses
+**PRIORITY 40 — remove_fk: cargo.shipper** — remove FK on column marketing.market_research_study because shippers should not directly reference individual market research studies
+**PRIORITY 41 — connect_table: flight.booking_segment** — add column reservation_booking_passenger_id (BIGINT) with FK to reservation.reservation_booking_passenger.reservation_booking_passenger_id — booking segments need linkage to the specific passenger-PNR association
+**PRIORITY 42 — connect_table: flight.status** — add column station_id (BIGINT) with FK to airport.station.station_id — flight status updates originate from specific stations
+**PRIORITY 43 — connect_table: maintenance.material_request** — add column part_master_id (BIGINT) with FK to procurement.part_master.part_master_id — material requests are for specific parts and need direct linkage to the part catalog
+**PRIORITY 44 — connect_table: maintenance.material_request** — add column station_id (BIGINT) with FK to airport.station.station_id — material requests originate from specific maintenance stations
+**PRIORITY 45 — connect_table: crew.base** — add column station_id (BIGINT) with FK to airport.station.station_id — crew bases are located at specific airport stations
+**PRIORITY 46 — remove_fk: safety.fatigue_report** — remove FK on column marketing.nps_survey because fatigue reports have no valid business relationship to NPS surveys
+**PRIORITY 47 — connect_table: ancillary.baggage_allowance** — add column route_id (BIGINT) with FK to route.route.route_id — baggage allowances vary by route due to regulatory and commercial differences
+**PRIORITY 48 — connect_table: revenue.bid_price_curve** — add column route_id (BIGINT) with FK to route.route.route_id — bid price curves are generated for specific route markets
+**PRIORITY 49 — connect_table: revenue.yield_parameter** — add column route_id (BIGINT) with FK to route.route.route_id — yield parameters are set at the route level for revenue optimization
+**PRIORITY 50 — connect_table: fleet.cabin_configuration** — add column inventory_cabin_class_id (BIGINT) with FK to inventory.cabin_class.cabin_class_id — cabin configurations define physical layouts that map to sellable cabin classes
+**PRIORITY 51 — connect_table: marketing.competitor_fare_watch** — add column route_id (BIGINT) with FK to route.route.route_id — competitor fare monitoring is always route-specific
+**PRIORITY 52 — connect_table: marketing.competitor_fare_watch** — add column carrier_id (BIGINT) with FK to route.carrier.carrier_id — competitor fare watches track specific competing carriers
+**PRIORITY 53 — connect_table: revenue.agency** — add column station_id (BIGINT) with FK to airport.station.station_id — travel agencies operate from specific locations/markets
+**PRIORITY 54 — connect_table: loyalty.ffp_member** — add column passenger_profile_id (BIGINT) with FK to passenger.profile.profile_id — FFP members must link directly to passenger profiles as the identity hub (currently only passenger links to FFP, not bidirectional)
+**PRIORITY 55 — connect_table: loyalty.coalition_program** — add column partner_program_id (BIGINT) with FK to loyalty.partner_program.partner_program_id — coalition programs are composed of partner programs
+**PRIORITY 56 — connect_table: flight.flight_irop_event** — add column scheduled_flight_id (BIGINT) with FK to flight.scheduled_flight.scheduled_flight_id — IROP events affect scheduled flights and need that reference
+**PRIORITY 57 — connect_table: inventory.irop_reprotection** — add column passenger_profile_id (BIGINT) with FK to passenger.profile.profile_id — reprotection actions are performed for specific passengers
+**PRIORITY 58 — connect_table: inventory.irop_reprotection** — add column pnr_id (BIGINT) with FK to reservation.pnr.pnr_id — reprotection must reference the affected booking
+**PRIORITY 59 — remove_fk: inventory.fare_class_bucket** — remove FK on column procurement.catering_order because fare class buckets have no valid business relationship to catering orders
+**PRIORITY 60 — remove_fk: inventory.overbooking_control** — remove FK on column procurement.catering_order because overbooking controls have no valid business relationship to catering orders
+**PRIORITY 61 — remove_fk: inventory.seat_availability** — remove FK on column procurement.catering_order because seat availability snapshots have no valid business relationship to catering orders
+**PRIORITY 62 — remove_fk: inventory.upgrade_inventory** — remove FK on column procurement.catering_order because upgrade inventory has no valid business relationship to catering orders
+**PRIORITY 63 — remove_fk: inventory.group_block** — remove FK on column procurement.catering_order because group blocks have no valid business relationship to catering orders
+**PRIORITY 64 — connect_table: cargo.cargo_surcharge** — add column awb_id (BIGINT) with FK to cargo.awb.awb_id — cargo surcharges are applied to specific air waybills
+**PRIORITY 65 — connect_table: maintenance.service_bulletin** — add column aircraft_type_id (BIGINT) with FK to fleet.aircraft_type.aircraft_type_id — service bulletins apply to specific aircraft types
+**PRIORITY 66 — connect_table: workforce.payroll_run** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — payroll runs are executed within specific company codes for legal/tax purposes
+**PRIORITY 67 — connect_table: flight.weight_balance** — add column aircraft_id (BIGINT) with FK to fleet.aircraft.aircraft_id — weight and balance calculations are aircraft-specific
+**PRIORITY 68 — connect_table: reservation.group_booking** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — group bookings need financial entity association
+**PRIORITY 69 — connect_table: reservation.group_booking** — add column corporate_contract_id (BIGINT) with FK to revenue.corporate_contract.corporate_contract_id — group bookings are often made under corporate contracts
+**PRIORITY 70 — connect_table: ancillary.ancillary_category** — add column finance_gl_id (BIGINT) with FK to finance.general_ledger.general_ledger_id — ancillary categories need GL mapping for revenue recognition
+**PRIORITY 71 — connect_table: loyalty.miles_transfer** — add column receiving_ffp_member_id (BIGINT) with FK to loyalty.ffp_member.ffp_member_id — miles transfers need both sending and receiving member references
+**PRIORITY 72 — connect_table: revenue.adm** — add column passenger_profile_id (BIGINT) with FK to passenger.profile.profile_id — agency debit memos often relate to specific passenger transactions
+**PRIORITY 73 — connect_table: fleet.lessor** — add column vendor_id (BIGINT) with FK to procurement.vendor.vendor_id — lessors are vendors and should link to the vendor master
+**PRIORITY 74 — connect_table: marketing.campaign_exposure** — add column channel_id (BIGINT) with FK to marketing.channel.channel_id — campaign exposures occur through specific channels
+**PRIORITY 75 — connect_table: safety.committee** — add column org_unit_id (BIGINT) with FK to workforce.org_unit.org_unit_id — safety committees belong to organizational units
+**PRIORITY 76 — connect_table: safety.case** — add column occurrence_id (BIGINT) with FK to safety.occurrence.occurrence_id — safety cases are opened in response to specific occurrences
+**PRIORITY 77 — connect_table: maintenance.vendor_contract** — add column station_id (BIGINT) with FK to airport.station.station_id — MRO vendor contracts are often station-specific
+**PRIORITY 78 — rename_product: flight.status** — rename to flight_status because "status" is too generic and conflicts with common column naming patterns
+**PRIORITY 79 — connect_table: cargo.forwarder_route_agreement** — add column station_id (BIGINT) with FK to airport.station.station_id — forwarder route agreements specify origin/destination stations
+**PRIORITY 80 — connect_table: crew.deicing_crew** — add column employee_id (BIGINT) with FK to workforce.employee.employee_id — deicing crew leaders should link to employee records
+**PRIORITY 81 — connect_table: airport.station_authorization** — add column employee_id (BIGINT) with FK to workforce.employee.employee_id — station authorizations are granted to specific employees
+**PRIORITY 82 — connect_table: revenue.fare_applicability** — add column route_id (BIGINT) with FK to route.route.route_id — fare applicability rules are route-specific
+**PRIORITY 83 — connect_table: ancillary.channel_vendor_agreement** — add column finance_contract_id (BIGINT) with FK to procurement.supply_contract.supply_contract_id — channel vendor agreements should link to the procurement contract
+**PRIORITY 84 — connect_table: fleet.maintenance_service_agreement** — add column station_id (BIGINT) with FK to airport.station.station_id — maintenance service agreements are often station-specific
+
+Other known issues from static analysis (26):
+  - Attribute 'bundle_tier' in ancillary.bundle has redundant product prefix 'bundle_'. Rename to 'tier'
+  - Attribute 'vendor_tier' in procurement.vendor has redundant product prefix 'vendor_'. Rename to 'tier'
+  - Table passenger.data_subject_request has self-referencing FK on column 'related_data_subject_request_id' with same name as PK 'data_subject_request_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table ancillary.ancillary_refund has 2 FK columns pointing to reservation.pnr (booking_pnr_id, pnr_id) (generic/unlabeled: pnr_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table ancillary.excess_baggage_charge has 2 FK columns pointing to reservation.pnr (booking_pnr_id, pnr_id) (generic/unlabeled: pnr_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table cargo.invoice has 2 FK columns pointing to cargo.freight_forwarder (billed_freight_forwarder_id, freight_forwarder_id) (generic/unlabeled: freight_forwarder_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.budget_plan has 2 FK columns pointing to finance.cost_centre (cost_centre_id, profit_centre_id) (generic/unlabeled: cost_centre_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table procurement.po_line has 2 FK columns pointing to procurement.part_master (material_part_master_id, part_master_id) (generic/unlabeled: part_master_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table reservation.check_in_event has 2 FK columns pointing to reservation.pnr (booking_pnr_id, pnr_id) (generic/unlabeled: pnr_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table reservation.coupon_status has 2 FK columns pointing to reservation.pnr (booking_pnr_id, pnr_id) (generic/unlabeled: pnr_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table reservation.voluntary_change has 2 FK columns pointing to reservation.pnr (booking_pnr_id, pnr_id) (generic/unlabeled: pnr_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table procurement.vendor_category_qualification has 2 FK columns pointing to procurement.procurement_category (category_procurement_category_id, procurement_category_id) (generic/unlabeled: procurement_category_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table passenger.passenger_booking has 2 FK columns pointing to reservation.pnr (booking_pnr_id, pnr_id) (generic/unlabeled: pnr_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table procurement.vendor_authorization has 2 FK columns pointing to workforce.employee (authorized_by_employee_id, employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.category_responsibility has 2 FK columns pointing to workforce.employee (assigned_by_employee_id, employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.category_responsibility has 2 FK columns pointing to procurement.procurement_category (category_procurement_category_id, procurement_category_id) (generic/unlabeled: procurement_category_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table passenger.passenger_promotion_enrollment has 2 FK columns pointing to loyalty.loyalty_promotion (loyalty_promotion_id, promotion_loyalty_promotion_id) (generic/unlabeled: loyalty_promotion_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table airport.airport_slot_allocation has 2 FK columns pointing to airport.slot (slot_allocation_slot_id, slot_id) (generic/unlabeled: slot_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - PII-candidate attribute revenue.corporate_account.account_number has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute finance.bank.iban_prefix has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute finance.bank.routing_number has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute finance.bank.swift_code has no classification tags — expected restricted/confidential + PII tag
+  - 8 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 276 attribute(s) match person-data patterns but lack pii_ tags
+  - 26 non-PK attributes redundantly prefixed with their product name
+  - 2 attribute(s) have pipe-enum value_regex with >8 values — consider creating a reference product instead
+
+Deterministic score: 83/100 (LLM assessment: 62/100)

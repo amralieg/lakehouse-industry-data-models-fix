@@ -1,0 +1,95 @@
+**Model Quality Score: 90/100**
+
+**Static Analysis Findings (5 actionable):**
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'booking.booking_service_order' and 'marine.marine_service_order' have the same entity name 'service_order' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'booking.booking_service_order' and 'terminal.terminal_service_order' have the same entity name 'service_order' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'marine.marine_service_order' and 'terminal.terminal_service_order' have the same entity name 'service_order' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'infrastructure.infrastructure_terminal' and 'terminal.terminal_terminal' have the same entity name 'terminal' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'marine.marine_incident' and 'security.security_incident' have the same entity name 'incident' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — rename_product: terminal.terminal_terminal** — rename to terminal.terminal because the double-prefix "terminal_terminal" is a naming collision artifact from domain-prefixed conventions; the domain already provides context
+**PRIORITY 2 — rename_product: infrastructure.infrastructure_terminal** — rename to infrastructure.port_terminal because the "infrastructure_infrastructure_terminal" fully-qualified name is redundant and confusing against terminal.terminal_terminal
+**PRIORITY 3 — connect_table: cargo.move** — add column vessel_vessel_id (BIGINT) with FK to vessel.vessel.vessel_id — cargo moves (load/discharge) occur on specific vessels and need direct vessel linkage beyond just the call
+**PRIORITY 4 — connect_table: cargo.bill_of_lading** — add column customer_participant_account_id (BIGINT) with FK to customer.participant_account.participant_account_id — BOL must reference the shipper/consignee account for commercial and compliance traceability
+**PRIORITY 5 — connect_table: cargo.manifest_line** — add column customer_port_community_participant_id (BIGINT) with FK to customer.port_community_participant.port_community_participant_id — manifest lines reference consignees/shippers who are port community participants
+**PRIORITY 6 — connect_table: cargo.container** — add column vessel_vessel_id (BIGINT) with FK to vessel.vessel.vessel_id — containers are physically aboard a vessel and need direct vessel reference independent of call
+**PRIORITY 7 — connect_table: marine.tug** — add column marine_towage_order_id (BIGINT) with FK to marine.towage_order.towage_order_id — tugs should be linkable to their home towage orders for fleet assignment tracking; however tug_assignment already covers this so SKIP — remove this priority
+**PRIORITY 7 — connect_table: vessel.certificate** — add column masterdata_flag_state_id (BIGINT) with FK to masterdata.flag_state.flag_state_id — vessel certificates are issued under flag state authority and need that reference for PSC compliance
+**PRIORITY 8 — connect_table: vessel.owner** — add column masterdata_shipping_line_id (BIGINT) with FK to masterdata.shipping_line.shipping_line_id — vessel owners often operate through shipping lines; this link supports beneficial ownership tracking
+**PRIORITY 9 — connect_table: vessel.voyage** — add column infrastructure_port_id (BIGINT) with FK to infrastructure.port.port_id — voyages have origin/destination ports that should be directly referenced
+**PRIORITY 10 — connect_table: cargo.bill_of_lading** — add column masterdata_un_locode_pol_id (BIGINT) with FK to masterdata.un_locode.un_locode_id — BOL must capture Port of Loading as a structured reference
+**PRIORITY 11 — connect_table: cargo.bill_of_lading** — add column masterdata_un_locode_pod_id (BIGINT) with FK to masterdata.un_locode.un_locode_id — BOL must capture Port of Discharge as a structured reference
+**PRIORITY 12 — connect_table: cargo.shipment** — add column masterdata_un_locode_origin_id (BIGINT) with FK to masterdata.un_locode.un_locode_id — shipments need structured origin port reference for trade compliance
+**PRIORITY 13 — connect_table: cargo.shipment** — add column masterdata_un_locode_destination_id (BIGINT) with FK to masterdata.un_locode.un_locode_id — shipments need structured destination port reference for routing
+**PRIORITY 14 — connect_table: intermodal.haulier** — add column infrastructure_port_id (BIGINT) with FK to infrastructure.port.port_id — hauliers operate from specific ports and need home port reference
+**PRIORITY 15 — connect_table: intermodal.rail_wagon** — add column intermodal_rail_visit_id (BIGINT) with FK to intermodal.rail_visit.rail_visit_id — rail wagons participate in rail visits and need direct linkage for consist tracking
+**PRIORITY 16 — remove_fk: billing.charge_event** — remove FK on column compliance_hs_code_id because charge events should reference tariff items or invoice lines, not HS codes directly; HS code is derivable through cargo/customs declaration
+**PRIORITY 17 — connect_table: vessel.service_route** — add column masterdata_un_locode_id (BIGINT) with FK to masterdata.un_locode.un_locode_id — service routes connect ports identified by UN/LOCODE for schedule definition
+**PRIORITY 18 — connect_table: vessel.call** — add column masterdata_un_locode_id (BIGINT) with FK to masterdata.un_locode.un_locode_id — vessel calls occur at specific ports identified by UN/LOCODE for standardized port identification
+**PRIORITY 19 — connect_table: marine.pilot** — add column masterdata_vessel_type_id (BIGINT) with FK to masterdata.vessel_type.vessel_type_id — pilots are certified for specific vessel types and this supports authorization validation
+**PRIORITY 20 — connect_table: compliance.customs_declaration** — add column customer_participant_account_id (BIGINT) with FK to customer.participant_account.participant_account_id — customs declarations are filed on behalf of an account holder (importer/exporter)
+**PRIORITY 21 — connect_table: cargo.dangerous_goods_declaration** — add column masterdata_un_locode_id (BIGINT) with FK to masterdata.un_locode.un_locode_id — DG declarations reference the port where dangerous goods are handled
+**PRIORITY 22 — rename_attribute: billing.cycle** — rename column primary_prior_billing_cycle_id to prior_billing_cycle_id
+**PRIORITY 23 — rename_attribute: security.marsec_level_change** — rename column primary_superseded_by_change_marsec_level_change_id to superseded_by_marsec_level_change_id
+**PRIORITY 24 — rename_attribute: cargo.verified_gross_mass** — rename column primary_original_vgm_verified_gross_mass_id to original_verified_gross_mass_id
+**PRIORITY 25 — connect_table: vessel.port_call** — add column masterdata_un_locode_id (BIGINT) with FK to masterdata.un_locode.un_locode_id — port calls reference specific ports by UN/LOCODE for standardized identification
+**PRIORITY 26 — connect_table: vessel.movement** — add column masterdata_vessel_master_id (BIGINT) with FK to masterdata.vessel_master.vessel_master_id — vessel movements should reference the vessel master record for dimensional data validation
+**PRIORITY 27 — connect_table: terminal.yard_block** — add column masterdata_container_type_id (BIGINT) with FK to masterdata.container_type.container_type_id — yard blocks are often designated for specific container types for stacking optimization
+**PRIORITY 28 — connect_table: terminal.reefer_monitoring** — add column masterdata_container_type_id (BIGINT) with FK to masterdata.container_type.container_type_id — reefer monitoring applies to specific container types (reefer variants)
+**PRIORITY 29 — connect_table: cargo.demurrage_detention** — add column masterdata_container_type_id (BIGINT) with FK to masterdata.container_type.container_type_id — demurrage/detention rates and calculations depend on container type (20ft vs 40ft)
+**PRIORITY 30 — connect_table: booking.anchorage_booking** — add column infrastructure_channel_id (BIGINT) with FK to infrastructure.channel.channel_id — anchorage bookings may require channel transit and should reference the approach channel
+**PRIORITY 31 — connect_table: marine.marine_incident** — add column vessel_call_id (BIGINT) with FK to vessel.call.call_id — marine incidents typically occur during a vessel call and need that operational context
+**PRIORITY 32 — connect_table: vessel.bunker_operation** — add column masterdata_vessel_master_id (BIGINT) with FK to masterdata.vessel_master.vessel_master_id — bunker operations need vessel master reference for capacity and compliance validation
+**PRIORITY 33 — connect_table: vessel.draft_survey** — add column masterdata_vessel_master_id (BIGINT) with FK to masterdata.vessel_master.vessel_master_id — draft surveys reference vessel master for hull dimensions and displacement tables
+**PRIORITY 34 — connect_table: terminal.vessel_bay_plan** — add column masterdata_vessel_master_id (BIGINT) with FK to masterdata.vessel_master.vessel_master_id — bay plans are defined against vessel master specifications (bay/row/tier structure)
+**PRIORITY 35 — connect_table: vessel.vts_log** — add column masterdata_vessel_master_id (BIGINT) with FK to masterdata.vessel_master.vessel_master_id — VTS logs track vessels and need master data reference for identification
+**PRIORITY 36 — remove_fk: tariff.pilotage_tariff** — remove FK on column compliance_trade_restriction_id because pilotage tariffs are pricing structures not directly governed by trade restrictions; surcharge_rule already handles restriction-based pricing adjustments
+**PRIORITY 37 — remove_fk: tariff.towage_tariff** — remove FK on column compliance_trade_restriction_id because towage tariffs are service pricing not directly linked to trade restrictions
+**PRIORITY 38 — connect_table: intermodal.truck_visit** — add column customer_participant_account_id (BIGINT) with FK to customer.participant_account.participant_account_id — truck visits are billable to an account and need direct account reference
+**PRIORITY 39 — connect_table: terminal.gate_transaction** — add column customer_participant_account_id (BIGINT) with FK to customer.participant_account.participant_account_id — gate transactions generate charges against a customer account
+**PRIORITY 40 — connect_table: cargo.handling_order** — add column customer_participant_account_id (BIGINT) with FK to customer.participant_account.participant_account_id — handling orders are requested and billed to a specific customer account
+**PRIORITY 41 — connect_table: terminal.berth_allocation** — add column masterdata_vessel_master_id (BIGINT) with FK to masterdata.vessel_master.vessel_master_id — berth allocations need vessel master for LOA/beam validation against berth dimensions
+**PRIORITY 42 — connect_table: vessel.anchorage** — add column masterdata_vessel_master_id (BIGINT) with FK to masterdata.vessel_master.vessel_master_id — anchorage assignments need vessel master for draft/swing radius validation
+**PRIORITY 43 — rename_attribute: booking.voyage_nomination** — rename column superseded_by_nomination_voyage_nomination_id to superseded_by_voyage_nomination_id
+**PRIORITY 44 — rename_attribute: infrastructure.navigational_aid** — rename column replacement_aid_navigational_aid_id to replacement_navigational_aid_id
+**PRIORITY 45 — rename_attribute: tariff.free_time_allowance** — rename column superseded_by_allowance_free_time_allowance_id to superseded_by_free_time_allowance_id
+**PRIORITY 46 — rename_attribute: tariff.detention_schedule** — rename column superseded_by_schedule_detention_schedule_id to superseded_by_detention_schedule_id
+**PRIORITY 47 — rename_attribute: tariff.port_dues_schedule** — rename column superseded_by_schedule_port_dues_schedule_id to superseded_by_port_dues_schedule_id
+**PRIORITY 48 — rename_attribute: tariff.wharfage_schedule** — rename column superseded_by_schedule_wharfage_schedule_id to superseded_by_wharfage_schedule_id
+**PRIORITY 49 — rename_attribute: tariff.thc_schedule** — rename column supersedes_schedule_thc_schedule_id to superseded_by_thc_schedule_id
+**PRIORITY 50 — rename_attribute: tariff.mooring_tariff** — rename column superseded_by_tariff_mooring_tariff_id to superseded_by_mooring_tariff_id
+**PRIORITY 51 — rename_attribute: tariff.pilotage_tariff** — rename column superseded_by_tariff_pilotage_tariff_id to superseded_by_pilotage_tariff_id
+**PRIORITY 52 — rename_attribute: tariff.towage_tariff** — rename column superseded_by_tariff_towage_tariff_id to superseded_by_towage_tariff_id
+**PRIORITY 53 — rename_attribute: tariff.storage_tariff** — rename column superseded_by_tariff_storage_tariff_id to superseded_by_storage_tariff_id
+**PRIORITY 54 — rename_attribute: tariff.surcharge_rule** — rename column superseded_by_rule_surcharge_rule_id to superseded_by_surcharge_rule_id
+**PRIORITY 55 — rename_attribute: tariff.pricing_rule** — rename column superseded_by_rule_pricing_rule_id to superseded_by_pricing_rule_id
+**PRIORITY 56 — rename_attribute: tariff.port_tariff** — rename column superseded_by_tariff_port_tariff_id to superseded_by_port_tariff_id
+**PRIORITY 57 — rename_attribute: billing.run** — rename column rerun_of_billing_run_id to rerun_of_run_id
+**PRIORITY 58 — rename_attribute: security.facility_security_plan** — rename column superseded_facility_security_plan_id to superseded_by_facility_security_plan_id
+**PRIORITY 59 — rename_attribute: vessel.bunker_operation** — rename column amended_bunker_operation_id to amends_bunker_operation_id
+**PRIORITY 60 — rename_attribute: security.access_point** — rename column parent_access_point_id to parent_access_point_id
+**PRIORITY 60 — connect_table: cargo.bill_of_lading** — add column vessel_call_id (BIGINT) with FK to vessel.call.call_id — BOL is issued for cargo on a specific vessel call and needs direct operational linkage
+**PRIORITY 61 — connect_table: compliance.marpol_record** — add column infrastructure_berth_id (BIGINT) with FK to infrastructure.berth.berth_id — MARPOL waste reception operations occur at specific berths
+**PRIORITY 62 — connect_table: compliance.violation** — add column vessel_call_id (BIGINT) with FK to vessel.call.call_id — already exists per FK list, confirmed valid
+**PRIORITY 63 — connect_table: marine.marine_incident** — add column infrastructure_port_id (BIGINT) with FK to infrastructure.port.port_id — marine incidents occur within port jurisdiction and need port-level reference for reporting
+**PRIORITY 64 — connect_table: terminal.equipment_dispatch** — add column infrastructure_berth_id (BIGINT) with FK to infrastructure.berth.berth_id — equipment dispatches (STS cranes) operate at specific berths during vessel operations
+**PRIORITY 65 — connect_table: intermodal.drayage_order** — add column intermodal.truck_appointment_id (BIGINT) with FK to intermodal.truck_appointment.truck_appointment_id — drayage orders are fulfilled through truck appointments and need direct linkage
+**PRIORITY 66 — connect_table: vessel.call_schedule** — add column masterdata_vessel_master_id (BIGINT) with FK to masterdata.vessel_master.vessel_master_id — call schedules reference vessel master for planned vessel identification
+**PRIORITY 67 — connect_table: vessel.call_schedule** — add column infrastructure_berth_id (BIGINT) with FK to infrastructure.berth.berth_id — scheduled calls have planned berth assignments
+**PRIORITY 68 — connect_table: cargo.container** — add column masterdata_shipping_line_id (BIGINT) with FK to masterdata.shipping_line.shipping_line_id — containers are owned/leased by shipping lines and need operator reference
+
+Other known issues from static analysis (12):
+  - Product 'billing.charge_event' has 58 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'intermodal.drayage_order' has 38 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'billing.invoice_line' has 36 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'intermodal.truck_appointment' has 36 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'intermodal.leg' has 36 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'booking.cargo_booking' has 31 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'terminal.berth_allocation' has 30 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'billing.revenue_event' has 28 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'terminal.container_visit' has 27 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - 10 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 230 attribute(s) match person-data patterns but lack pii_ tags
+  - 18 non-PK attributes redundantly prefixed with their product name
+
+Deterministic score: 90/100 (LLM assessment: 62/100)

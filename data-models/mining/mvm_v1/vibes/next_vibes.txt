@@ -1,0 +1,87 @@
+**Model Quality Score: 75/100**
+
+**Static Analysis Findings (4 actionable):**
+  - [SA:duplicate_product_pair] Domain 'mine' has both 'site' and 'mine_site' — SSOT violation. Merge into 'site'.
+  - [SA:duplicate_product_pair] Domain 'procurement' has both 'vendor_performance' and 'procurement_vendor_performance' — SSOT violation. Merge into 'vendor_performance'.
+  - [SA:denormalized_natural_key] Product 'mine.rom_stockpile' has both FK 'environmental_permit_id' and natural key 'environmental_permit_ref' for entity 'environmental_permit'. The natural key is redundant — use the FK join instead.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'exploration.exploration_sample' and 'laboratory.laboratory_sample' have the same entity name 'sample' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — connect_table: mine.site** — add column mine_site_id (BIGINT) with FK to mine.mine_site.mine_site_id — mine.site appears to be a stub table with zero inbound and zero outbound FKs, completely isolated from the graph; it needs connection to mine_site or should be merged
+**PRIORITY 2 — connect_table: exploration.competent_person** — add column legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — competent_person has zero outbound FKs making it isolated; competent persons are employed by or contracted to a legal entity and need organizational linkage
+**PRIORITY 3 — connect_table: laboratory.analytical_method** — add column laboratory_id (BIGINT) with FK to laboratory.laboratory.laboratory_id — analytical_method has zero outbound FKs; methods are validated and maintained by specific laboratories
+**PRIORITY 4 — connect_table: product.grade_parameter** — add column commodity_id (BIGINT) with FK to product.commodity.commodity_id — grade_parameter has zero outbound FKs; grade parameters are inherently tied to a specific commodity (e.g., Fe% for iron ore, Cu% for copper)
+**PRIORITY 5 — connect_table: sales.price_index** — add column commodity_id (BIGINT) with FK to product.commodity.commodity_id — price_index has zero outbound FKs; every price index tracks a specific commodity (e.g., Platts 62% Fe, LME Copper)
+**PRIORITY 6 — connect_table: procurement.vendor** — add column legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — vendor has zero outbound FKs; vendors are legal entities with registered business identities
+**PRIORITY 7 — rename_product: mine.site** — rename to mine_region because it duplicates mine_site semantically and needs differentiation; if it represents a geographic region or cluster it should be named accordingly
+**PRIORITY 8 — remove_fk: equipment.asset** — remove FK on column hse.hazard because an asset master record should not directly reference a single hazard; hazards are assessed via risk_assessment or incident linkage, not embedded in the asset register
+**PRIORITY 9 — remove_fk: hse.corrective_action** — remove FK on column customer.delivery_destination because corrective actions are internal HSE responses and have no business justification for linking to a customer delivery destination
+**PRIORITY 10 — remove_fk: hse.safety_observation** — remove FK on column customer.delivery_destination because safety observations are operational field records with no logical connection to customer delivery points
+**PRIORITY 11 — remove_fk: hse.risk_assessment** — remove FK on column customer.delivery_destination because risk assessments are internal safety evaluations unrelated to customer shipping destinations
+**PRIORITY 12 — remove_fk: equipment.asset** — remove FK on column product.saleable_product because an asset master should not reference a saleable product; product association belongs at the operational level (fleet_assignment, production_schedule)
+**PRIORITY 13 — remove_fk: equipment.asset** — remove FK on column tailings.tsf because individual assets should be assigned to TSFs via fleet_assignment or work_order, not hard-coded in the asset master
+**PRIORITY 14 — rename_attribute: finance.legal_entity** — rename column parent_entity_legal_entity_id to parent_legal_entity_id because there are two self-referencing columns (parent_entity_legal_entity_id and parent_legal_entity_id) creating ambiguity; consolidate or clarify the business distinction
+**PRIORITY 15 — rename_attribute: finance.legal_entity** — rename column primary_ultimate_parent_entity_legal_entity_id to ultimate_parent_legal_entity_id because the current name is excessively verbose and redundant
+**PRIORITY 16 — rename_attribute: mine.mine_site** — rename column parent_site_mine_site_id to regional_parent_mine_site_id because having both parent_mine_site_id and parent_site_mine_site_id is ambiguous without clear business differentiation
+**PRIORITY 17 — rename_attribute: geology.block_model** — rename column primary_superseded_by_model_block_model_id to superseded_by_block_model_id because the current name is unnecessarily verbose with redundant prefix
+**PRIORITY 18 — rename_attribute: geology.resource_statement** — rename column primary_previous_statement_resource_statement_id to previous_resource_statement_id because the current name contains redundant qualifiers
+**PRIORITY 19 — rename_attribute: exploration.exploration_sample** — rename column parent_sample_exploration_sample_id to parent_exploration_sample_id because the current name redundantly includes both "sample" and the table name
+**PRIORITY 20 — connect_table: processing.plant** — add column mine_area_id (BIGINT) with FK to mine.area.area_id — plants are physically located within a mine area and this spatial relationship supports operational reporting
+**PRIORITY 21 — connect_table: sales.vessel** — add column port_country_code (BIGINT) with FK to customer.delivery_destination.delivery_destination_id — vessels operate between ports; the self-ref via sister_vessel_id alone leaves vessel nearly isolated with minimal outbound context
+**PRIORITY 22 — remove_fk: customer.letter_of_credit** — remove FK on column tenement.tenement because letters of credit are financial instruments tied to trade transactions, not to mining tenements
+**PRIORITY 23 — remove_fk: customer.letter_of_credit** — remove FK on column procurement.vendor because LCs are issued by banks for buyer-seller transactions; the bank relationship is already captured via bank_account FK
+**PRIORITY 24 — connect_table: mine.waste_dump** — add column product_commodity_id (BIGINT) with FK to product.commodity.commodity_id — waste dumps contain material from specific commodity operations and this linkage supports waste characterization reporting
+**PRIORITY 25 — remove_fk: hse.incident** — remove FK on column sales.cargo_shipment because HSE incidents at mine sites are operationally distinct from cargo shipments; port incidents should be tracked via delivery_destination
+**PRIORITY 26 — remove_fk: hse.incident** — remove FK on column sales.vessel because vessel-related incidents are maritime events outside the mine HSE domain scope
+**PRIORITY 27 — connect_table: procurement.material_master** — add column commodity_id (BIGINT) with FK to product.commodity.commodity_id — material master items should be classifiable by the commodity they support for spend analysis and inventory categorization
+**PRIORITY 28 — rename_attribute: procurement.delivery_schedule** — rename column revised_delivery_schedule_id to superseded_by_delivery_schedule_id because "revised" is ambiguous about directionality; superseded_by clarifies this replaces the current record
+**PRIORITY 29 — connect_table: exploration.competent_person** — add column mine_site_id (BIGINT) with FK to mine.mine_site.mine_site_id — competent persons are assigned to specific mine sites for resource reporting responsibilities
+**PRIORITY 30 — connect_table: finance.project_valuation** — add column mine_site_id (BIGINT) with FK to mine.mine_site.mine_site_id — project valuations (NPV/IRR/DCF) are performed for specific mine sites or deposits
+**PRIORITY 31 — remove_fk: equipment.downtime_event** — remove FK on column product.saleable_product because downtime events are equipment-centric and should not directly reference saleable products
+**PRIORITY 32 — remove_fk: equipment.downtime_event** — remove FK on column tenement.regulatory_condition because equipment downtime is an operational event unrelated to tenement regulatory conditions
+**PRIORITY 33 — connect_table: finance.rehabilitation_provision** — add column mine_area_id (BIGINT) with FK to mine.area.area_id — rehabilitation provisions are calculated per disturbed area, not just per mine site
+**PRIORITY 34 — remove_fk: equipment.fuel_consumption** — remove FK on column hse.incident because fuel consumption records are routine operational data; incident linkage belongs on the incident table referencing equipment
+**PRIORITY 35 — remove_fk: equipment.fuel_consumption** — remove FK on column tenement.tenement because fuel consumption is tracked per asset/cost centre, not per tenement
+**PRIORITY 36 — connect_table: processing.concentrate_stockpile** — add column mine_site_id (BIGINT) with FK to mine.mine_site.mine_site_id — concentrate stockpiles are physically located at a mine site and need site-level reporting
+**PRIORITY 37 — remove_fk: maintenance.condition_monitoring** — remove FK on column customer.counterparty because condition monitoring is an internal maintenance activity with no customer relationship
+**PRIORITY 38 — remove_fk: maintenance.labour_record** — remove FK on column customer.counterparty because maintenance labour records track internal/contractor work hours, not customer interactions
+**PRIORITY 39 — remove_fk: maintenance.parts_consumption** — remove FK on column customer.counterparty because spare parts consumption is internal maintenance activity unrelated to customers
+**PRIORITY 40 — connect_table: tailings.water_balance** — add column mine_area_id (BIGINT) with FK to mine.area.area_id — water balances are calculated for specific catchment areas within a mine, not just at site level
+**PRIORITY 41 — remove_fk: equipment.oee_record** — remove FK on column product.specification because OEE is an equipment effectiveness metric independent of product specifications
+**PRIORITY 42 — remove_fk: equipment.oee_record** — remove FK on column tenement.tenement because OEE records are equipment performance metrics unrelated to tenement management
+**PRIORITY 43 — remove_fk: equipment.utilisation_record** — remove FK on column hse.incident because utilisation records are routine metrics; incidents should reference equipment, not the reverse
+**PRIORITY 44 — remove_fk: equipment.tyre_record** — remove FK on column hse.incident because tyre records are asset management data; incident linkage should be from incident to equipment
+**PRIORITY 45 — connect_table: geology.geological_unit** — add column orebody_id (BIGINT) with FK to geology.orebody.orebody_id — geological units are mapped within orebodies and need this structural relationship
+**PRIORITY 46 — rename_attribute: equipment.tyre_record** — rename column retreaded_from_tyre_record_id to original_tyre_record_id because "retreaded_from" is clearer as "original" indicating the source tyre before retreading
+**PRIORITY 47 — remove_fk: exploration.drill_program** — remove FK on column hse.emergency_response_plan because drill programs reference emergency plans at too granular a level; this belongs at mine_site or prospect level
+**PRIORITY 48 — connect_table: product.certification** — add column commodity_id (BIGINT) with FK to product.commodity.commodity_id — product certifications (e.g., conflict-free, sustainability) apply to specific commodities
+**PRIORITY 49 — remove_fk: customer.segment** — remove FK on column customer.counterparty because a segment is a classification category, not owned by a single counterparty; this should be a many-to-many or the FK direction is inverted
+**PRIORITY 50 — connect_table: mine.blast_pattern** — add column mine_area_id (BIGINT) with FK to mine.area.area_id — blast patterns are designed within specific mine areas for spatial planning
+**PRIORITY 51 — remove_fk: equipment.payload_cycle** — remove FK on column sales.commodity_order because payload cycles are operational haulage events with no direct link to sales orders
+**PRIORITY 52 — remove_fk: equipment.payload_cycle** — remove FK on column geology.grade_control_sample because payload cycles track tonnage movement, not individual geological samples
+**PRIORITY 53 — connect_table: processing.reagent_consumption** — add column vendor_id (BIGINT) with FK to procurement.vendor.vendor_id — reagent consumption should trace back to the supplier for quality and cost tracking
+**PRIORITY 54 — remove_fk: maintenance.equipment_downtime** — remove FK on column sales.cargo_shipment because equipment downtime is an internal operational event unrelated to cargo shipments
+**PRIORITY 55 — remove_fk: maintenance.equipment_downtime** — remove FK on column geology.orebody because equipment downtime is tracked per asset/location, not per orebody
+**PRIORITY 56 — connect_table: finance.cost_performance_report** — add column lom_plan_id (BIGINT) with FK to mine.lom_plan.lom_plan_id — cost performance reports should be traceable to the LOM plan they measure against
+**PRIORITY 57 — remove_fk: hse.corrective_action** — remove FK on column geology.orebody because corrective actions are HSE responses unrelated to geological orebody definitions
+**PRIORITY 58 — remove_fk: hse.corrective_action** — remove FK on column geology.geological_domain because corrective actions address safety/environmental issues, not geological classifications
+**PRIORITY 59 — remove_fk: hse.corrective_action** — remove FK on column laboratory.analytical_method because corrective actions are management responses, not laboratory procedures
+**PRIORITY 60 — remove_fk: hse.safety_observation** — remove FK on column geology.geological_domain because safety observations are field-level HSE records unrelated to geological domain classification
+**PRIORITY 61 — remove_fk: hse.safety_observation** — remove FK on column geology.orebody because safety observations have no business relationship to orebody definitions
+**PRIORITY 62 — connect_table: tenement.holder** — add column legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — tenement holders are legal entities and this relationship is fundamental for ownership tracking
+**PRIORITY 63 — remove_fk: equipment.inspection** — remove FK on column tenement.regulatory_condition because equipment inspections are maintenance-driven, not directly governed by tenement conditions
+**PRIORITY 64 — remove_fk: equipment.fleet_assignment** — remove FK on column sales.shipment_nomination because fleet assignments are operational mine scheduling decisions unrelated to sales shipment nominations
+**PRIORITY 65 — remove_fk: equipment.fleet_assignment** — remove FK on column tenement.tenement because fleet assignments are operational, not tenement-related
+**PRIORITY 66 — connect_table: mine.production_reconciliation** — add column processing_plant_id (BIGINT) with FK to processing.plant.plant_id — production reconciliation compares mine-to-mill performance and must link to the processing plant
+**PRIORITY 67 — remove_fk: hse.training_record** — remove FK on column customer.counterparty because training records are internal workforce development records, not customer-related
+**PRIORITY 68 — remove_fk: hse.training_record** — remove FK on column laboratory.analytical_method because training records track competency, not specific analytical methods
+**PRIORITY 69 — remove_fk: hse.training_record** — remove FK on column procurement.material_master because training records are HR/HSE documents unrelated to material procurement
+
+Other known issues from static analysis (6):
+  - Table mine.site has only 1 attribute(s) — likely incomplete or should be merged
+  - Product 'processing.concentrate_batch' has 30 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'maintenance.work_order' has 26 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - 9 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 219 attribute(s) match person-data patterns but lack pii_ tags
+  - 1 attribute(s) have pipe-enum value_regex with >8 values — consider creating a reference product instead
+
+Deterministic score: 75/100 (LLM assessment: 62/100)

@@ -1,0 +1,85 @@
+**Model Quality Score: 91/100**
+
+**Static Analysis Findings (3 actionable):**
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'clinical.clinical_enrollment' and 'patient.patient_enrollment' have the same entity name 'enrollment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'manufacturing.manufacturing_deviation' and 'quality.quality_deviation' have the same entity name 'deviation' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'masterdata.masterdata_ndc_code' and 'product.product_ndc_code' have the same entity name 'ndc_code' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — rename_attribute: masterdata.masterdata_ndc_code** — rename column masterdata_ndc_code_id to ndc_code_id because redundant domain prefix in primary key violates naming conventions
+**PRIORITY 2 — rename_product: masterdata.masterdata_ndc_code** — rename to ndc_code because redundant domain prefix in table name violates naming conventions
+**PRIORITY 3 — rename_attribute: clinical.biospecimen** — rename column parent_biospecimen_id to source_biospecimen_id because parent implies hierarchy but biospecimens derive from source samples
+**PRIORITY 4 — rename_attribute: commercial.contract_account** — rename column parent_account_contract_account_id to parent_contract_account_id because redundant embedded table name creates confusion
+**PRIORITY 5 — rename_attribute: finance.bank_account** — rename column master_account_bank_account_id to master_bank_account_id because redundant embedded table name creates confusion
+**PRIORITY 6 — rename_attribute: finance.bank_account** — rename column parent_bank_account_id to parent_account_bank_account_id because inconsistent with sibling self-reference naming pattern
+**PRIORITY 7 — rename_attribute: manufacturing.master_batch_record** — rename column superseded_by_mbr_master_batch_record_id to superseded_by_master_batch_record_id because abbreviation mbr is redundant with full table name
+**PRIORITY 8 — rename_attribute: market.reimbursement_policy** — rename column superseded_by_policy_reimbursement_policy_id to superseded_by_reimbursement_policy_id because embedded policy is redundant with table name
+**PRIORITY 9 — rename_attribute: pharmacovigilance.pv_submission** — rename column original_submission_pv_submission_id to original_pv_submission_id because embedded submission is redundant
+**PRIORITY 10 — rename_attribute: pharmacovigilance.reporter** — rename column master_reporter_id to canonical_reporter_id because master_reporter implies MDM concept but this is deduplication reference
+**PRIORITY 11 — connect_table: discovery.screening_result** — add column project_id (BIGINT) with FK to discovery.project.project_id — screening results should trace to the research project that commissioned the HTS campaign
+**PRIORITY 12 — connect_table: discovery.screening_result** — add column lead_series_id (BIGINT) with FK to discovery.lead_series.lead_series_id — screening results that identify hits should link to resulting lead series
+**PRIORITY 13 — connect_table: clinical.site_activation** — add column protocol_id (BIGINT) with FK to clinical.protocol.protocol_id — site activation is protocol-specific and requires protocol reference for GCP compliance
+**PRIORITY 14 — connect_table: clinical.site_activation** — add column principal_investigator_id (BIGINT) with FK to clinical.principal_investigator.principal_investigator_id — site activation requires designated PI assignment
+**PRIORITY 15 — connect_table: intellectual.licensed_patent_schedule** — add column effective_country_id (BIGINT) with FK to masterdata.country.country_id — licensed patents have territorial scope requiring country reference
+**PRIORITY 16 — connect_table: pharmacovigilance.signal_case_series** — add column pv_product_id (BIGINT) with FK to pharmacovigilance.pv_product.pv_product_id — case series analysis requires product context for signal evaluation
+**PRIORITY 17 — connect_table: pharmacovigilance.signal_case_series** — add column country_id (BIGINT) with FK to masterdata.country.country_id — signal case series often have geographic clustering requiring country reference
+**PRIORITY 18 — connect_table: supply.recall_lot_scope** — add column storage_location_id (BIGINT) with FK to masterdata.storage_location.storage_location_id — recall scope must identify where affected lots are physically located
+**PRIORITY 19 — connect_table: supply.recall_lot_scope** — add column distribution_network_id (BIGINT) with FK to supply.distribution_network.distribution_network_id — recall scope must trace distribution channels for affected lots
+**PRIORITY 20 — connect_table: regulatory.dmf_cross_reference** — add column country_id (BIGINT) with FK to masterdata.country.country_id — DMF cross-references are jurisdiction-specific requiring country context
+**PRIORITY 21 — connect_table: regulatory.submission_sequence** — add column legal_entity_id (BIGINT) with FK to masterdata.legal_entity.legal_entity_id — submission sequences are filed by specific legal entities
+**PRIORITY 22 — connect_table: masterdata.inn_registry** — add column country_id (BIGINT) with FK to masterdata.country.country_id — INN assignments have WHO member state context
+**PRIORITY 23 — connect_table: masterdata.country** — add column unit_of_measure_id (BIGINT) with FK to masterdata.unit_of_measure.unit_of_measure_id — countries have default measurement systems (metric/imperial)
+**PRIORITY 24 — remove_fk: clinical.biospecimen** — remove FK on column finance.accounts_payable because biospecimen collection should not directly reference AP; payment flows through investigational site contracts
+**PRIORITY 25 — remove_fk: clinical.trial_adverse_event** — remove FK on column finance.accounts_payable because adverse events should not directly reference AP; this conflates safety data with financial transactions
+**PRIORITY 26 — connect_table: product.combination_product** — add column formulation_id (BIGINT) with FK to product.formulation.formulation_id — combination products require formulation specification for CMC documentation
+**PRIORITY 27 — connect_table: product.excipient** — add column therapeutic_area_id (BIGINT) with FK to product.therapeutic_area.therapeutic_area_id — excipient selection varies by therapeutic area requirements
+**PRIORITY 28 — connect_table: hcp.license** — add column license_type_id (BIGINT) with FK to masterdata.org_unit.org_unit_id — HCP licenses are issued by regulatory bodies that should be tracked
+**PRIORITY 29 — connect_table: hcp.affiliation** — add column country_id (BIGINT) with FK to masterdata.country.country_id — HCP-HCO affiliations are jurisdiction-specific for Sunshine Act reporting
+**PRIORITY 30 — connect_table: hcp.consent_record** — add column legal_entity_id (BIGINT) with FK to masterdata.legal_entity.legal_entity_id — consent is granted to specific legal entities for GDPR compliance
+**PRIORITY 31 — connect_table: manufacturing.environmental_monitoring** — add column equipment_id (BIGINT) with FK to manufacturing.equipment.equipment_id — environmental monitoring uses specific monitoring equipment requiring traceability
+**PRIORITY 32 — connect_table: manufacturing.process_parameter** — add column line_id (BIGINT) with FK to manufacturing.line.line_id — process parameters are line-specific for manufacturing execution
+**PRIORITY 33 — connect_table: manufacturing.process_parameter_result** — add column line_id (BIGINT) with FK to manufacturing.line.line_id — process parameter results are captured at specific manufacturing lines
+**PRIORITY 34 — connect_table: quality.batch_disposition** — add column quality_deviation_id (BIGINT) with FK to quality.quality_deviation.quality_deviation_id — batch disposition decisions often result from deviation investigations
+**PRIORITY 35 — connect_table: quality.oos_investigation** — add column capa_id (BIGINT) with FK to quality.capa.capa_id — OOS investigations typically generate CAPA requirements
+**PRIORITY 36 — connect_table: quality.change_control** — add column capa_id (BIGINT) with FK to quality.capa.capa_id — change controls often originate from CAPA corrective actions
+**PRIORITY 37 — connect_table: finance.fixed_asset** — add column equipment_id (BIGINT) with FK to manufacturing.equipment.equipment_id — manufacturing equipment are fixed assets requiring financial tracking linkage
+**PRIORITY 38 — connect_table: finance.milestone_payment** — add column patent_id (BIGINT) with FK to intellectual.patent.patent_id — milestone payments often tied to patent-related achievements
+**PRIORITY 39 — connect_table: market.formulary** — add column drug_product_id (BIGINT) with FK to product.drug_product.drug_product_id — formularies list specific drug products for coverage
+**PRIORITY 40 — connect_table: market.formulary** — add column therapeutic_area_id (BIGINT) with FK to product.therapeutic_area.therapeutic_area_id — formularies are often organized by therapeutic area
+**PRIORITY 41 — connect_table: regulatory.health_authority** — add column legal_entity_id (BIGINT) with FK to masterdata.legal_entity.legal_entity_id — health authorities are governmental legal entities
+**PRIORITY 42 — rename_attribute: commercial.mlr_review** — rename column prior_submission_mlr_review_id to prior_mlr_review_id because embedded submission is redundant with self-reference context
+**PRIORITY 43 — rename_attribute: market.pricing_decision** — rename column preceding_decision_id to preceding_pricing_decision_id because self-reference should include table name for clarity
+**PRIORITY 44 — rename_attribute: finance.invoice** — rename column credited_invoice_id to credit_memo_invoice_id because credited is ambiguous; credit_memo clarifies the reversal relationship
+**PRIORITY 45 — rename_attribute: supply.cold_chain_record** — rename column preceding_cold_chain_record_id to prior_cold_chain_record_id because preceding is inconsistent with prior/previous pattern used elsewhere
+**PRIORITY 46 — connect_table: clinical.crf_form** — add column investigational_site_id (BIGINT) with FK to clinical.investigational_site.investigational_site_id — CRF forms are completed at specific investigational sites
+**PRIORITY 47 — connect_table: clinical.crf_form** — add column clinical_enrollment_id (BIGINT) with FK to clinical.clinical_enrollment.clinical_enrollment_id — CRF forms are completed for enrolled subjects
+**PRIORITY 48 — connect_table: discovery.assay** — add column project_id (BIGINT) with FK to discovery.project.project_id — assays are developed within specific research projects
+**PRIORITY 49 — connect_table: discovery.molecular_target** — add column project_id (BIGINT) with FK to discovery.project.project_id — molecular targets are validated within research projects
+**PRIORITY 50 — connect_table: patient.clinical_observation** — add column investigational_site_id (BIGINT) with FK to clinical.investigational_site.investigational_site_id — clinical observations are recorded at specific sites
+**PRIORITY 51 — connect_table: patient.concomitant_medication** — add column investigational_site_id (BIGINT) with FK to clinical.investigational_site.investigational_site_id — concomitant medications are recorded at specific sites
+**PRIORITY 52 — connect_table: patient.reported_outcome** — add column protocol_id (BIGINT) with FK to clinical.protocol.protocol_id — patient reported outcomes follow protocol-defined instruments
+**PRIORITY 53 — connect_table: commercial.sales_order** — add column country_id (BIGINT) with FK to masterdata.country.country_id — sales orders require country for tax and regulatory compliance
+**PRIORITY 54 — connect_table: commercial.sample_management** — add column country_id (BIGINT) with FK to masterdata.country.country_id — sample distribution is country-regulated
+**PRIORITY 55 — connect_table: supply.goods_issue** — add column batch_record_id (BIGINT) with FK to manufacturing.batch_record.batch_record_id — goods issues should trace to manufacturing batch for lot traceability
+**PRIORITY 56 — connect_table: supply.warehouse_receipt** — add column batch_record_id (BIGINT) with FK to manufacturing.batch_record.batch_record_id — warehouse receipts should trace to manufacturing batch for lot traceability
+**PRIORITY 57 — connect_table: quality.lab_test_result** — add column storage_location_id (BIGINT) with FK to masterdata.storage_location.storage_location_id — lab samples are stored at specific locations affecting stability
+**PRIORITY 58 — connect_table: pharmacovigilance.pv_adverse_reaction** — add column country_id (BIGINT) with FK to masterdata.country.country_id — adverse reactions have geographic reporting requirements
+**PRIORITY 59 — connect_table: pharmacovigilance.suspect_drug** — add column country_id (BIGINT) with FK to masterdata.country.country_id — suspect drug reports are jurisdiction-specific
+**PRIORITY 60 — connect_table: intellectual.patent_claim** — add column patent_family_id (BIGINT) with FK to intellectual.patent_family.patent_family_id — patent claims belong to patent families for portfolio management
+**PRIORITY 61 — connect_table: intellectual.orange_book_listing** — add column drug_substance_id (BIGINT) with FK to product.drug_substance.drug_substance_id — Orange Book lists drug substances for generic equivalence
+**PRIORITY 62 — connect_table: intellectual.trademark** — add column drug_product_id (BIGINT) with FK to product.drug_product.drug_product_id — trademarks protect specific drug product brands
+**PRIORITY 63 — connect_table: regulatory.rems** — add column health_authority_id (BIGINT) with FK to regulatory.health_authority.health_authority_id — REMS programs are mandated by specific health authorities
+**PRIORITY 64 — connect_table: regulatory.strategy** — add column country_id (BIGINT) with FK to masterdata.country.country_id — regulatory strategies are country-specific
+**PRIORITY 65 — connect_table: manufacturing.equipment_qualification** — add column master_batch_record_id (BIGINT) with FK to manufacturing.master_batch_record.master_batch_record_id — equipment qualification supports specific MBRs
+
+Other known issues from static analysis (9):
+  - Table market.pricing_decision has self-referencing FK on column 'preceding_decision_id' with same name as PK 'pricing_decision_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table product.medicinal_product has self-referencing FK on column 'reference_product_id' with same name as PK 'medicinal_product_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table product.drug_product has self-referencing FK on column 'rld_product_id' with same name as PK 'drug_product_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table hcp.affiliation has 2 FK columns pointing to hcp.master (affiliation_affiliated_hcp_physician_master_id, master_id) (generic/unlabeled: master_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Product 'clinical.investigational_product' has 37 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'pharmacovigilance.pv_action' has 33 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'quality.complaint' has 30 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - 6 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 242 attribute(s) match person-data patterns but lack pii_ tags
+
+Deterministic score: 91/100 (LLM assessment: 72/100)

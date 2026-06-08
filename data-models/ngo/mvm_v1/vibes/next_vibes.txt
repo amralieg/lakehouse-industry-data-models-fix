@@ -1,0 +1,77 @@
+**Model Quality Score: 92/100**
+
+**Static Analysis Findings (4 actionable):**
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'donor.donor_fund' and 'finance.finance_fund' have the same entity name 'fund' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'field.field_team' and 'volunteer.volunteer_team' have the same entity name 'team' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'field.field_deployment' and 'volunteer.volunteer_deployment' have the same entity name 'deployment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'grant.grant_amendment' and 'program.program_amendment' have the same entity name 'amendment' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — connect_table: compliance.obligation** — add column country_office_id (BIGINT) with FK to field.country_office.country_office_id — obligations are jurisdiction-specific and must be tied to the country office responsible for fulfilling them
+**PRIORITY 2 — connect_table: compliance.obligation** — add column staff_member_id (BIGINT) with FK to workforce.staff_member.staff_member_id — every obligation needs an accountable owner for tracking compliance deadlines
+**PRIORITY 3 — connect_table: finance.gl_account** — add column parent_gl_account_id (BIGINT) with FK to finance.gl_account.gl_account_id — Chart of Accounts is hierarchical and requires self-referencing parent-child structure
+**PRIORITY 4 — connect_table: donor.constituent** — add column country_id (BIGINT) with FK to field.country.country_id — donor constituents have a domicile country critical for tax receipting and sanctions compliance
+**PRIORITY 5 — connect_table: donor.constituent** — add column staff_member_id (BIGINT) with FK to workforce.staff_member.staff_member_id — every constituent record needs a relationship manager or data steward assignment
+**PRIORITY 6 — connect_table: workforce.job_profile** — add column org_unit_id (BIGINT) with FK to workforce.org_unit.org_unit_id — job profiles are typically owned by or scoped to an organizational unit for workforce planning
+**PRIORITY 7 — connect_table: supply.commodity** — add column commodity_category_id (BIGINT) with FK to supply.commodity.commodity_id — commodities have hierarchical classification (e.g., NFI > Shelter > Tarpaulin) requiring self-reference
+**PRIORITY 8 — connect_table: field.country** — add column staff_member_id (BIGINT) with FK to workforce.staff_member.staff_member_id — country records need a designated focal point or country director reference
+**PRIORITY 9 — connect_table: volunteer.team_membership** — add column role_id (BIGINT) with FK to volunteer.role.role_id — team members serve specific roles within a team and this linkage is missing
+**PRIORITY 10 — connect_table: volunteer.application** — add column staff_member_id (BIGINT) with FK to workforce.staff_member.staff_member_id — applications need a reviewer or processing staff member assignment
+**PRIORITY 11 — connect_table: supply.distribution_order_line** — add column grant_award_id (BIGINT) with FK to grant.award.award_id — individual distribution lines must be charged to specific grant awards for fund accounting compliance
+**PRIORITY 12 — connect_table: supply.distribution_plan_line** — add column grant_award_id (BIGINT) with FK to grant.award.award_id — planned distribution lines need grant linkage for budget forecasting and donor compliance
+**PRIORITY 13 — connect_table: supply.vendor_catalog_item** — add column finance_fund_id (BIGINT) with FK to finance.finance_fund.finance_fund_id — catalog items may be pre-approved under specific funding sources requiring fund linkage
+**PRIORITY 14 — connect_table: partnership.consortium_membership** — add column staff_member_id (BIGINT) with FK to workforce.staff_member.staff_member_id — consortium membership records need a focal point or authorized representative
+**PRIORITY 15 — connect_table: partnership.consortium_membership** — add column agreement_id (BIGINT) with FK to partnership.agreement.agreement_id — consortium membership is governed by a partnership agreement that should be explicitly linked
+**PRIORITY 16 — connect_table: grant.award_budget_line** — add column staff_member_id (BIGINT) with FK to workforce.staff_member.staff_member_id — budget lines need a responsible budget holder for approval workflows
+**PRIORITY 17 — connect_table: program.target_population** — add column community_id (BIGINT) with FK to beneficiary.community.community_id — target populations are defined geographically and should link to the community being served
+**PRIORITY 18 — connect_table: supply.distribution_order_line** — add column budget_line_id (BIGINT) with FK to finance.budget_line.budget_line_id — order lines must trace to budget lines for BvA tracking
+**PRIORITY 19 — connect_table: supply.distribution_plan_line** — add column budget_line_id (BIGINT) with FK to finance.budget_line.budget_line_id — plan lines need budget line linkage for financial forecasting
+**PRIORITY 20 — rename_attribute: beneficiary.registrant** — rename column deduplication_master_registrant_id to master_registrant_id
+**PRIORITY 21 — rename_attribute: mel.reporting_period** — rename column primary_prior_reporting_period_id to prior_reporting_period_id
+**PRIORITY 22 — rename_attribute: finance.fiscal_period** — rename column primary_prior_year_period_fiscal_period_id to prior_fiscal_period_id
+**PRIORITY 23 — rename_attribute: mel.logframe** — rename column parent_logframe_mel_logframe_id to parent_logframe_id
+**PRIORITY 24 — rename_attribute: field.country** — rename column parent_country_id to sovereign_country_id
+**PRIORITY 25 — connect_table: beneficiary.community** — add column country_id (BIGINT) with FK to field.country.country_id — communities must be geographically anchored to a country for reporting and cluster coordination
+**PRIORITY 26 — connect_table: mel.indicator** — add column logframe_id (BIGINT) with FK to mel.logframe.logframe_id — indicators are defined within a LogFrame and need direct linkage rather than only through indicator_target
+**PRIORITY 27 — connect_table: volunteer.certification** — add column volunteer_deployment_id (BIGINT) with FK to volunteer.volunteer_deployment.volunteer_deployment_id — certifications may be earned during specific deployments and should be traceable
+**PRIORITY 28 — connect_table: field.assessment_response** — add column community_id (BIGINT) with FK to beneficiary.community.community_id — assessment responses often pertain to community-level data collection not just individual registrants
+**PRIORITY 29 — connect_table: donor.segment** — add column constituent_id (BIGINT) with FK to donor.constituent.constituent_id — segments without constituent linkage cannot function; at minimum a segment owner or sample constituent is needed
+**PRIORITY 30 — remove_fk: donor.campaign** — remove FK on column compliance.incident because campaigns do not logically depend on compliance incidents; incidents reference campaigns not vice versa
+**PRIORITY 31 — remove_fk: donor.fundraising_event** — remove FK on column compliance.incident because fundraising events should not structurally depend on incidents; the relationship should be incident referencing the event
+**PRIORITY 32 — connect_table: supply.distribution_plan_line** — add column warehouse_id (BIGINT) with FK to supply.warehouse.warehouse_id — plan lines need source warehouse for logistics planning
+**PRIORITY 33 — connect_table: workforce.leave_request** — add column fiscal_period_id (BIGINT) with FK to finance.fiscal_period.fiscal_period_id — leave requests should reference the fiscal period for accrual accounting and reporting
+**PRIORITY 34 — connect_table: program.program_amendment** — add column partnership_agreement_id (BIGINT) with FK to partnership.agreement.agreement_id — program amendments often trigger or result from partnership agreement changes
+**PRIORITY 35 — rename_attribute: field.country_office** — rename column parent_office_country_office_id to parent_country_office_id
+**PRIORITY 36 — rename_attribute: beneficiary.vulnerability_profile** — rename column previous_profile_vulnerability_profile_id to previous_vulnerability_profile_id
+**PRIORITY 37 — rename_attribute: compliance.governance_policy** — rename column superseded_by_policy_governance_policy_id to superseded_by_governance_policy_id
+**PRIORITY 38 — rename_attribute: grant.grant_amendment** — rename column supersedes_amendment_grant_amendment_id to supersedes_grant_amendment_id
+**PRIORITY 39 — rename_attribute: mel.data_quality_assessment** — rename column followup_data_quality_assessment_id to followup_assessment_id
+**PRIORITY 40 — rename_attribute: partnership.capacity_assessment** — rename column prior_assessment_capacity_assessment_id to prior_capacity_assessment_id
+**PRIORITY 41 — connect_table: finance.budget** — add column program_intervention_id (BIGINT) with FK to program.intervention.intervention_id — budgets are created for specific interventions and need direct linkage for BvA reporting
+**PRIORITY 42 — connect_table: donor.appeal** — add column country_office_id (BIGINT) with FK to field.country_office.country_office_id — appeals are launched by specific country offices and need geographic attribution
+**PRIORITY 43 — connect_table: supply.distribution_order_line** — add column warehouse_id (BIGINT) with FK to supply.warehouse.warehouse_id — order lines need source warehouse for pick-pack-ship operations
+**PRIORITY 44 — connect_table: workforce.performance_review** — add column org_unit_id (BIGINT) with FK to workforce.org_unit.org_unit_id — performance reviews should be attributable to the organizational unit for aggregate talent analytics
+**PRIORITY 45 — connect_table: volunteer.hour_log** — add column intervention_id (BIGINT) with FK to program.intervention.intervention_id — volunteer hours must be attributable to specific program interventions for cost allocation and donor reporting
+**PRIORITY 46 — connect_table: compliance.audit_finding** — add column staff_member_id (BIGINT) with FK to workforce.staff_member.staff_member_id — audit findings need an assigned responsible party for remediation tracking
+**PRIORITY 47 — rename_product: beneficiary.document_record** — rename to beneficiary_document because document_record is overly generic and conflicts with common document management terminology
+**PRIORITY 48 — connect_table: field.distribution_line** — add column commodity_id (BIGINT) with FK to supply.commodity.commodity_id — distribution lines record what was distributed and must reference the commodity catalog
+**PRIORITY 49 — connect_table: field.distribution_line** — add column warehouse_id (BIGINT) with FK to supply.warehouse.warehouse_id — distribution lines need source warehouse for inventory reconciliation
+**PRIORITY 50 — connect_table: grant.proposal** — add column program_program_id (BIGINT) with FK to program.program.program_id — proposals are developed under a program umbrella and need that structural linkage
+**PRIORITY 51 — connect_table: donor.stewardship_activity** — add column constituent_id_secondary (BIGINT) with FK to donor.constituent.constituent_id — stewardship activities may involve multiple constituents (e.g., joint donors) requiring additional linkage
+**PRIORITY 52 — remove_fk: beneficiary.case_action** — remove FK on column finance.budget_line because individual case actions should not directly reference budget lines; cost tracking belongs at case_record or program level
+**PRIORITY 53 — connect_table: compliance.single_audit** — add column staff_member_id (BIGINT) with FK to workforce.staff_member.staff_member_id — single audits need an organizational audit liaison or responsible officer
+**PRIORITY 54 — connect_table: compliance.statutory_registration** — add column staff_member_id (BIGINT) with FK to workforce.staff_member.staff_member_id — registrations need a responsible officer for renewal tracking
+**PRIORITY 55 — connect_table: field.emergency** — add column country_office_id (BIGINT) with FK to field.country_office.country_office_id — emergencies are managed by a lead country office that should be explicitly linked
+**PRIORITY 56 — rename_attribute: compliance.sanctions_screening** — rename column rescreening_sanctions_screening_id to prior_sanctions_screening_id
+**PRIORITY 57 — rename_attribute: field.emergency** — rename column escalated_from_emergency_id to parent_emergency_id
+**PRIORITY 58 — connect_table: donor.portfolio_assignment** — add column donor_fund_id (BIGINT) with FK to donor.donor_fund.donor_fund_id — portfolio assignments may be scoped to specific funds for major gift officers managing restricted giving
+**PRIORITY 59 — connect_table: program.risk_register** — add column grant_award_id (BIGINT) with FK to grant.award.award_id — risks are often grant-specific and need direct award linkage for donor risk reporting
+**PRIORITY 60 — connect_table: volunteer.training_enrollment** — add column volunteer_team_id (BIGINT) with FK to volunteer.volunteer_team.volunteer_team_id — training enrollments may be team-based requiring team attribution
+**PRIORITY 61 — connect_table: finance.journal_entry_line** — add column program_intervention_id (BIGINT) with FK to program.intervention.intervention_id — journal entry lines need program attribution for multi-dimensional fund accounting
+
+Other known issues from static analysis (4):
+  - Product 'volunteer.volunteer_deployment' has 32 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'volunteer.hour_log' has 26 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - 192 attribute(s) match person-data patterns but lack pii_ tags
+  - 12 non-PK attributes redundantly prefixed with their product name
+
+Deterministic score: 92/100 (LLM assessment: 62/100)

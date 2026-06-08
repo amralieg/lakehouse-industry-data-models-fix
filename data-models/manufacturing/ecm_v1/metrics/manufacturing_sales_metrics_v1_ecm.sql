@@ -1,0 +1,2 @@
+-- Metric views for domain: sales | Business: Manufacturing | Version: 1 | Generated on: 2026-05-06 08:25:38
+-- All metric views in this domain failed validation and were removed.

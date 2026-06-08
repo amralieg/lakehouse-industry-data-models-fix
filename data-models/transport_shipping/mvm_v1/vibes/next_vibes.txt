@@ -1,0 +1,94 @@
+**Model Quality Score: 87/100**
+
+**Static Analysis Findings (10 actionable):**
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_invoice_line' and 'procurement.procurement_invoice_line' have the same entity name 'invoice_line' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_account' and 'customer.customer_account' have the same entity name 'account' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'claim.claim_event' and 'network.network_event' have the same entity name 'event' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'claim.claim_document' and 'shipment.shipment_document' have the same entity name 'document' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'claim.claim_party' and 'contract.contract_party' have the same entity name 'party' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.contract_surcharge_schedule' and 'pricing.pricing_surcharge_schedule' have the same entity name 'surcharge_schedule' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'freight.freight_carrier_assignment' and 'fulfillment.fulfillment_carrier_assignment' have the same entity name 'carrier_assignment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'freight.freight_carrier_assignment' and 'shipment.shipment_carrier_assignment' have the same entity name 'carrier_assignment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'fulfillment.fulfillment_carrier_assignment' and 'shipment.shipment_carrier_assignment' have the same entity name 'carrier_assignment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'fulfillment.fulfillment_delivery_zone' and 'route.route_delivery_zone' have the same entity name 'delivery_zone' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — rename_product: claim.line** — rename to claim_line because "line" is overly generic and ambiguous; it conflicts with common column naming patterns and provides no domain context without qualification
+**PRIORITY 2 — rename_product: billing.cycle** — rename to billing_cycle because "cycle" is overly generic and ambiguous as a standalone table name; it needs domain context for clarity
+**PRIORITY 3 — rename_product: claim.reserve** — rename to claim_reserve because "reserve" is generic and could be confused with inventory or capacity reserves in other domains
+**PRIORITY 4 — rename_product: claim.settlement** — rename to claim_settlement because "settlement" conflicts with network.partner_settlement and needs domain disambiguation
+**PRIORITY 5 — rename_product: fulfillment.allocation** — rename to inventory_allocation because "allocation" is ambiguous and conflicts with network.capacity_allocation and billing.payment_allocation
+**PRIORITY 6 — rename_product: freight.exception** — rename to freight_exception because "exception" is generic and conflicts with shipment.exception_event; needs domain qualification
+**PRIORITY 7 — rename_product: freight.milestone** — rename to freight_milestone because "milestone" is generic and conflicts with shipment.eta_milestone; needs domain qualification
+**PRIORITY 8 — connect_table: billing.cycle** — add column billing_account_id (BIGINT) with FK to billing.billing_account.billing_account_id — billing cycles must be associated with the billing account they govern to avoid orphan scheduling records
+**PRIORITY 9 — connect_table: billing.tax_schedule** — add column country_code (BIGINT) with FK to route.network_node.network_node_id — tax schedules are jurisdiction-specific and should link to the geographic node governing the tax regime
+**PRIORITY 10 — connect_table: fleet.asset_type** — add column carrier_id (BIGINT) with FK to network.carrier.carrier_id — asset types should be linkable to carriers that operate specific asset categories for fleet planning
+**PRIORITY 11 — connect_table: fulfillment.merchant_integration** — add column carrier_service_id (BIGINT) with FK to network.carrier_service.carrier_service_id — merchant integrations often specify preferred carrier services for label generation and tracking
+**PRIORITY 12 — connect_table: fulfillment.pack_task** — add column facility_id (BIGINT) with FK to warehouse.facility.facility_id — pack tasks execute within a specific warehouse facility and need location context
+**PRIORITY 13 — connect_table: fulfillment.order_line** — add column sku_id (BIGINT) with FK to warehouse.sku.sku_id — fulfillment order lines reference specific SKUs for pick-pack-ship execution
+**PRIORITY 14 — connect_table: procurement.item** — add column supplier_id (BIGINT) with FK to procurement.supplier.supplier_id — procurement items should link to their primary supplier for sourcing traceability
+**PRIORITY 15 — connect_table: procurement.supply_agreement** — add column carrier_id (BIGINT) with FK to network.carrier.carrier_id — supply agreements for transport services need carrier linkage
+**PRIORITY 16 — connect_table: fulfillment.dispatch_run** — add column facility_id (BIGINT) with FK to warehouse.facility.facility_id — dispatch runs originate from a facility and need that operational context
+**PRIORITY 17 — connect_table: fulfillment.dispatch_run** — add column route_plan_id (BIGINT) with FK to route.plan.plan_id — dispatch runs follow planned routes for last-mile optimization
+**PRIORITY 18 — connect_table: network.edi_connection** — add column carrier_id (BIGINT) with FK to network.carrier.carrier_id — EDI connections are typically established with specific carriers for shipment messaging
+**PRIORITY 19 — connect_table: pricing.fuel_index** — add column service_corridor_id (BIGINT) with FK to route.service_corridor.service_corridor_id — fuel indices vary by trade lane/corridor and need geographic scoping
+**PRIORITY 20 — connect_table: pricing.charge_code** — add column tariff_id (BIGINT) with FK to pricing.tariff.tariff_id — charge codes belong to tariff structures and need that hierarchical linkage
+**PRIORITY 21 — rename_attribute: billing.billing_invoice_line** — rename column billing_invoice_line_id to invoice_line_id because the "billing_" prefix is redundant given the domain and product context already convey billing semantics
+**PRIORITY 22 — rename_product: billing.billing_invoice_line** — rename to invoice_line because the "billing_" prefix is redundant with the domain name and creates unnecessarily verbose references
+**PRIORITY 23 — rename_product: billing.billing_account** — rename to account because the "billing_" prefix is redundant with the domain name; all references already qualify as billing.account
+**PRIORITY 24 — rename_product: fulfillment.fulfillment_order** — rename to order because the "fulfillment_" prefix is redundant with the domain name; references already qualify as fulfillment.order
+**PRIORITY 25 — rename_product: fulfillment.fulfillment_carrier_assignment** — rename to carrier_assignment because the "fulfillment_" prefix is redundant with the domain name
+**PRIORITY 26 — rename_product: fulfillment.fulfillment_delivery_zone** — rename to delivery_zone because the "fulfillment_" prefix is redundant with the domain name
+**PRIORITY 27 — connect_table: contract.agreement_version** — add column contract_party_id (BIGINT) with FK to contract.contract_party.contract_party_id — agreement versions should track which party initiated or approved the version change
+**PRIORITY 28 — connect_table: contract.penalty_event** — add column sla_performance_id (BIGINT) with FK to contract.sla_performance.sla_performance_id — penalty events are triggered by SLA performance breaches and need direct linkage to the measured performance record
+**PRIORITY 29 — connect_table: customer.segment** — add column parent_segment_id (BIGINT) with FK to customer.segment.segment_id — customer segments often have hierarchical structures (e.g., Enterprise > Key Account > Standard)
+**PRIORITY 30 — connect_table: warehouse.zone** — add column tpl_provider_id (BIGINT) with FK to network.tpl_provider.tpl_provider_id — warehouse zones may be operated by different 3PL providers within a shared facility
+**PRIORITY 31 — connect_table: shipment.delivery_instruction** — add column fulfillment_order_id (BIGINT) with FK to fulfillment.fulfillment_order.fulfillment_order_id — delivery instructions often originate from fulfillment orders specifying customer delivery preferences
+**PRIORITY 32 — connect_table: shipment.manifest_line** — add column package_id (BIGINT) with FK to shipment.package.package_id — manifest lines should reference the specific packages they contain for traceability
+**PRIORITY 33 — connect_table: claim.status_history** — add column claim_event_id (BIGINT) with FK to claim.claim_event.claim_event_id — status transitions are triggered by claim events and need that causal linkage
+**PRIORITY 34 — connect_table: billing.receivable** — add column invoice_id (BIGINT) with FK to billing.invoice.invoice_id — receivables are generated from invoices and need direct linkage for AR reconciliation
+**PRIORITY 35 — connect_table: freight.quote** — add column fulfillment_order_id (BIGINT) with FK to fulfillment.fulfillment_order.fulfillment_order_id — freight quotes may be generated for fulfillment orders requiring carrier pricing
+**PRIORITY 36 — remove_fk: freight.freight_charge** — remove FK on column billing_invoice_line_id because freight_charge should not directly reference a billing invoice line; charges feed into invoice lines, not the reverse — this creates a circular dependency with billing
+**PRIORITY 37 — connect_table: fleet.container_unit** — add column carrier_service_id (BIGINT) with FK to network.carrier_service.carrier_service_id — containers operate on specific carrier services (liner routes) and need that operational linkage
+**PRIORITY 38 — connect_table: procurement.supplier_qualification** — add column supplier_site_id (BIGINT) with FK to procurement.supplier_site.supplier_site_id — qualifications may be site-specific rather than supplier-wide for multi-location suppliers
+**PRIORITY 39 — connect_table: route.hub_spoke_config** — add column lane_id (BIGINT) with FK to route.lane.lane_id — hub-spoke configurations define lane relationships between hub and spoke nodes
+**PRIORITY 40 — connect_table: route.lane_performance** — add column plan_id (BIGINT) with FK to route.plan.plan_id — lane performance metrics should be traceable to specific route plans for optimization feedback
+**PRIORITY 41 — connect_table: network.network_event** — add column network_node_id (BIGINT) with FK to route.network_node.network_node_id — network events (disruptions, closures) occur at specific nodes and need location context
+**PRIORITY 42 — connect_table: billing.payment** — add column carrier_payable_id (BIGINT) with FK to billing.carrier_payable.carrier_payable_id — payments to carriers should link directly to the payable record they settle
+**PRIORITY 43 — connect_table: fulfillment.rma** — add column warehouse_facility_id (BIGINT) with FK to warehouse.facility.facility_id — returns are processed at specific warehouse facilities and need that routing context
+**PRIORITY 44 — connect_table: fleet.incident** — add column shipment_leg_id (BIGINT) with FK to shipment.shipment_leg.shipment_leg_id — fleet incidents occur during specific shipment legs and need that operational linkage for impact assessment
+**PRIORITY 45 — connect_table: customs.broker_assignment** — add column carrier_id (BIGINT) with FK to network.carrier.carrier_id — broker assignments relate to shipments carried by specific carriers for coordination
+**PRIORITY 46 — connect_table: warehouse.cycle_count** — add column sku_id (BIGINT) with FK to warehouse.sku.sku_id — cycle counts may target specific SKUs for ABC-class inventory auditing
+**PRIORITY 47 — connect_table: contract.volume_actuals** — add column lane_id (BIGINT) with FK to route.lane.lane_id — volume actuals should be tracked per lane to compare against lane-level volume commitments
+**PRIORITY 48 — connect_table: pricing.rate_rule** — add column lane_id (BIGINT) with FK to route.lane.lane_id — rate rules often apply to specific lanes for geographic pricing differentiation
+**PRIORITY 49 — connect_table: pricing.rate_rule** — add column carrier_id (BIGINT) with FK to network.carrier.carrier_id — rate rules may be carrier-specific for competitive pricing strategies
+**PRIORITY 50 — connect_table: network.carrier_contact** — add column carrier_id (BIGINT) with FK to network.carrier.carrier_id — carrier contacts need a direct link to the carrier entity, not just the carrier profile, for operational contact lookup
+**PRIORITY 51 — connect_table: fulfillment.delivery_attempt** — add column carrier_id (BIGINT) with FK to network.carrier.carrier_id — delivery attempts are executed by specific carriers and need that assignment context
+**PRIORITY 52 — connect_table: customs.declaration_compliance_benefit** — add column duty_assessment_id (BIGINT) with FK to customs.duty_assessment.duty_assessment_id — compliance benefits directly reduce duty assessments and need that financial linkage
+**PRIORITY 53 — connect_table: shipment.tracking_event** — add column driver_profile_id (BIGINT) with FK to fleet.driver_profile.driver_profile_id — tracking events captured during delivery should reference the driver performing the scan
+**PRIORITY 54 — connect_table: shipment.pod** — add column driver_profile_id (BIGINT) with FK to fleet.driver_profile.driver_profile_id — proof of delivery is captured by a specific driver and needs that attribution
+**PRIORITY 55 — connect_table: warehouse.pick_wave** — add column outbound_shipment_order_id (BIGINT) with FK to warehouse.outbound_shipment_order.outbound_shipment_order_id — pick waves are generated to fulfill specific outbound orders and need that demand linkage
+**PRIORITY 56 — connect_table: billing.credit_note** — add column dispute_id (BIGINT) with FK to billing.dispute.dispute_id — credit notes are often issued as resolution of billing disputes and need that causal linkage
+**PRIORITY 57 — connect_table: fleet.fuel_transaction** — add column fuel_index_id (BIGINT) with FK to pricing.fuel_index.fuel_index_id — fuel transactions should reference the applicable fuel index for cost variance analysis
+**PRIORITY 58 — connect_table: customs.origin_determination** — add column declaration_id (BIGINT) with FK to customs.declaration.declaration_id — origin determinations are used in specific declarations and need that transactional linkage
+**PRIORITY 59 — connect_table: contract.service_scope** — add column lane_id (BIGINT) with FK to route.lane.lane_id — service scopes define geographic coverage via specific lanes
+**PRIORITY 60 — connect_table: network.agent_appointment** — add column network_node_id (BIGINT) with FK to route.network_node.network_node_id — agent appointments cover specific geographic locations/nodes in the network
+
+Other known issues from static analysis (16):
+  - Attribute 'lane_tier' in route.lane has redundant product prefix 'lane_'. Rename to 'tier'
+  - Attribute 'merchant_tier' in fulfillment.merchant has redundant product prefix 'merchant_'. Rename to 'tier'
+  - Product 'claim.cargo_claim' has 41 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'claim.claim_event' has 37 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'warehouse.outbound_shipment_order' has 35 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'freight.freight_leg' has 33 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'claim.liability_determination' has 30 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'claim.cargo_survey' has 29 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'freight.quote' has 29 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'freight.exception' has 28 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'freight.freight_charge' has 27 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'freight.freight_order' has 26 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - 1 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 200 attribute(s) match person-data patterns but lack pii_ tags
+  - 8 non-PK attributes redundantly prefixed with their product name
+  - 3 attribute(s) have pipe-enum value_regex with >8 values — consider creating a reference product instead
+
+Deterministic score: 87/100 (LLM assessment: 62/100)

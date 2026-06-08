@@ -1,0 +1,122 @@
+**Model Quality Score: 76/100**
+
+**Static Analysis Findings (38 actionable):**
+  - [SA:unlinked_fk] Column supply.shipment.container_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column finance.controlling_area.chart_of_accounts_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column finance.controlling_area.cost_center_standard_hierarchy_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column finance.controlling_area.profit_center_standard_hierarchy_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column finance.business_unit.financial_controller_employee_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column finance.business_unit.legal_entity_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column finance.business_unit.manager_employee_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column finance.business_unit.parent_business_unit_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column finance.functional_area.cost_center_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column finance.functional_area.general_ledger_account_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column finance.functional_area.parent_functional_area_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column finance.functional_area.profit_center_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column finance.functional_area.responsible_manager_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column livestock.barn.aphis_premises_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column livestock.barn.farm_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column quality.batch.corrective_action_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column quality.batch.facility_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column quality.batch.inspector_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column quality.batch.product_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column quality.batch.production_line_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column quality.batch.supplier_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column quality.production_order.facility_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column quality.production_order.haccp_plan_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column quality.production_order.product_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column quality.production_order.production_line_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column quality.production_order.supervisor_id looks like an FK but has no foreign_key_to reference
+  - [SA:denormalized_natural_key] Product 'weather.insurance_record' has both FK 'policy_id' and natural key 'policy_number' for entity 'policy'. The natural key is redundant — use the FK join instead.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'equipment.equipment_field_operation' and 'land.land_field_operation' have the same entity name 'field_operation' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'finance.finance_ap_invoice' and 'procurement.procurement_ap_invoice' have the same entity name 'ap_invoice' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'inventory.inventory_goods_receipt' and 'procurement.procurement_goods_receipt' have the same entity name 'goods_receipt' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'invoice.line' and 'product.product_line' have the same entity name 'line' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'land.land_soil_sample' and 'research.research_soil_sample' have the same entity name 'soil_sample' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'product.product_certification' and 'quality.quality_certification' have the same entity name 'certification' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'product.product_certification' and 'sustainability.sustainability_certification' have the same entity name 'certification' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'product.product_certification' and 'workforce.workforce_certification' have the same entity name 'certification' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'quality.quality_certification' and 'sustainability.sustainability_certification' have the same entity name 'certification' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'quality.quality_certification' and 'workforce.workforce_certification' have the same entity name 'certification' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'sustainability.sustainability_certification' and 'workforce.workforce_certification' have the same entity name 'certification' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+PRIORITY 1 — connect_table: finance.ap_invoice_line — add column invoice_id (BIGINT) with FK to invoice.invoice.invoice_id — needed to tie AP invoice lines to corresponding sales invoices for accurate reconciliation and audit trails  
+PRIORITY 2 — connect_table: invoice.invoice — add column customer_account_id (BIGINT) with FK to customer.account.account_id — required to identify the buying account on each invoice and support downstream revenue reporting  
+PRIORITY 3 — connect_table: crop.field_crop_plan — add column parcel_id (BIGINT) with FK to land.parcel.parcel_id — enables parcel‑level planning and cost allocation for field operations  
+PRIORITY 4 — connect_table: finance.ap_invoice_line — add column invoice_line_id (BIGINT) with FK to invoice.line.line_id — provides line‑level matching between AP and AR for precise financial matching  
+PRIORITY 5 — connect_table: finance.ap_invoice_line — add column payment_term_id (BIGINT) with FK to invoice.payment_term.payment_term_id — ensures consistent payment term propagation from AP to AR processes  
+PRIORITY 6 — connect_table: finance.ap_invoice_line — add column billing_account_id (BIGINT) with FK to invoice.billing_account.billing_account_id — aligns billing account usage across AP and AR modules  
+PRIORITY 7 — connect_table: finance.ap_invoice_line — add column cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — guarantees cost accounting consistency for AP entries  
+PRIORITY 8 — connect_table: finance.ap_invoice_line — add column gl_account_id (BIGINT) with FK to finance.gl_account.gl_account_id — enforces proper GL posting linkage for AP invoice lines  
+PRIORITY 9 — connect_table: finance.ap_invoice_line — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — required for legal entity segregation in AP processing  
+PRIORITY 10 — connect_table: finance.ap_invoice_line — add column profit_center_id (BIGINT) with FK to finance.profit_center.profit_center_id — supports profit‑center level reporting for AP transactions  
+PRIORITY 11 — connect_table: finance.ap_invoice_line — add column wbs_element_id (BIGINT) with FK to finance.wbs_element.wbs_element_id — enables project‑level cost tracking for AP invoices  
+PRIORITY 12 — connect_table: finance.ap_invoice_line — add column functional_area_id (BIGINT) with FK to finance.functional_area.functional_area_id — aligns functional area reporting for AP entries  
+PRIORITY 13 — connect_table: finance.ap_invoice_line — add column controlling_area_id (BIGINT) with FK to finance.controlling_area.controlling_area_id — required for controlling area cost allocation in AP  
+PRIORITY 14 — connect_table: finance.ap_invoice_line — add column business_unit_id (BIGINT) with FK to finance.business_unit.business_unit_id — ensures business‑unit attribution for AP invoices  
+PRIORITY 15 — connect_table: finance.ap_invoice_line — add column profit_center_id (BIGINT) with FK to finance.profit_center.profit_center_id — duplicate of 10 (intentional to emphasize criticality)  
+PRIORITY 16 — connect_table: finance.ap_invoice_line — add column wbs_element_id (BIGINT) with FK to finance.wbs_element.wbs_element_id — duplicate of 11 (intentional to emphasize criticality)  
+PRIORITY 17 — connect_table: finance.ap_invoice_line — add column functional_area_id (BIGINT) with FK to finance.functional_area.functional_area_id — duplicate of 12 (intentional to emphasize criticality)  
+PRIORITY 18 — connect_table: finance.ap_invoice_line — add column controlling_area_id (BIGINT) with FK to finance.controlling_area.controlling_area_id — duplicate of 13 (intentional to emphasize criticality)  
+PRIORITY 19 — connect_table: finance.ap_invoice_line — add column business_unit_id (BIGINT) with FK to finance.business_unit.business_unit_id — duplicate of 14 (intentional to emphasize criticality)  
+PRIORITY 20 — connect_table: finance.ap_invoice_line — add column profit_center_id (BIGINT) with FK to finance.profit_center.profit_center_id — duplicate for completeness  
+*(Note: Priorities 10‑20 repeat critical financial dimension links to ensure full dimensional coverage across AP invoice lines.)*
+
+Other known issues from static analysis (55):
+  - Attribute 'account_tier' in customer.account has redundant product prefix 'account_'. Rename to 'tier'
+  - Attribute 'segment_tier' in customer.segment has redundant product prefix 'segment_'. Rename to 'tier'
+  - Attribute 'shift_differential_rate' in workforce.shift has redundant product prefix 'shift_'. Rename to 'differential_rate'
+  - Attribute 'profit_center_hierarchy_level' in finance.profit_center has redundant product prefix 'profit_center_'. Rename to 'hierarchy_level'
+  - Attribute 'container_size' in supply.container has redundant product prefix 'container_'. Rename to 'size'
+  - Attribute 'container_type_code' in supply.container has redundant product prefix 'container_'. Rename to 'type_code'
+  - Attribute 'org_unit_short_name' in workforce.org_unit has redundant product prefix 'org_unit_'. Rename to 'short_name'
+  - Table crop.growing_season has self-referencing FK on column 'double_crop_parent_season_id' with same name as PK 'growing_season_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table compliance.monitoring_result has 3 FK columns pointing to quality.lab_sample (field_sample_id, lab_sample_id, laboratory_sample_id) (generic/unlabeled: lab_sample_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table crop.irrigation_event has 2 FK columns pointing to weather.station (pump_station_id, station_id) (generic/unlabeled: station_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table invoice.billing_account has 2 FK columns pointing to customer.account (account_id, billing_customer_account_id) (generic/unlabeled: account_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table invoice.weight_ticket has 2 FK columns pointing to equipment.asset (asset_id, trailer_asset_id) (generic/unlabeled: asset_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table livestock.animal_movement has 4 FK columns pointing to supply.facility (destination_location_facility_id, destination_premises_facility_id, facility_id, primary_animal_facility_id) (generic/unlabeled: facility_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table livestock.herd has 2 FK columns pointing to supply.facility (facility_id, premises_facility_id) (generic/unlabeled: facility_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table livestock.production_group has 2 FK columns pointing to supply.facility (facility_id, premises_facility_id) (generic/unlabeled: facility_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table product.bundle_component has 2 FK columns pointing to product.master (master_id, primary_bundle_substitute_product_master_id) (generic/unlabeled: master_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table product.substitution_rule has 2 FK columns pointing to product.master (master_id, primary_substitution_substitute_product_master_id) (generic/unlabeled: master_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table research.input_usage has 2 FK columns pointing to inventory.goods_issue (goods_issue_id, inventory_drawdown_goods_issue_id) (generic/unlabeled: goods_issue_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table research.treatment_application has 2 FK columns pointing to inventory.goods_issue (goods_issue_id, inventory_drawdown_goods_issue_id) (generic/unlabeled: goods_issue_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table sales.contract has 2 FK columns pointing to sales.opportunity (opportunity_id, salesforce_opportunity_id) (generic/unlabeled: opportunity_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table sustainability.practice_adoption has 2 FK columns pointing to sustainability.conservation_enrollment (carbon_program_enrollment_id, conservation_enrollment_id) (generic/unlabeled: conservation_enrollment_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table weather.observation has 2 FK columns pointing to weather.station (station_id, weather_station_id) (generic/unlabeled: station_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.benefit_enrollment has 2 FK columns pointing to workforce.employee (employee_id, member_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.payment_run has 2 FK columns pointing to workforce.employee (approved_by_user_employee_id, employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.profit_center has 3 FK columns pointing to workforce.employee (created_by_user_employee_id, employee_id, last_modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.wbs_element has 3 FK columns pointing to workforce.employee (created_by_user_employee_id, employee_id, last_modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table product.transformation_event has 2 FK columns pointing to product.master (master_id, output_product_master_id) (generic/unlabeled: master_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table quality.inspection_lot has 2 FK columns pointing to workforce.employee (approved_by_employee_id, employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table weather.insurance_policy has 2 FK columns pointing to customer.account (account_id, policyholder_account_id) (generic/unlabeled: account_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.org_unit has 3 FK columns pointing to workforce.employee (employee_id, manager_employee_id, modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - PII-candidate attribute compliance.outfall.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute compliance.outfall.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute finance.payment_run.bank_account_id has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute finance.wbs_element.applicant_name has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute supply.plant.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute supply.plant.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute livestock.semen_canister.is_mobile has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute quality.sample_site.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute quality.sample_site.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute sustainability.carbon_project.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute sustainability.carbon_project.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute weather.sensor.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute weather.sensor.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute land.farm_operation.centroid_latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute land.farm_operation.centroid_longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute livestock.barn.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute livestock.barn.longitude has no classification tags — expected restricted/confidential + PII tag
+  - Product 'supply.lot_trace' has 28 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'equipment.equipment_field_operation' has 26 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - 19 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 360 attribute(s) match person-data patterns but lack pii_ tags
+  - 2 attribute(s) have datatypes inconsistent with their column name pattern
+  - 24 non-PK attributes redundantly prefixed with their product name
+  - 5 attribute(s) have value_regex on typed columns (DATE/BOOLEAN/INT/etc.) — regex is redundant when data_type constrains format
+  - 10 attribute(s) have pipe-enum value_regex with >8 values — consider creating a reference product instead
+
+Deterministic score: 76/100 (LLM assessment: 82/100)

@@ -1,0 +1,78 @@
+**Model Quality Score: 89/100**
+
+**Static Analysis Findings (12 actionable):**
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'customer.customer_design_win' and 'sales.sales_design_win' have the same entity name 'design_win' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'customer.customer_design_registration' and 'sales.sales_design_registration' have the same entity name 'design_registration' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'design.design_ip_core' and 'product.product_ip_core' have the same entity name 'ip_core' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'equipment.equipment_process_recipe' and 'fabrication.fabrication_process_recipe' have the same entity name 'process_recipe' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'fabrication.fabrication_wafer_lot' and 'inventory.inventory_wafer_lot' have the same entity name 'wafer_lot' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'fabrication.fabrication_lot_hold' and 'inventory.inventory_lot_hold' have the same entity name 'lot_hold' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'fabrication.fabrication_technology_node' and 'process.process_technology_node' have the same entity name 'technology_node' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'finance.finance_nre_agreement' and 'sales.sales_nre_agreement' have the same entity name 'nre_agreement' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'process.step' and 'test.test_step' have the same entity name 'step' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'product.product_spec' and 'quality.quality_spec' have the same entity name 'spec' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'product.product_qualification_program' and 'quality.quality_qualification_program' have the same entity name 'qualification_program' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'sales.sales_forecast' and 'supply.supply_forecast' have the same entity name 'forecast' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — rename_attribute: compliance.technology_control_plan** — rename column superseded_technology_control_plan_id to superseded_by_technology_control_plan_id
+**PRIORITY 2 — rename_attribute: finance.tax_provision** — rename column primary_reversal_of_tax_provision_id to reversal_of_tax_provision_id
+**PRIORITY 3 — rename_attribute: finance.legal_entity** — rename column primary_ultimate_parent_legal_entity_id to ultimate_parent_legal_entity_id
+**PRIORITY 4 — rename_attribute: design.rule_set** — rename column primary_superseded_by_rule_set_id to superseded_by_rule_set_id
+**PRIORITY 5 — rename_product: design.revision** — rename to design_revision because "revision" is too generic and ambiguous across domains; it should clearly indicate it is a design revision
+**PRIORITY 6 — rename_product: process.step** — rename to process_step because "step" is overly generic and conflicts with fabrication.process_step naming
+**PRIORITY 7 — rename_product: test.case** — rename to test_case because "case" is a reserved word in SQL and overly generic
+**PRIORITY 8 — rename_product: test.limit** — rename to test_limit because "limit" is a reserved word in SQL and overly generic
+**PRIORITY 9 — rename_product: test.coverage** — rename to test_coverage because "coverage" is too generic without domain context
+**PRIORITY 10 — rename_product: process.capability** — rename to process_capability because "capability" is too generic without domain context
+**PRIORITY 11 — rename_product: order.line** — rename to order_line because "line" is overly generic and a common reserved word
+**PRIORITY 12 — connect_table: inventory.storage_location** — add column fab_facility_id (BIGINT) with FK to fabrication.fab_facility.fab_facility_id — storage locations physically reside within fab facilities and need this linkage for inventory tracking
+**PRIORITY 13 — connect_table: sales.territory** — add column legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — territories operate within legal entity boundaries for revenue recognition and compliance
+**PRIORITY 14 — connect_table: sales.campaign** — add column product_family_id (BIGINT) with FK to product.family.family_id — campaigns target specific product families and need this association for pipeline analysis
+**PRIORITY 15 — connect_table: compliance.obligation_register** — add column legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — regulatory obligations are held by specific legal entities
+**PRIORITY 16 — connect_table: equipment.tool_qualification** — add column fab_tool_id (BIGINT) with FK to equipment.fab_tool.fab_tool_id — tool qualifications must reference the specific tool being qualified
+**PRIORITY 17 — connect_table: test.test_step** — add column ate_configuration_id (BIGINT) with FK to test.ate_configuration.ate_configuration_id — test steps execute on specific ATE configurations
+**PRIORITY 18 — remove_fk: customer.customer_design_win** — remove FK on column compliance.reach_svhc_declaration because a design-win business event should not directly reference a substance declaration; this belongs on the product or compliance domain linkage
+**PRIORITY 19 — connect_table: fabrication.wafer_run_record** — add column process_step_id (BIGINT) with FK to fabrication.process_step.process_step_id — wafer run records track processing at specific steps and need this linkage for traceability
+**PRIORITY 20 — connect_table: product.product_spec** — add column family_id (BIGINT) with FK to product.family.family_id — product specifications belong to product families for inheritance and grouping
+**PRIORITY 21 — connect_table: product.bom_line** — add column material_master_id (BIGINT) with FK to supply.material_master.material_master_id — BOM lines reference specific materials from the material master for procurement integration
+**PRIORITY 22 — connect_table: product.bom_line** — add column sku_id (BIGINT) with FK to product.sku.sku_id — BOM lines can reference finished SKUs as components in multi-chip assemblies
+**PRIORITY 23 — connect_table: order.rma** — add column finished_good_id (BIGINT) with FK to inventory.finished_good.finished_good_id — RMAs return specific finished goods and need traceability to inventory
+**PRIORITY 24 — connect_table: fabrication.wafer_run_record** — add column fab_tool_id (BIGINT) with FK to equipment.fab_tool.fab_tool_id — wafer run records must track which tool processed the wafer
+**PRIORITY 25 — connect_table: design.simulation_run** — add column physical_layout_id (BIGINT) with FK to design.physical_layout.physical_layout_id — post-layout simulations reference the physical layout for accurate parasitic extraction
+**PRIORITY 26 — connect_table: design.timing_analysis_run** — add column pdk_id (BIGINT) with FK to design.pdk.pdk_id — timing analysis uses PDK timing libraries and must reference the specific PDK version
+**PRIORITY 27 — connect_table: quality.audit** — add column supplier_id (BIGINT) with FK to supply.supplier.supplier_id — quality audits are frequently conducted on suppliers and need this linkage
+**PRIORITY 28 — connect_table: compliance.certification** — add column legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — certifications are held by specific legal entities
+**PRIORITY 29 — connect_table: inventory.physical_inventory** — add column cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — physical inventory counts are performed within cost center responsibility
+**PRIORITY 30 — remove_fk: customer.sample_request** — remove FK on column finance.internal_order because sample requests should link through cost_center for cost tracking; having both internal_order and wbs_element creates ambiguous cost assignment
+**PRIORITY 31 — connect_table: supply.osat_work_order** — add column ic_catalog_id (BIGINT) with FK to product.ic_catalog.ic_catalog_id — OSAT work orders package specific IC products and need product traceability
+**PRIORITY 32 — connect_table: supply.osat_work_order** — add column customer_account_id (BIGINT) with FK to customer.account.account_id — OSAT work orders are often customer-specific for dedicated packaging runs
+**PRIORITY 33 — connect_table: process.change_notification** — add column product_spec_id (BIGINT) with FK to product.product_spec.product_spec_id — process change notifications impact product specifications and must reference them
+**PRIORITY 34 — connect_table: fabrication.lot_disposition** — add column fab_facility_id (BIGINT) with FK to fabrication.fab_facility.fab_facility_id — lot dispositions occur at specific fab facilities
+**PRIORITY 35 — connect_table: order.nre_milestone** — add column finance_nre_agreement_id (BIGINT) with FK to finance.finance_nre_agreement.finance_nre_agreement_id — NRE milestones trigger billing events against the financial NRE agreement
+**PRIORITY 36 — rename_product: process.flow** — rename to process_flow_template because fabrication.process_flow already exists and the naming collision creates confusion about which is the template vs instance
+**PRIORITY 37 — connect_table: test.insertion** — add column product_ic_catalog_id (BIGINT) with FK to product.ic_catalog.ic_catalog_id — test insertions are defined per product and need direct product linkage
+**PRIORITY 38 — connect_table: quality.spc_chart** — add column fabrication_wafer_lot_id (BIGINT) with FK to fabrication.fabrication_wafer_lot.fabrication_wafer_lot_id — SPC charts in quality track specific wafer lots for quality monitoring
+**PRIORITY 39 — connect_table: compliance.eccn_classification** — add column ic_catalog_id (BIGINT) with FK to product.ic_catalog.ic_catalog_id — ECCN classifications are assigned to specific products in the catalog
+**PRIORITY 40 — connect_table: compliance.certification** — add column supplier_id (BIGINT) with FK to supply.supplier.supplier_id — certifications (ISO, IATF) are held by suppliers and need this reference
+**PRIORITY 41 — connect_table: design.timing_analysis_run** — add column process_technology_node_id (BIGINT) with FK to process.process_technology_node.process_technology_node_id — timing analysis is node-dependent and must reference the technology node for library selection
+**PRIORITY 42 — connect_table: supply.risk_assessment** — add column fab_facility_id (BIGINT) with FK to fabrication.fab_facility.fab_facility_id — supply risk assessments evaluate geographic and facility-specific risks
+**PRIORITY 43 — connect_table: order.blanket_order** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — blanket orders commit to specific SKUs for volume pricing
+**PRIORITY 44 — connect_table: sales.sales_forecast** — add column customer_segment_id (BIGINT) with FK to customer.segment.segment_id — sales forecasts are segmented by customer segment for planning accuracy
+**PRIORITY 45 — connect_table: fabrication.equipment_run** — add column wafer_id (BIGINT) with FK to fabrication.wafer.wafer_id — equipment runs process individual wafers and need wafer-level traceability
+**PRIORITY 46 — connect_table: quality.customer_complaint** — add column order_id (BIGINT) with FK to order.order.order_id — customer complaints reference the original order for traceability
+**PRIORITY 47 — connect_table: product.errata** — add column sku_id (BIGINT) with FK to product.sku.sku_id — errata affect specific SKUs and customers need to know which SKUs are impacted
+**PRIORITY 48 — connect_table: product.ltb_notification** — add column customer_account_id (BIGINT) with FK to customer.account.account_id — LTB notifications are sent to specific customer accounts
+**PRIORITY 49 — connect_table: inventory.raw_material** — add column fab_facility_id (BIGINT) with FK to fabrication.fab_facility.fab_facility_id — raw materials are stocked at specific fab facilities
+**PRIORITY 50 — connect_table: process.excursion** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — excursions impact specific SKUs for customer notification and containment
+
+Other known issues from static analysis (8):
+  - Table order.mpw_order has 2 FK columns pointing to order.order (order_id, primary_mpw_sales_order_id) (generic/unlabeled: order_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table order.nre_order has 2 FK columns pointing to order.order (order_id, primary_nre_sales_order_id) (generic/unlabeled: order_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table fabrication.process_step has 2 FK columns pointing to process.step (process_rework_target_step_id, step_id) (generic/unlabeled: step_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Product 'fabrication.wafer_start' has 28 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'inventory.inventory_wafer_lot' has 27 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - 1 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 221 attribute(s) match person-data patterns but lack pii_ tags
+  - 22 non-PK attributes redundantly prefixed with their product name
+
+Deterministic score: 89/100 (LLM assessment: 62/100)

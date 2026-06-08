@@ -1,0 +1,111 @@
+**Model Quality Score: 50/100**
+
+**Static Analysis Findings (24 actionable):**
+  - [SA:fk_namespace_mismatch] community.forum_thread.offer_campaign_id: description says 'monetization' but FK points to 'licensing'
+  - [SA:fk_namespace_mismatch] community.forum_thread.promotion_id: description says 'monetization' but FK points to 'licensing'
+  - [SA:fk_namespace_mismatch] community.ugc_submission.mtx_catalog_id: description says 'monetization' but FK points to 'licensing'
+  - [SA:fk_namespace_mismatch] community.ugc_submission.offer_campaign_id: description says 'monetization' but FK points to 'licensing'
+  - [SA:fk_namespace_mismatch] community.support_ticket.battle_pass_entitlement_id: description says 'monetization' but FK points to 'licensing'
+  - [SA:fk_namespace_mismatch] community.support_ticket.iap_transaction_id: description says 'monetization' but FK points to 'licensing'
+  - [SA:fk_namespace_mismatch] community.player_report.iap_transaction_id: description says 'monetization' but FK points to 'licensing'
+  - [SA:fk_namespace_mismatch] community.event.battle_pass_id: description says 'monetization' but FK points to 'licensing'
+  - [SA:fk_namespace_mismatch] licensing.virtual_currency_ledger.promotion_id: description says 'monetization' but FK points to 'licensing'
+  - [SA:fk_namespace_mismatch] licensing.virtual_currency_ledger.virtual_currency_account_id: description says 'monetization' but FK points to 'licensing'
+  - [SA:fk_namespace_mismatch] marketing.campaign_spend.offer_campaign_id: description says 'monetization' but FK points to 'licensing'
+  - [SA:fk_namespace_mismatch] marketing.retention_cohort.offer_campaign_id: description says 'monetization' but FK points to 'licensing'
+  - [SA:fk_namespace_mismatch] marketing.influencer_campaign.offer_campaign_id: description says 'monetization' but FK points to 'licensing'
+  - [SA:fk_namespace_mismatch] marketing.crm_campaign.offer_campaign_id: description says 'monetization' but FK points to 'licensing'
+  - [SA:fk_namespace_mismatch] billing.invoice_line.iap_transaction_id: description says 'monetization' but FK points to 'licensing'
+  - [SA:fk_namespace_mismatch] billing.refund.iap_transaction_id: description says 'monetization' but FK points to 'licensing'
+  - [SA:fk_namespace_mismatch] billing.chargeback.iap_transaction_id: description says 'monetization' but FK points to 'licensing'
+  - [SA:fk_namespace_mismatch] billing.storefront_order_line.mtx_catalog_id: description says 'monetization' but FK points to 'licensing'
+  - [SA:fk_namespace_mismatch] licensing.royalty_payment.iap_transaction_id: description says 'monetization' but FK points to 'licensing'
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_account' and 'player.player_account' have the same entity name 'account' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'compliance.compliance_incident' and 'infrastructure.infrastructure_incident' have the same entity name 'incident' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'content.content_release' and 'title.title_release' have the same entity name 'release' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'content.content_deployment' and 'infrastructure.infrastructure_deployment' have the same entity name 'deployment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'esports.esports_season' and 'title.title_season' have the same entity name 'season' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — rename_product: community.event** — rename to community_event because "event" is an extremely generic name that collides with analytics event concepts and SQL reserved word proximity; needs domain-qualifying prefix for clarity
+**PRIORITY 2 — rename_product: community.ban** — rename to community_ban because a "ban" product exists in both community domain and player domain (player.ban_record), creating semantic confusion; the community.ban table even has an FK to player.ban_record suggesting duplication
+**PRIORITY 3 — remove_fk: community.ban** — remove FK on column linking to player.ban_record because community.ban and player.ban_record represent the same business concept (player ban enforcement); one should be the SSOT, not both cross-referencing each other
+**PRIORITY 4 — connect_table: marketing.ad_network** — add column parent_ad_network_id (BIGINT) with FK to marketing.ad_network.ad_network_id — ad_network currently has only one outbound FK (to compliance.jurisdiction) and zero inbound from attribution_record's ad_network reference is already present; however the table lacks connection to platform.storefront which is a key distribution channel for ad-supported games
+**PRIORITY 5 — connect_table: licensing.commercial_term** — add column licensee_id (BIGINT) with FK to licensing.licensee.licensee_id — commercial terms are negotiated with a specific licensee and currently only link to ip_agreement without direct licensee traceability
+**PRIORITY 6 — connect_table: licensing.campaign_item** — add column storefront_item_id (BIGINT) with FK to monetization.storefront_item.storefront_item_id — campaign items in an offer campaign should link to the actual storefront item being offered to players
+**PRIORITY 7 — connect_table: licensing.campaign_item** — add column game_title_id (BIGINT) with FK to title.game_title.game_title_id — campaign items need title context to determine which game the offer applies to
+**PRIORITY 8 — connect_table: title.edition_content_inclusion** — add column game_title_id (BIGINT) with FK to title.game_title.game_title_id — edition content inclusions should be traceable to the parent game title for reporting and validation
+**PRIORITY 9 — connect_table: title.mode_character_roster** — add column game_title_id (BIGINT) with FK to title.game_title.game_title_id — mode-character roster assignments need game title context since modes and characters can span titles
+**PRIORITY 10 — connect_table: content.bundle_manifest_entry** — add column game_title_id (BIGINT) with FK to title.game_title.game_title_id — bundle manifest entries lack title context making it impossible to filter manifests by game
+**PRIORITY 11 — connect_table: content.npc_spawn_configuration** — add column game_title_id (BIGINT) with FK to title.game_title.game_title_id — NPC spawn configs need title association for multi-title studios sharing content pipelines
+**PRIORITY 12 — connect_table: monetization.plan_content_inclusion** — add column game_title_id (BIGINT) with FK to title.game_title.game_title_id — subscription plan content inclusions need title scoping for multi-game subscription services
+**PRIORITY 13 — connect_table: esports.standing** — add column tournament_id (BIGINT) with FK to esports.tournament.tournament_id — standings can exist at tournament level not just league/season level
+**PRIORITY 14 — connect_table: player.profile** — add column device_id (BIGINT) with FK to player.device.device_id — player profiles are often device-specific (e.g., avatar rendered differently per platform)
+**PRIORITY 15 — connect_table: player.preference** — add column game_mode_id (BIGINT) with FK to title.game_mode.game_mode_id — player preferences (e.g., preferred game mode) commonly reference specific modes
+**PRIORITY 16 — connect_table: infrastructure.cloud_resource** — add column game_title_id (BIGINT) with FK to title.game_title.game_title_id — cloud resources are provisioned per game title for cost allocation and capacity planning
+**PRIORITY 17 — rename_attribute: analytics.ab_experiment** — rename column predecessor_ab_experiment_id to previous_ab_experiment_id
+**PRIORITY 18 — rename_attribute: analytics.event_schema** — rename column primary_previous_version_event_schema_id to previous_version_event_schema_id
+**PRIORITY 19 — rename_attribute: analytics.kpi_definition** — rename column primary_replacement_kpi_definition_id to replacement_kpi_definition_id
+**PRIORITY 20 — rename_attribute: analytics.kpi_target** — rename column primary_previous_target_kpi_target_id to previous_kpi_target_id
+**PRIORITY 21 — rename_attribute: community.event** — rename column parent_event_community_event_id to parent_community_event_id
+**PRIORITY 22 — rename_attribute: community.forum_thread** — rename column thread_root_forum_thread_id to root_forum_thread_id
+**PRIORITY 23 — rename_attribute: esports.prize_allocation** — rename column parent_allocation_prize_allocation_id to parent_prize_allocation_id
+**PRIORITY 24 — rename_attribute: platform.entitlement_grant** — rename column parent_entitlement_entitlement_grant_id to parent_entitlement_grant_id
+**PRIORITY 25 — rename_attribute: studio.game_studio** — rename column parent_studio_game_studio_id to parent_game_studio_id
+**PRIORITY 26 — rename_attribute: title.genre_classification** — rename column parent_genre_genre_classification_id to parent_genre_classification_id
+**PRIORITY 27 — rename_attribute: analytics.experiment_result** — rename column prior_analysis_experiment_result_id to previous_experiment_result_id
+**PRIORITY 28 — rename_attribute: consent_policy** — rename column primary_superseded_by_policy_consent_policy_id to superseded_by_consent_policy_id
+**PRIORITY 29 — rename_attribute: licensing.offer_campaign** — rename column parent_campaign_offer_campaign_id to parent_offer_campaign_id
+**PRIORITY 30 — rename_attribute: esports.player_contract** — rename column parent_contract_player_contract_id to parent_player_contract_id
+**PRIORITY 31 — rename_attribute: analytics.ab_test_variant** — rename column control_ab_test_variant_id to control_variant_id
+**PRIORITY 32 — connect_table: licensing.entitlement** — add column player_account_id (BIGINT) with FK to player.player_account.player_account_id — entitlements are granted to specific players and currently lack direct player linkage
+**PRIORITY 33 — connect_table: licensing.entitlement** — add column storefront_id (BIGINT) with FK to platform.storefront.storefront_id — entitlements originate from a specific storefront purchase channel
+**PRIORITY 34 — connect_table: esports.game_result** — add column esports_season_id (BIGINT) with FK to esports.esports_season.esports_season_id — game results should be attributable to a specific competitive season for historical analysis
+**PRIORITY 35 — connect_table: esports.broadcast_rights** — add column esports_season_id (BIGINT) with FK to esports.esports_season.esports_season_id — broadcast rights are typically negotiated per season
+**PRIORITY 36 — connect_table: marketing.influencer_campaign** — add column ad_creative_id (BIGINT) with FK to marketing.ad_creative.ad_creative_id — influencer campaigns use specific creative assets for tracking and attribution
+**PRIORITY 37 — connect_table: marketing.budget** — add column campaign_spend_id (BIGINT) with FK to marketing.campaign_spend.campaign_spend_id — budgets should link to actual spend records for variance analysis
+**PRIORITY 38 — remove_fk: analytics.telemetry_event** — remove FK on column linking to billing.invoice because raw telemetry events should not directly reference invoices; this relationship should flow through billing.payment or billing.storefront_order
+**PRIORITY 39 — connect_table: player.platform_identity** — add column game_title_id (BIGINT) with FK to title.game_title.game_title_id — platform identities can be title-scoped on certain platforms (e.g., console-specific entitlements per game)
+**PRIORITY 40 — connect_table: content.localization_translation** — add column game_title_id (BIGINT) with FK to title.game_title.game_title_id — translations need title context when the same string key exists across multiple games
+**PRIORITY 41 — connect_table: studio.sprint** — add column live_ops_cycle_id (BIGINT) with FK to studio.live_ops_cycle.live_ops_cycle_id — sprints in GaaS operate within live ops cycles and need this linkage for cadence tracking
+**PRIORITY 42 — connect_table: analytics.treatment_arm** — add column game_title_id (BIGINT) with FK to title.game_title.game_title_id — treatment arms need title context since experiments are scoped to specific games
+**PRIORITY 43 — connect_table: analytics.ab_test_variant** — add column game_title_id (BIGINT) with FK to title.game_title.game_title_id — test variants are configured per game title for proper segmentation
+**PRIORITY 44 — connect_table: billing.chargeback** — add column player_account_id (BIGINT) with FK to player.player_account.player_account_id — chargebacks are initiated by specific players and need direct player linkage for fraud detection
+**PRIORITY 45 — connect_table: billing.refund** — add column player_account_id (BIGINT) with FK to player.player_account.player_account_id — refunds are issued to specific players and need direct player linkage for support and analytics
+**PRIORITY 46 — connect_table: esports.sponsorship** — add column game_title_id (BIGINT) with FK to title.game_title.game_title_id — sponsorships are typically associated with specific game titles for revenue attribution
+**PRIORITY 47 — connect_table: licensing.royalty_payment** — add column game_title_id (BIGINT) with FK to title.game_title.game_title_id — royalty payments need direct title association for financial reporting per game
+**PRIORITY 48 — connect_table: marketing.campaign_spend** — add column player_segment_id (BIGINT) with FK to marketing.player_segment.player_segment_id — campaign spend is often targeted at specific player segments for ROAS analysis
+**PRIORITY 49 — connect_table: infrastructure.infrastructure_deployment** — add column dev_project_id (BIGINT) with FK to studio.dev_project.dev_project_id — infrastructure deployments are triggered by development projects and need traceability
+**PRIORITY 50 — rename_attribute: analytics.telemetry_event** — rename column causal_telemetry_event_id to caused_by_telemetry_event_id
+**PRIORITY 51 — rename_attribute: monetization.ad_placement** — rename column fallback_ad_placement_id to fallback_placement_id
+**PRIORITY 52 — rename_attribute: monetization.ad_impression** — rename column previous_ad_impression_id to prior_ad_impression_id
+**PRIORITY 53 — connect_table: licensing.virtual_currency_account** — add column player_account_id (BIGINT) with FK to player.player_account.player_account_id — virtual currency accounts belong to specific players and need direct player linkage for balance queries
+**PRIORITY 54 — connect_table: community.guild** — add column game_mode_id (BIGINT) with FK to title.game_mode.game_mode_id — guilds often operate within specific game modes (PvP guilds, raid guilds) and need mode context
+**PRIORITY 55 — connect_table: esports.venue** — add column game_title_id (BIGINT) with FK to title.game_title.game_title_id — venues host events for specific game titles and need this association for scheduling
+**PRIORITY 56 — connect_table: content.level_map** — add column game_title_id (BIGINT) with FK to title.game_title.game_title_id — level maps belong to specific game titles and currently lack direct title linkage
+**PRIORITY 57 — connect_table: content.level_map** — add column game_mode_id (BIGINT) with FK to title.game_mode.game_mode_id — level maps are playable in specific game modes (PvP maps, campaign maps)
+**PRIORITY 58 — connect_table: billing.platform_payout** — add column platform_sku_id (BIGINT) with FK to platform.platform_sku.platform_sku_id — platform payouts are calculated per SKU and need SKU-level granularity for revenue reconciliation
+**PRIORITY 59 — connect_table: marketing.retention_cohort** — add column player_account_id (BIGINT) with FK to player.player_account.player_account_id — retention cohorts need player membership linkage for D1/D7/D30 tracking at individual level
+**PRIORITY 60 — remove_fk: analytics.ab_experiment** — remove FK on column linking to infrastructure.server_fleet because A/B experiments are logical constructs that should not directly reference physical server fleets; infrastructure allocation is handled at deployment level
+**PRIORITY 61 — connect_table: studio.backlog_item** — add column game_title_id (BIGINT) with FK to title.game_title.game_title_id — backlog items (bugs, features) need direct game title association for prioritization and filtering
+**PRIORITY 62 — connect_table: player.title_progress** — add column game_mode_id (BIGINT) with FK to title.game_mode.game_mode_id — player progress is often tracked per game mode (ranked vs casual progression)
+
+Other known issues from static analysis (17):
+  - Attribute 'franchise_tier' in title.franchise has redundant product prefix 'franchise_'. Rename to 'tier'
+  - Attribute 'league_tier' in esports.league has redundant product prefix 'league_'. Rename to 'tier'
+  - Attribute 'sponsorship_tier' in esports.sponsorship has redundant product prefix 'sponsorship_'. Rename to 'tier'
+  - Attribute 'subscription_tier' in billing.subscription has redundant product prefix 'subscription_'. Rename to 'tier'
+  - Table content.asset_version has self-referencing FK on column 'rollback_from_version_id' with same name as PK 'asset_version_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table billing.storefront_order_line has self-referencing FK on column 'bundle_parent_line_id' with same name as PK 'storefront_order_line_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Product 'analytics.telemetry_event' has 47 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'community.support_ticket' has 40 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'community.player_report' has 31 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'community.ugc_submission' has 30 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'analytics.ab_experiment' has 30 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'monetization.dlc_entitlement' has 28 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'community.kb_article' has 26 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - 2 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 196 attribute(s) match person-data patterns but lack pii_ tags
+  - 12 non-PK attributes redundantly prefixed with their product name
+  - 1 attribute(s) have pipe-enum value_regex with >8 values — consider creating a reference product instead
+
+Deterministic score: 50/100 (LLM assessment: 62/100)

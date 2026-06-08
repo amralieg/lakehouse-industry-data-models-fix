@@ -1,0 +1,198 @@
+**Model Quality Score: 50/100**
+
+**Static Analysis Findings (56 actionable):**
+  - [SA:unlinked_fk] Column creative.creative_asset.client_brand_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column performance.impression_event.auction_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column vendor.invoice.dispute_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column client.survey.brand_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column client.survey.campaign_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column client.survey.client_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column creative.review_group.archived_by_user_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column creative.review_group.created_by_user_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column creative.review_group.integration_system_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column creative.review_group.modified_by_user_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column creative.review_group.owner_user_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column creative.review_group.parent_review_group_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column client.legal_entity.parent_legal_entity_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column client.legal_entity.ultimate_parent_legal_entity_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column talent.review_template.approved_by_user_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column talent.review_template.competency_framework_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column talent.review_template.created_by_user_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column talent.review_template.last_modified_by_user_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column talent.location.manager_employee_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column talent.location.parent_location_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column talent.payroll_calendar.approved_by_user_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column talent.payroll_calendar.holiday_calendar_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column talent.payroll_calendar.workday_hcm_calendar_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column talent.payroll_calendar.workfront_calendar_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column talent.legal_entity.parent_entity_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column talent.legal_entity.ultimate_parent_entity_id looks like an FK but has no foreign_key_to reference
+  - [SA:duplicate_product_pair] Domain 'media' has both 'placement' and 'media_placement' — SSOT violation. Merge into 'placement'.
+  - [SA:missing_pk] Product 'talent.review_cycle' has no primary key attribute.
+  - [SA:denormalized_natural_key] Product 'talent.acquisition' has both FK 'requisition_id' and natural key 'requisition_number' for entity 'requisition'. The natural key is redundant — use the FK join instead.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'analytics.analytics_request' and 'creative.creative_request' have the same entity name 'request' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'audience.audience_segment' and 'client.client_segment' have the same entity name 'segment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'audience.audience_consent_record' and 'client.client_consent_record' have the same entity name 'consent_record' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'brand.brand_profile' and 'talent.talent_profile' have the same entity name 'profile' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'brand.brand_asset' and 'creative.creative_asset' have the same entity name 'asset' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'brand.brand_spokesperson' and 'campaign.campaign_spokesperson' have the same entity name 'spokesperson' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'brand.brand_compliance_check' and 'creative.creative_compliance_check' have the same entity name 'compliance_check' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'campaign.campaign_kpi_target' and 'performance.performance_kpi_target' have the same entity name 'kpi_target' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'campaign.campaign_brief' and 'client.client_brief' have the same entity name 'brief' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'campaign.campaign_brief' and 'creative.creative_brief' have the same entity name 'brief' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'campaign.campaign_brief' and 'project.project_brief' have the same entity name 'brief' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'client.client_brief' and 'creative.creative_brief' have the same entity name 'brief' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'client.client_brief' and 'project.project_brief' have the same entity name 'brief' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'creative.creative_brief' and 'project.project_brief' have the same entity name 'brief' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'client.client_contact' and 'vendor.vendor_contact' have the same entity name 'contact' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'client.client_onboarding' and 'vendor.vendor_onboarding' have the same entity name 'onboarding' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'client.client_engagement' and 'talent.talent_engagement' have the same entity name 'engagement' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'client.legal_entity' and 'talent.legal_entity' have the same entity name 'legal_entity' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.contract_insertion_order' and 'media.media_insertion_order' have the same entity name 'insertion_order' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.contract_deliverable' and 'creative.creative_deliverable' have the same entity name 'deliverable' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.contract_rate_card' and 'talent.talent_rate_card' have the same entity name 'rate_card' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.contract_rate_card' and 'vendor.vendor_rate_card' have the same entity name 'rate_card' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'talent.talent_rate_card' and 'vendor.vendor_rate_card' have the same entity name 'rate_card' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.contract_milestone' and 'project.project_milestone' have the same entity name 'milestone' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.contract_template' and 'project.project_template' have the same entity name 'template' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'creative.review_cycle' and 'talent.review_cycle' have the same entity name 'review_cycle' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'finance.finance_budget' and 'project.project_budget' have the same entity name 'budget' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — connect_table: audience.audience_consent_record** — add column advertiser_id (BIGINT) with FK to client.advertiser.advertiser_id — consent records must link to the advertiser whose data subjects they govern for GDPR/CCPA compliance
+**PRIORITY 2 — connect_table: audience.audience_consent_record** — add column audience_segment_id (BIGINT) with FK to audience.audience_segment.audience_segment_id — consent records need to reference which segment the consent applies to
+**PRIORITY 3 — connect_table: audience.identity_graph** — add column advertiser_id (BIGINT) with FK to client.advertiser.advertiser_id — identity graphs are built per-client and must be linked to the owning advertiser
+**PRIORITY 4 — connect_table: audience.identity_graph** — add column worker_id (BIGINT) with FK to talent.worker.worker_id — identity graphs need an owner/creator for audit and governance
+**PRIORITY 5 — connect_table: brand.competitive_brand** — add column advertiser_id (BIGINT) with FK to client.advertiser.advertiser_id — competitive brands are tracked relative to a specific client advertiser
+**PRIORITY 6 — connect_table: media.ad_format** — add column ad_channel_id (BIGINT) with FK to media.ad_channel.ad_channel_id — ad formats are typically associated with specific channels (display, video, audio)
+**PRIORITY 7 — connect_table: media.ssp_platform** — add column supplier_id (BIGINT) with FK to vendor.supplier.supplier_id — SSP platforms are operated by vendors and must link to the supplier record
+**PRIORITY 8 — connect_table: creative.spec** — add column ad_channel_id (BIGINT) with FK to media.ad_channel.ad_channel_id — creative specs are channel-specific (display dimensions, video duration) and must reference the channel
+**PRIORITY 9 — connect_table: creative.spec** — add column ad_format_id (BIGINT) with FK to media.ad_format.ad_format_id — specs define requirements for a specific ad format
+**PRIORITY 10 — connect_table: creative.review_group** — add column initiative_id (BIGINT) with FK to project.initiative.initiative_id — review groups are assembled per project/initiative context
+**PRIORITY 11 — connect_table: creative.review_group** — add column worker_id (BIGINT) with FK to talent.worker.worker_id — review groups need an owner who manages membership
+**PRIORITY 12 — connect_table: campaign.optimization_algorithm** — add column worker_id (BIGINT) with FK to talent.worker.worker_id — algorithms need a creator/owner for governance and audit
+**PRIORITY 13 — connect_table: campaign.optimization_rule** — add column campaign_id (BIGINT) with FK to campaign.campaign.campaign_id — optimization rules must be scoped to a campaign
+**PRIORITY 14 — connect_table: finance.gl_account** — add column cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — GL accounts are typically mapped to cost centers in the chart of accounts
+**PRIORITY 15 — connect_table: client.legal_entity** — add column advertiser_id (BIGINT) with FK to client.advertiser.advertiser_id — legal entities represent the corporate structure behind an advertiser
+**PRIORITY 16 — connect_table: client.client_segment** — add column worker_id (BIGINT) with FK to talent.worker.worker_id — segments need an owner who defines and maintains them
+**PRIORITY 17 — connect_table: talent.legal_entity** — add column org_unit_id (BIGINT) with FK to talent.org_unit.org_unit_id — legal entities in talent domain represent employing entities tied to organizational units
+**PRIORITY 18 — connect_table: talent.location** — add column org_unit_id (BIGINT) with FK to talent.org_unit.org_unit_id — office locations are associated with organizational units
+**PRIORITY 19 — connect_table: vendor.supplier** — add column advertiser_id (BIGINT) with FK to client.advertiser.advertiser_id — suppliers often serve specific advertisers and need that linkage for conflict checks
+**PRIORITY 20 — rename_product: analytics.budget_optimization_scenario** — rename to budget_scenario because the name is excessively long and redundant with domain context
+**PRIORITY 21 — remove_fk: analytics.budget_optimization_scenario** — remove FK on column baseline_budget_optimization_scenario_id because it duplicates the self-ref already expressed by baseline_scenario_id on the same table
+**PRIORITY 22 — connect_table: performance.session** — add column advertiser_id (BIGINT) with FK to client.advertiser.advertiser_id — sessions must be attributable to an advertiser for analytics and billing
+**PRIORITY 23 — connect_table: performance.auction** — add column ad_channel_id (BIGINT) with FK to media.ad_channel.ad_channel_id — auctions occur within a specific channel context (display, video, CTV)
+**PRIORITY 24 — connect_table: performance.rtb_bid_event** — add column ssp_platform_id (BIGINT) with FK to media.ssp_platform.ssp_platform_id — RTB bids are submitted through a specific SSP
+**PRIORITY 25 — connect_table: audience.pixel_event** — add column creative_asset_id (BIGINT) with FK to creative.creative_asset.creative_asset_id — pixel events fire in context of a specific creative being served
+**PRIORITY 26 — connect_table: talent.talent_rate_card** — add column worker_id (BIGINT) with FK to talent.worker.worker_id — rate cards for talent must link to the specific worker they price
+**PRIORITY 27 — connect_table: contract.contract_template** — add column advertiser_id (BIGINT) with FK to client.advertiser.advertiser_id — templates are often client-specific and need that association
+**PRIORITY 28 — connect_table: media.benchmark** — add column advertiser_id (BIGINT) with FK to client.advertiser.advertiser_id — benchmarks are contextualized per advertiser vertical for meaningful comparison
+**PRIORITY 29 — connect_table: brand.brand_profile** — add column advertiser_id (BIGINT) with FK to client.advertiser.advertiser_id — brand profiles must link to the owning advertiser; currently only linked to vendor.supplier which is incorrect as primary owner
+**PRIORITY 30 — remove_fk: finance.client_invoice** — remove FK on column click_event (performance.click_event) because invoices are generated from aggregated metrics, not individual click events
+**PRIORITY 31 — remove_fk: finance.client_invoice** — remove FK on column conversion_event (performance.conversion_event) because invoices reference aggregated conversion counts, not individual conversion events
+**PRIORITY 32 — remove_fk: finance.client_invoice** — remove FK on column video_completion_event (performance.video_completion_event) because invoices reference aggregated video metrics, not individual events
+**PRIORITY 33 — remove_fk: finance.invoice_line** — remove FK on column click_event (performance.click_event) because invoice lines summarize performance, not reference individual click events
+**PRIORITY 34 — remove_fk: finance.invoice_line** — remove FK on column conversion_event (performance.conversion_event) because invoice lines summarize performance, not reference individual conversion events
+**PRIORITY 35 — remove_fk: finance.invoice_line** — remove FK on column video_completion_event (performance.video_completion_event) because invoice lines summarize performance, not reference individual video events
+**PRIORITY 36 — remove_fk: finance.journal_entry** — remove FK on column click_event (performance.click_event) because journal entries record financial transactions, not individual ad events
+**PRIORITY 37 — remove_fk: finance.revenue_recognition** — remove FK on column click_event (performance.click_event) because revenue recognition is a financial process not tied to individual click events
+**PRIORITY 38 — remove_fk: finance.revenue_recognition** — remove FK on column conversion_event (performance.conversion_event) because revenue recognition aggregates performance, not individual events
+**PRIORITY 39 — remove_fk: finance.media_cost_reconciliation** — remove FK on column click_event (performance.click_event) because reconciliation works on aggregated delivery data not individual events
+**PRIORITY 40 — remove_fk: finance.accrual** — remove FK on column click_event (performance.click_event) because accruals are period-based financial estimates not tied to individual events
+**PRIORITY 41 — connect_table: campaign.ad** — add column audience_segment_id (BIGINT) with FK to audience.audience_segment.audience_segment_id — ads are targeted to specific audience segments
+**PRIORITY 42 — connect_table: media.plan** — add column campaign_brief_id (BIGINT) with FK to campaign.campaign_brief.campaign_brief_id — media plans are developed from campaign briefs
+**PRIORITY 43 — connect_table: talent.timesheet** — add column work_package_id (BIGINT) with FK to project.work_package.work_package_id — timesheets should track time against work packages for accurate project costing
+**PRIORITY 44 — rename_product: client.advertiser_cost_center_allocation** — rename to advertiser_cost_allocation because the name is redundant with the FK targets already conveying meaning
+**PRIORITY 45 — connect_table: contract.rate_card_line** — add column ad_channel_id (BIGINT) with FK to media.ad_channel.ad_channel_id — rate card lines price specific channels/formats
+**PRIORITY 46 — connect_table: contract.term** — add column worker_id (BIGINT) with FK to talent.worker.worker_id — contract terms need an author/approver for audit trail
+**PRIORITY 47 — connect_table: contract.scope_item** — add column worker_id (BIGINT) with FK to talent.worker.worker_id — scope items need an owner responsible for delivery
+**PRIORITY 48 — connect_table: contract.compliance_obligation** — add column worker_id (BIGINT) with FK to talent.worker.worker_id — compliance obligations need an assigned responsible party
+**PRIORITY 49 — connect_table: audience.segment_activation** — add column campaign_id (BIGINT) with FK to campaign.campaign.campaign_id — segment activations occur in the context of a campaign
+**PRIORITY 50 — connect_table: audience.segment_activation** — add column supplier_id (BIGINT) with FK to vendor.supplier.supplier_id — segments are activated to a specific vendor platform (DSP/DMP)
+**PRIORITY 51 — connect_table: brand.asset_deployment** — add column campaign_id (BIGINT) with FK to campaign.campaign.campaign_id — brand asset deployments happen within campaign contexts
+**PRIORITY 52 — connect_table: brand.asset_deployment** — add column worker_id (BIGINT) with FK to talent.worker.worker_id — deployments need an executor for accountability
+**PRIORITY 53 — connect_table: performance.brand_safety_signal** — add column campaign_id (BIGINT) with FK to campaign.campaign.campaign_id — brand safety signals must be attributable to a campaign for reporting
+**PRIORITY 54 — connect_table: performance.ivt_classification** — add column advertiser_id (BIGINT) with FK to client.advertiser.advertiser_id — IVT classifications need advertiser context for billing disputes
+**PRIORITY 55 — connect_table: media.channel_supplier_agreement** — add column contract_id (BIGINT) with FK to contract.vendor_contract.vendor_contract_id — channel-supplier agreements should reference the governing vendor contract
+**PRIORITY 56 — connect_table: media.compliance_rule** — add column advertiser_id (BIGINT) with FK to client.advertiser.advertiser_id — compliance rules are often advertiser-specific (pharma, alcohol restrictions)
+**PRIORITY 57 — connect_table: client.survey** — add column advertiser_id (BIGINT) with FK to client.advertiser.advertiser_id — surveys are conducted for specific advertisers
+**PRIORITY 58 — connect_table: talent.payroll_calendar** — add column legal_entity_id (BIGINT) with FK to talent.legal_entity.legal_entity_id — payroll calendars are specific to legal entities for tax jurisdiction compliance
+**PRIORITY 59 — connect_table: performance.measurement_discrepancy** — add column campaign_id (BIGINT) with FK to campaign.campaign.campaign_id — discrepancies must be tracked at campaign level for resolution
+**PRIORITY 60 — connect_table: performance.pixel_deployment** — add column advertiser_id (BIGINT) with FK to client.advertiser.advertiser_id — pixel deployments are on advertiser properties
+**PRIORITY 61 — connect_table: vendor.platform_activation** — add column advertiser_id (BIGINT) with FK to client.advertiser.advertiser_id — platform activations serve specific advertisers
+**PRIORITY 62 — connect_table: media.sov_benchmark** — add column competitive_brand_id (BIGINT) with FK to brand.competitive_brand.competitive_brand_id — SOV benchmarks compare against competitive brands
+**PRIORITY 63 — connect_table: talent.job_profile** — add column org_unit_id (BIGINT) with FK to talent.org_unit.org_unit_id — job profiles belong to specific organizational units
+**PRIORITY 64 — connect_table: audience.lookalike_model** — add column behavioral_profile_id (BIGINT) with FK to audience.behavioral_profile.behavioral_profile_id — lookalike models are built from behavioral seed data
+**PRIORITY 65 — connect_table: analytics.dashboard** — add column audience_segment_id (BIGINT) with FK to audience.audience_segment.audience_segment_id — dashboards often filter/report on specific audience segments
+**PRIORITY 66 — connect_table: campaign.budget_allocation** — add column cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — budget allocations must map to cost centers for financial tracking
+**PRIORITY 67 — connect_table: campaign.budget_allocation** — add column finance_budget_id (BIGINT) with FK to finance.finance_budget.finance_budget_id — allocations draw from an approved finance budget
+**PRIORITY 68 — connect_table: media.allocation** — add column finance_budget_id (BIGINT) with FK to finance.finance_budget.finance_budget_id — media allocations must reference the governing budget
+**PRIORITY 69 — connect_table: project.sprint** — add column work_package_id (BIGINT) with FK to project.work_package.work_package_id — sprints execute work within specific work packages
+**PRIORITY 70 — rename_attribute: brand.architecture** — rename column superseded_by_architecture_id to superseding_architecture_id because FK naming should reference the target role, not use passive voice that confuses directionality
+**PRIORITY 71 — connect_table: vendor.invoice_dispute** — add column campaign_id (BIGINT) with FK to campaign.campaign.campaign_id — invoice disputes arise in campaign delivery context
+**PRIORITY 72 — connect_table: creative.brand_guideline** — add column brand_profile_id (BIGINT) with FK to brand.brand_profile.brand_profile_id — creative brand guidelines reference a specific brand profile
+**PRIORITY 73 — connect_table: performance.model_platform_configuration** — add column advertiser_id (BIGINT) with FK to client.advertiser.advertiser_id — attribution model configurations are advertiser-specific
+**PRIORITY 74 — connect_table: audience.behavioral_profile** — add column advertiser_id (BIGINT) with FK to client.advertiser.advertiser_id — behavioral profiles are built from advertiser first-party data
+**PRIORITY 75 — connect_table: audience.demographic_profile** — add column advertiser_id (BIGINT) with FK to client.advertiser.advertiser_id — demographic profiles are contextualized per advertiser
+**PRIORITY 76 — connect_table: audience.psychographic_profile** — add column advertiser_id (BIGINT) with FK to client.advertiser.advertiser_id — psychographic profiles serve specific advertiser targeting needs
+
+Other known issues from static analysis (58):
+  - Attribute 'campaign_tier' in campaign.campaign has redundant product prefix 'campaign_'. Rename to 'tier'
+  - Attribute 'accreditation_tier' in vendor.accreditation has redundant product prefix 'accreditation_'. Rename to 'tier'
+  - Attribute 'session_duration_seconds' in performance.session has redundant product prefix 'session_'. Rename to 'duration_seconds'
+  - Attribute 'session_end_timestamp' in performance.session has redundant product prefix 'session_'. Rename to 'end_timestamp'
+  - Attribute 'session_start_timestamp' in performance.session has redundant product prefix 'session_'. Rename to 'start_timestamp'
+  - Attribute 'auction_completion_timestamp' in performance.auction has redundant product prefix 'auction_'. Rename to 'completion_timestamp'
+  - Attribute 'auction_external_code' in performance.auction has redundant product prefix 'auction_'. Rename to 'external_code'
+  - Attribute 'auction_timeout_ms' in performance.auction has redundant product prefix 'auction_'. Rename to 'timeout_ms'
+  - Attribute 'survey_url' in client.survey has redundant product prefix 'survey_'. Rename to 'url'
+  - Attribute 'survey_vendor' in client.survey has redundant product prefix 'survey_'. Rename to 'vendor'
+  - Table talent.review_cycle declares PK 'review_cycle_id' but no matching attribute exists in the attributes list
+  - Table analytics.budget_optimization_scenario has self-referencing FK on column 'baseline_scenario_id' with same name as PK 'budget_optimization_scenario_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table talent.job_profile has self-referencing FK on column 'reports_to_profile_id' with same name as PK 'job_profile_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table project.dependency has self-referencing FK on column 'linked_dependency_id' with same name as PK 'dependency_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table analytics.attribution_study has 2 FK columns pointing to brand.brand_profile (brand_brand_profile_id, brand_profile_id) (generic/unlabeled: brand_profile_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table analytics.audience_insight has 2 FK columns pointing to brand.brand_profile (brand_brand_profile_id, brand_profile_id) (generic/unlabeled: brand_profile_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table analytics.brand_lift_study has 2 FK columns pointing to brand.brand_profile (brand_brand_profile_id, brand_profile_id) (generic/unlabeled: brand_profile_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table analytics.competitive_intelligence has 2 FK columns pointing to brand.brand_profile (brand_brand_profile_id, brand_profile_id) (generic/unlabeled: brand_profile_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table analytics.creative_effectiveness_study has 2 FK columns pointing to brand.brand_profile (brand_brand_profile_id, brand_profile_id) (generic/unlabeled: brand_profile_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table analytics.insight_report has 2 FK columns pointing to brand.brand_profile (brand_brand_profile_id, brand_profile_id) (generic/unlabeled: brand_profile_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table analytics.mmm_study has 2 FK columns pointing to brand.brand_profile (brand_brand_profile_id, brand_profile_id) (generic/unlabeled: brand_profile_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table audience.activation has 2 FK columns pointing to audience.audience_segment (audience_segment_id, platform_audience_audience_segment_id) (generic/unlabeled: audience_segment_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table audience.activation has 2 FK columns pointing to audience.dmp_integration (dmp_integration_id, platform_integration_id) (generic/unlabeled: dmp_integration_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table audience.clean_room has 2 FK columns pointing to talent.worker (last_modified_by_user_worker_id, worker_id) (generic/unlabeled: worker_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table audience.holdout_group has 2 FK columns pointing to analytics.incrementality_test (experiment_incrementality_test_id, incrementality_test_id) (generic/unlabeled: incrementality_test_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table client.client_onboarding has 2 FK columns pointing to project.initiative (initiative_id, workfront_project_initiative_id) (generic/unlabeled: initiative_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table contract.rfp_response has 3 FK columns pointing to talent.worker (last_modified_by_user_worker_id, primary_rfp_worker_id, worker_id) (generic/unlabeled: worker_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table creative.production_job has 2 FK columns pointing to project.initiative (initiative_id, workfront_project_initiative_id) (generic/unlabeled: initiative_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table creative.rights_clearance has 2 FK columns pointing to creative.creative_asset (creative_asset_id, stock_media_asset_id) (generic/unlabeled: creative_asset_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.intercompany_transaction has 3 FK columns pointing to finance.cost_center (cost_center_id, receiving_entity_cost_center_id, sending_entity_cost_center_id) (generic/unlabeled: cost_center_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table project.dependency has 2 FK columns pointing to project.task (successor_entity_task_id, task_id) (generic/unlabeled: task_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table talent.capacity_plan has 2 FK columns pointing to talent.org_unit (org_unit_id, primary_capacity_org_unit_id) (generic/unlabeled: org_unit_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table vendor.supply_path_record has 3 FK columns pointing to vendor.publisher (publisher_account_publisher_id, publisher_id, seller_publisher_id) (generic/unlabeled: publisher_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table vendor.io_line has 2 FK columns pointing to media.media_insertion_order (media_insertion_order_id, vendor_io_media_insertion_order_id) (generic/unlabeled: media_insertion_order_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table brand.competitive_monitoring has 2 FK columns pointing to brand.brand_profile (brand_profile_id, profile_brand_profile_id) (generic/unlabeled: brand_profile_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table client.brand_supplier_approval has 2 FK columns pointing to client.client_brand (brand_client_brand_id, client_brand_id) (generic/unlabeled: client_brand_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table creative.proof_review has 2 FK columns pointing to client.client_contact (client_contact_id, contact_client_contact_id) (generic/unlabeled: client_contact_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table creative.review_cycle has 3 FK columns pointing to talent.worker (assigned_to_user_worker_id, escalated_to_user_worker_id, worker_id) (generic/unlabeled: worker_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table brand.advertiser_policy has 2 FK columns pointing to talent.worker (approved_by_user_worker_id, worker_id) (generic/unlabeled: worker_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table talent.payroll_run has 3 FK columns pointing to talent.worker (created_by_user_worker_id, modified_by_user_worker_id, worker_id) (generic/unlabeled: worker_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table talent.requisition has 4 FK columns pointing to talent.worker (approved_by_worker_id, created_by_worker_id, recruiter_worker_id, worker_id) (generic/unlabeled: worker_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table talent.candidate has 2 FK columns pointing to talent.worker (hiring_manager_worker_id, worker_id) (generic/unlabeled: worker_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table talent.review_cycle has 3 FK columns pointing to talent.worker (created_by_user_worker_id, modified_by_user_worker_id, worker_id) (generic/unlabeled: worker_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - PII-candidate attribute talent.position.address_id has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute finance.bank_account.primary_contact_name has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute finance.bank_account.routing_number has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute performance.auction.geo_postal_code has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute talent.payroll_run.gross_pay_amount has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute talent.payroll_run.net_pay_amount has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute talent.candidate.salary_currency has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute talent.review_cycle.includes_compensation_review has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute talent.review_template.compensation_impact has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute talent.location.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute talent.location.longitude has no classification tags — expected restricted/confidential + PII tag
+  - 1 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 442 attribute(s) match person-data patterns but lack pii_ tags
+  - 41 non-PK attributes redundantly prefixed with their product name
+  - 1 attribute(s) have value_regex on typed columns (DATE/BOOLEAN/INT/etc.) — regex is redundant when data_type constrains format
+
+Deterministic score: 50/100 (LLM assessment: 62/100)

@@ -1,0 +1,1344 @@
+-- Schema for Domain: logistics | Business: Automotive | Version: v1_mvm
+-- Generated on: 2026-05-07 02:20:09
+
+-- ========= DATABASE =========
+CREATE DATABASE IF NOT EXISTS `automotive_ecm`.`logistics` COMMENT 'Outbound logistics and distribution including finished vehicle transportation, vehicle storage yards, compound operations, carrier management, and delivery scheduling. Manages vehicle shipment from plant to dealer, rail/truck/vessel logistics, port processing, last-mile delivery, and CKD/SKD kit logistics. Tracks in-transit inventory, delivery lead times, transportation costs, carrier performance, and OTD metrics. Includes export/import operations for global distribution.';
+
+-- ========= TABLES =========
+CREATE OR REPLACE TABLE `automotive_ecm`.`logistics`.`shipment` (
+    `shipment_id` BIGINT COMMENT 'System-generated unique identifier for each outbound vehicle shipment.',
+    `carrier_id` BIGINT COMMENT 'System identifier for the carrier entity.',
+    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Required for freight cost allocation per shipment in the Transportation Cost Allocation Report.',
+    `dealership_id` BIGINT COMMENT 'Foreign key linking to dealer.dealership. Business justification: Required for Shipment Delivery Performance Report linking each shipment to its destination dealership; enables OTD and cost tracking per dealer.',
+    `gl_account_id` BIGINT COMMENT 'Foreign key linking to finance.gl_account. Business justification: Needed to post transportation expenses to the appropriate GL account in the General Ledger.',
+    `part_master_id` BIGINT COMMENT 'Foreign key linking to engineering.part_master. Business justification: Parts Shipment Tracking requires linking each shipment to the specific part master to satisfy regulatory traceability and cost allocation reports.',
+    `production_order_id` BIGINT COMMENT 'Foreign key linking to manufacturing.production_order. Business justification: Order fulfillment shipping links each shipment to its originating production order for traceability and cost accounting.',
+    `route_id` BIGINT COMMENT 'Foreign key linking to logistics.route. Business justification: A shipment follows a defined logistics route (origin-destination path). shipment has origin_location and destination_location as free-text strings. Adding route_id normalizes the route reference and e',
+    `vehicle_compound_id` BIGINT COMMENT 'Foreign key linking to logistics.vehicle_compound. Business justification: A shipment originates from or stages at a vehicle compound. shipment has origin_location as a free-text string. Adding vehicle_compound_id links the shipment to the authoritative compound master recor',
+    `vehicle_order_id` BIGINT COMMENT 'Foreign key linking to sales.vehicle_order. Business justification: Order fulfillment tracking report ties each physical shipment to its originating sales vehicle order, essential for delivery status and revenue recognition.',
+    `vehicle_program_id` BIGINT COMMENT 'Foreign key linking to engineering.vehicle_program. Business justification: Required for Shipment Planning Report to allocate vehicles by program; logistics teams need program context for routing and dealer allocation.',
+    `vessel_voyage_id` BIGINT COMMENT 'Foreign key linking to logistics.vessel_voyage. Business justification: A shipment involving ocean transport is associated with a specific vessel voyage. Adding vessel_voyage_id to shipment normalizes the voyage reference currently captured only as free-text (voyage_numbe',
+    `vin_registry_id` BIGINT COMMENT 'Identifier of the truck, rail car, or vessel used for the shipment.',
+    `actual_arrival_timestamp` TIMESTAMP COMMENT 'Real timestamp when the shipment was received at the destination.',
+    `actual_departure_timestamp` TIMESTAMP COMMENT 'Real timestamp when the shipment left the origin plant.',
+    `compliance_status` STRING COMMENT 'Current compliance verification result for the shipment.. Valid values are `compliant|non_compliant|pending|exempt`',
+    `container_number` STRING COMMENT 'Standard container identification number when applicable.',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the shipment record was first created in the lakehouse.',
+    `currency_code` STRING COMMENT 'Three‑letter ISO currency code for monetary amounts.. Valid values are `^[A-Z]{3}$`',
+    `customs_document_number` STRING COMMENT 'Reference number for customs clearance documents.',
+    `delay_reason` STRING COMMENT 'Explanation for any delay beyond the planned arrival.',
+    `destination_location` STRING COMMENT 'Geographic location (city) of the destination dealer or yard.',
+    `discount_amount` DECIMAL(18,2) COMMENT 'Any discount applied to the freight cost.',
+    `export_import_flag` STRING COMMENT 'Indicates whether the shipment is an export, import, or domestic movement.. Valid values are `export|import|domestic`',
+    `freight_cost` DECIMAL(18,2) COMMENT 'Gross transportation cost before discounts or adjustments.',
+    `hazardous_material_flag` BOOLEAN COMMENT 'True if the shipment contains hazardous goods.',
+    `incoterms_code` STRING COMMENT 'International commercial term governing responsibilities and costs.. Valid values are `EXW|FCA|CPT|CIP|DAP|DDP`',
+    `load_type` STRING COMMENT 'Classification of the shipment load.. Valid values are `full|partial|hazardous|refrigerated|standard`',
+    `net_cost` DECIMAL(18,2) COMMENT 'Final freight cost after discounts and adjustments.',
+    `number_of_units` STRING COMMENT 'Count of individual vehicles or kits included in the shipment.',
+    `origin_location` STRING COMMENT 'Geographic location (city) of the origin plant.',
+    `origin_plant_code` STRING COMMENT 'Identifier of the manufacturing plant where the shipment originates.',
+    `otd_flag` BOOLEAN COMMENT 'True if the shipment arrived on or before the planned arrival date.',
+    `planned_arrival_date` DATE COMMENT 'Estimated date the shipment should arrive at the destination.',
+    `planned_departure_date` DATE COMMENT 'Scheduled date for shipment departure from the origin plant.',
+    `shipment_number` STRING COMMENT 'Business-visible shipment number assigned by SAP SD for tracking and reference.',
+    `shipment_status` STRING COMMENT 'Current lifecycle status of the shipment.. Valid values are `planned|in_transit|delivered|cancelled|exception`',
+    `temperature_control_flag` BOOLEAN COMMENT 'True if the shipment requires temperature‑controlled transport.',
+    `tracking_url` STRING COMMENT 'Web link to real‑time shipment tracking information.',
+    `transport_mode` STRING COMMENT 'Mode of transportation used for the shipment.. Valid values are `rail|truck|vessel|ckd|skd|air`',
+    `updated_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent modification to the shipment record.',
+    `vin_list` STRING COMMENT 'List of VINs for all vehicles in the shipment, separated by commas.',
+    `volume_cbm` DECIMAL(18,2) COMMENT 'Total cargo volume of the shipment in cubic meters.',
+    `weight_kg` DECIMAL(18,2) COMMENT 'Gross weight of the shipment in kilograms.',
+    CONSTRAINT pk_shipment PRIMARY KEY(`shipment_id`)
+) COMMENT 'Core master record for each outbound vehicle shipment from plant to dealer or distribution point. Captures shipment origin (plant/compound), destination (dealer/port/yard), transport mode (rail, truck, vessel, CKD/SKD), shipment status, planned and actual departure/arrival dates, OTD tracking, and associated VINs. Primary operational entity for finished vehicle logistics. Sourced from SAP SD outbound delivery and MES traceability.';
+
+CREATE OR REPLACE TABLE `automotive_ecm`.`logistics`.`shipment_leg` (
+    `shipment_leg_id` BIGINT COMMENT 'Unique surrogate key for each shipment leg record.',
+    `carrier_id` BIGINT COMMENT 'Foreign key linking to logistics.carrier. Business justification: Multi‑modal shipment leg tracking requires a FK to the carrier entity for each leg.',
+    `goods_movement_id` BIGINT COMMENT 'Foreign key linking to inventory.goods_movement. Business justification: Enables Shipment Leg Cost Allocation: reconciles each logistics leg with the corresponding inventory goods movement for cost analysis.',
+    `route_id` BIGINT COMMENT 'Foreign key linking to logistics.route. Business justification: Each shipment leg represents a discrete movement segment that follows a defined route. Adding route_id to shipment_leg links each leg to the route master, enabling route-level performance tracking per',
+    `shipment_id` BIGINT COMMENT 'Identifier of the parent shipment (transaction header) to which this leg belongs.',
+    `vehicle_compound_id` BIGINT COMMENT 'Foreign key linking to logistics.vehicle_compound. Business justification: A shipment leg may originate from or terminate at a vehicle compound (staging area, yard). Adding vehicle_compound_id to shipment_leg normalizes the compound reference for leg origin/destination, enab',
+    `vehicle_transport_order_id` BIGINT COMMENT 'Foreign key linking to logistics.vehicle_transport_order. Business justification: A shipment leg is executed under a vehicle transport order. While shipment_leg already has shipment_id, the direct link to vehicle_transport_order enables carrier instruction tracking at the leg level',
+    `vessel_voyage_id` BIGINT COMMENT 'Foreign key linking to logistics.vessel_voyage. Business justification: For ocean transport legs, the shipment leg is directly associated with a vessel voyage. Adding vessel_voyage_id to shipment_leg links the ocean leg to the voyage master, enabling voyage-level leg trac',
+    `vin_registry_id` BIGINT COMMENT 'Foreign key linking to vehicle.vin_registry. Business justification: Allows detailed Shipment Leg analysis tying each leg to the VIN master record for emissions, fuel consumption, and compliance reporting.',
+    `actual_arrival_timestamp` TIMESTAMP COMMENT 'Real‑time arrival date‑time recorded by carrier or IoT device.',
+    `actual_departure_timestamp` TIMESTAMP COMMENT 'Real‑time departure date‑time recorded by carrier or IoT device.',
+    `container_code` STRING COMMENT 'Identifier of the shipping container or trailer used for the leg.',
+    `cost_amount` DECIMAL(18,2) COMMENT 'Monetary cost incurred for this leg (freight, duty, handling, etc.).',
+    `cost_currency` STRING COMMENT 'Three‑letter ISO 4217 currency code for the leg cost.. Valid values are `USD|EUR|JPY|CNY|GBP`',
+    `cost_type` STRING COMMENT 'Category of cost represented by cost_amount.. Valid values are `freight|duty|tax|handling`',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the shipment leg record was created in the system.',
+    `customs_document_number` STRING COMMENT 'Reference number of the customs clearance document for cross‑border legs.',
+    `customs_status` STRING COMMENT 'Current status of customs clearance for the leg.. Valid values are `pending|cleared|rejected`',
+    `delay_reason` STRING COMMENT 'Free‑text description of why a leg is delayed, if applicable.',
+    `distance_km` DECIMAL(18,2) COMMENT 'Physical distance covered in this leg, measured in kilometers.',
+    `emissions_kg_co2` DECIMAL(18,2) COMMENT 'Estimated carbon dioxide emissions for the leg.',
+    `fuel_consumption_liters` DECIMAL(18,2) COMMENT 'Total fuel used by the vehicle during the leg.',
+    `handling_instructions` STRING COMMENT 'Special handling notes for the cargo on this leg.',
+    `hazardous_material_flag` BOOLEAN COMMENT 'True if the leg carries hazardous materials.',
+    `hazardous_material_type` STRING COMMENT 'Classification of hazardous material (e.g., flammable, corrosive).',
+    `leg_sequence` STRING COMMENT 'Ordinal position of the leg within the multi‑modal shipment.',
+    `leg_status` STRING COMMENT 'Current operational status of the leg.. Valid values are `planned|in_transit|arrived|delayed|cancelled`',
+    `load_type` STRING COMMENT 'Classification of cargo load for the leg.. Valid values are `full|less_than_truckload|partial`',
+    `odometer_end` BIGINT COMMENT 'Vehicle odometer reading at the end of the leg (kilometers).',
+    `odometer_start` BIGINT COMMENT 'Vehicle odometer reading at the start of the leg (kilometers).',
+    `planned_arrival_timestamp` TIMESTAMP COMMENT 'Scheduled arrival date‑time for the leg.',
+    `planned_departure_timestamp` TIMESTAMP COMMENT 'Scheduled departure date‑time for the leg.',
+    `quantity` STRING COMMENT 'Number of individual vehicles or units moved in this leg.',
+    `seal_number` STRING COMMENT 'Security seal identifier applied to containers or trailers.',
+    `temperature_control_required` BOOLEAN COMMENT 'Indicates whether the cargo requires temperature‑controlled transport.',
+    `temperature_max_c` DECIMAL(18,2) COMMENT 'Maximum temperature setting for the leg when temperature control is required.',
+    `temperature_min_c` DECIMAL(18,2) COMMENT 'Minimum temperature setting for the leg when temperature control is required.',
+    `tracking_number` STRING COMMENT 'Carrier‑provided tracking identifier for the leg.',
+    `transport_mode` STRING COMMENT 'Mode of transport used for this leg (e.g., truck, rail, ship, air, pipeline).. Valid values are `truck|rail|ship|air|pipeline`',
+    `updated_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent update to the shipment leg record.',
+    `volume_cubic_meters` DECIMAL(18,2) COMMENT 'Total cargo volume for the leg, measured in cubic meters.',
+    `weight_tons` DECIMAL(18,2) COMMENT 'Total weight of cargo transported on this leg, expressed in metric tons.',
+    CONSTRAINT pk_shipment_leg PRIMARY KEY(`shipment_leg_id`)
+) COMMENT 'Individual transport leg within a multi-modal shipment, representing a discrete movement segment (e.g., plant to rail yard, rail yard to port, port to dealer compound). Tracks leg sequence, transport mode, carrier assignment, origin/destination facility, planned and actual departure/arrival timestamps, distance, leg-level status, and mode-specific details (rail car number/type for rail legs, vessel name/IMO/voyage for ocean legs). After merges, this product also carries rail car assignment details and vessel voyage references for their respective transport modes. Enables end-to-end multi-modal visibility for each VIN or batch.';
+
+CREATE OR REPLACE TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` (
+    `vehicle_transport_order_id` BIGINT COMMENT 'Primary key for vehicle_transport_order',
+    `carrier_id` BIGINT COMMENT 'Identifier of the logistics carrier responsible for the shipment.',
+    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Transport order costs are charged to a cost center for budgeting and variance analysis.',
+    `dealership_id` BIGINT COMMENT 'Foreign key linking to dealer.dealership. Business justification: Needed for Transport Order Execution Dashboard to associate each order with the receiving dealership; supports dealer‑level on‑time delivery metrics.',
+    `load_plan_id` BIGINT COMMENT 'Identifier of the load planning record associated with this transport order.',
+    `vehicle_compound_id` BIGINT COMMENT 'Foreign key linking to logistics.vehicle_compound. Business justification: vehicle_transport_order has origin_compound as a free-text STRING. This is a denormalized reference to the vehicle_compound master. Adding origin_vehicle_compound_id as a proper FK normalizes the orig',
+    `plant_id` BIGINT COMMENT 'Identifier of the manufacturing plant where the vehicles are shipped from.',
+    `production_order_id` BIGINT COMMENT 'Foreign key linking to manufacturing.production_order. Business justification: Finished vehicle dispatch: transport orders are raised directly against production orders in SAP TM/EWM to move completed vehicles from plant. OTD tracking and production-to-delivery traceability requ',
+    `production_variant_id` BIGINT COMMENT 'Foreign key linking to manufacturing.production_variant. Business justification: Specialized transport compliance: EV variants require certified carriers and temperature-controlled transport for battery safety; oversized variants need special permits. Transport orders must referen',
+    `route_id` BIGINT COMMENT 'Foreign key linking to logistics.route. Business justification: A vehicle transport order is executed along a defined logistics route. Adding route_id to vehicle_transport_order normalizes the route reference, enabling route-level transport order analytics, cost b',
+    `shipment_id` BIGINT COMMENT 'Foreign key linking to logistics.shipment. Business justification: A transport order represents the execution of a shipment; linking it to the parent shipment enables traceability of cost and status.',
+    `vehicle_order_id` BIGINT COMMENT 'Foreign key linking to sales.vehicle_order. Business justification: Transport planning aligns with the specific sales vehicle order to ensure correct routing, timing, and cost allocation.',
+    `vehicle_program_id` BIGINT COMMENT 'Foreign key linking to engineering.vehicle_program. Business justification: Needed for Transport Order Management to group orders by vehicle program, enabling capacity planning and compliance with program launch schedules.',
+    `vessel_voyage_id` BIGINT COMMENT 'Foreign key linking to logistics.vessel_voyage. Business justification: A vehicle transport order for ocean/export shipments is associated with a specific vessel voyage. Adding vessel_voyage_id to vehicle_transport_order links the carrier instruction to the voyage master,',
+    `actual_arrival_timestamp` TIMESTAMP COMMENT 'Timestamp when the shipment was actually received at the destination.',
+    `carrier_contact` STRING COMMENT 'Primary phone number for the carriers dispatch desk.',
+    `compliance_regulation_code` STRING COMMENT 'Code of the regulatory requirement applicable to the shipment (e.g., IATF, EPA).',
+    `confirmed_pickup_date` DATE COMMENT 'Date the carrier confirmed for vehicle pickup.',
+    `container_type` STRING COMMENT 'Type of container or trailer used for the shipment (e.g., flatbed, container, roll‑on/roll‑off).',
+    `currency_code` STRING COMMENT 'Three‑letter ISO 4217 code of the currency used for the transport cost.. Valid values are `USD|EUR|JPY|CNY|GBP|CAD`',
+    `customs_declaration_number` STRING COMMENT 'Identifier of the customs declaration for cross‑border shipments.',
+    `delivery_date` DATE COMMENT 'Planned date for delivery to the destination dealer.',
+    `distance_km` DECIMAL(18,2) COMMENT 'Total distance in kilometers for the shipment route.',
+    `emission_co2_kg` DECIMAL(18,2) COMMENT 'Estimated CO₂ emissions for the shipment based on distance and vehicle type.',
+    `estimated_arrival_timestamp` TIMESTAMP COMMENT 'System‑estimated timestamp when the shipment is expected to arrive at the destination.',
+    `export_import_flag` STRING COMMENT 'Indicates whether the shipment is an export or import movement.. Valid values are `export|import`',
+    `fuel_type` STRING COMMENT 'Dominant fuel type of the vehicles being shipped.. Valid values are `diesel|gasoline|electric|hybrid`',
+    `is_expedited` BOOLEAN COMMENT 'True if the shipment is marked for expedited handling.',
+    `is_hazardous` BOOLEAN COMMENT 'True if the shipment contains hazardous materials requiring special compliance.',
+    `notes` STRING COMMENT 'Free‑form notes entered by logistics planners.',
+    `on_time_delivery_flag` BOOLEAN COMMENT 'Indicates whether the shipment was delivered within the agreed on‑time window.',
+    `order_created_timestamp` TIMESTAMP COMMENT 'Timestamp when the transport order was initially created in the system.',
+    `order_number` STRING COMMENT 'External business identifier assigned to the transport order by the logistics system.',
+    `order_status` STRING COMMENT 'Current lifecycle state of the transport order.. Valid values are `draft|open|confirmed|in_transit|delivered|cancelled`',
+    `priority` STRING COMMENT 'Business priority assigned to the transport order.. Valid values are `low|medium|high|critical`',
+    `record_audit_created` TIMESTAMP COMMENT 'Timestamp when this record was first captured for audit purposes.',
+    `record_audit_updated` TIMESTAMP COMMENT 'Timestamp of the most recent update to this record.',
+    `requested_pickup_date` DATE COMMENT 'Date the shipper requested the carrier to pick up the vehicles.',
+    `shipping_instructions` STRING COMMENT 'Special handling or routing instructions for the carrier.',
+    `tracking_number` STRING COMMENT 'Tracking number provided by the carrier for real‑time shipment visibility.',
+    `transport_cost_gross` DECIMAL(18,2) COMMENT 'Total gross cost charged by the carrier before taxes and discounts.',
+    `transport_cost_net` DECIMAL(18,2) COMMENT 'Net amount payable to the carrier after taxes and discounts.',
+    `transport_cost_tax` DECIMAL(18,2) COMMENT 'Tax component of the transport cost.',
+    `transport_mode` STRING COMMENT 'Mode of transportation used for the shipment.. Valid values are `truck|rail|vessel|air`',
+    `vehicle_count` STRING COMMENT 'Number of vehicles included in this transport order.',
+    `vin_list` STRING COMMENT 'Comma‑separated list of VINs for the vehicles being shipped.',
+    `weight_tons` DECIMAL(18,2) COMMENT 'Total weight of all vehicles in the shipment.',
+    CONSTRAINT pk_vehicle_transport_order PRIMARY KEY(`vehicle_transport_order_id`)
+) COMMENT 'Transport order issued to a carrier for the movement of finished vehicles. Captures order number, issuing plant, carrier reference, transport mode, vehicle count, VIN list, origin compound, destination, requested pickup date, confirmed pickup date, and order status. Represents the contractual instruction to move vehicles and is the primary document linking shipments to carrier execution. Sourced from SAP TM or SAP SD.';
+
+CREATE OR REPLACE TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` (
+    `logistics_delivery_schedule_id` BIGINT COMMENT 'Unique identifier for the delivery_schedule data product (auto-inserted pre-linking).',
+    `finished_vehicle_stock_id` BIGINT COMMENT 'System-generated unique identifier for the delivery schedule record.',
+    `carrier_id` BIGINT COMMENT 'Identifier of the logistics carrier responsible for transportation.',
+    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Scheduled delivery cost estimates are allocated to a cost center for financial planning.',
+    `plant_id` BIGINT COMMENT 'Identifier of the manufacturing plant or distribution compound where the vehicles are dispatched.',
+    `dealership_id` BIGINT COMMENT 'Identifier of the dealer receiving the vehicles.',
+    `production_schedule_id` BIGINT COMMENT 'Foreign key linking to manufacturing.production_schedule. Business justification: S&OP alignment: logistics delivery schedules are built from manufacturing production schedules to synchronize vehicle completion dates with dealer delivery windows. OTD planning and capacity-to-delive',
+    `route_id` BIGINT COMMENT 'Identifier for the transportation route used for the delivery.',
+    `shipment_id` BIGINT COMMENT 'Foreign key linking to logistics.shipment. Business justification: Delivery schedule planning references the shipment that will deliver vehicles to the dealership.',
+    `vehicle_compound_id` BIGINT COMMENT 'Foreign key linking to logistics.vehicle_compound. Business justification: A delivery schedule originates from a vehicle compound (staging/dispatch point). Adding vehicle_compound_id to logistics_delivery_schedule normalizes the origin compound reference, enabling compound-l',
+    `vehicle_order_id` BIGINT COMMENT 'Foreign key linking to sales.vehicle_order. Business justification: Delivery schedule generation uses sales order details to plan dealer deliveries and measure on‑time delivery performance.',
+    `vehicle_program_id` BIGINT COMMENT 'Foreign key linking to engineering.vehicle_program. Business justification: Delivery Schedule Dashboard aggregates deliveries per program; linking ensures on‑time delivery metrics are tied to the correct vehicle program.',
+    `vehicle_transport_order_id` BIGINT COMMENT 'Foreign key linking to logistics.vehicle_transport_order. Business justification: A logistics delivery schedule is executed via a vehicle transport order. While logistics_delivery_schedule already has shipment_id, the direct link to vehicle_transport_order enables schedule-to-carri',
+    `vessel_voyage_id` BIGINT COMMENT 'Foreign key linking to logistics.vessel_voyage. Business justification: For ocean/export delivery schedules, the planned delivery is tied to a specific vessel voyage. Adding vessel_voyage_id to logistics_delivery_schedule links the delivery plan to the voyage master, enab',
+    `actual_arrival_timestamp` TIMESTAMP COMMENT 'Real timestamp when the shipment arrived at the dealer.',
+    `actual_departure_timestamp` TIMESTAMP COMMENT 'Real timestamp when the shipment actually left the plant.',
+    `arrival_date` DATE COMMENT 'Scheduled date for the vehicles to arrive at the dealer location.',
+    `compliance_flag` STRING COMMENT 'Indicates the compliance status of the shipment with relevant regulations.. Valid values are `compliant|non_compliant|pending|exempt|under_review|restricted`',
+    `cost_actual` DECIMAL(18,2) COMMENT 'Final cost incurred for the delivery after execution.',
+    `cost_estimate` DECIMAL(18,2) COMMENT 'Projected cost for the scheduled delivery, before execution.',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the record was first captured for audit purposes.',
+    `currency_code` STRING COMMENT 'Three‑letter ISO currency code for cost fields.. Valid values are `USD|EUR|JPY|CNY|GBP|CAD`',
+    `customs_document_required` BOOLEAN COMMENT 'True if customs paperwork is required for the shipment.',
+    `delivery_window_end` TIMESTAMP COMMENT 'End of the agreed delivery time window at the dealer.',
+    `delivery_window_start` TIMESTAMP COMMENT 'Start of the agreed delivery time window at the dealer.',
+    `departure_date` DATE COMMENT 'Scheduled date for the vehicles to leave the plant or compound.',
+    `estimated_delivery_date` DATE COMMENT 'Projected delivery date based on current schedule and carrier commitments.',
+    `export_import_flag` STRING COMMENT 'Indicates whether the shipment is export, import, or domestic.. Valid values are `export|import|domestic|reexport|transit|unknown`',
+    `freight_class` STRING COMMENT 'Classification of freight for tariff and handling purposes.',
+    `incoterms` STRING COMMENT 'International commercial terms governing the delivery responsibilities.. Valid values are `EXW|FCA|CPT|CIP|DAP|DDP`',
+    `is_expedited` BOOLEAN COMMENT 'Indicates whether the delivery is expedited (true) or standard (false).',
+    `is_hazardous` BOOLEAN COMMENT 'True if the shipment contains hazardous materials requiring special handling.',
+    `last_mile_delivery_method` STRING COMMENT 'Method used for the final leg of delivery to the dealer or customer.. Valid values are `dealer|direct|third_party|pickup|locker|drone`',
+    `lead_time_days` STRING COMMENT 'Number of days between departure and arrival, calculated for performance analysis.',
+    `logistics_delivery_schedule_status` STRING COMMENT 'Current lifecycle state of the delivery schedule.. Valid values are `planned|released|in_transit|delivered|cancelled|on_hold`',
+    `notes` STRING COMMENT 'Free‑form field for any additional remarks.',
+    `otd_actual_date` DATE COMMENT 'Actual date when the delivery was completed for OTD measurement.',
+    `otd_target_date` DATE COMMENT 'Target date for achieving on‑time delivery performance.',
+    `planned_quantity` BIGINT COMMENT 'Number of vehicles (or units) scheduled for delivery.',
+    `priority_level` STRING COMMENT 'Business priority assigned to the delivery schedule.. Valid values are `low|medium|high|critical|urgent|standard`',
+    `schedule_horizon` STRING COMMENT 'Planning horizon for the schedule (e.g., weekly, monthly).. Valid values are `weekly|monthly|quarterly|yearly|ad_hoc|custom`',
+    `schedule_number` STRING COMMENT 'Business identifier assigned to the delivery schedule, used for tracking and communication with dealers and carriers.',
+    `schedule_timestamp` TIMESTAMP COMMENT 'Timestamp when the delivery schedule was initially created in the system.',
+    `scheduled_arrival_timestamp` TIMESTAMP COMMENT 'Planned exact timestamp for arrival, including time of day.',
+    `scheduled_departure_timestamp` TIMESTAMP COMMENT 'Planned exact timestamp for departure, including time of day.',
+    `special_instructions` STRING COMMENT 'Any additional handling or routing instructions for the shipment.',
+    `temperature_control_required` BOOLEAN COMMENT 'True if temperature‑controlled transport is required.',
+    `tracking_number` STRING COMMENT 'External tracking number provided by the carrier.',
+    `transport_mode` STRING COMMENT 'Mode of transportation used for the delivery.. Valid values are `truck|rail|vessel|air|intermodal|pipeline`',
+    `updated_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent modification to the delivery schedule record.',
+    `vehicle_type` STRING COMMENT 'Type of transport vehicle allocated for the shipment.. Valid values are `semi_trailer|reefer|flatbed|dry_van|tank|container`',
+    `volume_cbm` DECIMAL(18,2) COMMENT 'Aggregate cargo volume in cubic meters.',
+    `weight_kg` DECIMAL(18,2) COMMENT 'Aggregate weight of the shipment in kilograms.',
+    CONSTRAINT pk_logistics_delivery_schedule PRIMARY KEY(`logistics_delivery_schedule_id`)
+) COMMENT 'Planned delivery schedule for finished vehicles from plant or distribution compound to dealer network. Captures scheduled delivery windows, dealer allocation, vehicle model/trim/color mix, planned quantities, transport mode, and scheduling horizon (weekly/monthly). Supports OTD planning, dealer inventory replenishment, and logistics capacity allocation. Linked to dealer orders and production scheduling.';
+
+CREATE OR REPLACE TABLE `automotive_ecm`.`logistics`.`carrier` (
+    `carrier_id` BIGINT COMMENT 'System-generated unique identifier for the carrier record.',
+    `account_id` BIGINT COMMENT 'Foreign key linking to billing.account. Business justification: Carriers operate as vendors with accounts payable relationships. Carrier master data must link to billing accounts for invoice processing, payment terms management, credit limit tracking, and financia',
+    `company_code_id` BIGINT COMMENT 'Foreign key linking to finance.company_code. Business justification: Carriers must be assigned to company codes for legal entity segregation in multi-entity automotive groups; intercompany freight AP/AR, tax compliance (VAT/GST), and contract management require knowing',
+    `regulatory_requirement_id` BIGINT COMMENT 'Foreign key linking to compliance.regulatory_requirement. Business justification: Carrier qualification and audit management requires tracking which regulatory requirements (DOT, IATF 16949, ISO 14001, safety standards) each carrier must meet. Essential for carrier onboarding, perf',
+    `address_line1` STRING COMMENT 'First line of the carriers primary business address.',
+    `address_line2` STRING COMMENT 'Second line of the carriers primary business address (optional).',
+    `average_cost_per_mile` DECIMAL(18,2) COMMENT 'Average transportation cost incurred per mile for this carrier.',
+    `average_on_time_delivery_pct` DECIMAL(18,2) COMMENT 'Average percentage of shipments delivered on or before the promised delivery date.',
+    `carrier_name` STRING COMMENT 'Legal name of the transport carrier as registered with authorities.',
+    `carrier_status` STRING COMMENT 'Current operational status of the carrier within the logistics network.. Valid values are `active|inactive|suspended|terminated|pending`',
+    `carrier_tier` STRING COMMENT 'Strategic tier assigned to the carrier based on volume, reliability, and strategic importance.. Valid values are `tier1|tier2|tier3|tier4`',
+    `carrier_type` STRING COMMENT 'Business classification of the carrier entity.. Valid values are `carrier|logistics_provider|freight_forwarder|3pl|4pl`',
+    `city` STRING COMMENT 'City of the carriers primary business address.',
+    `contact_email` STRING COMMENT 'Email address for the carriers primary contact.. Valid values are `^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+.[A-Za-z]{2,}$`',
+    `contact_name` STRING COMMENT 'Name of the primary contact person for the carrier.',
+    `contact_phone` STRING COMMENT 'Telephone number for the carriers primary contact.',
+    `contract_end_date` DATE COMMENT 'Expiration date of the carriers master service agreement (null if open‑ended).',
+    `contract_reference` STRING COMMENT 'External reference identifier for the carriers master service agreement.',
+    `contract_start_date` DATE COMMENT 'Effective start date of the carriers master service agreement.',
+    `country` STRING COMMENT 'Three‑letter ISO country code of the carriers primary business address.',
+    `created_timestamp` TIMESTAMP COMMENT 'Date and time when the carrier record was first created in the system.',
+    `effective_from` DATE COMMENT 'Date from which the carrier record is considered active for reporting.',
+    `effective_until` DATE COMMENT 'Date after which the carrier record is no longer active (null if indefinite).',
+    `environmental_certification` STRING COMMENT 'Environmental compliance certifications held by the carrier.. Valid values are `ISO14001|EPA|CARB|None`',
+    `equipment_type` STRING COMMENT 'Main type of equipment the carrier uses for shipments.. Valid values are `truck|railcar|vessel|aircraft|intermodal_container`',
+    `fleet_size` STRING COMMENT 'Number of transport units (e.g., trucks, railcars) owned or operated by the carrier.',
+    `iatf_compliance_status` STRING COMMENT 'Current IATF 16949 quality‑management compliance status of the carrier.. Valid values are `compliant|non_compliant|pending`',
+    `insurance_policy_number` STRING COMMENT 'Policy number of the carriers liability insurance.',
+    `insurance_provider` STRING COMMENT 'Name of the insurance company covering the carriers operations.',
+    `last_audit_date` DATE COMMENT 'Date of the most recent compliance or safety audit performed on the carrier.',
+    `notes` STRING COMMENT 'Free‑form field for any supplemental information about the carrier.',
+    `operating_regions` STRING COMMENT 'Geographic regions (e.g., continents, countries) where the carrier provides service.',
+    `performance_rating` DECIMAL(18,2) COMMENT 'Overall performance score (0‑5) derived from on‑time delivery, safety, and cost metrics.',
+    `postal_code` STRING COMMENT 'Postal/ZIP code of the carriers primary business address.',
+    `safety_rating` STRING COMMENT 'Safety performance rating based on regulatory audits and incident history.. Valid values are `A|B|C|D|E|F`',
+    `scac_code` STRING COMMENT 'Four‑letter code uniquely identifying the carrier in North American logistics.. Valid values are `^[A-Z]{4}$`',
+    `state` STRING COMMENT 'State or province of the carriers primary business address.',
+    `tax_identifier` STRING COMMENT 'Government‑issued tax identifier for the carrier.',
+    `transport_modes` STRING COMMENT 'Transport modes the carrier is authorized to operate.. Valid values are `road|rail|vessel|air|intermodal`',
+    `updated_timestamp` TIMESTAMP COMMENT 'Date and time of the most recent update to the carrier record.',
+    `website` STRING COMMENT 'Public website URL of the carrier.',
+    CONSTRAINT pk_carrier PRIMARY KEY(`carrier_id`)
+) COMMENT 'Master record for transport carriers (road haulers, rail operators, ocean shipping lines, port logistics providers) engaged for finished vehicle and CKD/SKD kit logistics. Captures carrier legal name, SCAC code, DOT number, transport modes supported, operating regions, contract reference, insurance certificate details, IATF 16949 compliance status, carrier tier classification, and performance rating. SSOT for carrier identity within the logistics domain. Referenced by transport orders, shipment legs, freight invoices, damage claims, and rate contracts.';
+
+CREATE OR REPLACE TABLE `automotive_ecm`.`logistics`.`carrier_performance` (
+    `carrier_performance_id` BIGINT COMMENT 'System‑generated unique identifier for each carrier performance scorecard row.',
+    `carrier_id` BIGINT COMMENT 'Unique identifier of the logistics carrier whose performance is being measured.',
+    `lane_id` BIGINT COMMENT 'Foreign key linking to logistics.lane. Business justification: carrier_performance has lane_code as a free-text STRING — a denormalized reference to the lane master. Adding lane_id as a proper FK normalizes this relationship, enabling direct join to lane for cost',
+    `average_transit_days` DECIMAL(18,2) COMMENT 'Mean number of calendar days shipments spent in transit for the period.',
+    `carrier_performance_status` STRING COMMENT 'Indicates whether the performance record is active, inactive, or archived.. Valid values are `active|inactive|archived`',
+    `claim_frequency` STRING COMMENT 'Count of loss or damage claims submitted for the carrier on this lane during the period.',
+    `cost_per_shipment_usd` DECIMAL(18,2) COMMENT 'Average transportation cost incurred per shipment for the carrier on this lane.',
+    `created_timestamp` TIMESTAMP COMMENT 'Date‑time when the carrier performance row was initially loaded into the lakehouse.',
+    `damage_rate_ppm` STRING COMMENT 'Number of damaged units per one million units shipped during the period.',
+    `fuel_consumption_l_per_100km` DECIMAL(18,2) COMMENT 'Average liters of fuel used per 100 kilometers by the carrier on this lane.',
+    `lane_type` STRING COMMENT 'Indicates whether the lane is domestic, export, or import.. Valid values are `domestic|export|import`',
+    `notes` STRING COMMENT 'Optional textual comments regarding carrier performance, exceptions, or observations for the period.',
+    `on_time_delivery_rate_pct` DECIMAL(18,2) COMMENT 'Percentage of shipments delivered within the agreed delivery window, calculated independently of OTD for cross‑validation.',
+    `otd_rate_pct` DECIMAL(18,2) COMMENT 'Percentage of shipments delivered on or before the committed delivery date for the period.',
+    `overall_rating` STRING COMMENT 'Composite score (1‑5) summarizing carrier performance across all metrics.',
+    `performance_month` DATE COMMENT 'Calendar month (first day) representing the reporting period for the carrier performance metrics.',
+    `total_claims` STRING COMMENT 'Aggregate count of all claims (damage, loss, etc.) for the period.',
+    `total_damage_units` STRING COMMENT 'Sum of individual units reported as damaged during the period.',
+    `total_distance_km` DECIMAL(18,2) COMMENT 'Total kilometers driven or sailed by the carrier for shipments on this lane in the period.',
+    `total_shipments` STRING COMMENT 'Count of individual shipments moved by the carrier on the lane during the period.',
+    `transit_time_compliance_pct` DECIMAL(18,2) COMMENT 'Percentage of shipments that met the agreed‑upon transit‑time windows.',
+    `transport_mode` STRING COMMENT 'Primary mode of transportation for the lane (e.g., truck, rail, vessel, intermodal, air).. Valid values are `truck|rail|vessel|intermodal|air`',
+    `updated_timestamp` TIMESTAMP COMMENT 'Date‑time of the latest modification to the carrier performance data.',
+    CONSTRAINT pk_carrier_performance PRIMARY KEY(`carrier_performance_id`)
+) COMMENT 'Periodic carrier performance scorecard capturing OTD rate, damage rate (PPM), transit time compliance, claim frequency, and overall carrier rating per lane and transport mode. Tracks performance against contracted SLAs, flags underperforming carriers, and supports carrier qualification reviews. Aggregated at carrier-lane-period level for logistics procurement decisions.';
+
+CREATE OR REPLACE TABLE `automotive_ecm`.`logistics`.`vehicle_compound` (
+    `vehicle_compound_id` BIGINT COMMENT 'Unique identifier for the vehicle compound (yard, port, or regional staging area).',
+    `company_code_id` BIGINT COMMENT 'Foreign key linking to finance.company_code. Business justification: Vehicle compounds are fixed assets that must be assigned to company codes for asset accounting, depreciation, insurance, property tax, and regulatory compliance in multi-entity automotive operations; ',
+    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Vehicle compounds are internal facilities with operating budgets (utilities, labor, maintenance) that must be allocated to cost centers for expense tracking and budget variance analysis in automotive ',
+    `jurisdiction_id` BIGINT COMMENT 'Foreign key linking to compliance.jurisdiction. Business justification: Compounds operate under specific jurisdictional authority determining applicable customs procedures, environmental regulations, and safety standards. Essential for regulatory compliance tracking, cust',
+    `plant_id` BIGINT COMMENT 'Foreign key linking to manufacturing.plant. Business justification: Outbound logistics planning: vehicle compounds serve as the immediate post-production storage and PDI facility for a specific manufacturing plant. Compound capacity planning, plant-to-compound routing',
+    `profit_center_id` BIGINT COMMENT 'Foreign key linking to finance.profit_center. Business justification: PDI-capable compounds and distribution centers often operate as profit centers in automotive networks, generating revenue from value-added services; P&L reporting requires profit center assignment for',
+    `regulatory_requirement_id` BIGINT COMMENT 'Foreign key linking to compliance.regulatory_requirement. Business justification: Compound facility certification requires tracking specific regulatory requirements (environmental permits, customs bonded warehouse status, safety certifications). Critical for facility audits, custom',
+    `address_line1` STRING COMMENT 'Primary street address of the compound.',
+    `address_line2` STRING COMMENT 'Secondary address information (e.g., suite, building).',
+    `capacity_units` STRING COMMENT 'Maximum number of vehicles the compound can store.',
+    `city` STRING COMMENT 'City where the compound is located.',
+    `compliance_certifications` STRING COMMENT 'Comma‑separated list of certifications (e.g., ISO‑9001, IATF‑16949) held by the compound.',
+    `compound_code` STRING COMMENT 'Unique business code used to reference the compound in operational systems.',
+    `compound_type` STRING COMMENT 'Classification of the compound (e.g., plant yard, port yard, regional distribution center, dealer preparation site).. Valid values are `plant|port|regional|dealer_prep`',
+    `country_code` STRING COMMENT 'Three‑letter ISO country code where the compound resides.. Valid values are `^[A-Z]{3}$`',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the compound record was first created in the system.',
+    `current_occupancy` STRING COMMENT 'Current number of vehicles stored in the compound.',
+    `effective_from` DATE COMMENT 'Date when the compound became operational.',
+    `effective_until` DATE COMMENT 'Date when the compound is scheduled to cease operations (null if open‑ended).',
+    `is_pdi_capable` BOOLEAN COMMENT 'Indicates whether the compound can perform Pre‑Delivery Inspection (PDI) on vehicles.',
+    `last_inspection_date` DATE COMMENT 'Date of the most recent safety or compliance inspection.',
+    `latitude` DECIMAL(18,2) COMMENT 'Geographic latitude of the compound (decimal degrees).',
+    `longitude` DECIMAL(18,2) COMMENT 'Geographic longitude of the compound (decimal degrees).',
+    `manager_email` STRING COMMENT 'Contact email address for the compound operator/manager.. Valid values are `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$`',
+    `manager_phone` STRING COMMENT 'Contact phone number for the compound operator/manager.. Valid values are `^[+]?d{7,15}$`',
+    `notes` STRING COMMENT 'Free‑form notes or remarks about the compound.',
+    `operator_name` STRING COMMENT 'Name of the person or organization responsible for day‑to‑day operations of the compound.',
+    `otd_target_percentage` DECIMAL(18,2) COMMENT 'Target percentage for on‑time delivery performance for shipments originating from this compound.',
+    `postal_code` STRING COMMENT 'Postal/ZIP code of the compound.',
+    `region_code` STRING COMMENT 'Internal code representing the broader geographic region (e.g., NA, EU, APAC).',
+    `security_level` STRING COMMENT 'Security classification of the compound (low, medium, high).. Valid values are `low|medium|high`',
+    `state_province` STRING COMMENT 'State or province of the compound location.',
+    `storage_area_sqft` DECIMAL(18,2) COMMENT 'Total floor area of the compound in square feet.',
+    `temperature_controlled` BOOLEAN COMMENT 'Indicates whether the compound maintains temperature‑controlled storage.',
+    `updated_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent update to the compound record.',
+    `vehicle_compound_name` STRING COMMENT 'Human‑readable name of the storage compound.',
+    `vehicle_compound_status` STRING COMMENT 'Current operational status of the compound.. Valid values are `active|inactive|maintenance|closed`',
+    `waste_handling_capability` BOOLEAN COMMENT 'Indicates whether the compound is equipped to handle hazardous waste.',
+    CONSTRAINT pk_vehicle_compound PRIMARY KEY(`vehicle_compound_id`)
+) COMMENT 'Master record for vehicle storage compounds, yards, and staging areas used in the outbound logistics network (plant yards, rail yards, port compounds, regional distribution centers). Captures compound name, location, type (plant/port/regional/dealer prep), storage capacity (units), current occupancy, operator, PDI capability flag, and compound status. Enables compound capacity planning and in-transit inventory tracking.';
+
+CREATE OR REPLACE TABLE `automotive_ecm`.`logistics`.`compound_movement` (
+    `compound_movement_id` BIGINT COMMENT 'Surrogate primary key for the compound movement record.',
+    `carrier_id` BIGINT COMMENT 'Unique identifier for the carrier.',
+    `load_plan_id` BIGINT COMMENT 'Foreign key linking to logistics.load_plan. Business justification: A compound movement (specifically a load-out movement) is associated with a load plan that defines how vehicles are grouped for transport. Adding load_plan_id to compound_movement links the physical l',
+    `shipment_id` BIGINT COMMENT 'Foreign key linking to logistics.shipment. Business justification: A compound movement (vehicle entering/leaving a compound) is triggered by or associated with an outbound shipment. Adding shipment_id to compound_movement links the physical yard activity to the shipm',
+    `vehicle_compound_id` BIGINT COMMENT 'Foreign key linking to logistics.vehicle_compound. Business justification: Compound movements occur within a vehicle compound; adding vehicle_compound_id links movements to their compound.',
+    `vehicle_transport_order_id` BIGINT COMMENT 'Foreign key linking to logistics.vehicle_transport_order. Business justification: compound_movement has transport_order_number as a free-text STRING — a denormalized reference to vehicle_transport_order. Adding vehicle_transport_order_id as a proper FK normalizes this relationship,',
+    `vin_registry_id` BIGINT COMMENT 'Foreign key linking to vehicle.vin_registry. Business justification: Compound movements track individual vehicle movements within storage compounds by VIN. Linking to vin_registry enables vehicle traceability (recall status, lifecycle, homologation) during compound ope',
+    `actual_arrival_timestamp` TIMESTAMP COMMENT 'Recorded arrival time at the destination zone.',
+    `compound_movement_status` STRING COMMENT 'Current lifecycle status of the movement.. Valid values are `pending|in_progress|completed|cancelled`',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the record was first created in the system.',
+    `delay_minutes` STRING COMMENT 'Minutes of delay between ETA and actual arrival.',
+    `destination_zone` STRING COMMENT 'Yard or bay where the vehicle is moved to.',
+    `estimated_arrival_timestamp` TIMESTAMP COMMENT 'Expected arrival time at the destination zone.',
+    `is_ota_capable` BOOLEAN COMMENT 'Indicates if the vehicle supports over‑the‑air updates.',
+    `load_quantity` STRING COMMENT 'Number of units moved in this transaction (typically 1).',
+    `movement_reference` STRING COMMENT 'External reference number used by logistics to identify the movement transaction.',
+    `movement_timestamp` TIMESTAMP COMMENT 'Date and time when the movement event occurred.',
+    `movement_type` STRING COMMENT 'Indicates whether the vehicle is entering, leaving, or being transferred within the compound.. Valid values are `inbound|outbound|internal_transfer`',
+    `notes` STRING COMMENT 'Free‑text field for additional remarks about the movement.',
+    `odometer_reading_km` STRING COMMENT 'Vehicle odometer reading at movement time.',
+    `origin_zone` STRING COMMENT 'Yard or bay where the vehicle originated.',
+    `priority_level` STRING COMMENT 'Priority assigned to the movement for scheduling purposes.. Valid values are `low|medium|high|critical`',
+    `temperature_c` DECIMAL(18,2) COMMENT 'Temperature in the yard at the time of movement.',
+    `updated_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent update to the record.',
+    `vehicle_type` STRING COMMENT 'Classification of the vehicle model.. Valid values are `sedan|suv|truck|ev|hybrid`',
+    `weight_kg` DECIMAL(18,2) COMMENT 'Weight of the vehicle at the time of movement.',
+    CONSTRAINT pk_compound_movement PRIMARY KEY(`compound_movement_id`)
+) COMMENT 'Transactional record of a vehicles physical movement into, within, or out of a compound or yard. Captures VIN, movement type (inbound/outbound/internal transfer), origin bay/zone, destination bay/zone, movement timestamp, operator ID, and associated transport order. Provides granular yard management traceability and supports compound throughput analysis.';
+
+CREATE OR REPLACE TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` (
+    `in_transit_inventory_id` BIGINT COMMENT 'Surrogate primary key for the in-transit inventory record.',
+    `carrier_id` BIGINT COMMENT 'FK to logistics.carrier',
+    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: In‑transit inventory holding costs are allocated to a cost center for cost of goods sold calculation.',
+    `party_id` BIGINT COMMENT 'Foreign key linking to customer.party. Business justification: When vehicles are shipped directly to end‑customers, tracking the recipient party is required for delivery confirmation, warranty activation, and service scheduling.',
+    `load_plan_id` BIGINT COMMENT 'Foreign key linking to logistics.load_plan. Business justification: in_transit_inventory tracks vehicles that were loaded per a load plan. Adding load_plan_id to in_transit_inventory links the in-transit tracking record to the load planning record, enabling load plan ',
+    `dealership_id` BIGINT COMMENT 'Identifier of the dealer receiving the vehicle.',
+    `production_order_id` BIGINT COMMENT 'Foreign key linking to manufacturing.production_order. Business justification: In‑transit inventory reports tie each in‑transit record to its originating production order for cost allocation and visibility.',
+    `shipment_id` BIGINT COMMENT 'Unique business identifier for the vehicle shipment.',
+    `shipment_leg_id` BIGINT COMMENT 'Foreign key linking to logistics.shipment_leg. Business justification: in_transit_inventory tracks vehicles currently in transit. It already has shipment_id but not shipment_leg_id. Adding shipment_leg_id allows tracking which specific transport leg a vehicle is currentl',
+    `vehicle_compound_id` BIGINT COMMENT 'Foreign key linking to logistics.vehicle_compound. Business justification: in_transit_inventory has current_location as a free-text STRING. When a vehicle in transit is staged at a compound, adding vehicle_compound_id normalizes the current location to the compound master. T',
+    `vehicle_order_id` BIGINT COMMENT 'Foreign key linking to sales.vehicle_order. Business justification: In‑transit inventory status is reported per sales order to provide customers with accurate ETA and inventory visibility.',
+    `vessel_voyage_id` BIGINT COMMENT 'Foreign key linking to logistics.vessel_voyage. Business justification: For vehicles in transit via ocean, in_transit_inventory should reference the vessel voyage to enable voyage-level inventory tracking. Adding vessel_voyage_id links the in-transit snapshot to the voyag',
+    `vin_registry_id` BIGINT COMMENT 'Foreign key linking to vehicle.vin_registry. Business justification: Needed for Real‑Time In‑Transit Inventory report to associate each inventory record with the master VIN record for compliance and warranty tracking.',
+    `actual_arrival_date` DATE COMMENT 'Date the vehicle actually arrived at the destination (if arrived).',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the in‑transit record was first created.',
+    `current_location` STRING COMMENT 'Last known location of the vehicle while in transit.',
+    `customs_document_number` STRING COMMENT 'Reference number for customs clearance documentation.',
+    `customs_status` STRING COMMENT 'Current status of customs processing.. Valid values are `pending|cleared|rejected`',
+    `days_in_transit` STRING COMMENT 'Number of calendar days the vehicle has been in transit.',
+    `delay_reason` STRING COMMENT 'Free‑text explanation for any delay affecting the shipment.',
+    `destination_facility_code` STRING COMMENT 'Code of the dealer or final destination facility.',
+    `emissions_kg_co2` DECIMAL(18,2) COMMENT 'Estimated CO₂ emissions generated during transit.',
+    `estimated_arrival_date` DATE COMMENT 'Planned date the vehicle is expected to arrive at the destination.',
+    `fuel_consumption_liters` DECIMAL(18,2) COMMENT 'Total fuel used during the transit leg.',
+    `hazardous_material_flag` BOOLEAN COMMENT 'True if the shipment contains hazardous material.',
+    `hazardous_material_type` STRING COMMENT 'Classification of hazardous material, if applicable.. Valid values are `flammable|explosive|corrosive|toxic|radioactive`',
+    `last_update_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent update to the record.',
+    `load_type` STRING COMMENT 'Classification of how the vehicle is loaded.. Valid values are `full|partial|bulk|reefer`',
+    `notes` STRING COMMENT 'Optional free‑form notes related to the in‑transit record.',
+    `odometer_end_km` STRING COMMENT 'Vehicle odometer reading at the end of the shipment.',
+    `odometer_start_km` STRING COMMENT 'Vehicle odometer reading at the start of the shipment.',
+    `origin_facility_code` STRING COMMENT 'Code of the plant or facility where the vehicle originated.',
+    `seal_number` STRING COMMENT 'Security seal identifier applied to the container or trailer.',
+    `shipment_leg_count` STRING COMMENT 'Count of individual transport legs in the shipment itinerary.',
+    `temperature_control_flag` BOOLEAN COMMENT 'Indicates whether the shipment requires temperature control.',
+    `temperature_max_c` DECIMAL(18,2) COMMENT 'Maximum temperature setting for temperature‑controlled shipments.',
+    `temperature_min_c` DECIMAL(18,2) COMMENT 'Minimum temperature setting for temperature‑controlled shipments.',
+    `tracking_number` STRING COMMENT 'Carrier‑provided tracking identifier for the shipment.',
+    `transit_status` STRING COMMENT 'Current operational status of the shipment.. Valid values are `in_transit|delayed|arrived|cancelled|hold`',
+    `transport_cost_amount` DECIMAL(18,2) COMMENT 'Monetary cost incurred for transporting the vehicle.',
+    `transport_cost_currency` STRING COMMENT 'Three‑letter ISO currency code for the transport cost.',
+    `transport_mode` STRING COMMENT 'Mode of transportation used for the shipment.. Valid values are `rail|truck|vessel|air|compound|intermodal`',
+    `volume_cubic_meters` DECIMAL(18,2) COMMENT 'Physical volume occupied by the vehicle or load.',
+    `weight_tons` DECIMAL(18,2) COMMENT 'Weight of the vehicle or load in metric tons.',
+    CONSTRAINT pk_in_transit_inventory PRIMARY KEY(`in_transit_inventory_id`)
+) COMMENT 'Real-time and point-in-time snapshot of finished vehicles currently in transit between plant and dealer, including vehicles on rail, truck, vessel, or staged at intermediate compounds. Captures VIN, current location (last known compound or leg), transport mode, origin, destination, estimated arrival date, days in transit, and transit status. Critical for dealer allocation visibility and OTD monitoring.';
+
+CREATE OR REPLACE TABLE `automotive_ecm`.`logistics`.`port_processing` (
+    `port_processing_id` BIGINT COMMENT 'Unique system-generated identifier for each port processing record.',
+    `carrier_id` BIGINT COMMENT 'FK to logistics.carrier',
+    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Port processing incurs significant costs (customs clearance, inspection fees, PDI labor, port charges) that must be allocated to cost centers for budget control and variance analysis in automotive imp',
+    `finished_vehicle_stock_id` BIGINT COMMENT 'Foreign key linking to inventory.finished_vehicle_stock. Business justification: Port processing events (customs clearance, PDI completion, homologation inspection) directly update finished vehicle stock status, location, and availability. Real process: port operators complete PDI',
+    `homologation_id` BIGINT COMMENT 'Foreign key linking to vehicle.homologation. Business justification: Port import processing requires direct validation of the vehicles homologation certificate for the destination market — a named regulatory compliance process. Port authorities verify the specific hom',
+    `homologation_record_id` BIGINT COMMENT 'Foreign key linking to compliance.homologation_record. Business justification: Port customs clearance requires verification that vehicles have valid homologation approval for destination market. The homologation_inspection_status field tracks inspection outcome but needs FK to a',
+    `homologation_requirement_id` BIGINT COMMENT 'Foreign key linking to engineering.homologation_requirement. Business justification: Port processing includes homologation_inspection_status, directly tied to market-entry regulatory compliance. Port authorities verify vehicles against specific homologation requirements during import ',
+    `jurisdiction_id` BIGINT COMMENT 'Foreign key linking to compliance.jurisdiction. Business justification: Port processing occurs under specific jurisdictional customs and import authority. Essential for determining applicable duty rates, customs procedures, import documentation requirements, and regulator',
+    `shipment_id` BIGINT COMMENT 'Foreign key linking to logistics.shipment. Business justification: Port processing activities are tied to a specific shipment; adding shipment_id creates the required parent‑child relationship.',
+    `shipment_leg_id` BIGINT COMMENT 'Foreign key linking to logistics.shipment_leg. Business justification: Port processing activities (customs clearance, inspection, loading/unloading) correspond to a specific shipment leg — typically the ocean leg. Adding shipment_leg_id to port_processing links the port ',
+    `vessel_voyage_id` BIGINT COMMENT 'Foreign key linking to logistics.vessel_voyage. Business justification: port_processing has voyage_number (STRING) and vessel_name (STRING) — both are denormalized references to vessel_voyage. Adding vessel_voyage_id as a proper FK normalizes this relationship. voyage_num',
+    `vin_registry_id` BIGINT COMMENT 'Foreign key linking to vehicle.vin_registry. Business justification: Supports Port Processing Inspection report linking each processed vehicle to its VIN master record for homologation and customs verification.',
+    `actual_arrival_timestamp` TIMESTAMP COMMENT 'Recorded timestamp when the vessel actually arrived.',
+    `actual_departure_timestamp` TIMESTAMP COMMENT 'Recorded timestamp when the vessel actually departed.',
+    `arrival_date` DATE COMMENT 'Scheduled or actual date the vessel arrived at the port.',
+    `compliance_regulation_code` STRING COMMENT 'Code of the specific UNECE or other regulation applicable to the shipment.',
+    `compliance_status` STRING COMMENT 'Overall compliance status of the shipment with applicable regulations.. Valid values are `compliant|non_compliant|pending`',
+    `container_code` STRING COMMENT 'Identifier of the shipping container if the vehicle is containerized.',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the port processing record was first created in the system.',
+    `customs_clearance_status` STRING COMMENT 'Current status of customs clearance for the shipment.. Valid values are `not_submitted|submitted|cleared|rejected`',
+    `customs_document_number` STRING COMMENT 'Reference number of the customs filing associated with the shipment.',
+    `customs_document_type` STRING COMMENT 'Type of customs document submitted for the shipment.. Valid values are `bill_of_lading|manifest|invoice|certificate`',
+    `departure_date` DATE COMMENT 'Scheduled or actual date the vessel departed from the port.',
+    `estimated_arrival_timestamp` TIMESTAMP COMMENT 'Planned timestamp for vessel arrival at the port.',
+    `estimated_departure_timestamp` TIMESTAMP COMMENT 'Planned timestamp for vessel departure from the port.',
+    `export_import_indicator` STRING COMMENT 'Specifies whether the processing event relates to an export or import shipment.. Valid values are `export|import`',
+    `freight_cost_amount` DECIMAL(18,2) COMMENT 'Monetary cost of freight associated with the shipment.',
+    `freight_cost_currency` STRING COMMENT 'Three‑letter ISO 4217 currency code for freight cost.',
+    `homologation_inspection_status` STRING COMMENT 'Result of regulatory homologation inspection at the port.. Valid values are `not_required|pending|passed|failed`',
+    `inspection_date` DATE COMMENT 'Date when the port inspection was performed.',
+    `inspection_report_number` STRING COMMENT 'Identifier of the inspection report generated at the port.',
+    `model_year` STRING COMMENT 'Model year of the vehicle.',
+    `notes` STRING COMMENT 'Free‑form text field for additional remarks or observations.',
+    `pdi_completion_status` STRING COMMENT 'Status of the pre‑delivery inspection performed at the port.. Valid values are `not_started|in_progress|completed`',
+    `port_charges_amount` DECIMAL(18,2) COMMENT 'Total monetary amount of port fees and charges assessed.',
+    `port_charges_currency` STRING COMMENT 'Three‑letter ISO 4217 currency code for port charges.',
+    `port_facility_code` STRING COMMENT 'Standard code identifying the port facility where processing occurs.',
+    `port_facility_name` STRING COMMENT 'Human‑readable name of the port facility.',
+    `port_processing_status` STRING COMMENT 'Current lifecycle status of the port processing activity.. Valid values are `pending|in_progress|completed|cancelled`',
+    `processing_reference` STRING COMMENT 'Business reference code assigned to the port processing event for tracking and communication.',
+    `processing_timestamp` TIMESTAMP COMMENT 'Timestamp of the primary business event when the processing activity was recorded.',
+    `release_authorization_flag` BOOLEAN COMMENT 'Indicates whether the vehicle has been authorized for release from the port.',
+    `release_authorization_number` STRING COMMENT 'Reference number for the release authorization document.',
+    `seal_number` STRING COMMENT 'Security seal number applied to the container or trailer.',
+    `updated_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent update to the port processing record.',
+    `vehicle_type` STRING COMMENT 'Category of the vehicle based on body style and powertrain. [ENUM-REF-CANDIDATE: car|truck|suv|commercial|ev|hev|phev|ice — 8 candidates stripped; promote to reference product]',
+    CONSTRAINT pk_port_processing PRIMARY KEY(`port_processing_id`)
+) COMMENT 'Record of port-of-entry or port-of-exit processing activities for finished vehicles in export/import operations. Captures port facility, vessel name, voyage number, arrival/departure dates, customs clearance status, homologation inspection status, PDI completion, port charges, and release authorization. Supports global distribution and import compliance tracking per UNECE and local customs regulations.';
+
+CREATE OR REPLACE TABLE `automotive_ecm`.`logistics`.`vessel_voyage` (
+    `vessel_voyage_id` BIGINT COMMENT 'System-generated unique identifier for the vessel voyage record.',
+    `carrier_id` BIGINT COMMENT 'Foreign key linking to logistics.carrier. Business justification: Vessel voyages are operated by carriers (including ocean shipping lines); adding carrier_id connects voyages to carriers.',
+    `jurisdiction_id` BIGINT COMMENT 'Foreign key linking to compliance.jurisdiction. Business justification: Vessel voyages operate under specific maritime jurisdictional authority determining applicable maritime regulations, customs pre-clearance requirements, and port authority rules. Critical for internat',
+    `lane_id` BIGINT COMMENT 'Foreign key linking to logistics.lane. Business justification: A vessel voyage operates on a defined logistics lane (origin port to destination port). vessel_voyage has origin_port_code and destination_port_code as STRINGs. Adding lane_id links the voyage to the ',
+    `actual_arrival_timestamp` TIMESTAMP COMMENT 'Real‑time date and time when the vessel arrived at the destination port.',
+    `actual_departure_timestamp` TIMESTAMP COMMENT 'Real‑time date and time when the vessel left the origin port.',
+    `available_capacity_units` STRING COMMENT 'Remaining vehicle capacity after bookings (capacity minus booked units).',
+    `booked_units` STRING COMMENT 'Number of vehicle units already booked for the voyage.',
+    `cost_amount` DECIMAL(18,2) COMMENT 'Total cost incurred for the voyage (e.g., charter fee, fuel surcharge).',
+    `cost_currency` STRING COMMENT 'Three‑letter ISO 4217 currency code for the cost amount.. Valid values are `^[A-Z]{3}$`',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the voyage record was first created in the system.',
+    `destination_port_code` STRING COMMENT 'Three‑letter UN/LOCODE of the port where the voyage terminates.. Valid values are `^[A-Z]{3}$`',
+    `imo_number` STRING COMMENT 'Seven‑digit unique identifier for the vessel as defined by IMO conventions.. Valid values are `^d{7}$`',
+    `origin_port_code` STRING COMMENT 'Three‑letter UN/LOCODE of the port where the voyage originates.. Valid values are `^[A-Z]{3}$`',
+    `planned_arrival_timestamp` TIMESTAMP COMMENT 'Scheduled date and time for vessel arrival at the destination port.',
+    `planned_departure_timestamp` TIMESTAMP COMMENT 'Scheduled date and time for vessel departure from the origin port.',
+    `updated_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent update to the voyage record.',
+    `vessel_capacity_units` STRING COMMENT 'Maximum number of vehicles the vessel can transport on this voyage.',
+    `vessel_name` STRING COMMENT 'Human‑readable name of the vessel used for the voyage.',
+    `voyage_number` STRING COMMENT 'External reference number assigned to the voyage by the shipping line.',
+    `voyage_status` STRING COMMENT 'Current operational status of the voyage.. Valid values are `planned|departed|arrived|cancelled|completed|on_hold`',
+    `voyage_status_reason` STRING COMMENT 'Free‑text explanation for the current voyage status, e.g., weather delay, mechanical issue.',
+    `voyage_type` STRING COMMENT 'Category of vessel operation, such as Roll‑On/Roll‑Off (RoRo) or container.. Valid values are `ro-ro|container|bulk|tanker`',
+    CONSTRAINT pk_vessel_voyage PRIMARY KEY(`vessel_voyage_id`)
+) COMMENT 'Master record for ocean vessel voyages used in finished vehicle export/import logistics. Captures vessel name, IMO number, voyage number, shipping line, origin port, destination port, planned and actual departure/arrival dates, vehicle capacity (units), booked units, and voyage status. Enables RoRo vessel capacity planning and export shipment scheduling.';
+
+CREATE OR REPLACE TABLE `automotive_ecm`.`logistics`.`transport_rate` (
+    `transport_rate_id` BIGINT COMMENT 'System-generated unique identifier for the transport rate record.',
+    `carrier_id` BIGINT COMMENT 'Foreign key linking to logistics.carrier. Business justification: Transport rates are defined per carrier; adding carrier_id creates the necessary relationship.',
+    `lane_id` BIGINT COMMENT 'Foreign key linking to logistics.lane. Business justification: Rates are also specific to a logistics lane; adding logistics_lane_id links rates to lanes and resolves lanes silo.',
+    `accessorial_charges` DECIMAL(18,2) COMMENT 'Additional fixed charges (e.g., lift‑gate, detention) associated with the lane.',
+    `compliance_flag` BOOLEAN COMMENT 'Indicates whether the rate complies with applicable transport regulations (e.g., IATF, EPA).',
+    `container_type` STRING COMMENT 'Type of container used for the shipment, if applicable.. Valid values are `standard|reefer|flatbed|open_top`',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the rate record was first created.',
+    `currency_code` STRING COMMENT 'Three‑letter ISO currency code for the rate amount.. Valid values are `USD|EUR|JPY|CNY|GBP`',
+    `destination_location_code` STRING COMMENT 'Code of the destination dealer or distribution center.',
+    `effective_from` DATE COMMENT 'Date when the transport rate becomes valid.',
+    `effective_until` DATE COMMENT 'Date when the transport rate expires (null if open‑ended).',
+    `fuel_surcharge_percent` DECIMAL(18,2) COMMENT 'Percentage surcharge applied to the base rate to cover fuel price volatility.',
+    `notes` STRING COMMENT 'Free‑form comments or special conditions related to the rate.',
+    `origin_location_code` STRING COMMENT 'Code of the origin plant or warehouse where the shipment starts.',
+    `rate_amount` DECIMAL(18,2) COMMENT 'Base monetary amount agreed for the lane before surcharges.',
+    `rate_code` STRING COMMENT 'Business identifier code for the transport rate contract.',
+    `rate_source_system` STRING COMMENT 'Source system where the rate originated.. Valid values are `SAP|Oracle|Custom`',
+    `rate_version` STRING COMMENT 'Incremental version number for the rate record to track revisions.',
+    `transport_mode` STRING COMMENT 'Mode of transportation for the lane (e.g., road, rail, sea, air).. Valid values are `road|rail|sea|air`',
+    `transport_rate_status` STRING COMMENT 'Current lifecycle status of the rate contract.. Valid values are `active|inactive|pending|expired`',
+    `unit_of_measure` STRING COMMENT 'Measurement unit that the rate amount applies to.. Valid values are `per_vehicle|per_container|per_ton|per_cbm`',
+    `updated_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent update to the rate record.',
+    `volume_capacity_cubic_meters` DECIMAL(18,2) COMMENT 'Maximum volume that can be transported under this rate.',
+    `weight_capacity_tons` DECIMAL(18,2) COMMENT 'Maximum weight that can be transported under this rate.',
+    CONSTRAINT pk_transport_rate PRIMARY KEY(`transport_rate_id`)
+) COMMENT 'Contracted transport rate master for carrier lanes, defining the agreed cost per unit (vehicle or container) by origin-destination pair, transport mode, vehicle type/size class, and effective date range. Captures base rate, fuel surcharge structure, accessorial charges, currency, and rate validity period. Used for freight cost estimation, invoice verification, and logistics cost planning.';
+
+CREATE OR REPLACE TABLE `automotive_ecm`.`logistics`.`lane` (
+    `lane_id` BIGINT COMMENT 'Primary key for lane',
+    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Lane cost analysis requires linking each logistics lane to a cost center for profitability tracking.',
+    CONSTRAINT pk_lane PRIMARY KEY(`lane_id`)
+) COMMENT 'Master record defining a logistics lane as an origin-destination pair for finished vehicle or CKD/SKD transport. Captures origin facility (plant/compound/port), destination facility (dealer/compound/port), transport mode, distance, standard transit time, lane status, and assigned primary/backup carriers. Serves as the reference for route planning, rate assignment, and OTD benchmarking.';
+
+CREATE OR REPLACE TABLE `automotive_ecm`.`logistics`.`vehicle_handover` (
+    `vehicle_handover_id` BIGINT COMMENT 'System-generated unique identifier for each vehicle handover record.',
+    `aftersales_repair_order_id` BIGINT COMMENT 'Foreign key linking to aftersales.repair_order. Business justification: Process: Vehicle handover records are tied to the corresponding repair order to monitor service flow and liability.',
+    `carrier_id` BIGINT COMMENT 'FK to logistics.carrier',
+    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Vehicle handovers incur handling, inspection, and documentation costs that must be charged to cost centers for operational expense tracking, separate from revenue recognition already tracked via profi',
+    `finished_vehicle_stock_id` BIGINT COMMENT 'Foreign key linking to inventory.finished_vehicle_stock. Business justification: Needed for Vehicle Handover Warranty Traceability: links handover record to inventory vehicle record for warranty and compliance tracking.',
+    `logistics_delivery_schedule_id` BIGINT COMMENT 'Foreign key linking to logistics.logistics_delivery_schedule. Business justification: vehicle_handover is the actual delivery event that fulfills a logistics delivery schedule. Adding logistics_delivery_schedule_id to vehicle_handover links the actual handover to the planned delivery s',
+    `production_order_id` BIGINT COMMENT 'Foreign key linking to manufacturing.production_order. Business justification: Dealer handover requires linking to the production order to support warranty registration and regulatory compliance.',
+    `profit_center_id` BIGINT COMMENT 'Foreign key linking to finance.profit_center. Business justification: Revenue from vehicle handover is recognized in the responsible profit center for margin reporting.',
+    `party_id` BIGINT COMMENT 'Unique identifier of the receiving party (dealer or customer).',
+    `shipment_id` BIGINT COMMENT 'Foreign key linking to logistics.shipment. Business justification: Linking handover to shipment provides traceability from transport to dealer receipt.',
+    `vehicle_compound_id` BIGINT COMMENT 'Foreign key linking to logistics.vehicle_compound. Business justification: vehicle_handover records the formal handover from logistics/compound to dealer or customer. handover_location is a free-text STRING. Adding vehicle_compound_id normalizes the compound from which the h',
+    `vehicle_order_id` BIGINT COMMENT 'Foreign key linking to sales.vehicle_order. Business justification: Final handover of a vehicle to the dealer is tied to the sales order for warranty activation and final invoicing.',
+    `vehicle_program_id` BIGINT COMMENT 'Foreign key linking to engineering.vehicle_program. Business justification: Vehicle handover to dealer/customer requires program identification for warranty registration, OTA update enrollment, and post-delivery program tracking. No existing FK from vehicle_handover to vehicl',
+    `vin_registry_id` BIGINT COMMENT 'Foreign key linking to vehicle.vin_registry. Business justification: Enables Vehicle Handover audit linking handover record to VIN master for warranty start and liability tracking.',
+    `acceptance_signature_status` STRING COMMENT 'Status of the acceptance signature: signed, unsigned, or pending.. Valid values are `signed|unsigned|pending`',
+    `container_code` STRING COMMENT 'Identifier of the shipping container (if applicable) used for the vehicle.',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the handover record was initially created in the system.',
+    `customs_document_number` STRING COMMENT 'Reference number of the customs clearance document.',
+    `delay_reason` STRING COMMENT 'Reason for any delay affecting the handover schedule.',
+    `emissions_kg_co2` DECIMAL(18,2) COMMENT 'Carbon dioxide emissions generated during transport, measured in kilograms.',
+    `export_import_flag` BOOLEAN COMMENT 'True if the handover involves cross‑border export or import.',
+    `fuel_consumption_liters` DECIMAL(18,2) COMMENT 'Fuel consumed by the transport vehicle during the handover journey.',
+    `handover_condition` STRING COMMENT 'Condition of the vehicle at handover: new, used, reconditioned, or damaged.. Valid values are `new|used|reconditioned|damaged`',
+    `handover_fee_amount` DECIMAL(18,2) COMMENT 'Gross fee charged for the handover service.',
+    `handover_fee_currency` STRING COMMENT 'Three‑letter ISO 4217 currency code for the handover fee.',
+    `handover_fee_net_amount` DECIMAL(18,2) COMMENT 'Net amount after tax for the handover fee.',
+    `handover_fee_tax_amount` DECIMAL(18,2) COMMENT 'Tax component of the handover fee.',
+    `handover_location` STRING COMMENT 'Physical location (plant, compound, yard, or dealer site) where the handover took place.',
+    `handover_number` STRING COMMENT 'Business-assigned handover reference number used for tracking and communication.',
+    `handover_status` STRING COMMENT 'Current processing status of the handover record.. Valid values are `pending|completed|cancelled|rejected`',
+    `handover_timestamp` TIMESTAMP COMMENT 'Exact date and time when the handover event occurred.',
+    `handover_type` STRING COMMENT 'Classification of the handover scenario: dealer stock, retail customer, export, or import.. Valid values are `dealer_stock|retail_customer|export|import`',
+    `hazardous_material_flag` BOOLEAN COMMENT 'True if the vehicle or its cargo includes hazardous materials.',
+    `hazardous_material_type` STRING COMMENT 'Classification of hazardous material, if applicable.',
+    `incoterms_code` STRING COMMENT 'International commercial term code governing the shipment (e.g., FOB, CIF).',
+    `notes` STRING COMMENT 'Free‑form notes captured during the handover process.',
+    `odometer_reading_km` DECIMAL(18,2) COMMENT 'Vehicle odometer reading at the moment of handover, expressed in kilometers.',
+    `otd_flag` BOOLEAN COMMENT 'Indicates whether the handover met the agreed on‑time delivery target.',
+    `pdi_reference` STRING COMMENT 'Reference identifier linking to the Pre‑Delivery Inspection record.',
+    `receiving_party_type` STRING COMMENT 'Indicates whether the receiving party is a dealer or an end‑customer.. Valid values are `dealer|customer`',
+    `temperature_control_flag` BOOLEAN COMMENT 'Indicates whether temperature control was required for the shipment.',
+    `temperature_max_c` DECIMAL(18,2) COMMENT 'Maximum temperature maintained during transport, expressed in degrees Celsius.',
+    `temperature_min_c` DECIMAL(18,2) COMMENT 'Minimum temperature maintained during transport, expressed in degrees Celsius.',
+    `transport_mode` STRING COMMENT 'Mode of transport used for moving the vehicle to the handover point.. Valid values are `rail|truck|ship|air`',
+    `updated_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent update to the handover record.',
+    `warranty_end_date` DATE COMMENT 'Date when the vehicle warranty expires.',
+    `warranty_start_date` DATE COMMENT 'Date when the vehicle warranty becomes effective after handover.',
+    CONSTRAINT pk_vehicle_handover PRIMARY KEY(`vehicle_handover_id`)
+) COMMENT 'Record of formal vehicle handover from logistics/compound to dealer or end customer. Captures VIN, handover date, handover location, receiving party (dealer/customer), handover type (dealer stock/retail customer), odometer reading at handover, handover condition, PDI reference, and acceptance signature status. Marks the transfer of custody and triggers downstream billing and warranty start events.';
+
+CREATE OR REPLACE TABLE `automotive_ecm`.`logistics`.`load_plan` (
+    `load_plan_id` BIGINT COMMENT 'Unique identifier for the load_plan data product (auto-inserted pre-linking).',
+    `carrier_id` BIGINT COMMENT 'Foreign key linking to logistics.carrier. Business justification: A load plan is assigned to a specific carrier for execution. load_plan currently has no carrier_id FK. Adding carrier_id to load_plan links the load planning record to the carrier master, enabling car',
+    `consolidated_load_plan_id` BIGINT COMMENT 'Self-referencing FK on load_plan (consolidated_load_plan_id)',
+    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Load planning cost estimates are budgeted against a cost center for transportation budgeting.',
+    `production_order_id` BIGINT COMMENT 'Foreign key linking to manufacturing.production_order. Business justification: Finished vehicle load planning: load planners pull confirmed production orders to build outbound loads from the plant yard. Load plans must reference the production order to validate vehicle availabil',
+    `route_id` BIGINT COMMENT 'Foreign key linking to logistics.route. Business justification: A load plan defines how vehicles are grouped for transport along a specific route. Adding route_id to load_plan links the load planning record to the route master, enabling route-level load planning a',
+    `vehicle_compound_id` BIGINT COMMENT 'Foreign key linking to logistics.vehicle_compound. Business justification: A load plan is executed at a vehicle compound (the staging/loading facility). Adding vehicle_compound_id to load_plan links the load planning record to the compound master, enabling compound-level loa',
+    CONSTRAINT pk_load_plan PRIMARY KEY(`load_plan_id`)
+) COMMENT 'Load planning record defining how finished vehicles are grouped and assigned to transport units (truck trailers, rail autoracks, RoRo vessel decks) for a given shipment or transport order. Captures load plan number, transport unit type, vehicle count, VIN assignments, weight/dimension constraints, loading sequence, special handling requirements (e.g., EV battery transport restrictions), and plan status. Supports transport utilization optimization and loading dock scheduling.';
+
+CREATE OR REPLACE TABLE `automotive_ecm`.`logistics`.`route` (
+    `route_id` BIGINT COMMENT 'Primary key for route',
+    `carrier_id` BIGINT COMMENT 'FK to logistics.carrier',
+    `lane_id` BIGINT COMMENT 'Foreign key linking to logistics.lane. Business justification: A route is a specific path that serves a logistics lane (origin-destination pair). Adding lane_id to route links the route master to the lane master, enabling lane-level route management, transport ra',
+    `plant_id` BIGINT COMMENT 'Foreign key linking to manufacturing.plant. Business justification: Outbound route management: logistics routes for finished vehicle distribution originate from manufacturing plants. Plant-specific route optimization, carrier assignment, and regulatory compliance (cab',
+    `return_route_id` BIGINT COMMENT 'Self-referencing FK on route (return_route_id)',
+    `actual_arrival_time` TIMESTAMP COMMENT 'Real‑time arrival timestamp recorded when a shipment reaches the destination.',
+    `actual_departure_time` TIMESTAMP COMMENT 'Real‑time departure timestamp recorded when a shipment leaves the origin.',
+    `average_travel_time_minutes` STRING COMMENT 'Historical average travel time for the route in minutes.',
+    `carrier_mode` STRING COMMENT 'Primary transportation mode used on the route.',
+    `compliance_status` STRING COMMENT 'Current regulatory compliance state of the route.',
+    `cost_usd` DECIMAL(18,2) COMMENT 'Average cost incurred to operate the route per shipment, expressed in US dollars.',
+    `created_timestamp` TIMESTAMP COMMENT 'Date and time when the route record was first created.',
+    `destination_location` STRING COMMENT 'Standard code of the ending location or depot for the route.',
+    `distance_km` DECIMAL(18,2) COMMENT 'Typical distance covered by the route in kilometers.',
+    `effective_from` DATE COMMENT 'Date when the route definition becomes active.',
+    `effective_until` DATE COMMENT 'Date when the route definition is retired or superseded; null if open‑ended.',
+    `emissions_kg_co2` DECIMAL(18,2) COMMENT 'Estimated carbon dioxide emissions generated per shipment on the route.',
+    `fuel_consumption_l_per_100km` DECIMAL(18,2) COMMENT 'Typical fuel consumption for the route expressed in liters per 100 kilometers.',
+    `is_express` BOOLEAN COMMENT 'Indicates whether the route supports express (time‑critical) shipments.',
+    `last_maintenance_date` DATE COMMENT 'Date of the most recent maintenance activity affecting the route (e.g., road work, carrier audit).',
+    `maintenance_interval_days` STRING COMMENT 'Standard number of days between required maintenance checks for the route.',
+    `max_load_capacity_tons` DECIMAL(18,2) COMMENT 'Maximum payload the route can handle, expressed in metric tons.',
+    `notes` STRING COMMENT 'Additional free‑form remarks or special instructions for the route.',
+    `on_time_performance_pct` DECIMAL(18,2) COMMENT 'Percentage of shipments that arrived on or before the scheduled arrival time.',
+    `priority_level` STRING COMMENT 'Business priority assigned to the route for planning and allocation.',
+    `regulatory_region` STRING COMMENT 'Geopolitical region governing compliance requirements for the route.',
+    `route_code` STRING COMMENT 'Standardized alphanumeric code used to reference the route in logistics systems.',
+    `route_description` STRING COMMENT 'Free‑form text describing the route, its purpose, and any special handling notes.',
+    `route_group` STRING COMMENT 'Logical grouping identifier for related routes (e.g., region, corridor).',
+    `route_name` STRING COMMENT 'Human‑readable name of the transportation route.',
+    `route_status` STRING COMMENT 'Current operational status of the route.',
+    `route_type` STRING COMMENT 'Category describing the geographic scope of the route.',
+    `scheduled_arrival_time` TIMESTAMP COMMENT 'Planned arrival date and time for shipments on this route.',
+    `scheduled_departure_time` TIMESTAMP COMMENT 'Planned departure date and time for shipments on this route.',
+    `updated_timestamp` TIMESTAMP COMMENT 'Date and time of the most recent modification to the route record.',
+    CONSTRAINT pk_route PRIMARY KEY(`route_id`)
+) COMMENT 'Master reference table for route. Referenced by route_id.';
+
+-- ========= FOREIGN KEYS =========
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ADD CONSTRAINT `fk_logistics_shipment_carrier_id` FOREIGN KEY (`carrier_id`) REFERENCES `automotive_ecm`.`logistics`.`carrier`(`carrier_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ADD CONSTRAINT `fk_logistics_shipment_route_id` FOREIGN KEY (`route_id`) REFERENCES `automotive_ecm`.`logistics`.`route`(`route_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ADD CONSTRAINT `fk_logistics_shipment_vehicle_compound_id` FOREIGN KEY (`vehicle_compound_id`) REFERENCES `automotive_ecm`.`logistics`.`vehicle_compound`(`vehicle_compound_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ADD CONSTRAINT `fk_logistics_shipment_vessel_voyage_id` FOREIGN KEY (`vessel_voyage_id`) REFERENCES `automotive_ecm`.`logistics`.`vessel_voyage`(`vessel_voyage_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ADD CONSTRAINT `fk_logistics_shipment_leg_carrier_id` FOREIGN KEY (`carrier_id`) REFERENCES `automotive_ecm`.`logistics`.`carrier`(`carrier_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ADD CONSTRAINT `fk_logistics_shipment_leg_route_id` FOREIGN KEY (`route_id`) REFERENCES `automotive_ecm`.`logistics`.`route`(`route_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ADD CONSTRAINT `fk_logistics_shipment_leg_shipment_id` FOREIGN KEY (`shipment_id`) REFERENCES `automotive_ecm`.`logistics`.`shipment`(`shipment_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ADD CONSTRAINT `fk_logistics_shipment_leg_vehicle_compound_id` FOREIGN KEY (`vehicle_compound_id`) REFERENCES `automotive_ecm`.`logistics`.`vehicle_compound`(`vehicle_compound_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ADD CONSTRAINT `fk_logistics_shipment_leg_vehicle_transport_order_id` FOREIGN KEY (`vehicle_transport_order_id`) REFERENCES `automotive_ecm`.`logistics`.`vehicle_transport_order`(`vehicle_transport_order_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ADD CONSTRAINT `fk_logistics_shipment_leg_vessel_voyage_id` FOREIGN KEY (`vessel_voyage_id`) REFERENCES `automotive_ecm`.`logistics`.`vessel_voyage`(`vessel_voyage_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ADD CONSTRAINT `fk_logistics_vehicle_transport_order_carrier_id` FOREIGN KEY (`carrier_id`) REFERENCES `automotive_ecm`.`logistics`.`carrier`(`carrier_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ADD CONSTRAINT `fk_logistics_vehicle_transport_order_load_plan_id` FOREIGN KEY (`load_plan_id`) REFERENCES `automotive_ecm`.`logistics`.`load_plan`(`load_plan_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ADD CONSTRAINT `fk_logistics_vehicle_transport_order_vehicle_compound_id` FOREIGN KEY (`vehicle_compound_id`) REFERENCES `automotive_ecm`.`logistics`.`vehicle_compound`(`vehicle_compound_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ADD CONSTRAINT `fk_logistics_vehicle_transport_order_route_id` FOREIGN KEY (`route_id`) REFERENCES `automotive_ecm`.`logistics`.`route`(`route_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ADD CONSTRAINT `fk_logistics_vehicle_transport_order_shipment_id` FOREIGN KEY (`shipment_id`) REFERENCES `automotive_ecm`.`logistics`.`shipment`(`shipment_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ADD CONSTRAINT `fk_logistics_vehicle_transport_order_vessel_voyage_id` FOREIGN KEY (`vessel_voyage_id`) REFERENCES `automotive_ecm`.`logistics`.`vessel_voyage`(`vessel_voyage_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ADD CONSTRAINT `fk_logistics_logistics_delivery_schedule_carrier_id` FOREIGN KEY (`carrier_id`) REFERENCES `automotive_ecm`.`logistics`.`carrier`(`carrier_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ADD CONSTRAINT `fk_logistics_logistics_delivery_schedule_route_id` FOREIGN KEY (`route_id`) REFERENCES `automotive_ecm`.`logistics`.`route`(`route_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ADD CONSTRAINT `fk_logistics_logistics_delivery_schedule_shipment_id` FOREIGN KEY (`shipment_id`) REFERENCES `automotive_ecm`.`logistics`.`shipment`(`shipment_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ADD CONSTRAINT `fk_logistics_logistics_delivery_schedule_vehicle_compound_id` FOREIGN KEY (`vehicle_compound_id`) REFERENCES `automotive_ecm`.`logistics`.`vehicle_compound`(`vehicle_compound_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ADD CONSTRAINT `fk_logistics_logistics_delivery_schedule_vehicle_transport_order_id` FOREIGN KEY (`vehicle_transport_order_id`) REFERENCES `automotive_ecm`.`logistics`.`vehicle_transport_order`(`vehicle_transport_order_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ADD CONSTRAINT `fk_logistics_logistics_delivery_schedule_vessel_voyage_id` FOREIGN KEY (`vessel_voyage_id`) REFERENCES `automotive_ecm`.`logistics`.`vessel_voyage`(`vessel_voyage_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ADD CONSTRAINT `fk_logistics_carrier_performance_carrier_id` FOREIGN KEY (`carrier_id`) REFERENCES `automotive_ecm`.`logistics`.`carrier`(`carrier_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ADD CONSTRAINT `fk_logistics_carrier_performance_lane_id` FOREIGN KEY (`lane_id`) REFERENCES `automotive_ecm`.`logistics`.`lane`(`lane_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ADD CONSTRAINT `fk_logistics_compound_movement_carrier_id` FOREIGN KEY (`carrier_id`) REFERENCES `automotive_ecm`.`logistics`.`carrier`(`carrier_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ADD CONSTRAINT `fk_logistics_compound_movement_load_plan_id` FOREIGN KEY (`load_plan_id`) REFERENCES `automotive_ecm`.`logistics`.`load_plan`(`load_plan_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ADD CONSTRAINT `fk_logistics_compound_movement_shipment_id` FOREIGN KEY (`shipment_id`) REFERENCES `automotive_ecm`.`logistics`.`shipment`(`shipment_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ADD CONSTRAINT `fk_logistics_compound_movement_vehicle_compound_id` FOREIGN KEY (`vehicle_compound_id`) REFERENCES `automotive_ecm`.`logistics`.`vehicle_compound`(`vehicle_compound_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ADD CONSTRAINT `fk_logistics_compound_movement_vehicle_transport_order_id` FOREIGN KEY (`vehicle_transport_order_id`) REFERENCES `automotive_ecm`.`logistics`.`vehicle_transport_order`(`vehicle_transport_order_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ADD CONSTRAINT `fk_logistics_in_transit_inventory_carrier_id` FOREIGN KEY (`carrier_id`) REFERENCES `automotive_ecm`.`logistics`.`carrier`(`carrier_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ADD CONSTRAINT `fk_logistics_in_transit_inventory_load_plan_id` FOREIGN KEY (`load_plan_id`) REFERENCES `automotive_ecm`.`logistics`.`load_plan`(`load_plan_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ADD CONSTRAINT `fk_logistics_in_transit_inventory_shipment_id` FOREIGN KEY (`shipment_id`) REFERENCES `automotive_ecm`.`logistics`.`shipment`(`shipment_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ADD CONSTRAINT `fk_logistics_in_transit_inventory_shipment_leg_id` FOREIGN KEY (`shipment_leg_id`) REFERENCES `automotive_ecm`.`logistics`.`shipment_leg`(`shipment_leg_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ADD CONSTRAINT `fk_logistics_in_transit_inventory_vehicle_compound_id` FOREIGN KEY (`vehicle_compound_id`) REFERENCES `automotive_ecm`.`logistics`.`vehicle_compound`(`vehicle_compound_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ADD CONSTRAINT `fk_logistics_in_transit_inventory_vessel_voyage_id` FOREIGN KEY (`vessel_voyage_id`) REFERENCES `automotive_ecm`.`logistics`.`vessel_voyage`(`vessel_voyage_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ADD CONSTRAINT `fk_logistics_port_processing_carrier_id` FOREIGN KEY (`carrier_id`) REFERENCES `automotive_ecm`.`logistics`.`carrier`(`carrier_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ADD CONSTRAINT `fk_logistics_port_processing_shipment_id` FOREIGN KEY (`shipment_id`) REFERENCES `automotive_ecm`.`logistics`.`shipment`(`shipment_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ADD CONSTRAINT `fk_logistics_port_processing_shipment_leg_id` FOREIGN KEY (`shipment_leg_id`) REFERENCES `automotive_ecm`.`logistics`.`shipment_leg`(`shipment_leg_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ADD CONSTRAINT `fk_logistics_port_processing_vessel_voyage_id` FOREIGN KEY (`vessel_voyage_id`) REFERENCES `automotive_ecm`.`logistics`.`vessel_voyage`(`vessel_voyage_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ADD CONSTRAINT `fk_logistics_vessel_voyage_carrier_id` FOREIGN KEY (`carrier_id`) REFERENCES `automotive_ecm`.`logistics`.`carrier`(`carrier_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ADD CONSTRAINT `fk_logistics_vessel_voyage_lane_id` FOREIGN KEY (`lane_id`) REFERENCES `automotive_ecm`.`logistics`.`lane`(`lane_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ADD CONSTRAINT `fk_logistics_transport_rate_carrier_id` FOREIGN KEY (`carrier_id`) REFERENCES `automotive_ecm`.`logistics`.`carrier`(`carrier_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ADD CONSTRAINT `fk_logistics_transport_rate_lane_id` FOREIGN KEY (`lane_id`) REFERENCES `automotive_ecm`.`logistics`.`lane`(`lane_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ADD CONSTRAINT `fk_logistics_vehicle_handover_carrier_id` FOREIGN KEY (`carrier_id`) REFERENCES `automotive_ecm`.`logistics`.`carrier`(`carrier_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ADD CONSTRAINT `fk_logistics_vehicle_handover_logistics_delivery_schedule_id` FOREIGN KEY (`logistics_delivery_schedule_id`) REFERENCES `automotive_ecm`.`logistics`.`logistics_delivery_schedule`(`logistics_delivery_schedule_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ADD CONSTRAINT `fk_logistics_vehicle_handover_shipment_id` FOREIGN KEY (`shipment_id`) REFERENCES `automotive_ecm`.`logistics`.`shipment`(`shipment_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ADD CONSTRAINT `fk_logistics_vehicle_handover_vehicle_compound_id` FOREIGN KEY (`vehicle_compound_id`) REFERENCES `automotive_ecm`.`logistics`.`vehicle_compound`(`vehicle_compound_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`load_plan` ADD CONSTRAINT `fk_logistics_load_plan_carrier_id` FOREIGN KEY (`carrier_id`) REFERENCES `automotive_ecm`.`logistics`.`carrier`(`carrier_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`load_plan` ADD CONSTRAINT `fk_logistics_load_plan_consolidated_load_plan_id` FOREIGN KEY (`consolidated_load_plan_id`) REFERENCES `automotive_ecm`.`logistics`.`load_plan`(`load_plan_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`load_plan` ADD CONSTRAINT `fk_logistics_load_plan_route_id` FOREIGN KEY (`route_id`) REFERENCES `automotive_ecm`.`logistics`.`route`(`route_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`load_plan` ADD CONSTRAINT `fk_logistics_load_plan_vehicle_compound_id` FOREIGN KEY (`vehicle_compound_id`) REFERENCES `automotive_ecm`.`logistics`.`vehicle_compound`(`vehicle_compound_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`route` ADD CONSTRAINT `fk_logistics_route_carrier_id` FOREIGN KEY (`carrier_id`) REFERENCES `automotive_ecm`.`logistics`.`carrier`(`carrier_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`route` ADD CONSTRAINT `fk_logistics_route_lane_id` FOREIGN KEY (`lane_id`) REFERENCES `automotive_ecm`.`logistics`.`lane`(`lane_id`);
+ALTER TABLE `automotive_ecm`.`logistics`.`route` ADD CONSTRAINT `fk_logistics_route_return_route_id` FOREIGN KEY (`return_route_id`) REFERENCES `automotive_ecm`.`logistics`.`route`(`route_id`);
+
+-- ========= TAGS =========
+ALTER SCHEMA `automotive_ecm`.`logistics` SET TAGS ('dbx_division' = 'operations');
+ALTER SCHEMA `automotive_ecm`.`logistics` SET TAGS ('dbx_domain' = 'logistics');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` SET TAGS ('dbx_subdomain' = 'transport_execution');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `shipment_id` SET TAGS ('dbx_business_glossary_term' = 'Shipment Identifier');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `carrier_id` SET TAGS ('dbx_business_glossary_term' = 'Carrier Identifier (CARRIER_ID)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `dealership_id` SET TAGS ('dbx_business_glossary_term' = 'Dealership Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `gl_account_id` SET TAGS ('dbx_business_glossary_term' = 'Gl Account Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `part_master_id` SET TAGS ('dbx_business_glossary_term' = 'Part Master Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `production_order_id` SET TAGS ('dbx_business_glossary_term' = 'Production Order Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `route_id` SET TAGS ('dbx_business_glossary_term' = 'Route Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `vehicle_compound_id` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Compound Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `vehicle_order_id` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Order Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `vehicle_program_id` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Program Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `vessel_voyage_id` SET TAGS ('dbx_business_glossary_term' = 'Vessel Voyage Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `vin_registry_id` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Identifier (VEHICLE_ID)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `actual_arrival_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Actual Arrival Timestamp (ACTUAL_ARRIVAL_TIMESTAMP)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `actual_departure_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Actual Departure Timestamp (ACTUAL_DEPARTURE_TIMESTAMP)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `compliance_status` SET TAGS ('dbx_business_glossary_term' = 'Compliance Status (COMPLIANCE_STATUS)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `compliance_status` SET TAGS ('dbx_value_regex' = 'compliant|non_compliant|pending|exempt');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `container_number` SET TAGS ('dbx_business_glossary_term' = 'Container Number (CONTAINER_NUMBER)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp (CREATED_TIMESTAMP)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code (CURRENCY_CODE)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `customs_document_number` SET TAGS ('dbx_business_glossary_term' = 'Customs Document Number (CUSTOMS_DOCUMENT_NUMBER)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `delay_reason` SET TAGS ('dbx_business_glossary_term' = 'Delay Reason (DELAY_REASON)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `destination_location` SET TAGS ('dbx_business_glossary_term' = 'Destination Location (DESTINATION_LOCATION)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `discount_amount` SET TAGS ('dbx_business_glossary_term' = 'Discount Amount (DISCOUNT_AMOUNT)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `export_import_flag` SET TAGS ('dbx_business_glossary_term' = 'Export/Import Flag (EXPORT_IMPORT_FLAG)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `export_import_flag` SET TAGS ('dbx_value_regex' = 'export|import|domestic');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `freight_cost` SET TAGS ('dbx_business_glossary_term' = 'Freight Cost (FREIGHT_COST)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `hazardous_material_flag` SET TAGS ('dbx_business_glossary_term' = 'Hazardous Material Flag (HAZARDOUS_MATERIAL_FLAG)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `incoterms_code` SET TAGS ('dbx_business_glossary_term' = 'Incoterms Code (INCOTERMS_CODE)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `incoterms_code` SET TAGS ('dbx_value_regex' = 'EXW|FCA|CPT|CIP|DAP|DDP');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `load_type` SET TAGS ('dbx_business_glossary_term' = 'Load Type (LOAD_TYPE)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `load_type` SET TAGS ('dbx_value_regex' = 'full|partial|hazardous|refrigerated|standard');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `net_cost` SET TAGS ('dbx_business_glossary_term' = 'Net Cost (NET_COST)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `number_of_units` SET TAGS ('dbx_business_glossary_term' = 'Number of Units (NUMBER_OF_UNITS)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `origin_location` SET TAGS ('dbx_business_glossary_term' = 'Origin Location (ORIGIN_LOCATION)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `origin_plant_code` SET TAGS ('dbx_business_glossary_term' = 'Origin Plant Code (ORIGIN_PLANT_CODE)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `otd_flag` SET TAGS ('dbx_business_glossary_term' = 'On‑Time Delivery Flag (OTD_FLAG)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `planned_arrival_date` SET TAGS ('dbx_business_glossary_term' = 'Planned Arrival Date (PLANNED_ARRIVAL_DATE)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `planned_departure_date` SET TAGS ('dbx_business_glossary_term' = 'Planned Departure Date (PLANNED_DEPARTURE_DATE)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `shipment_number` SET TAGS ('dbx_business_glossary_term' = 'Shipment Number (SHIPMENT_NUMBER)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `shipment_status` SET TAGS ('dbx_business_glossary_term' = 'Shipment Status (STATUS)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `shipment_status` SET TAGS ('dbx_value_regex' = 'planned|in_transit|delivered|cancelled|exception');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `temperature_control_flag` SET TAGS ('dbx_business_glossary_term' = 'Temperature Control Flag (TEMPERATURE_CONTROL_FLAG)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `tracking_url` SET TAGS ('dbx_business_glossary_term' = 'Tracking URL (TRACKING_URL)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `transport_mode` SET TAGS ('dbx_business_glossary_term' = 'Transport Mode (TRANSPORT_MODE)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `transport_mode` SET TAGS ('dbx_value_regex' = 'rail|truck|vessel|ckd|skd|air');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Updated Timestamp (UPDATED_TIMESTAMP)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `vin_list` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Identification Numbers (VIN_LIST)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `volume_cbm` SET TAGS ('dbx_business_glossary_term' = 'Volume (CUBIC METERS) (VOLUME_CBM)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment` ALTER COLUMN `weight_kg` SET TAGS ('dbx_business_glossary_term' = 'Weight (KG) (WEIGHT_KG)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` SET TAGS ('dbx_data_type' = 'transactional_data');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` SET TAGS ('dbx_subdomain' = 'transport_execution');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `shipment_leg_id` SET TAGS ('dbx_business_glossary_term' = 'Shipment Leg Identifier');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `carrier_id` SET TAGS ('dbx_business_glossary_term' = 'Carrier Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `goods_movement_id` SET TAGS ('dbx_business_glossary_term' = 'Goods Movement Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `route_id` SET TAGS ('dbx_business_glossary_term' = 'Route Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `shipment_id` SET TAGS ('dbx_business_glossary_term' = 'Shipment Identifier');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `vehicle_compound_id` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Compound Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `vehicle_transport_order_id` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Transport Order Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `vessel_voyage_id` SET TAGS ('dbx_business_glossary_term' = 'Vessel Voyage Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `vin_registry_id` SET TAGS ('dbx_business_glossary_term' = 'Vin Registry Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `actual_arrival_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Actual Arrival Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `actual_departure_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Actual Departure Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `container_code` SET TAGS ('dbx_business_glossary_term' = 'Container Identifier');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `cost_amount` SET TAGS ('dbx_business_glossary_term' = 'Leg Cost Amount');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `cost_currency` SET TAGS ('dbx_business_glossary_term' = 'Cost Currency');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `cost_currency` SET TAGS ('dbx_value_regex' = 'USD|EUR|JPY|CNY|GBP');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `cost_type` SET TAGS ('dbx_business_glossary_term' = 'Cost Type');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `cost_type` SET TAGS ('dbx_value_regex' = 'freight|duty|tax|handling');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Creation Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `customs_document_number` SET TAGS ('dbx_business_glossary_term' = 'Customs Document Number');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `customs_status` SET TAGS ('dbx_business_glossary_term' = 'Customs Status');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `customs_status` SET TAGS ('dbx_value_regex' = 'pending|cleared|rejected');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `delay_reason` SET TAGS ('dbx_business_glossary_term' = 'Delay Reason');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `distance_km` SET TAGS ('dbx_business_glossary_term' = 'Leg Distance (Kilometers)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `emissions_kg_co2` SET TAGS ('dbx_business_glossary_term' = 'CO2 Emissions (kg)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `fuel_consumption_liters` SET TAGS ('dbx_business_glossary_term' = 'Fuel Consumption (Liters)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `handling_instructions` SET TAGS ('dbx_business_glossary_term' = 'Handling Instructions');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `hazardous_material_flag` SET TAGS ('dbx_business_glossary_term' = 'Hazardous Material Flag');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `hazardous_material_type` SET TAGS ('dbx_business_glossary_term' = 'Hazardous Material Type');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `leg_sequence` SET TAGS ('dbx_business_glossary_term' = 'Leg Sequence Number');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `leg_status` SET TAGS ('dbx_business_glossary_term' = 'Leg Status');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `leg_status` SET TAGS ('dbx_value_regex' = 'planned|in_transit|arrived|delayed|cancelled');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `load_type` SET TAGS ('dbx_business_glossary_term' = 'Load Type');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `load_type` SET TAGS ('dbx_value_regex' = 'full|less_than_truckload|partial');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `odometer_end` SET TAGS ('dbx_business_glossary_term' = 'Odometer End');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `odometer_start` SET TAGS ('dbx_business_glossary_term' = 'Odometer Start');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `planned_arrival_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Planned Arrival Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `planned_departure_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Planned Departure Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `quantity` SET TAGS ('dbx_business_glossary_term' = 'Quantity of Units');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `seal_number` SET TAGS ('dbx_business_glossary_term' = 'Seal Number');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `temperature_control_required` SET TAGS ('dbx_business_glossary_term' = 'Temperature Control Required');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `temperature_max_c` SET TAGS ('dbx_business_glossary_term' = 'Maximum Temperature (°C)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `temperature_min_c` SET TAGS ('dbx_business_glossary_term' = 'Minimum Temperature (°C)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `tracking_number` SET TAGS ('dbx_business_glossary_term' = 'Tracking Number');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `transport_mode` SET TAGS ('dbx_business_glossary_term' = 'Transport Mode');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `transport_mode` SET TAGS ('dbx_value_regex' = 'truck|rail|ship|air|pipeline');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Update Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `volume_cubic_meters` SET TAGS ('dbx_business_glossary_term' = 'Leg Volume (Cubic Meters)');
+ALTER TABLE `automotive_ecm`.`logistics`.`shipment_leg` ALTER COLUMN `weight_tons` SET TAGS ('dbx_business_glossary_term' = 'Leg Weight (Tons)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` SET TAGS ('dbx_data_type' = 'transactional_data');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` SET TAGS ('dbx_subdomain' = 'transport_execution');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `vehicle_transport_order_id` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Transport Order Identifier');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `carrier_id` SET TAGS ('dbx_business_glossary_term' = 'Carrier ID');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `dealership_id` SET TAGS ('dbx_business_glossary_term' = 'Dealership Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `load_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Load Plan ID');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `vehicle_compound_id` SET TAGS ('dbx_business_glossary_term' = 'Origin Vehicle Compound Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `plant_id` SET TAGS ('dbx_business_glossary_term' = 'Plant ID');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `production_order_id` SET TAGS ('dbx_business_glossary_term' = 'Production Order Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `production_variant_id` SET TAGS ('dbx_business_glossary_term' = 'Production Variant Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `route_id` SET TAGS ('dbx_business_glossary_term' = 'Route Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `shipment_id` SET TAGS ('dbx_business_glossary_term' = 'Shipment Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `vehicle_order_id` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Order Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `vehicle_program_id` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Program Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `vessel_voyage_id` SET TAGS ('dbx_business_glossary_term' = 'Vessel Voyage Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `actual_arrival_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Actual Arrival Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `carrier_contact` SET TAGS ('dbx_business_glossary_term' = 'Carrier Contact Phone');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `carrier_contact` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `carrier_contact` SET TAGS ('dbx_pii_phone' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `compliance_regulation_code` SET TAGS ('dbx_business_glossary_term' = 'Compliance Regulation Code');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `confirmed_pickup_date` SET TAGS ('dbx_business_glossary_term' = 'Confirmed Pickup Date');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `container_type` SET TAGS ('dbx_business_glossary_term' = 'Container Type');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `currency_code` SET TAGS ('dbx_value_regex' = 'USD|EUR|JPY|CNY|GBP|CAD');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `customs_declaration_number` SET TAGS ('dbx_business_glossary_term' = 'Customs Declaration Number');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `delivery_date` SET TAGS ('dbx_business_glossary_term' = 'Delivery Date');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `distance_km` SET TAGS ('dbx_business_glossary_term' = 'Transport Distance (km)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `emission_co2_kg` SET TAGS ('dbx_business_glossary_term' = 'CO₂ Emission (kg)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `estimated_arrival_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Estimated Arrival Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `export_import_flag` SET TAGS ('dbx_business_glossary_term' = 'Export/Import Flag');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `export_import_flag` SET TAGS ('dbx_value_regex' = 'export|import');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `fuel_type` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Fuel Type');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `fuel_type` SET TAGS ('dbx_value_regex' = 'diesel|gasoline|electric|hybrid');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `is_expedited` SET TAGS ('dbx_business_glossary_term' = 'Expedited Shipment Flag');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `is_hazardous` SET TAGS ('dbx_business_glossary_term' = 'Hazardous Material Flag');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Order Notes');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `on_time_delivery_flag` SET TAGS ('dbx_business_glossary_term' = 'On‑Time Delivery Flag');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `order_created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Order Creation Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `order_number` SET TAGS ('dbx_business_glossary_term' = 'Transport Order Number');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `order_status` SET TAGS ('dbx_business_glossary_term' = 'Transport Order Status');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `order_status` SET TAGS ('dbx_value_regex' = 'draft|open|confirmed|in_transit|delivered|cancelled');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `priority` SET TAGS ('dbx_business_glossary_term' = 'Transport Priority');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `priority` SET TAGS ('dbx_value_regex' = 'low|medium|high|critical');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `record_audit_created` SET TAGS ('dbx_business_glossary_term' = 'Record Audit Created');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `record_audit_updated` SET TAGS ('dbx_business_glossary_term' = 'Record Audit Updated');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `requested_pickup_date` SET TAGS ('dbx_business_glossary_term' = 'Requested Pickup Date');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `shipping_instructions` SET TAGS ('dbx_business_glossary_term' = 'Shipping Instructions');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `tracking_number` SET TAGS ('dbx_business_glossary_term' = 'Carrier Tracking Number');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `transport_cost_gross` SET TAGS ('dbx_business_glossary_term' = 'Transport Cost Gross');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `transport_cost_net` SET TAGS ('dbx_business_glossary_term' = 'Transport Cost Net');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `transport_cost_tax` SET TAGS ('dbx_business_glossary_term' = 'Transport Cost Tax');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `transport_mode` SET TAGS ('dbx_business_glossary_term' = 'Transport Mode');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `transport_mode` SET TAGS ('dbx_value_regex' = 'truck|rail|vessel|air');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `vehicle_count` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Count');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `vin_list` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Identification Numbers (VINs)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `vin_list` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `vin_list` SET TAGS ('dbx_pii_identifier' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_transport_order` ALTER COLUMN `weight_tons` SET TAGS ('dbx_business_glossary_term' = 'Shipment Weight (tons)');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` SET TAGS ('dbx_subdomain' = 'transport_execution');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `logistics_delivery_schedule_id` SET TAGS ('dbx_business_glossary_term' = 'Primary Key for delivery_schedule');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `finished_vehicle_stock_id` SET TAGS ('dbx_business_glossary_term' = 'Delivery Schedule ID');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `carrier_id` SET TAGS ('dbx_business_glossary_term' = 'Carrier Identifier');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `plant_id` SET TAGS ('dbx_business_glossary_term' = 'Plant Identifier');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `dealership_id` SET TAGS ('dbx_business_glossary_term' = 'Dealer Identifier');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `production_schedule_id` SET TAGS ('dbx_business_glossary_term' = 'Production Schedule Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `route_id` SET TAGS ('dbx_business_glossary_term' = 'Route Identifier');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `shipment_id` SET TAGS ('dbx_business_glossary_term' = 'Shipment Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `vehicle_compound_id` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Compound Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `vehicle_order_id` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Order Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `vehicle_program_id` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Program Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `vehicle_transport_order_id` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Transport Order Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `vessel_voyage_id` SET TAGS ('dbx_business_glossary_term' = 'Vessel Voyage Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `actual_arrival_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Actual Arrival Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `actual_departure_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Actual Departure Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `arrival_date` SET TAGS ('dbx_business_glossary_term' = 'Planned Arrival Date');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `compliance_flag` SET TAGS ('dbx_business_glossary_term' = 'Regulatory Compliance Flag');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `compliance_flag` SET TAGS ('dbx_value_regex' = 'compliant|non_compliant|pending|exempt|under_review|restricted');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `cost_actual` SET TAGS ('dbx_business_glossary_term' = 'Actual Transportation Cost');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `cost_estimate` SET TAGS ('dbx_business_glossary_term' = 'Estimated Transportation Cost');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Audit Created Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `currency_code` SET TAGS ('dbx_value_regex' = 'USD|EUR|JPY|CNY|GBP|CAD');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `customs_document_required` SET TAGS ('dbx_business_glossary_term' = 'Customs Documentation Required Flag');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `delivery_window_end` SET TAGS ('dbx_business_glossary_term' = 'Delivery Window End');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `delivery_window_start` SET TAGS ('dbx_business_glossary_term' = 'Delivery Window Start');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `departure_date` SET TAGS ('dbx_business_glossary_term' = 'Planned Departure Date');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `estimated_delivery_date` SET TAGS ('dbx_business_glossary_term' = 'Estimated Delivery Date');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `export_import_flag` SET TAGS ('dbx_business_glossary_term' = 'Export/Import Flag');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `export_import_flag` SET TAGS ('dbx_value_regex' = 'export|import|domestic|reexport|transit|unknown');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `freight_class` SET TAGS ('dbx_business_glossary_term' = 'Freight Class');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `incoterms` SET TAGS ('dbx_business_glossary_term' = 'Incoterms');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `incoterms` SET TAGS ('dbx_value_regex' = 'EXW|FCA|CPT|CIP|DAP|DDP');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `is_expedited` SET TAGS ('dbx_business_glossary_term' = 'Expedited Delivery Flag');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `is_hazardous` SET TAGS ('dbx_business_glossary_term' = 'Hazardous Material Flag');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `last_mile_delivery_method` SET TAGS ('dbx_business_glossary_term' = 'Last‑Mile Delivery Method');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `last_mile_delivery_method` SET TAGS ('dbx_value_regex' = 'dealer|direct|third_party|pickup|locker|drone');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `lead_time_days` SET TAGS ('dbx_business_glossary_term' = 'Lead Time (Days)');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `logistics_delivery_schedule_status` SET TAGS ('dbx_business_glossary_term' = 'Delivery Schedule Status');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `logistics_delivery_schedule_status` SET TAGS ('dbx_value_regex' = 'planned|released|in_transit|delivered|cancelled|on_hold');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'General Notes');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `otd_actual_date` SET TAGS ('dbx_business_glossary_term' = 'On‑Time Delivery Actual Date');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `otd_target_date` SET TAGS ('dbx_business_glossary_term' = 'On‑Time Delivery Target Date');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `planned_quantity` SET TAGS ('dbx_business_glossary_term' = 'Planned Quantity');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `priority_level` SET TAGS ('dbx_business_glossary_term' = 'Delivery Priority Level');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `priority_level` SET TAGS ('dbx_value_regex' = 'low|medium|high|critical|urgent|standard');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `schedule_horizon` SET TAGS ('dbx_business_glossary_term' = 'Scheduling Horizon');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `schedule_horizon` SET TAGS ('dbx_value_regex' = 'weekly|monthly|quarterly|yearly|ad_hoc|custom');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `schedule_number` SET TAGS ('dbx_business_glossary_term' = 'Delivery Schedule Number (DSN)');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `schedule_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Schedule Creation Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `scheduled_arrival_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Scheduled Arrival Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `scheduled_departure_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Scheduled Departure Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `special_instructions` SET TAGS ('dbx_business_glossary_term' = 'Special Delivery Instructions');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `temperature_control_required` SET TAGS ('dbx_business_glossary_term' = 'Temperature Control Requirement');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `tracking_number` SET TAGS ('dbx_business_glossary_term' = 'Carrier Tracking Number');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `transport_mode` SET TAGS ('dbx_business_glossary_term' = 'Transport Mode');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `transport_mode` SET TAGS ('dbx_value_regex' = 'truck|rail|vessel|air|intermodal|pipeline');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Audit Updated Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `vehicle_type` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Type');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `vehicle_type` SET TAGS ('dbx_value_regex' = 'semi_trailer|reefer|flatbed|dry_van|tank|container');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `volume_cbm` SET TAGS ('dbx_business_glossary_term' = 'Total Volume (cbm)');
+ALTER TABLE `automotive_ecm`.`logistics`.`logistics_delivery_schedule` ALTER COLUMN `weight_kg` SET TAGS ('dbx_business_glossary_term' = 'Total Weight (kg)');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` SET TAGS ('dbx_subdomain' = 'carrier_management');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `carrier_id` SET TAGS ('dbx_business_glossary_term' = 'Carrier Identifier');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Billing Account Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `company_code_id` SET TAGS ('dbx_business_glossary_term' = 'Company Code Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `regulatory_requirement_id` SET TAGS ('dbx_business_glossary_term' = 'Regulatory Requirement Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `address_line1` SET TAGS ('dbx_business_glossary_term' = 'Address Line 1');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `address_line1` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `address_line1` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `address_line2` SET TAGS ('dbx_business_glossary_term' = 'Address Line 2');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `address_line2` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `address_line2` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `average_cost_per_mile` SET TAGS ('dbx_business_glossary_term' = 'Average Cost per Mile (USD)');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `average_on_time_delivery_pct` SET TAGS ('dbx_business_glossary_term' = 'Average On‑Time Delivery Percentage');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `carrier_name` SET TAGS ('dbx_business_glossary_term' = 'Carrier Legal Name (CLN)');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `carrier_status` SET TAGS ('dbx_business_glossary_term' = 'Carrier Status');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `carrier_status` SET TAGS ('dbx_value_regex' = 'active|inactive|suspended|terminated|pending');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `carrier_tier` SET TAGS ('dbx_business_glossary_term' = 'Carrier Tier Classification');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `carrier_tier` SET TAGS ('dbx_value_regex' = 'tier1|tier2|tier3|tier4');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `carrier_type` SET TAGS ('dbx_business_glossary_term' = 'Carrier Type');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `carrier_type` SET TAGS ('dbx_value_regex' = 'carrier|logistics_provider|freight_forwarder|3pl|4pl');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `city` SET TAGS ('dbx_business_glossary_term' = 'City');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `city` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `city` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `contact_email` SET TAGS ('dbx_business_glossary_term' = 'Primary Contact Email (PCE)');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `contact_email` SET TAGS ('dbx_value_regex' = '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+.[A-Za-z]{2,}$');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `contact_email` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `contact_email` SET TAGS ('dbx_pii_email' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `contact_name` SET TAGS ('dbx_business_glossary_term' = 'Primary Contact Name (PCN)');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `contact_name` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `contact_name` SET TAGS ('dbx_pii_name' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `contact_phone` SET TAGS ('dbx_business_glossary_term' = 'Primary Contact Phone (PCP)');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `contact_phone` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `contact_phone` SET TAGS ('dbx_pii_phone' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `contract_end_date` SET TAGS ('dbx_business_glossary_term' = 'Contract End Date');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `contract_reference` SET TAGS ('dbx_business_glossary_term' = 'Contract Reference (CR)');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `contract_start_date` SET TAGS ('dbx_business_glossary_term' = 'Contract Start Date');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `country` SET TAGS ('dbx_business_glossary_term' = 'Country Code');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `country` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `country` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Creation Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `effective_from` SET TAGS ('dbx_business_glossary_term' = 'Effective From Date');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `effective_until` SET TAGS ('dbx_business_glossary_term' = 'Effective Until Date');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `environmental_certification` SET TAGS ('dbx_business_glossary_term' = 'Environmental Certification');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `environmental_certification` SET TAGS ('dbx_value_regex' = 'ISO14001|EPA|CARB|None');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `equipment_type` SET TAGS ('dbx_business_glossary_term' = 'Primary Equipment Type');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `equipment_type` SET TAGS ('dbx_value_regex' = 'truck|railcar|vessel|aircraft|intermodal_container');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `fleet_size` SET TAGS ('dbx_business_glossary_term' = 'Fleet Size');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `iatf_compliance_status` SET TAGS ('dbx_business_glossary_term' = 'IATF 16949 Compliance Status');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `iatf_compliance_status` SET TAGS ('dbx_value_regex' = 'compliant|non_compliant|pending');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `insurance_policy_number` SET TAGS ('dbx_business_glossary_term' = 'Insurance Policy Number (IPN)');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `insurance_policy_number` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `insurance_policy_number` SET TAGS ('dbx_pii_identifier' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `insurance_provider` SET TAGS ('dbx_business_glossary_term' = 'Insurance Provider');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `last_audit_date` SET TAGS ('dbx_business_glossary_term' = 'Last Audit Date');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Additional Notes');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `operating_regions` SET TAGS ('dbx_business_glossary_term' = 'Operating Regions');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `performance_rating` SET TAGS ('dbx_business_glossary_term' = 'Performance Rating (PR)');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `postal_code` SET TAGS ('dbx_business_glossary_term' = 'Postal Code');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `postal_code` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `postal_code` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `safety_rating` SET TAGS ('dbx_business_glossary_term' = 'Safety Rating');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `safety_rating` SET TAGS ('dbx_value_regex' = 'A|B|C|D|E|F');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `scac_code` SET TAGS ('dbx_business_glossary_term' = 'Standard Carrier Alpha Code (SCAC)');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `scac_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{4}$');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `state` SET TAGS ('dbx_business_glossary_term' = 'State/Province');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `state` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `state` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `tax_identifier` SET TAGS ('dbx_business_glossary_term' = 'Tax Identification Number (TIN)');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `tax_identifier` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `tax_identifier` SET TAGS ('dbx_pii_identifier' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `transport_modes` SET TAGS ('dbx_business_glossary_term' = 'Supported Transport Modes (STM)');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `transport_modes` SET TAGS ('dbx_value_regex' = 'road|rail|vessel|air|intermodal');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Update Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier` ALTER COLUMN `website` SET TAGS ('dbx_business_glossary_term' = 'Website URL');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` SET TAGS ('dbx_data_type' = 'transactional_data');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` SET TAGS ('dbx_subdomain' = 'carrier_management');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ALTER COLUMN `carrier_performance_id` SET TAGS ('dbx_business_glossary_term' = 'Carrier Performance Record Identifier');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ALTER COLUMN `carrier_id` SET TAGS ('dbx_business_glossary_term' = 'Carrier Identifier');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ALTER COLUMN `lane_id` SET TAGS ('dbx_business_glossary_term' = 'Lane Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ALTER COLUMN `average_transit_days` SET TAGS ('dbx_business_glossary_term' = 'Average Transit Days');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ALTER COLUMN `carrier_performance_status` SET TAGS ('dbx_business_glossary_term' = 'Record Status');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ALTER COLUMN `carrier_performance_status` SET TAGS ('dbx_value_regex' = 'active|inactive|archived');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ALTER COLUMN `claim_frequency` SET TAGS ('dbx_business_glossary_term' = 'Claim Frequency');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ALTER COLUMN `cost_per_shipment_usd` SET TAGS ('dbx_business_glossary_term' = 'Cost per Shipment (USD)');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Creation Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ALTER COLUMN `damage_rate_ppm` SET TAGS ('dbx_business_glossary_term' = 'Damage Rate (PPM)');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ALTER COLUMN `fuel_consumption_l_per_100km` SET TAGS ('dbx_business_glossary_term' = 'Fuel Consumption (L/100KM)');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ALTER COLUMN `lane_type` SET TAGS ('dbx_business_glossary_term' = 'Lane Type');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ALTER COLUMN `lane_type` SET TAGS ('dbx_value_regex' = 'domestic|export|import');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Performance Notes');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ALTER COLUMN `on_time_delivery_rate_pct` SET TAGS ('dbx_business_glossary_term' = 'On‑Time Delivery Rate Percentage');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ALTER COLUMN `otd_rate_pct` SET TAGS ('dbx_business_glossary_term' = 'On‑Time Delivery Rate (OTD) Percentage');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ALTER COLUMN `overall_rating` SET TAGS ('dbx_business_glossary_term' = 'Overall Carrier Rating');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ALTER COLUMN `performance_month` SET TAGS ('dbx_business_glossary_term' = 'Performance Month (YYYY‑MM)');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ALTER COLUMN `total_claims` SET TAGS ('dbx_business_glossary_term' = 'Total Claims');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ALTER COLUMN `total_damage_units` SET TAGS ('dbx_business_glossary_term' = 'Total Damaged Units');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ALTER COLUMN `total_distance_km` SET TAGS ('dbx_business_glossary_term' = 'Total Distance (KM)');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ALTER COLUMN `total_shipments` SET TAGS ('dbx_business_glossary_term' = 'Total Shipments');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ALTER COLUMN `transit_time_compliance_pct` SET TAGS ('dbx_business_glossary_term' = 'Transit‑Time Compliance Percentage');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ALTER COLUMN `transport_mode` SET TAGS ('dbx_business_glossary_term' = 'Transport Mode');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ALTER COLUMN `transport_mode` SET TAGS ('dbx_value_regex' = 'truck|rail|vessel|intermodal|air');
+ALTER TABLE `automotive_ecm`.`logistics`.`carrier_performance` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Update Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` SET TAGS ('dbx_subdomain' = 'facility_operations');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `vehicle_compound_id` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Compound Identifier');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `company_code_id` SET TAGS ('dbx_business_glossary_term' = 'Company Code Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `jurisdiction_id` SET TAGS ('dbx_business_glossary_term' = 'Jurisdiction Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `plant_id` SET TAGS ('dbx_business_glossary_term' = 'Plant Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `profit_center_id` SET TAGS ('dbx_business_glossary_term' = 'Profit Center Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `regulatory_requirement_id` SET TAGS ('dbx_business_glossary_term' = 'Regulatory Requirement Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `address_line1` SET TAGS ('dbx_business_glossary_term' = 'Address Line 1');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `address_line1` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `address_line1` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `address_line2` SET TAGS ('dbx_business_glossary_term' = 'Address Line 2');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `address_line2` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `address_line2` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `capacity_units` SET TAGS ('dbx_business_glossary_term' = 'Storage Capacity (Units)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `city` SET TAGS ('dbx_business_glossary_term' = 'City');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `city` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `city` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `compliance_certifications` SET TAGS ('dbx_business_glossary_term' = 'Compliance Certifications');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `compound_code` SET TAGS ('dbx_business_glossary_term' = 'Compound Code');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `compound_type` SET TAGS ('dbx_business_glossary_term' = 'Compound Type');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `compound_type` SET TAGS ('dbx_value_regex' = 'plant|port|regional|dealer_prep');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `country_code` SET TAGS ('dbx_business_glossary_term' = 'Country Code (ISO‑3)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `country_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Creation Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `current_occupancy` SET TAGS ('dbx_business_glossary_term' = 'Current Occupancy (Units)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `effective_from` SET TAGS ('dbx_business_glossary_term' = 'Effective From Date');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `effective_until` SET TAGS ('dbx_business_glossary_term' = 'Effective Until Date');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `is_pdi_capable` SET TAGS ('dbx_business_glossary_term' = 'Pre‑Delivery Inspection Capability Flag');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `last_inspection_date` SET TAGS ('dbx_business_glossary_term' = 'Last Inspection Date');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `latitude` SET TAGS ('dbx_business_glossary_term' = 'Latitude');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `latitude` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `latitude` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `longitude` SET TAGS ('dbx_business_glossary_term' = 'Longitude');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `longitude` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `longitude` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `manager_email` SET TAGS ('dbx_business_glossary_term' = 'Operator Email Address');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `manager_email` SET TAGS ('dbx_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `manager_email` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `manager_email` SET TAGS ('dbx_pii_email' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `manager_phone` SET TAGS ('dbx_business_glossary_term' = 'Operator Phone Number');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `manager_phone` SET TAGS ('dbx_value_regex' = '^[+]?d{7,15}$');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `manager_phone` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `manager_phone` SET TAGS ('dbx_pii_phone' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Compound Notes');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `operator_name` SET TAGS ('dbx_business_glossary_term' = 'Operator Name');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `operator_name` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `operator_name` SET TAGS ('dbx_pii_name' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `otd_target_percentage` SET TAGS ('dbx_business_glossary_term' = 'On‑Time Delivery Target (%)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `postal_code` SET TAGS ('dbx_business_glossary_term' = 'Postal Code');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `postal_code` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `postal_code` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `region_code` SET TAGS ('dbx_business_glossary_term' = 'Region Code');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `security_level` SET TAGS ('dbx_business_glossary_term' = 'Security Level');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `security_level` SET TAGS ('dbx_value_regex' = 'low|medium|high');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `state_province` SET TAGS ('dbx_business_glossary_term' = 'State/Province');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `state_province` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `state_province` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `storage_area_sqft` SET TAGS ('dbx_business_glossary_term' = 'Storage Area (sq ft)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `temperature_controlled` SET TAGS ('dbx_business_glossary_term' = 'Temperature‑Controlled Facility Flag');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Update Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `vehicle_compound_name` SET TAGS ('dbx_business_glossary_term' = 'Compound Name');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `vehicle_compound_status` SET TAGS ('dbx_business_glossary_term' = 'Compound Lifecycle Status');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `vehicle_compound_status` SET TAGS ('dbx_value_regex' = 'active|inactive|maintenance|closed');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_compound` ALTER COLUMN `waste_handling_capability` SET TAGS ('dbx_business_glossary_term' = 'Waste Handling Capability Flag');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` SET TAGS ('dbx_data_type' = 'transactional_data');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` SET TAGS ('dbx_subdomain' = 'facility_operations');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `compound_movement_id` SET TAGS ('dbx_business_glossary_term' = 'Compound Movement ID');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `carrier_id` SET TAGS ('dbx_business_glossary_term' = 'Carrier Identifier (CARRIER_ID)');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `load_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Load Plan Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `shipment_id` SET TAGS ('dbx_business_glossary_term' = 'Shipment Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `vehicle_compound_id` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Compound Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `vehicle_transport_order_id` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Transport Order Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `vin_registry_id` SET TAGS ('dbx_business_glossary_term' = 'Vin Registry Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `actual_arrival_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Actual Arrival Timestamp (ACTUAL_ARRIVAL)');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `compound_movement_status` SET TAGS ('dbx_business_glossary_term' = 'Movement Status (STATUS)');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `compound_movement_status` SET TAGS ('dbx_value_regex' = 'pending|in_progress|completed|cancelled');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp (CREATED_TS)');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `delay_minutes` SET TAGS ('dbx_business_glossary_term' = 'Delay Duration (DELAY_MIN)');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `destination_zone` SET TAGS ('dbx_business_glossary_term' = 'Destination Zone (DESTINATION_ZONE)');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `estimated_arrival_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Estimated Arrival Timestamp (ETA)');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `is_ota_capable` SET TAGS ('dbx_business_glossary_term' = 'OTA Capability Flag (OTA_CAPABLE)');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `load_quantity` SET TAGS ('dbx_business_glossary_term' = 'Load Quantity (QUANTITY)');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `movement_reference` SET TAGS ('dbx_business_glossary_term' = 'Movement Reference (MOVEMENT_REF)');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `movement_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Movement Timestamp (TIMESTAMP)');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `movement_type` SET TAGS ('dbx_business_glossary_term' = 'Movement Type (TYPE)');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `movement_type` SET TAGS ('dbx_value_regex' = 'inbound|outbound|internal_transfer');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Movement Notes (NOTES)');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `odometer_reading_km` SET TAGS ('dbx_business_glossary_term' = 'Odometer Reading (KM)');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `origin_zone` SET TAGS ('dbx_business_glossary_term' = 'Origin Zone (ORIGIN_ZONE)');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `priority_level` SET TAGS ('dbx_business_glossary_term' = 'Priority Level (PRIORITY)');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `priority_level` SET TAGS ('dbx_value_regex' = 'low|medium|high|critical');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `temperature_c` SET TAGS ('dbx_business_glossary_term' = 'Ambient Temperature (°C)');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Updated Timestamp (UPDATED_TS)');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `vehicle_type` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Type (VEHICLE_TYPE)');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `vehicle_type` SET TAGS ('dbx_value_regex' = 'sedan|suv|truck|ev|hybrid');
+ALTER TABLE `automotive_ecm`.`logistics`.`compound_movement` ALTER COLUMN `weight_kg` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Weight (KG)');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` SET TAGS ('dbx_subdomain' = 'facility_operations');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `in_transit_inventory_id` SET TAGS ('dbx_business_glossary_term' = 'In-Transit Inventory Record ID');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `carrier_id` SET TAGS ('dbx_internal' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `party_id` SET TAGS ('dbx_business_glossary_term' = 'Customer Party Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `load_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Load Plan Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `dealership_id` SET TAGS ('dbx_business_glossary_term' = 'Dealer Identifier (Dealer ID)');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `production_order_id` SET TAGS ('dbx_business_glossary_term' = 'Production Order Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `shipment_id` SET TAGS ('dbx_business_glossary_term' = 'Shipment Identifier (SHIP_ID)');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `shipment_leg_id` SET TAGS ('dbx_business_glossary_term' = 'Shipment Leg Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `vehicle_compound_id` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Compound Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `vehicle_order_id` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Order Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `vessel_voyage_id` SET TAGS ('dbx_business_glossary_term' = 'Vessel Voyage Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `vin_registry_id` SET TAGS ('dbx_business_glossary_term' = 'Vin Registry Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `actual_arrival_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Arrival Date');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Creation Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `current_location` SET TAGS ('dbx_business_glossary_term' = 'Current Location (Facility or Compound)');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `customs_document_number` SET TAGS ('dbx_business_glossary_term' = 'Customs Document Number');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `customs_status` SET TAGS ('dbx_business_glossary_term' = 'Customs Clearance Status');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `customs_status` SET TAGS ('dbx_value_regex' = 'pending|cleared|rejected');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `days_in_transit` SET TAGS ('dbx_business_glossary_term' = 'Days In Transit');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `delay_reason` SET TAGS ('dbx_business_glossary_term' = 'Delay Reason Description');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `destination_facility_code` SET TAGS ('dbx_business_glossary_term' = 'Destination Facility Code');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `emissions_kg_co2` SET TAGS ('dbx_business_glossary_term' = 'CO2 Emissions (kg)');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `estimated_arrival_date` SET TAGS ('dbx_business_glossary_term' = 'Estimated Arrival Date');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `fuel_consumption_liters` SET TAGS ('dbx_business_glossary_term' = 'Fuel Consumption (Liters)');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `hazardous_material_flag` SET TAGS ('dbx_business_glossary_term' = 'Hazardous Material Flag');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `hazardous_material_type` SET TAGS ('dbx_business_glossary_term' = 'Hazardous Material Type');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `hazardous_material_type` SET TAGS ('dbx_value_regex' = 'flammable|explosive|corrosive|toxic|radioactive');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `last_update_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Last Update Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `load_type` SET TAGS ('dbx_business_glossary_term' = 'Load Type');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `load_type` SET TAGS ('dbx_value_regex' = 'full|partial|bulk|reefer');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Additional Notes');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `odometer_end_km` SET TAGS ('dbx_business_glossary_term' = 'Odometer End Reading (km)');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `odometer_start_km` SET TAGS ('dbx_business_glossary_term' = 'Odometer Start Reading (km)');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `origin_facility_code` SET TAGS ('dbx_business_glossary_term' = 'Origin Facility Code');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `seal_number` SET TAGS ('dbx_business_glossary_term' = 'Seal Number');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `shipment_leg_count` SET TAGS ('dbx_business_glossary_term' = 'Number of Shipment Legs');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `temperature_control_flag` SET TAGS ('dbx_business_glossary_term' = 'Temperature Control Required Flag');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `temperature_max_c` SET TAGS ('dbx_business_glossary_term' = 'Maximum Temperature (°C)');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `temperature_min_c` SET TAGS ('dbx_business_glossary_term' = 'Minimum Temperature (°C)');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `tracking_number` SET TAGS ('dbx_business_glossary_term' = 'Tracking Number');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `transit_status` SET TAGS ('dbx_business_glossary_term' = 'Transit Status');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `transit_status` SET TAGS ('dbx_value_regex' = 'in_transit|delayed|arrived|cancelled|hold');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `transport_cost_amount` SET TAGS ('dbx_business_glossary_term' = 'Transport Cost Amount');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `transport_cost_currency` SET TAGS ('dbx_business_glossary_term' = 'Transport Cost Currency (ISO 4217 Code)');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `transport_mode` SET TAGS ('dbx_business_glossary_term' = 'Transport Mode (e.g., Rail, Truck, Vessel, Air, Compound, Intermodal)');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `transport_mode` SET TAGS ('dbx_value_regex' = 'rail|truck|vessel|air|compound|intermodal');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `volume_cubic_meters` SET TAGS ('dbx_business_glossary_term' = 'Volume (cubic meters)');
+ALTER TABLE `automotive_ecm`.`logistics`.`in_transit_inventory` ALTER COLUMN `weight_tons` SET TAGS ('dbx_business_glossary_term' = 'Weight (tons)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` SET TAGS ('dbx_data_type' = 'transactional_data');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` SET TAGS ('dbx_subdomain' = 'facility_operations');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `port_processing_id` SET TAGS ('dbx_business_glossary_term' = 'Port Processing Identifier');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `carrier_id` SET TAGS ('dbx_internal' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `finished_vehicle_stock_id` SET TAGS ('dbx_business_glossary_term' = 'Finished Vehicle Stock Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `homologation_id` SET TAGS ('dbx_business_glossary_term' = 'Homologation Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `homologation_record_id` SET TAGS ('dbx_business_glossary_term' = 'Homologation Record Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `homologation_requirement_id` SET TAGS ('dbx_business_glossary_term' = 'Homologation Requirement Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `jurisdiction_id` SET TAGS ('dbx_business_glossary_term' = 'Jurisdiction Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `shipment_id` SET TAGS ('dbx_business_glossary_term' = 'Shipment Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `shipment_leg_id` SET TAGS ('dbx_business_glossary_term' = 'Shipment Leg Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `vessel_voyage_id` SET TAGS ('dbx_business_glossary_term' = 'Vessel Voyage Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `vin_registry_id` SET TAGS ('dbx_business_glossary_term' = 'Vin Registry Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `actual_arrival_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Actual Arrival Timestamp (AAT)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `actual_departure_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Actual Departure Timestamp (ADT)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `arrival_date` SET TAGS ('dbx_business_glossary_term' = 'Arrival Date (AD)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `compliance_regulation_code` SET TAGS ('dbx_business_glossary_term' = 'Compliance Regulation Code (CRC)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `compliance_status` SET TAGS ('dbx_business_glossary_term' = 'Compliance Status (CS)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `compliance_status` SET TAGS ('dbx_value_regex' = 'compliant|non_compliant|pending');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `container_code` SET TAGS ('dbx_business_glossary_term' = 'Container Identifier (CI)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Creation Timestamp (RCT)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `customs_clearance_status` SET TAGS ('dbx_business_glossary_term' = 'Customs Clearance Status (CCS)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `customs_clearance_status` SET TAGS ('dbx_value_regex' = 'not_submitted|submitted|cleared|rejected');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `customs_document_number` SET TAGS ('dbx_business_glossary_term' = 'Customs Document Number (CDN)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `customs_document_type` SET TAGS ('dbx_business_glossary_term' = 'Customs Document Type (CDT)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `customs_document_type` SET TAGS ('dbx_value_regex' = 'bill_of_lading|manifest|invoice|certificate');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `departure_date` SET TAGS ('dbx_business_glossary_term' = 'Departure Date (DD)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `estimated_arrival_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Estimated Arrival Timestamp (EAT)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `estimated_departure_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Estimated Departure Timestamp (EDT)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `export_import_indicator` SET TAGS ('dbx_business_glossary_term' = 'Export/Import Indicator (EI)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `export_import_indicator` SET TAGS ('dbx_value_regex' = 'export|import');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `freight_cost_amount` SET TAGS ('dbx_business_glossary_term' = 'Freight Cost Amount (FCA)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `freight_cost_currency` SET TAGS ('dbx_business_glossary_term' = 'Freight Cost Currency (FCC)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `homologation_inspection_status` SET TAGS ('dbx_business_glossary_term' = 'Homologation Inspection Status (HIS)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `homologation_inspection_status` SET TAGS ('dbx_value_regex' = 'not_required|pending|passed|failed');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `inspection_date` SET TAGS ('dbx_business_glossary_term' = 'Inspection Date (ID)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `inspection_report_number` SET TAGS ('dbx_business_glossary_term' = 'Inspection Report Number (IRN)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `model_year` SET TAGS ('dbx_business_glossary_term' = 'Model Year (MY)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Processing Notes (PN)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `pdi_completion_status` SET TAGS ('dbx_business_glossary_term' = 'Pre‑Delivery Inspection Completion Status (PDI‑CS)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `pdi_completion_status` SET TAGS ('dbx_value_regex' = 'not_started|in_progress|completed');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `port_charges_amount` SET TAGS ('dbx_business_glossary_term' = 'Port Charges Amount (PCA)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `port_charges_currency` SET TAGS ('dbx_business_glossary_term' = 'Port Charges Currency (PCC)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `port_facility_code` SET TAGS ('dbx_business_glossary_term' = 'Port Facility Code (PFC)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `port_facility_name` SET TAGS ('dbx_business_glossary_term' = 'Port Facility Name (PFN)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `port_processing_status` SET TAGS ('dbx_business_glossary_term' = 'Port Processing Status (PS)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `port_processing_status` SET TAGS ('dbx_value_regex' = 'pending|in_progress|completed|cancelled');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `processing_reference` SET TAGS ('dbx_business_glossary_term' = 'Port Processing Reference (PR)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `processing_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Processing Event Timestamp (PET)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `release_authorization_flag` SET TAGS ('dbx_business_glossary_term' = 'Release Authorization Flag (RAF)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `release_authorization_number` SET TAGS ('dbx_business_glossary_term' = 'Release Authorization Number (RAN)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `seal_number` SET TAGS ('dbx_business_glossary_term' = 'Seal Number (SN)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Update Timestamp (RUT)');
+ALTER TABLE `automotive_ecm`.`logistics`.`port_processing` ALTER COLUMN `vehicle_type` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Type (VT)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` SET TAGS ('dbx_subdomain' = 'facility_operations');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `vessel_voyage_id` SET TAGS ('dbx_business_glossary_term' = 'Vessel Voyage ID');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `carrier_id` SET TAGS ('dbx_business_glossary_term' = 'Carrier Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `jurisdiction_id` SET TAGS ('dbx_business_glossary_term' = 'Jurisdiction Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `lane_id` SET TAGS ('dbx_business_glossary_term' = 'Lane Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `actual_arrival_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Actual Arrival Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `actual_departure_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Actual Departure Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `available_capacity_units` SET TAGS ('dbx_business_glossary_term' = 'Available Capacity Units');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `booked_units` SET TAGS ('dbx_business_glossary_term' = 'Booked Units');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `cost_amount` SET TAGS ('dbx_business_glossary_term' = 'Voyage Cost Amount');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `cost_currency` SET TAGS ('dbx_business_glossary_term' = 'Voyage Cost Currency (ISO 4217)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `cost_currency` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `destination_port_code` SET TAGS ('dbx_business_glossary_term' = 'Destination Port Code (UN/LOCODE)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `destination_port_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `imo_number` SET TAGS ('dbx_business_glossary_term' = 'IMO Number (International Maritime Organization Number)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `imo_number` SET TAGS ('dbx_value_regex' = '^d{7}$');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `origin_port_code` SET TAGS ('dbx_business_glossary_term' = 'Origin Port Code (UN/LOCODE)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `origin_port_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `planned_arrival_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Planned Arrival Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `planned_departure_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Planned Departure Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Updated Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `vessel_capacity_units` SET TAGS ('dbx_business_glossary_term' = 'Vessel Capacity (Units)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `vessel_name` SET TAGS ('dbx_business_glossary_term' = 'Vessel Name');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `voyage_number` SET TAGS ('dbx_business_glossary_term' = 'Voyage Number');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `voyage_status` SET TAGS ('dbx_business_glossary_term' = 'Voyage Status');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `voyage_status` SET TAGS ('dbx_value_regex' = 'planned|departed|arrived|cancelled|completed|on_hold');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `voyage_status_reason` SET TAGS ('dbx_business_glossary_term' = 'Voyage Status Reason');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `voyage_type` SET TAGS ('dbx_business_glossary_term' = 'Voyage Type');
+ALTER TABLE `automotive_ecm`.`logistics`.`vessel_voyage` ALTER COLUMN `voyage_type` SET TAGS ('dbx_value_regex' = 'ro-ro|container|bulk|tanker');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` SET TAGS ('dbx_subdomain' = 'carrier_management');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `transport_rate_id` SET TAGS ('dbx_business_glossary_term' = 'Transport Rate ID');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `carrier_id` SET TAGS ('dbx_business_glossary_term' = 'Carrier Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `lane_id` SET TAGS ('dbx_business_glossary_term' = 'Logistics Lane Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `accessorial_charges` SET TAGS ('dbx_business_glossary_term' = 'Accessorial Charges (AC)');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `compliance_flag` SET TAGS ('dbx_business_glossary_term' = 'Compliance Flag (CF)');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `container_type` SET TAGS ('dbx_business_glossary_term' = 'Container Type (CT)');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `container_type` SET TAGS ('dbx_value_regex' = 'standard|reefer|flatbed|open_top');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp (CT)');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code (CCY)');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `currency_code` SET TAGS ('dbx_value_regex' = 'USD|EUR|JPY|CNY|GBP');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `destination_location_code` SET TAGS ('dbx_business_glossary_term' = 'Destination Location Code (DLC)');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `effective_from` SET TAGS ('dbx_business_glossary_term' = 'Effective From Date (EFD)');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `effective_until` SET TAGS ('dbx_business_glossary_term' = 'Effective Until Date (EUD)');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `fuel_surcharge_percent` SET TAGS ('dbx_business_glossary_term' = 'Fuel Surcharge Percent (FSP)');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Notes (N)');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `origin_location_code` SET TAGS ('dbx_business_glossary_term' = 'Origin Location Code (OLC)');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `rate_amount` SET TAGS ('dbx_business_glossary_term' = 'Base Rate Amount (BRA)');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `rate_code` SET TAGS ('dbx_business_glossary_term' = 'Rate Code (RC)');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `rate_source_system` SET TAGS ('dbx_business_glossary_term' = 'Rate Source System (RSS)');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `rate_source_system` SET TAGS ('dbx_value_regex' = 'SAP|Oracle|Custom');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `rate_version` SET TAGS ('dbx_business_glossary_term' = 'Rate Version (RV)');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `transport_mode` SET TAGS ('dbx_business_glossary_term' = 'Transport Mode (TM)');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `transport_mode` SET TAGS ('dbx_value_regex' = 'road|rail|sea|air');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `transport_rate_status` SET TAGS ('dbx_business_glossary_term' = 'Rate Status (RS)');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `transport_rate_status` SET TAGS ('dbx_value_regex' = 'active|inactive|pending|expired');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `unit_of_measure` SET TAGS ('dbx_business_glossary_term' = 'Unit of Measure (UOM)');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `unit_of_measure` SET TAGS ('dbx_value_regex' = 'per_vehicle|per_container|per_ton|per_cbm');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Updated Timestamp (UT)');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `volume_capacity_cubic_meters` SET TAGS ('dbx_business_glossary_term' = 'Volume Capacity (m³)');
+ALTER TABLE `automotive_ecm`.`logistics`.`transport_rate` ALTER COLUMN `weight_capacity_tons` SET TAGS ('dbx_business_glossary_term' = 'Weight Capacity (tons)');
+ALTER TABLE `automotive_ecm`.`logistics`.`lane` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `automotive_ecm`.`logistics`.`lane` SET TAGS ('dbx_subdomain' = 'carrier_management');
+ALTER TABLE `automotive_ecm`.`logistics`.`lane` ALTER COLUMN `lane_id` SET TAGS ('dbx_business_glossary_term' = 'Lane Identifier');
+ALTER TABLE `automotive_ecm`.`logistics`.`lane` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` SET TAGS ('dbx_data_type' = 'transactional_data');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` SET TAGS ('dbx_subdomain' = 'facility_operations');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `vehicle_handover_id` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Handover Identifier');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `aftersales_repair_order_id` SET TAGS ('dbx_business_glossary_term' = 'Repair Order Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `carrier_id` SET TAGS ('dbx_internal' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `finished_vehicle_stock_id` SET TAGS ('dbx_business_glossary_term' = 'Finished Vehicle Stock Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `logistics_delivery_schedule_id` SET TAGS ('dbx_business_glossary_term' = 'Logistics Delivery Schedule Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `production_order_id` SET TAGS ('dbx_business_glossary_term' = 'Production Order Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `profit_center_id` SET TAGS ('dbx_business_glossary_term' = 'Profit Center Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `party_id` SET TAGS ('dbx_business_glossary_term' = 'Receiving Party Identifier');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `shipment_id` SET TAGS ('dbx_business_glossary_term' = 'Shipment Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `vehicle_compound_id` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Compound Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `vehicle_order_id` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Order Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `vehicle_program_id` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Program Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `vin_registry_id` SET TAGS ('dbx_business_glossary_term' = 'Vin Registry Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `acceptance_signature_status` SET TAGS ('dbx_business_glossary_term' = 'Acceptance Signature Status');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `acceptance_signature_status` SET TAGS ('dbx_value_regex' = 'signed|unsigned|pending');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `container_code` SET TAGS ('dbx_business_glossary_term' = 'Container Identifier');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Creation Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `customs_document_number` SET TAGS ('dbx_business_glossary_term' = 'Customs Document Number');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `delay_reason` SET TAGS ('dbx_business_glossary_term' = 'Delay Reason');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `emissions_kg_co2` SET TAGS ('dbx_business_glossary_term' = 'CO₂ Emissions (kg)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `export_import_flag` SET TAGS ('dbx_business_glossary_term' = 'Export/Import Flag');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `fuel_consumption_liters` SET TAGS ('dbx_business_glossary_term' = 'Fuel Consumption (Liters)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `handover_condition` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Handover Condition');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `handover_condition` SET TAGS ('dbx_value_regex' = 'new|used|reconditioned|damaged');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `handover_fee_amount` SET TAGS ('dbx_business_glossary_term' = 'Handover Fee Amount');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `handover_fee_currency` SET TAGS ('dbx_business_glossary_term' = 'Handover Fee Currency');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `handover_fee_net_amount` SET TAGS ('dbx_business_glossary_term' = 'Handover Fee Net Amount');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `handover_fee_tax_amount` SET TAGS ('dbx_business_glossary_term' = 'Handover Fee Tax Amount');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `handover_location` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Handover Location');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `handover_number` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Handover Number');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `handover_status` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Handover Status');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `handover_status` SET TAGS ('dbx_value_regex' = 'pending|completed|cancelled|rejected');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `handover_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Handover Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `handover_type` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Handover Type');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `handover_type` SET TAGS ('dbx_value_regex' = 'dealer_stock|retail_customer|export|import');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `hazardous_material_flag` SET TAGS ('dbx_business_glossary_term' = 'Hazardous Material Flag');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `hazardous_material_type` SET TAGS ('dbx_business_glossary_term' = 'Hazardous Material Type');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `incoterms_code` SET TAGS ('dbx_business_glossary_term' = 'Incoterms Code');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Handover Notes');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `odometer_reading_km` SET TAGS ('dbx_business_glossary_term' = 'Odometer Reading (KM)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `otd_flag` SET TAGS ('dbx_business_glossary_term' = 'On‑Time Delivery Flag');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `pdi_reference` SET TAGS ('dbx_business_glossary_term' = 'Pre‑Delivery Inspection (PDI) Reference');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `receiving_party_type` SET TAGS ('dbx_business_glossary_term' = 'Receiving Party Type');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `receiving_party_type` SET TAGS ('dbx_value_regex' = 'dealer|customer');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `temperature_control_flag` SET TAGS ('dbx_business_glossary_term' = 'Temperature Control Flag');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `temperature_max_c` SET TAGS ('dbx_business_glossary_term' = 'Maximum Temperature (°C)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `temperature_min_c` SET TAGS ('dbx_business_glossary_term' = 'Minimum Temperature (°C)');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `transport_mode` SET TAGS ('dbx_business_glossary_term' = 'Transport Mode');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `transport_mode` SET TAGS ('dbx_value_regex' = 'rail|truck|ship|air');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Update Timestamp');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `warranty_end_date` SET TAGS ('dbx_business_glossary_term' = 'Warranty End Date');
+ALTER TABLE `automotive_ecm`.`logistics`.`vehicle_handover` ALTER COLUMN `warranty_start_date` SET TAGS ('dbx_business_glossary_term' = 'Warranty Start Date');
+ALTER TABLE `automotive_ecm`.`logistics`.`load_plan` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `automotive_ecm`.`logistics`.`load_plan` SET TAGS ('dbx_subdomain' = 'transport_execution');
+ALTER TABLE `automotive_ecm`.`logistics`.`load_plan` ALTER COLUMN `load_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Primary Key for load_plan');
+ALTER TABLE `automotive_ecm`.`logistics`.`load_plan` ALTER COLUMN `carrier_id` SET TAGS ('dbx_business_glossary_term' = 'Carrier Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`load_plan` ALTER COLUMN `consolidated_load_plan_id` SET TAGS ('dbx_self_ref_fk' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`load_plan` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`load_plan` ALTER COLUMN `production_order_id` SET TAGS ('dbx_business_glossary_term' = 'Production Order Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`load_plan` ALTER COLUMN `route_id` SET TAGS ('dbx_business_glossary_term' = 'Route Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`load_plan` ALTER COLUMN `vehicle_compound_id` SET TAGS ('dbx_business_glossary_term' = 'Vehicle Compound Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`route` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `automotive_ecm`.`logistics`.`route` SET TAGS ('dbx_subdomain' = 'transport_execution');
+ALTER TABLE `automotive_ecm`.`logistics`.`route` ALTER COLUMN `route_id` SET TAGS ('dbx_business_glossary_term' = 'Route Identifier');
+ALTER TABLE `automotive_ecm`.`logistics`.`route` ALTER COLUMN `carrier_id` SET TAGS ('dbx_internal' = 'true');
+ALTER TABLE `automotive_ecm`.`logistics`.`route` ALTER COLUMN `lane_id` SET TAGS ('dbx_business_glossary_term' = 'Lane Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`route` ALTER COLUMN `plant_id` SET TAGS ('dbx_business_glossary_term' = 'Origin Plant Id (Foreign Key)');
+ALTER TABLE `automotive_ecm`.`logistics`.`route` ALTER COLUMN `return_route_id` SET TAGS ('dbx_self_ref_fk' = 'true');

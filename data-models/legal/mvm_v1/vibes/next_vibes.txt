@@ -1,0 +1,103 @@
+**Model Quality Score: 50/100**
+
+**Static Analysis Findings (37 actionable):**
+  - [SA:fk_namespace_mismatch] billing.time_entry.docket_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] billing.time_entry.hearing_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] billing.billing_disbursement.docket_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] billing.billing_disbursement.filing_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] billing.wip_ledger.docket_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] billing.prebill.docket_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] billing.invoice.docket_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] billing.invoice_line.docket_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] billing.invoice_line.hearing_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] billing.billing_payment.docket_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] billing.payment_allocation.docket_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] billing.ar_balance.docket_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] billing.write_off.docket_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] billing.invoice_dispute.docket_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] billing.credit_note.docket_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] ip.patent.litigation_docket_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] ip.trademark.litigation_docket_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] ip.license_agreement.dispute_docket_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] ip.copyright.litigation_docket_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] conflict.search_hit.hit_docket_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] conflict.search_hit.judge_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] conflict.waiver.docket_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] contract.obligation.court_order_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] contract.termination.docket_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] document.legal_document.tribunal_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] document.privilege_log.docket_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] document.esi_collection.docket_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] document.legal_hold.docket_id: description says 'court' but FK points to 'matter'
+  - [SA:fk_namespace_mismatch] document.doc_production.docket_id: description says 'court' but FK points to 'matter'
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_disbursement' and 'trust.trust_disbursement' have the same entity name 'disbursement' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'compliance.compliance_control' and 'risk.risk_control' have the same entity name 'control' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'conflict.conflict_party' and 'contract.contract_party' have the same entity name 'party' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'conflict.conflict_party' and 'intake.intake_party' have the same entity name 'party' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'conflict.conflict_party' and 'matter.matter_party' have the same entity name 'party' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.contract_party' and 'intake.intake_party' have the same entity name 'party' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.contract_party' and 'matter.matter_party' have the same entity name 'party' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'intake.intake_party' and 'matter.matter_party' have the same entity name 'party' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — rename_attribute: billing.fee_arrangement** — rename column parent_arrangement_billing_fee_arrangement_id to parent_fee_arrangement_id because the column name redundantly embeds the domain and table name, violating concise naming conventions
+**PRIORITY 2 — rename_attribute: billing.timekeeper_rate** — rename column primary_superseded_by_rate_timekeeper_rate_id to superseded_by_timekeeper_rate_id because the prefix "primary_superseded_by_rate_" is unnecessarily verbose and confusing
+**PRIORITY 3 — rename_attribute: document.retention_schedule** — rename column superseded_by_schedule_retention_schedule_id to superseded_by_retention_schedule_id because redundant "schedule_" prefix before the table name adds no semantic value
+**PRIORITY 4 — rename_attribute: service.package** — rename column primary_superseded_by_package_id to superseded_by_package_id because "primary_" prefix on a supersession self-reference is misleading and non-standard
+**PRIORITY 5 — rename_attribute: contract.clause_library** — rename column superseded_by_clause_clause_library_id to superseded_by_clause_library_id because "clause_clause_" is a stuttering naming defect
+**PRIORITY 6 — rename_attribute: trust.transfer** — rename column primary_reversal_of_transfer_id to reversal_of_transfer_id because "primary_" prefix adds no business meaning to a reversal self-reference
+**PRIORITY 7 — rename_attribute: trust.trust_disbursement** — rename column reversed_by_disbursement_trust_disbursement_id to reversed_by_trust_disbursement_id because "disbursement_trust_disbursement" is redundant stuttering
+**PRIORITY 8 — rename_attribute: matter.court_rule** — rename column primary_superseded_by_rule_court_rule_id to superseded_by_court_rule_id because "primary_superseded_by_rule_" is excessively verbose for a simple supersession FK
+**PRIORITY 9 — rename_attribute: service.line** — rename column parent_service_line_id to parent_line_id because the table is already named "line" and having both parent_line_id and parent_service_line_id as self-references is confusing duplication; if they serve different purposes, one should be renamed to reflect distinct semantics
+**PRIORITY 10 — remove_fk: service.line** — remove FK on column parent_service_line_id because it duplicates the self-referencing parent_line_id column on the same table with no distinct business meaning
+**PRIORITY 11 — connect_table: matter.assignment** — add column client_profile_id (BIGINT) with FK to client.profile.profile_id — matter assignments need to track which client the assigned timekeeper is working for, enabling conflict and billing validation
+**PRIORITY 12 — connect_table: matter.team** — add column client_profile_id (BIGINT) with FK to client.profile.profile_id — matter teams should reference the client to support relationship management and conflict screening at the team level
+**PRIORITY 13 — connect_table: matter.budget** — add column matter_phase_id (BIGINT) with FK to matter.phase.phase_id — budgets are typically set at the phase level and the existing phase FK only goes to matter.phase via a separate column; if missing, this link is critical for phase-level budget tracking
+**PRIORITY 14 — connect_table: ip.inventor** — add column client_profile_id (BIGINT) with FK to client.profile.profile_id — inventors are often clients or related to clients and need linkage for conflict checking and correspondence
+**PRIORITY 15 — connect_table: ip.inventor** — add column matter_matter_id (BIGINT) with FK to matter.matter.matter_id — inventor records should link to the matter under which the patent prosecution is managed
+**PRIORITY 16 — connect_table: conflict.party_alias** — add column client_organisation_id (BIGINT) with FK to client.organisation.organisation_id — party aliases often correspond to known organisations and should be linkable for conflict resolution
+**PRIORITY 17 — connect_table: conflict.wall_membership** — add column matter_matter_id (BIGINT) with FK to matter.matter.matter_id — wall memberships are matter-specific and need direct matter linkage for enforcement scope
+**PRIORITY 18 — connect_table: matter.task** — add column matter_assignment_id (BIGINT) with FK to matter.assignment.assignment_id — tasks should link to the specific assignment/timekeeper responsible for execution
+**PRIORITY 19 — connect_table: billing.credit_note** — add column billing_payment_id (BIGINT) with FK to billing.billing_payment.billing_payment_id — credit notes may result in refund payments and need direct payment linkage
+**PRIORITY 20 — connect_table: trust.bank_statement** — add column trust_three_way_reconciliation_id (BIGINT) with FK to trust.three_way_reconciliation.three_way_reconciliation_id — bank statements are primary inputs to three-way reconciliation and need bidirectional linkage
+**PRIORITY 21 — rename_product: trust.trust_disbursement** — rename to disbursement because the domain prefix "trust_" is redundant when the product already resides in the trust domain
+**PRIORITY 22 — connect_table: matter.appearance** — add column matter_tribunal_id (BIGINT) with FK to matter.tribunal.tribunal_id — appearances occur at specific tribunals/courts and need direct linkage beyond the indirect path through docket
+**PRIORITY 23 — connect_table: billing.ar_balance** — add column billing_payment_id (BIGINT) with FK to billing.billing_payment.billing_payment_id — AR balances are directly affected by payments and should reference the last payment for reconciliation
+**PRIORITY 24 — connect_table: compliance.indemnity_policy** — add column client_profile_id (BIGINT) with FK to client.profile.profile_id — indemnity policies cover specific client engagements and need client linkage for exposure tracking
+**PRIORITY 25 — connect_table: risk.register** — add column matter_matter_id (BIGINT) with FK to matter.matter.matter_id — risk registers should be linkable to specific matters for matter-level risk tracking, not only through client profile
+**PRIORITY 26 — connect_table: risk.data_breach_incident** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.regulatory_obligation.regulatory_obligation_id — data breaches trigger regulatory notification obligations (GDPR 72-hour rule) and need direct compliance linkage
+**PRIORITY 27 — connect_table: risk.risk_control** — add column compliance_policy_id (BIGINT) with FK to compliance.policy.policy_id — risk controls implement specific compliance policies and need direct linkage for audit trail
+**PRIORITY 28 — connect_table: matter.matter_party** — add column client_profile_id (BIGINT) with FK to client.profile.profile_id — matter parties that are existing clients need direct profile linkage for relationship and billing purposes
+**PRIORITY 29 — connect_table: contract.execution_record** — add column contract_clause_library_id (BIGINT) with FK to contract.clause_library.clause_library_id — execution records should reference the specific clauses governing execution requirements
+**PRIORITY 30 — connect_table: intake.origination_credit** — add column client_organisation_id (BIGINT) with FK to client.organisation.organisation_id — origination credits are tracked per client organisation for compensation and business development reporting
+**PRIORITY 31 — rename_attribute: billing.billing_disbursement** — rename column billing_disbursement_id to disbursement_id because the table-name prefix in the PK is inconsistent with other tables that do not stutter (or standardize all PKs to include table prefix)
+**PRIORITY 32 — rename_product: billing.billing_disbursement** — rename to disbursement because the domain prefix "billing_" is redundant when the product resides in the billing domain
+**PRIORITY 33 — rename_product: billing.billing_payment** — rename to payment because the domain prefix "billing_" is redundant when the product resides in the billing domain
+**PRIORITY 34 — connect_table: document.doc_type** — add column document_retention_schedule_id (BIGINT) with FK to document.retention_schedule.retention_schedule_id — document types should have default retention schedules assigned for records governance
+**PRIORITY 35 — connect_table: compliance.control_test** — add column compliance_control_framework_id (BIGINT) with FK to compliance.control_framework.control_framework_id — control tests should reference the framework they validate for audit completeness
+**PRIORITY 36 — connect_table: ip.copyright** — add column ip_patent_family_id (BIGINT) with FK to ip.patent_family.patent_family_id — copyrights in software/design contexts may relate to patent families for portfolio management
+**PRIORITY 37 — connect_table: matter.outcome** — add column matter_docket_id (BIGINT) with FK to matter.docket.docket_id — outcomes are recorded against specific docket entries and need direct linkage for case tracking
+**PRIORITY 38 — connect_table: matter.phase** — add column billing_fee_arrangement_id (BIGINT) with FK to billing.fee_arrangement.fee_arrangement_id — phases often have distinct fee arrangements (e.g., different rates for discovery vs. trial) requiring direct linkage
+**PRIORITY 39 — connect_table: client.relationship_team** — add column matter_matter_id (BIGINT) with FK to matter.matter.matter_id — relationship teams often operate in the context of key matters and need matter-level association
+**PRIORITY 40 — connect_table: intake.conflict_search** — add column conflict_check_id (BIGINT) with FK to conflict.check.check_id — conflict searches are performed as part of a conflict check and need direct linkage beyond the indirect path through request
+**PRIORITY 41 — connect_table: risk.category** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.regulatory_obligation.regulatory_obligation_id — risk categories should map to the regulatory obligations that define them for traceability
+**PRIORITY 42 — connect_table: contract.template_clause_assignment** — add column contract_agreement_type_id (BIGINT) with FK to contract.agreement_type.agreement_type_id — clause assignments to templates should be filterable by agreement type for template governance
+**PRIORITY 43 — connect_table: matter.jurisdiction** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.regulatory_obligation.regulatory_obligation_id — jurisdictions have specific regulatory obligations that govern practice within them
+**PRIORITY 44 — connect_table: billing.prebill** — add column billing_time_entry_id (BIGINT) with FK to billing.time_entry.time_entry_id — prebills aggregate time entries and need direct linkage for prebill review workflows
+**PRIORITY 45 — connect_table: ip.trademark** — add column ip_patent_family_id (BIGINT) with FK to ip.patent_family.patent_family_id — trademarks in brand portfolios may relate to patent families for comprehensive IP portfolio management
+**PRIORITY 46 — remove_fk: ip.copyright** — remove FK on column matter_judgment_id because copyrights are registered IP assets and do not inherently require a judgment FK; this conflates IP registration with litigation outcomes
+**PRIORITY 47 — connect_table: document.esi_custodian** — add column client_profile_id (BIGINT) with FK to client.profile.profile_id — ESI custodians who are client employees need profile linkage for communication and privilege determination
+**PRIORITY 48 — connect_table: trust.regulatory_report** — add column matter_matter_id (BIGINT) with FK to matter.matter.matter_id — trust regulatory reports may be matter-specific for jurisdictions requiring per-matter trust reporting
+**PRIORITY 49 — connect_table: billing.invoice_dispute** — add column billing_fee_arrangement_id (BIGINT) with FK to billing.fee_arrangement.fee_arrangement_id — invoice disputes often reference the fee arrangement terms being contested
+**PRIORITY 50 — connect_table: compliance.aml_kyc_program** — add column client_profile_id (BIGINT) with FK to client.profile.profile_id — AML/KYC programs are applied to specific client profiles and need direct linkage for screening workflows
+**PRIORITY 51 — connect_table: matter.assignment** — add column service_practice_area_id (BIGINT) with FK to service.practice_area.practice_area_id — assignments should indicate the practice area for resource allocation and expertise matching
+
+Other known issues from static analysis (7):
+  - Attribute 'segment_tier' in client.segment has redundant product prefix 'segment_'. Rename to 'tier'
+  - Table conflict.search_hit has 3 FK columns pointing to conflict.conflict_party (conflict_party_id, primary_search_conflict_party_id, to_conflict_party_id) (generic/unlabeled: conflict_party_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table conflict.clearance has 3 FK columns pointing to conflict.check (check_id, primary_clearance_check_id, to_check_id) (generic/unlabeled: check_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Product 'intake.matter_opening_request' has 29 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - 8 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 230 attribute(s) match person-data patterns but lack pii_ tags
+  - 15 non-PK attributes redundantly prefixed with their product name
+
+Deterministic score: 50/100 (LLM assessment: 62/100)

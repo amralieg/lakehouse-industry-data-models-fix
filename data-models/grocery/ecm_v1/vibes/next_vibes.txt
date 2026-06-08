@@ -1,0 +1,149 @@
+**Model Quality Score: 50/100**
+
+**Static Analysis Findings (26 actionable):**
+  - [SA:unlinked_fk] Column customer.shopper.household_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column product.storefront.catalog_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column store.store_location.primary_store_manager_associate_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column vendor.supplier.edi_partner_profile_id looks like an FK but has no foreign_key_to reference
+  - [SA:fk_namespace_mismatch] analytics.loyalty_analytics_fact.order_header_id: description says 'order' but FK points to 'product'
+  - [SA:fk_namespace_mismatch] analytics.shopper_behavior_fact.order_header_id: description says 'order' but FK points to 'product'
+  - [SA:fk_namespace_mismatch] analytics.store_sales_fact.order_header_id: description says 'order' but FK points to 'product'
+  - [SA:fk_namespace_mismatch] fuel.fuel_transaction.order_header_id: description says 'order' but FK points to 'product'
+  - [SA:fk_namespace_mismatch] fuel.loyalty_fuel_redemption.order_header_id: description says 'order' but FK points to 'product'
+  - [SA:fk_namespace_mismatch] fulfillment.fulfillment_order_line.product_order_line_id: description says 'order' but FK points to 'product'
+  - [SA:fk_namespace_mismatch] fulfillment.pack_task.product_order_line_id: description says 'order' but FK points to 'product'
+  - [SA:fk_namespace_mismatch] fulfillment.wms_task.product_order_line_id: description says 'order' but FK points to 'product'
+  - [SA:fk_namespace_mismatch] product.order_header.order_channel_id: description says 'order' but FK points to 'product'
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'assortment.assortment_plan' and 'payment.payment_plan' have the same entity name 'plan' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'assortment.assortment_item' and 'product.product_item' have the same entity name 'item' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'assortment.assortment_item' and 'vendor.vendor_item' have the same entity name 'item' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'product.product_item' and 'vendor.vendor_item' have the same entity name 'item' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'assortment.assortment_category_captain' and 'vendor.vendor_category_captain' have the same entity name 'category_captain' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'customer.customer_benefit_enrollment' and 'workforce.workforce_benefit_enrollment' have the same entity name 'benefit_enrollment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'fuel.fuel_transaction' and 'payment.payment_transaction' have the same entity name 'transaction' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'fulfillment.fulfillment_order_line' and 'product.product_order_line' have the same entity name 'order_line' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'fulfillment.fulfillment_delivery_route' and 'order.order_delivery_route' have the same entity name 'delivery_route' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'loyalty.loyalty_redemption' and 'promotion.promotion_redemption' have the same entity name 'redemption' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'pharmacy.pharmacy_location' and 'store.store_location' have the same entity name 'location' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'pharmacy.pharmacy_supplier_contract' and 'supply.supply_supplier_contract' have the same entity name 'supplier_contract' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'pricing.pricing_recommendation' and 'product.product_recommendation' have the same entity name 'recommendation' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — rename_product: product.product_order_line2** — rename to order_line_detail because product_order_line2 is a stub naming convention indicating an accidental duplicate or incomplete refactoring
+**PRIORITY 2 — remove_fk: analytics.dashboard** — remove FK on column fuel.center because a dashboard entity should not have a direct FK to a single fuel center; dashboards filter data dynamically, not via static FK
+**PRIORITY 3 — remove_fk: analytics.dashboard** — remove FK on column pricing.pricing_recommendation because a dashboard should not have a structural FK to a single pricing recommendation; this conflates content with container
+**PRIORITY 4 — remove_fk: analytics.dashboard** — remove FK on column product.brand because a dashboard is not structurally bound to a single brand; this is a filter parameter, not a relationship
+**PRIORITY 5 — connect_table: order.catalog_item** — add column product_item_id (BIGINT) with FK to product.product_item.product_item_id — catalog items must reference the master product item for data integrity and cross-domain linkage
+**PRIORITY 6 — connect_table: order.catalog_item** — add column store_location_id (BIGINT) with FK to store.store_location.store_location_id — catalog items need store context for localized assortment availability
+**PRIORITY 7 — connect_table: order.order_delivery_route** — add column fulfillment_delivery_route_id (BIGINT) with FK to fulfillment.fulfillment_delivery_route.fulfillment_delivery_route_id — order delivery routes must link to the physical fulfillment route they represent
+**PRIORITY 8 — connect_table: order.order_delivery_route** — add column order_header_id (BIGINT) with FK to product.order_header.order_header_id — an order delivery route must reference the order it fulfills
+**PRIORITY 9 — move_product: product.order_header** — move to order because order headers are the core entity of order management and belong in the order domain
+**PRIORITY 10 — move_product: product.product_order_line** — move to order because order lines are core order entities and should reside in the order domain
+**PRIORITY 11 — move_product: product.product_order** — move to order because product_order is an order lifecycle entity belonging in the order domain
+**PRIORITY 12 — move_product: product.order_channel** — move to order because order channels define how orders are placed and belong in the order domain
+**PRIORITY 13 — move_product: product.cart** — move to order because shopping carts are pre-order entities in the order lifecycle
+**PRIORITY 14 — move_product: product.cart_item** — move to order because cart items are part of the order capture lifecycle
+**PRIORITY 15 — move_product: product.checkout_session** — move to order because checkout sessions are order capture workflow entities
+**PRIORITY 16 — move_product: product.order_discount** — move to order because order discounts are order-level financial adjustments
+**PRIORITY 17 — move_product: product.order_fulfillment** — move to fulfillment because order fulfillment execution belongs in the fulfillment domain
+**PRIORITY 18 — move_product: product.order_hold** — move to order because order holds are order lifecycle management entities
+**PRIORITY 19 — move_product: product.order_payment** — move to order because order payments are part of order financial processing
+**PRIORITY 20 — move_product: product.order_refund** — move to order because refunds are order lifecycle entities
+**PRIORITY 21 — move_product: product.order_status_event** — move to order because order status events track order lifecycle
+**PRIORITY 22 — move_product: product.order_status_history** — move to order because order status history tracks order lifecycle
+**PRIORITY 23 — move_product: product.order_substitution** — move to order because substitutions are order fulfillment decisions
+**PRIORITY 24 — move_product: product.payment_event** — move to payment because payment events belong in the payment domain
+**PRIORITY 25 — move_product: product.delivery_order** — move to order because delivery orders are order fulfillment entities
+**PRIORITY 26 — move_product: product.pickup_appointment** — move to order because pickup appointments are order collection scheduling entities
+**PRIORITY 27 — move_product: product.slot_reservation** — move to order because slot reservations are order scheduling entities
+**PRIORITY 28 — move_product: product.pick_assignment** — move to fulfillment because pick assignments are warehouse execution tasks
+**PRIORITY 29 — move_product: product.product_recommendation** — move to analytics because recommendations are analytical/ML outputs
+**PRIORITY 30 — move_product: product.search_query** — move to analytics because search queries are behavioral analytics data
+**PRIORITY 31 — move_product: product.web_session** — move to analytics because web sessions are digital analytics entities
+**PRIORITY 32 — move_product: product.rx_order** — move to pharmacy because prescription orders belong in the pharmacy domain
+**PRIORITY 33 — move_product: product.line_item** — move to order because line items are order transaction components
+**PRIORITY 34 — connect_table: loyalty.gamification_challenge** — add column loyalty_program_config_id (BIGINT) with FK to loyalty.program_config.program_config_id — challenges must be scoped to a specific loyalty program configuration
+**PRIORITY 35 — connect_table: customer.segment** — add column workforce_associate_id (BIGINT) with FK to workforce.associate.associate_id — segments need an owner/creator for governance and accountability
+**PRIORITY 36 — connect_table: assortment.store_cluster** — add column store_region_id (BIGINT) with FK to store.region.region_id — store clusters should reference the geographic region they belong to for hierarchy alignment
+**PRIORITY 37 — connect_table: pharmacy.insurance_plan** — add column pharmacy_payer_id (BIGINT) with FK to pharmacy.payer.payer_id — insurance plans must reference the payer organization that administers them
+**PRIORITY 38 — connect_table: pharmacy.prescriber** — add column store_location_id (BIGINT) with FK to store.store_location.store_location_id — prescribers practicing at in-store clinics need location linkage
+**PRIORITY 39 — connect_table: pharmacy.clinical_service** — add column compliance_program_id (BIGINT) with FK to compliance.program.program_id — clinical services must comply with regulatory programs (immunization protocols, CLIA waivers)
+**PRIORITY 40 — connect_table: fuel.rack_price** — add column vendor_supplier_id (BIGINT) with FK to vendor.supplier.supplier_id — rack prices are sourced from specific fuel suppliers/terminals
+**PRIORITY 41 — connect_table: inventory.cold_chain_log** — add column inventory_storage_location_id (BIGINT) with FK to inventory.storage_location.storage_location_id — cold chain logs must reference the storage location being monitored
+**PRIORITY 42 — connect_table: inventory.cold_chain_log** — add column inventory_temperature_zone_id (BIGINT) with FK to inventory.temperature_zone.temperature_zone_id — cold chain logs must reference the temperature zone for threshold validation
+**PRIORITY 43 — connect_table: inventory.cycle_count** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — cycle counts must reference the SKU being counted
+**PRIORITY 44 — connect_table: inventory.cycle_count** — add column store_location_id (BIGINT) with FK to store.store_location.store_location_id — cycle counts must reference the location where counting occurs
+**PRIORITY 45 — remove_fk: product.product_order_line** — remove FK on column compliance.age_restricted_sale because age restriction validation is a transactional event, not a structural relationship on an order line
+**PRIORITY 46 — connect_table: finance.fixed_asset** — add column store_location_id (BIGINT) with FK to store.store_location.store_location_id — fixed assets (refrigeration, POS terminals) must be tracked at a physical location
+**PRIORITY 47 — connect_table: finance.journal_entry** — add column finance_fiscal_period_id (BIGINT) with FK to finance.fiscal_period.fiscal_period_id — journal entries must reference the fiscal period they post to
+**PRIORITY 48 — connect_table: finance.journal_entry** — add column finance_cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — journal entries need cost center assignment for management accounting
+**PRIORITY 49 — connect_table: supply.dc_facility** — add column store_region_id (BIGINT) with FK to store.region.region_id — distribution centers serve specific regions and need explicit linkage
+**PRIORITY 50 — connect_table: supply.dc_facility** — add column finance_cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — DCs are cost centers for financial tracking
+**PRIORITY 51 — remove_fk: loyalty.points_transaction** — remove FK on column product.fuel_grade because fuel_grade is already reachable via fuel.center or fuel.grade; this creates redundant paths
+**PRIORITY 52 — remove_fk: loyalty.tier** — remove FK on column product.fuel_grade because tier definitions should not structurally depend on a specific fuel grade; fuel discounts are configured via reward_offer
+**PRIORITY 53 — connect_table: workforce.job_profile** — add column finance_cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — job profiles need default cost center assignment for labor costing
+**PRIORITY 54 — connect_table: pricing.price_zone** — add column store_region_id (BIGINT) with FK to store.region.region_id — price zones are geographically defined and should link to regions
+**PRIORITY 55 — connect_table: store.site_selection** — add column store_region_id (BIGINT) with FK to store.region.region_id — site selection analysis must reference the target region
+**PRIORITY 56 — connect_table: store.lease** — add column finance_cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — leases are financial obligations that must map to cost centers
+**PRIORITY 57 — connect_table: store.lease** — add column finance_gl_account_id (BIGINT) with FK to finance.gl_account.gl_account_id — leases post to GL accounts under ASC 842
+**PRIORITY 58 — connect_table: store.remodel_project** — add column finance_internal_order_id (BIGINT) with FK to finance.internal_order.internal_order_id — remodel projects are capital projects tracked via internal orders
+**PRIORITY 59 — connect_table: store.health_inspection** — add column compliance_program_id (BIGINT) with FK to compliance.program.program_id — health inspections are regulatory compliance activities
+**PRIORITY 60 — connect_table: store.energy_management** — add column finance_cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — energy costs must be allocated to cost centers
+**PRIORITY 61 — rename_product: product.product_order_line** — rename to order_line because the redundant product prefix is inconsistent with naming conventions and the entity represents order lines
+**PRIORITY 62 — rename_product: product.product_order** — rename to digital_order because product_order is confusingly named alongside order_header and creates ambiguity about which is the canonical order entity
+**PRIORITY 63 — connect_table: fulfillment.sla_policy** — add column compliance_program_id (BIGINT) with FK to compliance.program.program_id — SLA policies are governed by compliance programs for contractual adherence
+**PRIORITY 64 — connect_table: payment.tender_type** — add column finance_gl_account_id (BIGINT) with FK to finance.gl_account.gl_account_id — tender types must map to GL accounts for settlement posting
+**PRIORITY 65 — connect_table: workforce.benefit_plan** — add column finance_gl_account_id (BIGINT) with FK to finance.gl_account.gl_account_id — benefit plans have financial obligations posted to specific GL accounts
+**PRIORITY 66 — connect_table: workforce.union_contract** — add column workforce_org_unit_id (BIGINT) with FK to workforce.org_unit.org_unit_id — union contracts apply to specific organizational units
+**PRIORITY 67 — connect_table: workforce.pay_group** — add column finance_legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — pay groups operate under specific legal entities for payroll compliance
+**PRIORITY 68 — connect_table: pricing.price_book** — add column store_banner_id (BIGINT) with FK to store.banner.banner_id — price books are typically maintained per banner
+**PRIORITY 69 — connect_table: pricing.automation_rule** — add column assortment_category_id (BIGINT) with FK to assortment.category.category_id — pricing automation rules are scoped to product categories
+**PRIORITY 70 — connect_table: pricing.constraint_set** — add column assortment_category_id (BIGINT) with FK to assortment.category.category_id — pricing constraints apply to specific categories for competitive positioning
+**PRIORITY 71 — connect_table: product.storefront** — add column store_banner_id (BIGINT) with FK to store.banner.banner_id — digital storefronts represent specific banners online
+**PRIORITY 72 — connect_table: order.catalog_item** — add column assortment_category_id (BIGINT) with FK to assortment.category.category_id — catalog items must be categorized for navigation and merchandising
+**PRIORITY 73 — connect_table: customer.pharmacy_patient** — add column pharmacy_rx_patient_id (BIGINT) with FK to pharmacy.rx_patient.rx_patient_id — customer pharmacy_patient must link to the pharmacy domain's rx_patient for clinical data integration
+**PRIORITY 74 — remove_fk: analytics.inventory_analytics_fact** — remove FK on column fulfillment.wave because inventory analytics facts measure stock positions, not fulfillment wave execution
+**PRIORITY 75 — connect_table: store.operating_hours** — add column store_department_id (BIGINT) with FK to store.department.department_id — operating hours can vary by department (pharmacy hours differ from store hours)
+**PRIORITY 76 — connect_table: inventory.temperature_zone** — add column store_location_id (BIGINT) with FK to store.store_location.store_location_id — temperature zones exist within specific physical locations
+**PRIORITY 77 — connect_table: loyalty.survey** — add column loyalty_program_config_id (BIGINT) with FK to loyalty.program_config.program_config_id — surveys are administered within the context of a loyalty program
+**PRIORITY 78 — connect_table: compliance.program** — add column workforce_associate_id (BIGINT) with FK to workforce.associate.associate_id — compliance programs need a designated program owner/manager
+**PRIORITY 79 — connect_table: finance.profit_center** — add column finance_legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — profit centers must belong to a legal entity for consolidation
+**PRIORITY 80 — connect_table: finance.gl_account** — add column finance_legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — GL accounts are maintained per legal entity in multi-entity structures
+**PRIORITY 81 — connect_table: store.format** — add column finance_profit_center_id (BIGINT) with FK to finance.profit_center.profit_center_id — store formats have different profitability profiles tracked at profit center level
+**PRIORITY 82 — connect_table: workforce.safety_incident** — add column compliance_program_id (BIGINT) with FK to compliance.program.program_id — safety incidents must link to OSHA compliance programs
+**PRIORITY 83 — connect_table: workforce.candidate** — add column workforce_position_id (BIGINT) with FK to workforce.position.position_id — candidates apply for specific positions
+**PRIORITY 84 — connect_table: supply.direct_store_delivery** — add column store_location_id (BIGINT) with FK to store.store_location.store_location_id — DSD deliveries arrive at specific store locations
+**PRIORITY 85 — connect_table: supply.direct_store_delivery** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — DSD deliveries contain specific SKUs that must be tracked
+
+Other known issues from static analysis (30):
+  - Attribute 'brand_tier' in product.brand has redundant product prefix 'brand_'. Rename to 'tier'
+  - Attribute 'banner_logo_url' in store.banner has redundant product prefix 'banner_'. Rename to 'logo_url'
+  - Attribute 'price_book_owner' in pricing.price_book has redundant product prefix 'price_book_'. Rename to 'owner'
+  - Attribute 'price_book_version' in pricing.price_book has redundant product prefix 'price_book_'. Rename to 'version'
+  - Table finance.bank_account has self-referencing FK on column 'concentration_account_id' with same name as PK 'bank_account_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table payment.payment_transaction has self-referencing FK on column 'refund_reference_transaction_id' with same name as PK 'payment_transaction_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table analytics.dq_issue has self-referencing FK on column 'related_dq_issue_id' with same name as PK 'dq_issue_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table compliance.audit_finding has self-referencing FK on column 'related_audit_finding_id' with same name as PK 'audit_finding_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table compliance.food_safety_violation has self-referencing FK on column 'related_food_safety_violation_id' with same name as PK 'food_safety_violation_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table compliance.osha_citation has self-referencing FK on column 'related_osha_citation_id' with same name as PK 'osha_citation_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table compliance.privacy_incident has self-referencing FK on column 'related_privacy_incident_id' with same name as PK 'privacy_incident_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table assortment.assortment_item has 2 FK columns pointing to assortment.category (category_id, subcategory_id) (generic/unlabeled: category_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table assortment.new_item_intro has 2 FK columns pointing to assortment.category (category_id, subcategory_id) (generic/unlabeled: category_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table assortment.planogram has 2 FK columns pointing to assortment.category (category_id, subcategory_id) (generic/unlabeled: category_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table assortment.planogram_compliance has 2 FK columns pointing to workforce.associate (assigned_crew_associate_id, associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table assortment.sku_rationalization has 2 FK columns pointing to assortment.category (category_id, subcategory_id) (generic/unlabeled: category_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table customer.case has 2 FK columns pointing to workforce.associate (associate_id, escalated_to_agent_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table fulfillment.tote has 3 FK columns pointing to workforce.associate (associate_id, created_by_user_associate_id, modified_by_user_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table fulfillment.wave has 3 FK columns pointing to workforce.associate (associate_id, created_by_user_associate_id, modified_by_user_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table product.ab_test_experiment has 2 FK columns pointing to workforce.associate (associate_id, last_modified_by_user_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table product.order_header has 2 FK columns pointing to finance.fiscal_period (fiscal_period_id, fiscal_week_fiscal_period_id) (generic/unlabeled: fiscal_period_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table promotion.offer_item has 2 FK columns pointing to workforce.associate (associate_id, modified_by_user_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table promotion.promo_zone has 4 FK columns pointing to workforce.associate (approved_by_user_associate_id, associate_id, last_modified_by_user_associate_id, zone_manager_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - PII-candidate attribute pharmacy.rx_claim.prescription_id has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute pharmacy.rx_fill.prescription_id has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute finance.cost_element.gl_account_number has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute pharmacy.payer.postal_code has no classification tags — expected restricted/confidential + PII tag
+  - 6 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 345 attribute(s) match person-data patterns but lack pii_ tags
+  - 35 non-PK attributes redundantly prefixed with their product name
+
+Deterministic score: 50/100 (LLM assessment: 62/100)

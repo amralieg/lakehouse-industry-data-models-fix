@@ -1,0 +1,100 @@
+**Model Quality Score: 89/100**
+
+**Static Analysis Findings (1 actionable):**
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'claim.claim_status_history' and 'order.order_status_history' have the same entity name 'status_history' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — rename_attribute: reference.crosswalk** — rename column crosswalk_id to source_code_id because the primary key should reflect the business purpose of mapping source codes to target codes, not use a generic name
+**PRIORITY 2 — connect_table: reference.crosswalk** — add column source_code_set_version_id (BIGINT) with FK to reference.code_set_version.code_set_version_id — crosswalks map between code sets and need to track which version of the source code set is being mapped
+**PRIORITY 3 — connect_table: reference.crosswalk** — add column target_code_set_version_id (BIGINT) with FK to reference.code_set_version.code_set_version_id — crosswalks need to identify the target code set version for accurate terminology mapping
+**PRIORITY 4 — rename_attribute: insurance.dependent** — rename column primary_dependent_id to guardian_dependent_id because the self-reference should indicate the business relationship (guardian/responsible party) not use generic "primary" prefix
+**PRIORITY 5 — rename_attribute: insurance.provider_network** — rename column parent_network_provider_network_id to parent_provider_network_id because the current name has redundant "network" appearing twice
+**PRIORITY 6 — rename_attribute: insurance.coverage_policy** — rename column primary_superseded_by_policy_coverage_policy_id to superseded_by_coverage_policy_id because the current name is excessively verbose with redundant prefixes
+**PRIORITY 7 — rename_attribute: insurance.fee_schedule_line** — rename column primary_superseded_by_line_fee_schedule_line_id to superseded_by_fee_schedule_line_id because the current name has unnecessary "primary" and "line" redundancy
+**PRIORITY 8 — rename_attribute: insurance.fee_schedule** — rename column primary_predecessor_schedule_fee_schedule_id to predecessor_fee_schedule_id because the current name is excessively verbose with redundant terms
+**PRIORITY 9 — rename_attribute: radiology.protocol** — rename column primary_superseded_by_protocol_id to superseded_by_protocol_id because "primary" prefix adds no business meaning to the supersession relationship
+**PRIORITY 10 — rename_attribute: compliance.policy_version** — rename column primary_superseded_version_policy_version_id to superseded_by_policy_version_id because the current name is excessively verbose and redundant
+**PRIORITY 11 — rename_attribute: insurance.payer** — rename column primary_successor_payer_id to successor_payer_id because "primary" prefix is unnecessary for a single successor relationship
+**PRIORITY 12 — connect_table: facility.organization** — add column parent_organization_id (BIGINT) with FK to facility.organization.organization_id — healthcare organizations have hierarchical structures (parent health systems, subsidiaries) that need to be modeled
+**PRIORITY 13 — connect_table: patient.address** — add column mpi_record_id (BIGINT) with FK to patient.mpi_record.mpi_record_id — addresses should link to the master patient index for enterprise-wide address management, not just demographics
+**PRIORITY 14 — connect_table: patient.emergency_contact** — add column demographics_id (BIGINT) with FK to patient.demographics.demographics_id — emergency contacts need linkage to patient demographics for contact information validation
+**PRIORITY 15 — connect_table: patient.guarantor** — add column demographics_id (BIGINT) with FK to patient.demographics.demographics_id — guarantors need demographic linkage for billing correspondence and identity verification
+**PRIORITY 16 — connect_table: provider.specialty** — add column parent_specialty_id (BIGINT) with FK to provider.specialty.specialty_id — medical specialties have hierarchical relationships (e.g., Cardiology under Internal Medicine) that should be modeled
+**PRIORITY 17 — connect_table: laboratory.organism** — add column loinc_code_id (BIGINT) with FK to reference.loinc_code.loinc_code_id — organisms identified in microbiology should be linked to LOINC codes for standardized reporting
+**PRIORITY 18 — connect_table: laboratory.instrument** — add column care_site_id (BIGINT) with FK to facility.care_site.care_site_id — laboratory instruments must be associated with the care site where they are located for regulatory compliance
+**PRIORITY 19 — connect_table: pharmacy.inventory** — add column inventory_location_id (BIGINT) with FK to supply.inventory_location.inventory_location_id — pharmacy inventory needs explicit location tracking within the supply chain framework
+**PRIORITY 20 — connect_table: billing.statement** — add column invoice_id (BIGINT) with FK to billing.invoice.invoice_id — patient statements should reference the specific invoices being communicated for payment reconciliation
+**PRIORITY 21 — connect_table: claim.appeal** — add column claim_line_id (BIGINT) with FK to claim.line.line_id — appeals often target specific claim lines rather than entire claims for granular denial management
+**PRIORITY 22 — connect_table: encounter.triage_assessment** — add column demographics_id (BIGINT) with FK to patient.demographics.demographics_id — triage assessments need direct patient demographic access for allergy and medical history review
+**PRIORITY 23 — connect_table: clinical.care_team** — add column demographics_id (BIGINT) with FK to patient.demographics.demographics_id — care teams are assembled for specific patients and need demographic linkage for care coordination
+**PRIORITY 24 — connect_table: scheduling.schedule_template** — add column room_id (BIGINT) with FK to facility.room.room_id — schedule templates often define room assignments for recurring appointment patterns
+**PRIORITY 25 — connect_table: scheduling.waitlist_entry** — add column demographics_id (BIGINT) with FK to patient.demographics.demographics_id — waitlist entries need patient demographic access for contact and scheduling purposes
+**PRIORITY 26 — connect_table: supply.requisition** — add column mpi_record_id (BIGINT) with FK to patient.mpi_record.mpi_record_id — patient-specific supply requisitions (implants, prosthetics) need patient linkage for UDI tracking
+**PRIORITY 27 — connect_table: radiology.modality** — add column care_site_id (BIGINT) with FK to facility.care_site.care_site_id — imaging modalities must be associated with care sites for scheduling and regulatory reporting
+**PRIORITY 28 — connect_table: radiology.dicom_series** — add column imaging_order_id (BIGINT) with FK to radiology.imaging_order.imaging_order_id — DICOM series should link to the originating imaging order for order-to-image traceability
+**PRIORITY 29 — connect_table: radiology.dicom_series** — add column care_site_id (BIGINT) with FK to facility.care_site.care_site_id — DICOM series need care site association for image routing and access control
+**PRIORITY 30 — connect_table: order.routing** — add column service_id (BIGINT) with FK to facility.service.service_id — order routing rules are often service-specific and need explicit service linkage
+**PRIORITY 31 — connect_table: clinical.observation** — add column demographics_id (BIGINT) with FK to patient.demographics.demographics_id — clinical observations need direct patient demographic linkage for trending and alerting
+**PRIORITY 32 — connect_table: clinical.problem** — add column demographics_id (BIGINT) with FK to patient.demographics.demographics_id — problem lists are patient-centric and need demographic linkage for longitudinal tracking
+**PRIORITY 33 — connect_table: clinical.allergy** — add column mpi_record_id (BIGINT) with FK to patient.mpi_record.mpi_record_id — allergies should link to MPI for enterprise-wide allergy alerting across facilities
+**PRIORITY 34 — connect_table: compliance.exclusion_screening** — add column mpi_record_id (BIGINT) with FK to patient.mpi_record.mpi_record_id — exclusion screenings may apply to patients (Medicare/Medicaid beneficiaries) not just providers
+**PRIORITY 35 — connect_table: insurance.risk_adjustment** — add column member_enrollment_id (BIGINT) with FK to insurance.member_enrollment.member_enrollment_id — risk adjustment calculations are tied to specific member enrollment periods for accurate capitation
+**PRIORITY 36 — connect_table: insurance.group_plan_offering** — add column payer_id (BIGINT) with FK to insurance.payer.payer_id — group plan offerings are administered by specific payers and need explicit payer linkage
+**PRIORITY 37 — connect_table: insurance.benefit** — add column payer_id (BIGINT) with FK to insurance.payer.payer_id — benefits are defined by payers and need direct payer association for benefit verification
+**PRIORITY 38 — connect_table: provider.board_certification** — add column org_provider_id (BIGINT) with FK to provider.org_provider.org_provider_id — board certifications may be issued through organizational affiliations for credentialing verification
+**PRIORITY 39 — connect_table: provider.credential** — add column care_site_id (BIGINT) with FK to facility.care_site.care_site_id — credentials are often site-specific and need care site association for privileging
+**PRIORITY 40 — connect_table: provider.dea_registration** — add column location_id (BIGINT) with FK to provider.location.location_id — DEA registrations are location-specific and must be tracked by practice location
+**PRIORITY 41 — connect_table: provider.malpractice_coverage** — add column org_provider_id (BIGINT) with FK to provider.org_provider.org_provider_id — malpractice coverage may be provided through organizational providers for employed physicians
+**PRIORITY 42 — connect_table: facility.building** — add column organization_id (BIGINT) with FK to facility.organization.organization_id — buildings belong to organizations and need explicit ownership linkage for asset management
+**PRIORITY 43 — connect_table: facility.license_accreditation** — add column organization_id (BIGINT) with FK to facility.organization.organization_id — licenses and accreditations are often held at the organization level
+**PRIORITY 44 — connect_table: facility.maintenance_order** — add column unit_id (BIGINT) with FK to facility.unit.unit_id — maintenance orders often target specific units for work order routing
+**PRIORITY 45 — connect_table: facility.pm_schedule** — add column unit_id (BIGINT) with FK to facility.unit.unit_id — preventive maintenance schedules need unit association for scheduling coordination
+**PRIORITY 46 — connect_table: facility.service** — add column organization_id (BIGINT) with FK to facility.organization.organization_id — services are offered by organizations and need explicit organizational linkage
+**PRIORITY 47 — connect_table: encounter.readmission** — add column mpi_record_id (BIGINT) with FK to patient.mpi_record.mpi_record_id — readmissions need MPI linkage for cross-facility readmission tracking
+**PRIORITY 48 — connect_table: encounter.bed_assignment** — add column demographics_id (BIGINT) with FK to patient.demographics.demographics_id — bed assignments need demographic access for patient identification and safety
+**PRIORITY 49 — connect_table: billing.cdm_entry** — add column organization_id (BIGINT) with FK to facility.organization.organization_id — CDM entries are organization-specific for multi-entity health systems
+**PRIORITY 50 — connect_table: billing.payment** — add column remittance_line_id (BIGINT) with FK to claim.remittance_line.remittance_line_id — payments should link to specific remittance lines for ERA reconciliation
+**PRIORITY 51 — connect_table: claim.submission** — add column claim_line_id (BIGINT) with FK to claim.line.line_id — submissions may be for specific claim lines in partial submission scenarios
+**PRIORITY 52 — connect_table: claim.denial** — add column remittance_line_id (BIGINT) with FK to claim.remittance_line.remittance_line_id — denials originate from remittance processing and need explicit linkage
+**PRIORITY 53 — connect_table: claim.diagnosis_link** — add column claim_line_id (BIGINT) with FK to claim.line.line_id — diagnosis pointers link to specific claim lines per CMS-1500 and UB-04 requirements
+**PRIORITY 54 — connect_table: laboratory.blood_bank_unit** — add column vendor_id (BIGINT) with FK to supply.vendor.vendor_id — blood products are sourced from blood banks/vendors and need supplier tracking
+**PRIORITY 55 — connect_table: laboratory.transfusion_event** — add column mpi_record_id (BIGINT) with FK to patient.mpi_record.mpi_record_id — transfusion events need MPI linkage for blood bank safety and lookback procedures
+**PRIORITY 56 — connect_table: pharmacy.adverse_drug_event** — add column care_site_id (BIGINT) with FK to facility.care_site.care_site_id — ADEs must be associated with care sites for safety reporting and root cause analysis
+**PRIORITY 57 — connect_table: pharmacy.formulary** — add column health_plan_id (BIGINT) with FK to insurance.health_plan.health_plan_id — formularies are often health plan-specific and need plan association
+**PRIORITY 58 — connect_table: supply.vendor_item** — add column vendor_contract_id (BIGINT) with FK to supply.vendor_contract.vendor_contract_id — vendor items are often governed by specific contracts for pricing
+**PRIORITY 59 — connect_table: supply.udi_record** — add column surgical_case_id (BIGINT) with FK to scheduling.surgical_case.surgical_case_id — UDI records for implants need surgical case linkage for device tracking
+**PRIORITY 60 — connect_table: compliance.training** — add column care_site_id (BIGINT) with FK to facility.care_site.care_site_id — training requirements may be site-specific for regulatory compliance
+**PRIORITY 61 — connect_table: compliance.audit** — add column obligation_id (BIGINT) with FK to compliance.obligation.obligation_id — audits are conducted against specific regulatory obligations
+**PRIORITY 62 — connect_table: compliance.accreditation_status** — add column organization_id (BIGINT) with FK to facility.organization.organization_id — accreditation is often at the organization level for health systems
+**PRIORITY 63 — connect_table: compliance.hipaa_privacy_incident** — add column visit_id (BIGINT) with FK to encounter.visit.visit_id — privacy incidents often occur during specific patient encounters
+**PRIORITY 64 — rename_attribute: compliance.audit_finding** — rename column previous_finding_audit_finding_id to prior_audit_finding_id because the current name has redundant "finding" appearing twice
+**PRIORITY 65 — rename_attribute: compliance.corrective_action_plan** — rename column superseded_corrective_action_plan_id to prior_corrective_action_plan_id because "superseded" is less clear than "prior" for CAP versioning
+**PRIORITY 66 — rename_attribute: compliance.exclusion_screening** — rename column prior_exclusion_screening_id to previous_exclusion_screening_id because "prior" and "previous" should be consistent across the model (model uses "previous" elsewhere)
+**PRIORITY 67 — rename_attribute: encounter.discharge_summary** — rename column addended_discharge_summary_id to addendum_to_discharge_summary_id because the current name implies this record was addended rather than being an addendum to another
+**PRIORITY 68 — rename_attribute: insurance.accumulator** — rename column prior_accumulator_id to previous_accumulator_id because naming should be consistent with other self-referential patterns in the model
+**PRIORITY 69 — rename_attribute: insurance.eligibility_span** — rename column prior_eligibility_span_id to previous_eligibility_span_id because naming should be consistent with other self-referential patterns
+**PRIORITY 70 — rename_attribute: insurance.member_enrollment** — rename column prior_member_enrollment_id to previous_member_enrollment_id because naming should be consistent with other self-referential patterns
+**PRIORITY 71 — rename_attribute: insurance.subscriber** — rename column prior_subscriber_id to previous_subscriber_id because naming should be consistent with other self-referential patterns
+**PRIORITY 72 — rename_attribute: compliance.training_completion** — rename column reattempted_training_completion_id to retry_training_completion_id because "reattempted" is verbose and "retry" is clearer
+
+Other known issues from static analysis (19):
+  - Attribute 'formulary_tier' in pharmacy.formulary has redundant product prefix 'formulary_'. Rename to 'tier'
+  - Attribute 'payer_tier' in insurance.payer has redundant product prefix 'payer_'. Rename to 'tier'
+  - Attribute 'benefit_tier' in insurance.benefit has redundant product prefix 'benefit_'. Rename to 'tier'
+  - PII-candidate attribute pharmacy.prescription.prescription_clinician_id has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute pharmacy.prescription.prescription_mpi_record_id has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute pharmacy.prescription.prescription_patient_mpi_record_id has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute pharmacy.prescription.prescription_prescriber_clinician_id has no classification tags — expected restricted/confidential + PII tag
+  - Product 'billing.charge' has 39 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'compliance.audit_finding' has 33 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'order.fulfillment' has 31 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'scheduling.surgical_case' has 29 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'scheduling.appointment' has 28 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'clinical.procedure_event' has 27 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'billing.invoice' has 27 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'scheduling.waitlist_entry' has 26 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'pharmacy.prescription' has 26 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - 10 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 163 attribute(s) match person-data patterns but lack pii_ tags
+  - 42 non-PK attributes redundantly prefixed with their product name
+
+Deterministic score: 89/100 (LLM assessment: 82/100)

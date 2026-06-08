@@ -1,0 +1,80 @@
+**Model Quality Score: 89/100**
+
+**Static Analysis Findings (5 actionable):**
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'asset.asset_container' and 'hazmat.hazmat_container' have the same entity name 'container' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'asset.asset_inspection' and 'compliance.compliance_inspection' have the same entity name 'inspection' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_rate_schedule' and 'service.service_rate_schedule' have the same entity name 'rate_schedule' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_tipping_fee_schedule' and 'landfill.landfill_tipping_fee_schedule' have the same entity name 'tipping_fee_schedule' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_account' and 'customer.customer_account' have the same entity name 'account' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — rename_product: service.code** — rename to service_code because "code" is an overly generic name that conflicts with common reserved words and lacks domain context
+**PRIORITY 2 — rename_product: maintenance.type** — rename to maintenance_type because "type" is a reserved word in many databases and is ambiguous without domain qualification
+**PRIORITY 3 — rename_product: service.line** — rename to service_line because "line" is overly generic and ambiguous without domain context
+**PRIORITY 4 — rename_product: asset.class** — rename to asset_class because "class" is a reserved word in most programming languages and databases
+**PRIORITY 5 — rename_product: contract.party** — rename to contract_party because "party" is too generic and needs domain qualification for clarity
+**PRIORITY 6 — rename_product: asset.location** — rename to asset_location because "location" is overly generic and conflicts with common system keywords
+**PRIORITY 7 — connect_table: recycling.commodity_buyer** — add column service_area_id (BIGINT) with FK to service.area.area_id — commodity buyers operate in specific geographic service areas and this enables regional market analysis
+**PRIORITY 8 — connect_table: recycling.commodity_inventory** — add column sort_session_id (BIGINT) with FK to recycling.sort_session.sort_session_id — inventory changes result from sort sessions and need traceability to production runs
+**PRIORITY 9 — connect_table: compliance.regulatory_requirement** — add column governing_body_name (BIGINT) with FK to contract.municipality.municipality_id — regulatory requirements are issued by governing bodies/municipalities and need jurisdictional linkage
+**PRIORITY 10 — remove_fk: collection.route** — remove FK on column compliance.regulatory_requirement because routes do not directly comply with individual regulatory requirements; compliance is managed at the permit or facility level
+**PRIORITY 11 — connect_table: maintenance.parts_catalog** — add column asset_class_id (BIGINT) with FK to asset.class.class_id — parts are categorized by asset class to enable BOM lookups and compatibility filtering
+**PRIORITY 12 — connect_table: landfill.daily_cover** — add column compliance_permit_id (BIGINT) with FK to compliance.permit.permit_id — daily cover operations are mandated by landfill operating permits and must reference the governing permit
+**PRIORITY 13 — connect_table: landfill.airspace_consumption** — add column compliance_permit_id (BIGINT) with FK to compliance.permit.permit_id — airspace limits are defined in landfill permits and consumption must be tracked against permitted capacity
+**PRIORITY 14 — rename_attribute: contract.party** — rename column parent_party_id to parent_contract_party_id
+**PRIORITY 15 — rename_attribute: service.line** — rename column parent_service_line_id to parent_line_id
+**PRIORITY 16 — connect_table: recycling.program_facility_assignment** — add column service_area_id (BIGINT) with FK to service.area.area_id — facility assignments serve specific geographic areas and need area linkage for routing and reporting
+**PRIORITY 17 — connect_table: fleet.fuel_transaction** — add column maintenance_work_order_id (BIGINT) with FK to maintenance.work_order.work_order_id — fuel transactions during maintenance events (generator refueling, test drives) should link to the originating work order
+**PRIORITY 18 — connect_table: landfill.capacity_plan** — add column landfill_cell_id (BIGINT) with FK to landfill.cell.cell_id — capacity planning is done at cell level granularity, not just site level
+**PRIORITY 19 — connect_table: billing.payment** — add column billing_cycle_id (BIGINT) with FK to billing.cycle.cycle_id — payments should reference the billing cycle they correspond to for cash application and aging analysis
+**PRIORITY 20 — connect_table: collection.route_optimization_run** — add column collection_district_id (BIGINT) with FK to collection.district.district_id — route optimization runs are scoped to specific operational districts
+**PRIORITY 21 — connect_table: collection.route_optimization_run** — add column asset_facility_id (BIGINT) with FK to asset.facility.facility_id — optimization runs originate from a home facility (depot) that constrains route start/end points
+**PRIORITY 22 — remove_fk: collection.stop** — remove FK on column hazmat.epa_id_registration because stops are customer service points, not EPA-registered facilities; the generator link via hazmat.hazardous_waste_generator already provides this connection
+**PRIORITY 23 — connect_table: hazmat.storage_authorization** — add column compliance_permit_id (BIGINT) with FK to compliance.permit.permit_id — storage authorizations are granted under specific RCRA permits
+**PRIORITY 24 — connect_table: hazmat.storage_authorization** — add column hazmat_waste_code_id (BIGINT) with FK to hazmat.waste_code.waste_code_id — storage authorizations specify which waste codes are permitted in each unit
+**PRIORITY 25 — connect_table: landfill.closure_plan** — add column compliance_permit_id (BIGINT) with FK to compliance.permit.permit_id — closure plans are required by and reference specific operating/post-closure permits
+**PRIORITY 26 — connect_table: recycling.commodity_inventory** — add column recycling_commodity_grade_id (BIGINT) with FK to recycling.commodity_grade.commodity_grade_id — inventory is tracked by grade to support quality-based pricing and buyer contract fulfillment
+**PRIORITY 27 — connect_table: collection.facility_capacity** — add column landfill_site_id (BIGINT) with FK to landfill.site.site_id — transfer station capacity planning must account for downstream landfill capacity constraints
+**PRIORITY 28 — connect_table: fleet.telematics_event** — add column asset_facility_id (BIGINT) with FK to asset.facility.facility_id — telematics events at facilities (geofence entry/exit) need facility linkage for yard management
+**PRIORITY 29 — connect_table: billing.ar_account** — add column customer_account_id (BIGINT) with FK to customer.customer_account.customer_account_id — AR accounts must directly link to customer accounts for collections and credit management
+**PRIORITY 30 — connect_table: maintenance.storeroom** — add column service_area_id (BIGINT) with FK to service.area.area_id — storerooms serve specific geographic areas for parts distribution logistics
+**PRIORITY 31 — connect_table: landfill.stormwater_event** — add column landfill_cell_id (BIGINT) with FK to landfill.cell.cell_id — stormwater events affect specific cells and drainage patterns must be tracked at cell level
+**PRIORITY 32 — connect_table: recycling.sort_session** — add column fleet_vehicle_id (BIGINT) with FK to fleet.vehicle.vehicle_id — inbound vehicles delivering material to sort sessions need tracking for contamination source identification
+**PRIORITY 33 — rename_attribute: asset.class** — rename column parent_asset_class_id to parent_class_id
+**PRIORITY 34 — connect_table: contract.termination** — add column billing_ar_account_id (BIGINT) with FK to billing.ar_account.ar_account_id — terminations trigger final billing and AR balance resolution that must be linked
+**PRIORITY 35 — connect_table: hazmat.dot_hazmat_classification** — add column compliance_regulatory_requirement_id (BIGINT) with FK to compliance.regulatory_requirement.regulatory_requirement_id — DOT hazmat classifications are defined by specific regulatory requirements (49 CFR)
+**PRIORITY 36 — connect_table: collection.driver_assignment** — add column contract_contract_id (BIGINT) with FK to contract.contract.contract_id — driver assignments to routes serving specific contracts need contract linkage for labor cost allocation
+**PRIORITY 37 — connect_table: asset.container_inventory** — add column service_area_id (BIGINT) with FK to service.area.area_id — container inventory is managed by service area for deployment planning
+**PRIORITY 38 — connect_table: asset.container_inventory** — add column service_container_type_id (BIGINT) with FK to service.container_type.container_type_id — container inventory counts must be segmented by container type
+**PRIORITY 39 — connect_table: landfill.daily_cover** — add column fleet_driver_id (BIGINT) with FK to fleet.driver.driver_id — daily cover operations are performed by specific equipment operators who must be tracked
+**PRIORITY 40 — connect_table: billing.dispute** — add column recycling.contamination_event_id (BIGINT) with FK to recycling.contamination_event.contamination_event_id — billing disputes frequently arise from contamination events that trigger surcharges
+**PRIORITY 41 — connect_table: recycling.contamination_event** — add column customer_customer_account_id (BIGINT) with FK to customer.customer_account.customer_account_id — contamination events must be attributed to specific customer accounts for notification and surcharge billing
+**PRIORITY 42 — connect_table: fleet.accident_report** — add column collection_route_id (BIGINT) with FK to collection.route.route_id — accidents occur on specific routes and need route linkage for risk analysis and insurance
+**PRIORITY 43 — connect_table: compliance.training_certification** — add column fleet_driver_id (BIGINT) with FK to fleet.driver.driver_id — training certifications (CDL, HAZWOPER) are held by specific drivers and must link directly
+**PRIORITY 44 — connect_table: asset.bom** — add column asset_class_id (BIGINT) with FK to asset.class.class_id — BOMs are defined at the asset class level as templates, not just for individual assets
+**PRIORITY 45 — connect_table: maintenance.failure_mode** — add column asset_fixed_asset_id (BIGINT) with FK to asset.fixed_asset.fixed_asset_id — failure modes should link to specific assets for reliability-centered maintenance analysis
+**PRIORITY 46 — connect_table: landfill.groundwater_sample** — add column compliance_permit_id (BIGINT) with FK to compliance.permit.permit_id — groundwater sampling is required by specific permits with defined parameters and frequencies
+**PRIORITY 47 — connect_table: collection.destination_facility** — add column compliance_permit_id (BIGINT) with FK to compliance.permit.permit_id — destination facilities must have valid operating permits to receive waste
+**PRIORITY 48 — connect_table: recycling.market_price** — add column service_area_id (BIGINT) with FK to service.area.area_id — commodity market prices vary by geographic region and need area linkage
+**PRIORITY 49 — move_product: collection.destination_facility** — move to asset because destination facilities are physical infrastructure assets (landfills, MRFs, TSDFs) and this table serves as a facility-type reference linking to asset.facility
+**PRIORITY 50 — connect_table: contract.municipality** — add column service_area_id (BIGINT) with FK to service.area.area_id — municipalities correspond to service areas for franchise agreement and routing alignment
+**PRIORITY 51 — connect_table: billing.rated_usage** — add column landfill_site_id (BIGINT) with FK to landfill.site.site_id — rated usage for disposal services must reference the specific landfill site for tipping fee calculation
+**PRIORITY 52 — connect_table: asset.retirement** — add column asset_facility_id (BIGINT) with FK to asset.facility.facility_id — asset retirements occur at specific facilities and need location tracking for audit
+**PRIORITY 53 — connect_table: hazmat.rcra_biennial_report** — add column hazmat_tsdf_facility_id (BIGINT) with FK to hazmat.tsdf_facility.tsdf_facility_id — RCRA biennial reports are filed by TSDFs and must reference the reporting facility
+
+Other known issues from static analysis (14):
+  - Attribute 'permit_tier' in compliance.permit has redundant product prefix 'permit_'. Rename to 'tier'
+  - Table asset.rfid_tag has self-referencing FK on column 'replaced_by_tag_id' with same name as PK 'rfid_tag_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table recycling.buyer_contract has 2 FK columns pointing to contract.contract (contract_id, primary_buyer_salesforce_contract_id) (generic/unlabeled: contract_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Product 'billing.invoice_line' has 37 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'customer.complaint' has 32 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'billing.dispute' has 29 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'billing.rated_usage' has 28 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'billing.adjustment' has 27 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'customer.service_enrollment' has 26 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'customer.service_request' has 26 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'maintenance.work_order' has 26 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - 3 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 218 attribute(s) match person-data patterns but lack pii_ tags
+  - 14 non-PK attributes redundantly prefixed with their product name
+
+Deterministic score: 89/100 (LLM assessment: 62/100)

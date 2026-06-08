@@ -1,0 +1,81 @@
+**Model Quality Score: 92/100**
+
+**Static Analysis Findings (3 actionable):**
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'customer.customer_membership' and 'loyalty.loyalty_membership' have the same entity name 'membership' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'fulfillment.fulfillment_line' and 'order.order_line' have the same entity name 'line' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'fulfillment.fulfillment_node' and 'inventory.inventory_node' have the same entity name 'node' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — rename_product: store.pl** — rename to store_profit_loss because "pl" is an ambiguous abbreviation that violates naming clarity; store_profit_loss clearly conveys the P&L statement purpose
+**PRIORITY 2 — rename_product: inventory.asn** — rename to advance_ship_notice because "asn" is an acronym-only name that lacks discoverability for non-specialist users
+**PRIORITY 3 — rename_product: returns.rma** — rename to return_authorization because "rma" is an acronym-only name; the full form improves model readability
+**PRIORITY 4 — rename_product: supplier.rtv_request** — rename to return_to_vendor_request because "rtv_request" relies on an industry acronym without context
+**PRIORITY 5 — rename_product: store.sfs_fulfillment_node** — rename to ship_from_store_node because "sfs" is an unexpanded acronym that reduces model clarity
+**PRIORITY 6 — rename_product: product.uom** — rename to unit_of_measure because "uom" is an acronym-only table name
+**PRIORITY 7 — rename_product: product.gtin_registry** — rename to global_trade_item_registry because "gtin" alone is opaque to non-supply-chain audiences
+**PRIORITY 8 — connect_table: supplychain.dc_facility** — add column parent_dc_facility_id (BIGINT) with FK to supplychain.dc_facility.dc_facility_id — distribution centers often have hub-spoke hierarchies that need self-referential modeling
+**PRIORITY 9 — connect_table: fulfillment.carrier** — add column vendor_id (BIGINT) with FK to supplier.vendor.vendor_id — carriers are vendors/suppliers and should link to the vendor master for contract and payment management
+**PRIORITY 10 — connect_table: supplychain.dc_facility** — add column location_id (BIGINT) with FK to store.location.location_id — DCs are physical locations and should share the location master for address and geo-zone consistency
+**PRIORITY 11 — connect_table: order.header** — add column customer_address_id (BIGINT) with FK to customer.address.address_id — orders require a shipping/billing address reference separate from the customer profile
+**PRIORITY 12 — connect_table: order.pos_transaction** — add column store_department_id (BIGINT) with FK to store.department.department_id — POS transactions occur within a department context for sales attribution
+**PRIORITY 13 — connect_table: inventory.stock_position** — add column store_location_id (BIGINT) with FK to store.location.location_id — stock positions at store level need a direct store reference independent of inventory_node for reporting
+**PRIORITY 14 — connect_table: fulfillment.shipment** — add column carrier_service_id_actual (BIGINT) with FK to fulfillment.carrier_service.carrier_service_id — shipments need to distinguish planned vs actual carrier service used
+**PRIORITY 15 — connect_table: order.payment** — add column store_location_id (BIGINT) with FK to store.location.location_id — payments collected in-store need location attribution for reconciliation
+**PRIORITY 16 — connect_table: returns.return_request** — add column return_policy_id (BIGINT) with FK to returns.return_policy.return_policy_id — return requests should reference the policy under which they were initiated for validation
+**PRIORITY 17 — connect_table: promotion.promo_redemption** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — redemptions must track which SKU the promotion was applied to for lift analysis
+**PRIORITY 18 — connect_table: order.subscription** — add column store_department_id (BIGINT) with FK to store.department.department_id — subscriptions tied to specific departments enable category-level subscription reporting
+**PRIORITY 19 — connect_table: merchandising.assortment_item** — add column store_location_id (BIGINT) with FK to store.location.location_id — assortment items are localized to specific stores for planogram and allocation purposes
+**PRIORITY 20 — connect_table: supplychain.wave** — add column outbound_order_id (BIGINT) with FK to supplychain.outbound_order.outbound_order_id — waves group outbound orders for batch processing and need a direct link
+**PRIORITY 21 — connect_table: loyalty.member_offer** — add column store_location_id (BIGINT) with FK to store.location.location_id — member offers are often geo-targeted to specific store locations
+**PRIORITY 22 — connect_table: pricing.margin_target** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — margin targets are often set at SKU level for high-value items
+**PRIORITY 23 — remove_fk: customer.consent** — remove FK on column supplier_vendor_id because customer consent records have no business relationship to vendor master; consent is about customer data privacy preferences
+**PRIORITY 24 — remove_fk: customer.consent** — remove FK on column product_brand_id because consent preferences relate to communication channels and data usage, not product brands
+**PRIORITY 25 — remove_fk: customer.consent** — remove FK on column promotion_promo_campaign_id because consent is about data processing rights, not specific promotional campaigns
+**PRIORITY 26 — remove_fk: ecommerce.cart_item** — remove FK on column web_session_id because cart items are children of carts, not sessions; the session context belongs on the cart or checkout level
+**PRIORITY 27 — remove_fk: ecommerce.cart_item** — remove FK on column store_department_id because digital cart items don't belong to physical store departments; this conflates online and offline concepts
+**PRIORITY 28 — remove_fk: fulfillment.pick_task** — remove FK on column carrier_id because pick tasks are warehouse operations that precede carrier assignment; carrier belongs on shipment/pack_task
+**PRIORITY 29 — remove_fk: fulfillment.pick_task** — remove FK on column carrier_service_id because carrier service selection happens after picking, not during; this creates premature coupling
+**PRIORITY 30 — rename_attribute: customer.service_case** — rename column parent_case_service_case_id to parent_service_case_id because the current name redundantly embeds both the relationship and table name
+**PRIORITY 31 — rename_attribute: order.gift_card** — rename column primary_replacement_for_card_gift_card_id to replaced_gift_card_id because the current name is excessively verbose and unclear
+**PRIORITY 32 — rename_attribute: finance.financial_period** — rename column prior_year_period_financial_period_id to prior_year_financial_period_id because the current name is redundantly verbose
+**PRIORITY 33 — rename_attribute: inventory.adjustment** — rename column reversal_of_adjustment_id to reversed_adjustment_id because the current name is awkwardly phrased
+**PRIORITY 34 — rename_attribute: loyalty.points_ledger** — rename column reversal_reference_points_ledger_id to reversed_points_ledger_id because the current name is unnecessarily verbose
+**PRIORITY 35 — rename_attribute: loyalty.loyalty_membership** — rename column referred_by_member_loyalty_membership_id to referrer_loyalty_membership_id because the current name is excessively long and redundant
+**PRIORITY 36 — rename_attribute: inventory.stock_ledger** — rename column reversed_transaction_stock_ledger_id to reversed_stock_ledger_id because the current name is redundantly verbose
+**PRIORITY 37 — rename_attribute: order.pos_transaction** — rename column original_transaction_pos_transaction_id to original_pos_transaction_id because the current name redundantly includes "transaction" twice
+**PRIORITY 38 — connect_table: order.cancellation** — add column return_policy_id (BIGINT) with FK to returns.return_policy.return_policy_id — cancellations should reference the applicable return/cancellation policy for eligibility validation
+**PRIORITY 39 — connect_table: inventory.cycle_count** — add column store_location_id (BIGINT) with FK to store.location.location_id — cycle counts at stores need direct store reference for operational scheduling beyond the generic inventory_node
+**PRIORITY 40 — connect_table: supplychain.demand_forecast** — add column inventory_node_id (BIGINT) with FK to inventory.inventory_node.inventory_node_id — demand forecasts should be linked to specific inventory nodes for node-level replenishment planning
+**PRIORITY 41 — connect_table: supplychain.demand_forecast** — add column merchandising_category_id (BIGINT) with FK to merchandising.category.category_id — demand forecasts are generated at category level for merchandise planning integration
+**PRIORITY 42 — connect_table: store.traffic_count** — add column financial_period_id (BIGINT) with FK to finance.financial_period.financial_period_id — traffic counts need period alignment for comp sales and footfall-to-conversion analysis
+**PRIORITY 43 — connect_table: store.shrinkage_event** — add column inventory_lot_id (BIGINT) with FK to inventory.lot.lot_id — shrinkage events for perishables and serialized goods need lot-level traceability
+**PRIORITY 44 — connect_table: ecommerce.web_session** — add column customer_account_id (BIGINT) with FK to customer.account.account_id — authenticated web sessions should link to the customer account for cross-session journey analysis
+**PRIORITY 45 — connect_table: pricing.cost_zone** — add column store_location_id (BIGINT) with FK to store.location.location_id — cost zones need to be mappable to store locations for landed cost calculations
+**PRIORITY 46 — connect_table: loyalty.tier** — add column pricing_price_list_id (BIGINT) with FK to pricing.price_list.price_list_id — loyalty tiers often unlock tier-specific price lists for member pricing
+**PRIORITY 47 — connect_table: returns.disposition** — add column store_location_id (BIGINT) with FK to store.location.location_id — dispositions at store level need location tracking for restocking vs liquidation decisions
+**PRIORITY 48 — connect_table: order.gift_card** — add column customer_account_id (BIGINT) with FK to customer.account.account_id — gift cards should link to the purchasing account for balance management and fraud detection
+**PRIORITY 49 — connect_table: merchandising.markdown_event** — add column pricing_price_list_id (BIGINT) with FK to pricing.price_list.price_list_id — markdown events apply within specific price lists and need this reference for price cascade logic
+**PRIORITY 50 — connect_table: supplychain.plan** — add column financial_period_id (BIGINT) with FK to finance.financial_period.financial_period_id — supply chain plans operate within financial periods for budget alignment
+**PRIORITY 51 — connect_table: fulfillment.sla** — add column store_location_id (BIGINT) with FK to store.location.location_id — SLAs vary by store location for BOPIS/SFS commitments
+**PRIORITY 52 — remove_fk: ecommerce.digital_catalog** — remove FK on column supplier_vendor_contract_id because digital catalogs display products, not vendor contracts; contract details belong in procurement domain
+**PRIORITY 53 — remove_fk: ecommerce.storefront** — remove FK on column supplier_vendor_contract_id because storefronts are customer-facing digital properties with no direct relationship to vendor contracts
+**PRIORITY 54 — connect_table: product.brand** — add column merchandising_category_id (BIGINT) with FK to merchandising.category.category_id — brands operate within categories for category management and brand-level assortment decisions
+**PRIORITY 55 — connect_table: product.item_bundle** — add column merchandising_category_id (BIGINT) with FK to merchandising.category.category_id — bundles belong to categories for merchandise planning and reporting
+**PRIORITY 56 — connect_table: order.discount** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — discounts applied at line level need SKU reference for margin impact analysis
+**PRIORITY 57 — connect_table: finance.budget** — add column merchandising_category_id (BIGINT) with FK to merchandising.category.category_id — budgets are often allocated at category level for merchandise financial planning
+**PRIORITY 58 — connect_table: supplychain.outbound_order** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — outbound orders ship specific SKUs and need product-level detail for allocation
+**PRIORITY 59 — rename_attribute: supplychain.purchase_order** — rename column blanket_po_purchase_order_id to blanket_purchase_order_id because the current name redundantly includes "po" and "purchase_order"
+**PRIORITY 60 — connect_table: loyalty.accrual_rule** — add column loyalty_tier_id (BIGINT) with FK to loyalty.tier.tier_id — accrual rules often vary by tier level for accelerated earning at higher tiers
+**PRIORITY 61 — connect_table: returns.exchange_order** — add column return_policy_id (BIGINT) with FK to returns.return_policy.return_policy_id — exchange orders are governed by return policies for eligibility and timeframe validation
+**PRIORITY 62 — connect_table: supplychain.warehouse_zone** — add column merchandising_category_id (BIGINT) with FK to merchandising.category.category_id — warehouse zones are often organized by product category for efficient picking and storage
+
+Other known issues from static analysis (8):
+  - Attribute 'account_tier' in customer.account has redundant product prefix 'account_'. Rename to 'tier'
+  - Attribute 'brand_tier' in product.brand has redundant product prefix 'brand_'. Rename to 'tier'
+  - Table finance.financial_period has self-referencing FK on column 'comparable_period_id' with same name as PK 'financial_period_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table pricing.margin_target has 2 FK columns pointing to merchandising.category (category_id, primary_margin_category_id) (generic/unlabeled: category_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Product 'inventory.stock_ledger' has 26 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - 8 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 129 attribute(s) match person-data patterns but lack pii_ tags
+  - 8 non-PK attributes redundantly prefixed with their product name
+
+Deterministic score: 92/100 (LLM assessment: 62/100)

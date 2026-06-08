@@ -1,0 +1,189 @@
+**Model Quality Score: 50/100**
+
+**Static Analysis Findings (64 actionable):**
+  - [SA:unlinked_fk] Column sales.isci_creative.ad_standards_clearance_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column subscriber.subscriber.household_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column workforce.org_unit.manager_employee_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column production.rental_agreement.production_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column content.content_portfolio.series_id looks like an FK but has no foreign_key_to reference
+  - [SA:duplicate_product_pair] Domain 'sales' has both 'proposal' and 'sales_proposal' — SSOT violation. Merge into 'proposal'.
+  - [SA:duplicate_product_pair] Domain 'sales' has both 'scatter_order' and 'sales_scatter_order' — SSOT violation. Merge into 'scatter_order'.
+  - [SA:fk_namespace_mismatch] sales.ad_order.campaign_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] sales.ad_order_line.isci_creative_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] sales.ad_spot.isci_creative_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] sales.affidavit.isci_creative_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] sales.dai_event.isci_creative_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] sales.impression_delivery.isci_creative_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] sales.makegood.original_isci_creative_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] sales.political_ad_disclosure.isci_creative_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] audience.engagement_event.advertiser_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] audience.nielsen_rating.campaign_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] audience.reach_frequency_report.advertiser_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] audience.viewership_record.campaign_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] billing.ad_billing_order.ad_order_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] billing.ad_billing_order.upfront_deal_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] billing.ad_billing_reconciliation.ad_order_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] billing.credit_memo.ad_order_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] billing.credit_memo.advertising_makegood_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] billing.credit_memo.original_ad_spot_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] billing.billing_dispute.advertiser_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] billing.billing_dispute.campaign_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] billing.invoice.advertiser_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] billing.invoice.sales_agency_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] billing.invoice_line.ad_order_line_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] billing.invoice_line.advertising_makegood_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] billing.revenue_recognition_schedule.ad_order_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] content.content_episode.campaign_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] distribution.dai_session.ad_order_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] distribution.dai_session.campaign_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] distribution.delivery_event.campaign_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] distribution.playback_session.campaign_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] production.budget_line.campaign_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] production.deliverable.isci_creative_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] production.production_clearance.advertiser_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] production.project.campaign_id: description says 'advertising' but FK points to 'sales'
+  - [SA:fk_namespace_mismatch] production.script.campaign_id: description says 'advertising' but FK points to 'sales'
+  - [SA:denormalized_natural_key] Product 'sales.product' has both FK 'product_id' and natural key 'product_code' for entity 'product'. The natural key is redundant — use the FK join instead.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'audience.audience_profile' and 'talent.talent_profile' have the same entity name 'profile' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_account' and 'sales.sales_account' have the same entity name 'account' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_carriage_fee_invoice' and 'distribution.distribution_carriage_fee_invoice' have the same entity name 'carriage_fee_invoice' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_dispute' and 'partner.partner_dispute' have the same entity name 'dispute' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.product' and 'sales.product' have the same entity name 'product' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'compliance.compliance_consent_record' and 'subscriber.subscriber_consent_record' have the same entity name 'consent_record' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'content.content_episode' and 'production.production_episode' have the same entity name 'episode' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'content.content_clearance' and 'production.production_clearance' have the same entity name 'clearance' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'content.content_clearance' and 'talent.talent_clearance' have the same entity name 'clearance' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'production.production_clearance' and 'talent.talent_clearance' have the same entity name 'clearance' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'distribution.distribution_partner' and 'partner.partner_partner' have the same entity name 'partner' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'partner.partner_contact' and 'sales.sales_contact' have the same entity name 'contact' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'partner.partner_audit_event' and 'rights.rights_audit_event' have the same entity name 'audit_event' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'partner.partner_content_window' and 'rights.rights_content_window' have the same entity name 'content_window' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'partner.partner_deal_approval' and 'sales.sales_deal_approval' have the same entity name 'deal_approval' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'rights.rights_territory' and 'sales.sales_territory' have the same entity name 'territory' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'rights.rights_availability_window' and 'scheduling.scheduling_availability_window' have the same entity name 'availability_window' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'rights.rights_blackout_rule' and 'scheduling.scheduling_blackout_rule' have the same entity name 'blackout_rule' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'rights.rights_syndication_deal' and 'sales.sales_syndication_deal' have the same entity name 'syndication_deal' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'sales.sales_agency' and 'talent.talent_agency' have the same entity name 'agency' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'talent.talent_grievance' and 'workforce.workforce_grievance' have the same entity name 'grievance' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — rename_product: partner.partner_partner** — rename to partner because the doubled name "partner_partner" is a naming artifact that violates snake_case conventions and creates confusion across all 50+ FK references
+**PRIORITY 2 — rename_attribute: billing.communication_template** — rename column parent_communication_template_id to parent_template_id because the self-referencing FK has a redundant table-name prefix and a second self-ref column already uses parent_template_id, creating ambiguity
+**PRIORITY 3 — rename_attribute: sales.sales_team** — rename column parent_sales_team_id to parent_team_id because there are two self-ref columns (parent_team_id and parent_sales_team_id) pointing to the same PK, which is a duplicate self-reference
+**PRIORITY 4 — remove_fk: sales.sales_team** — remove FK on column parent_sales_team_id because it duplicates the self-referencing FK already expressed by parent_team_id on the same table
+**PRIORITY 5 — connect_table: content.billing_line** — add column finance_cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — billing lines need cost center allocation for financial reporting and cost attribution
+**PRIORITY 6 — connect_table: distribution.cdn_configuration** — add column technology_broadcast_facility_id (BIGINT) with FK to technology.broadcast_facility.broadcast_facility_id — CDN configurations are deployed at specific broadcast facilities and need infrastructure linkage
+**PRIORITY 7 — connect_table: distribution.cdn_configuration** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — CDN configurations require an owner/responsible engineer for change management
+**PRIORITY 8 — connect_table: mediaasset.storage_location** — add column technology_broadcast_facility_id (BIGINT) with FK to technology.broadcast_facility.broadcast_facility_id — storage locations are physically hosted at facilities and need infrastructure linkage
+**PRIORITY 9 — connect_table: mediaasset.format_specification** — add column technology_broadcast_standard_id (BIGINT) with FK to technology.broadcast_standard.broadcast_standard_id — format specs must reference the broadcast standard they conform to
+**PRIORITY 10 — connect_table: billing.product** — add column finance_revenue_stream_id (BIGINT) with FK to finance.revenue_stream.revenue_stream_id — billing products must map to revenue streams for ASC 606 revenue recognition
+**PRIORITY 11 — connect_table: billing.cycle** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — billing cycles need an owner for operational accountability
+**PRIORITY 12 — connect_table: content.rating** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.regulatory_obligation.regulatory_obligation_id — content rating systems are mandated by regulatory obligations
+**PRIORITY 13 — connect_table: distribution.sla_definition** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — SLA definitions need an accountable owner for governance
+**PRIORITY 14 — connect_table: rights.holder** — add column partner_partner_partner_id (BIGINT) with FK to partner.partner_partner.partner_partner_id — rights holders are typically partner entities and need linkage for contract and payment workflows
+**PRIORITY 15 — connect_table: rights.rights_territory** — add column audience_market_coverage_id (BIGINT) with FK to audience.market_coverage.market_coverage_id — rights territories must map to market coverage areas for availability enforcement
+**PRIORITY 16 — connect_table: sales.product** — add column billing_product_id (BIGINT) with FK to billing.product.product_id — sales products must link to billing products for order-to-cash reconciliation
+**PRIORITY 17 — remove_fk: audience.nielsen_rating** — remove FK on column compliance_eas_log_id because Nielsen ratings have no business dependency on Emergency Alert System logs
+**PRIORITY 18 — remove_fk: audience.nielsen_rating** — remove FK on column compliance_closed_caption_record_id because closed captioning compliance is unrelated to audience measurement ratings
+**PRIORITY 19 — remove_fk: audience.guarantee** — remove FK on column compliance_sox_control_id because audience guarantees are commercial commitments not governed by SOX financial controls
+**PRIORITY 20 — remove_fk: audience.guarantee** — remove FK on column compliance_political_ad_record_id because audience delivery guarantees are not structurally dependent on political ad records
+**PRIORITY 21 — remove_fk: audience.guarantee** — remove FK on column compliance_audit_finding_id because audience guarantees are sales instruments not dependent on compliance audit findings
+**PRIORITY 22 — remove_fk: billing.ad_billing_order** — remove FK on column technology_transmission_equipment_id because ad billing orders are financial documents with no direct dependency on transmission hardware
+**PRIORITY 23 — remove_fk: billing.ad_billing_reconciliation** — remove FK on column technology_transmission_equipment_id because billing reconciliation is a financial process not dependent on specific transmission equipment
+**PRIORITY 24 — remove_fk: billing.credit_memo** — remove FK on column technology_transmission_equipment_id because credit memos are financial instruments with no structural link to transmission hardware
+**PRIORITY 25 — connect_table: scheduling.daypart** — add column scheduling_channel_id (BIGINT) with FK to scheduling.channel.channel_id — dayparts are defined per channel and need explicit channel linkage
+**PRIORITY 26 — connect_table: distribution.delivery_sla** — add column distribution_distribution_partner_id (BIGINT) with FK to distribution.distribution_partner.distribution_partner_id — delivery SLAs are negotiated with specific distribution partners
+**PRIORITY 27 — connect_table: distribution.feature_flag** — add column distribution_ott_platform_id (BIGINT) with FK to distribution.ott_platform.ott_platform_id — feature flags control platform-specific functionality and need platform linkage
+**PRIORITY 28 — move_product: content.billing_line** — move to billing because billing_line is a financial transaction record that belongs with other invoice/billing artifacts, not content metadata
+**PRIORITY 29 — connect_table: sales.proposal** — add column sales_advertiser_id (BIGINT) with FK to sales.advertiser.advertiser_id — proposals are created for specific advertisers and need direct linkage
+**PRIORITY 30 — connect_table: sales.proposal** — add column sales_rep_id (BIGINT) with FK to sales.rep.rep_id — proposals are owned by sales reps who manage the client relationship
+**PRIORITY 31 — connect_table: sales.brand** — add column sales_advertiser_id (BIGINT) with FK to sales.advertiser.advertiser_id — brands belong to advertisers and need parent entity linkage
+**PRIORITY 32 — connect_table: sales.scatter_order** — add column sales_advertiser_id (BIGINT) with FK to sales.advertiser.advertiser_id — scatter orders are placed by advertisers and need direct linkage
+**PRIORITY 33 — connect_table: sales.scatter_order** — add column scheduling_channel_id (BIGINT) with FK to scheduling.channel.channel_id — scatter orders target specific channels for ad placement
+**PRIORITY 34 — remove_fk: workforce.goal** — remove FK on column billing_cycle_id because employee goals are HR performance artifacts with no structural dependency on billing cycles
+**PRIORITY 35 — remove_fk: workforce.goal** — remove FK on column scheduling_channel_id because employee goals are HR artifacts not structurally dependent on broadcast channels
+**PRIORITY 36 — remove_fk: workforce.training_course** — remove FK on column scheduling_daypart_id because training courses are HR/learning artifacts not dependent on broadcast daypart definitions
+**PRIORITY 37 — remove_fk: workforce.work_schedule** — remove FK on column scheduling_daypart_id because employee work schedules use shift patterns not broadcast daypart definitions
+**PRIORITY 38 — connect_table: subscriber.household** — add column audience_market_coverage_id (BIGINT) with FK to audience.market_coverage.market_coverage_id — households exist in specific markets for DMA-level audience measurement
+**PRIORITY 39 — connect_table: mediaasset.legal_hold** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — legal holds require a custodian/requestor for chain-of-custody compliance
+**PRIORITY 40 — connect_table: production.rental_agreement** — add column partner_vendor_id (BIGINT) with FK to partner.vendor.vendor_id — rental agreements are with equipment vendors and need vendor linkage
+**PRIORITY 41 — connect_table: production.rental_agreement** — add column finance_cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — rental costs must be allocated to cost centers for budget tracking
+**PRIORITY 42 — rename_product: sales.proposal** — rename to sales_brief because the domain already has sales_proposal creating semantic confusion between two proposal-like tables
+**PRIORITY 43 — connect_table: distribution.app_version** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — app versions need a release manager for accountability
+**PRIORITY 44 — connect_table: content.content_library** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — content libraries need a curator/owner for governance
+**PRIORITY 45 — connect_table: content.content_portfolio** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — content portfolios need a portfolio manager for strategic oversight
+**PRIORITY 46 — connect_table: audience.measurement_methodology** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — measurement methodologies need an owner for data governance
+**PRIORITY 47 — connect_table: distribution.drm_policy** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — DRM policies need an owner for security governance
+**PRIORITY 48 — connect_table: rights.rights_territory** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — territory definitions need an owner for rights administration
+**PRIORITY 49 — connect_table: rights.holder** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — rights holder records need a relationship manager
+**PRIORITY 50 — remove_fk: audience.nielsen_rating** — remove FK on column compliance_incident_id because Nielsen ratings are measurement data not structurally dependent on compliance incidents
+**PRIORITY 51 — remove_fk: audience.nielsen_rating** — remove FK on column compliance_regulatory_filing_id because ratings data is not structurally dependent on regulatory filings
+**PRIORITY 52 — remove_fk: audience.nielsen_rating** — remove FK on column compliance_sox_control_id because audience ratings are measurement data not governed by SOX controls
+**PRIORITY 53 — remove_fk: audience.nielsen_rating** — remove FK on column compliance_political_ad_record_id because Nielsen ratings are audience measurements not dependent on political ad records
+**PRIORITY 54 — connect_table: sales.campaign** — add column scheduling_channel_id (BIGINT) with FK to scheduling.channel.channel_id — campaigns target specific channels and need direct channel linkage for trafficking
+**PRIORITY 55 — connect_table: subscriber.subscriber** — add column billing_billing_account_id (BIGINT) with FK to billing.billing_account.billing_account_id — subscribers must link directly to their billing account for subscription management
+**PRIORITY 56 — connect_table: content.genre** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — genre taxonomy needs a curator for metadata governance
+**PRIORITY 57 — connect_table: production.location** — add column finance_cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — production locations incur costs that must be allocated to cost centers
+**PRIORITY 58 — remove_fk: audience.reach_frequency_report** — remove FK on column compliance_sox_control_id because reach/frequency reports are audience analytics not governed by SOX controls
+**PRIORITY 59 — remove_fk: audience.reach_frequency_report** — remove FK on column compliance_political_ad_record_id because reach/frequency analytics are not structurally dependent on political ad records
+**PRIORITY 60 — connect_table: distribution.playout** — add column scheduling_schedule_slot_id (BIGINT) with FK to scheduling.schedule_slot.schedule_slot_id — playout events execute specific schedule slots and need scheduling linkage
+**PRIORITY 61 — connect_table: distribution.playout** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — playout operations need operator attribution for audit trails
+**PRIORITY 62 — connect_table: advertising.ad_inventory** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — ad inventory needs an owner for yield management accountability
+**PRIORITY 63 — connect_table: sales.rfp** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — RFPs need an assigned owner for response management
+**PRIORITY 64 — connect_table: sales.campaign_funding** — add column finance_cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — campaign funding must be tracked against cost centers for budget control
+**PRIORITY 65 — remove_fk: audience.viewership_record** — remove FK on column compliance_incident_id because viewership records are measurement data not structurally dependent on compliance incidents
+**PRIORITY 66 — connect_table: content.taxonomy** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — taxonomies need a governance owner for metadata quality
+**PRIORITY 67 — connect_table: subscriber.win_back_offer** — add column subscriber_subscriber_id (BIGINT) with FK to subscriber.subscriber.subscriber_id — win-back offers target specific churned subscribers
+**PRIORITY 68 — connect_table: subscriber.offer** — add column finance_revenue_stream_id (BIGINT) with FK to finance.revenue_stream.revenue_stream_id — offers generate revenue that must map to revenue streams
+**PRIORITY 69 — connect_table: production.equipment_type** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — equipment type catalog needs a maintainer for asset management
+**PRIORITY 70 — remove_fk: audience.cross_platform_measurement** — remove FK on column compliance_content_rating_id because cross-platform measurement is audience analytics not dependent on content ratings
+**PRIORITY 71 — connect_table: distribution.channel_compliance** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — channel compliance records need an accountable compliance officer
+**PRIORITY 72 — connect_table: mediaasset.storage_location** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — storage locations need a responsible storage administrator
+
+Other known issues from static analysis (45):
+  - Attribute 'genre_tier' in content.genre has redundant product prefix 'genre_'. Rename to 'tier'
+  - Attribute 'product_owner' in billing.product has redundant product prefix 'product_'. Rename to 'owner'
+  - Attribute 'audit_cost' in compliance.audit has redundant product prefix 'audit_'. Rename to 'cost'
+  - Attribute 'audit_firm_name' in compliance.audit has redundant product prefix 'audit_'. Rename to 'firm_name'
+  - Attribute 'audit_frequency' in compliance.audit has redundant product prefix 'audit_'. Rename to 'frequency'
+  - Attribute 'audit_methodology' in compliance.audit has redundant product prefix 'audit_'. Rename to 'methodology'
+  - Attribute 'audit_opinion' in compliance.audit has redundant product prefix 'audit_'. Rename to 'opinion'
+  - Attribute 'audit_title' in compliance.audit has redundant product prefix 'audit_'. Rename to 'title'
+  - Attribute 'brand_logo_url' in sales.brand has redundant product prefix 'brand_'. Rename to 'logo_url'
+  - Attribute 'brand_owner' in sales.brand has redundant product prefix 'brand_'. Rename to 'owner'
+  - Attribute 'brand_tagline' in sales.brand has redundant product prefix 'brand_'. Rename to 'tagline'
+  - Attribute 'brand_tier' in sales.brand has redundant product prefix 'brand_'. Rename to 'tier'
+  - Attribute 'brand_website_url' in sales.brand has redundant product prefix 'brand_'. Rename to 'website_url'
+  - Attribute 'product_manager_name' in sales.product has redundant product prefix 'product_'. Rename to 'manager_name'
+  - Table sales.ad_order_line has self-referencing FK on column 'makegood_for_line_id' with same name as PK 'ad_order_line_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table compliance.sox_control has self-referencing FK on column 'compensating_control_id' with same name as PK 'sox_control_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table distribution.playout_feed has self-referencing FK on column 'failover_feed_id' with same name as PK 'playout_feed_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table distribution.streaming_endpoint has self-referencing FK on column 'failover_endpoint_id' with same name as PK 'streaming_endpoint_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table workforce.onboarding_task has self-referencing FK on column 'dependency_task_id' with same name as PK 'onboarding_task_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table technology.outage_record has self-referencing FK on column 'related_outage_record_id' with same name as PK 'outage_record_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table technology.satellite_transponder has self-referencing FK on column 'backup_satellite_transponder_id' with same name as PK 'satellite_transponder_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table technology.tech_problem has self-referencing FK on column 'related_tech_problem_id' with same name as PK 'tech_problem_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table advertising.ad_inventory has 2 FK columns pointing to content.title (program_title_id, title_id) (generic/unlabeled: title_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table sales.ad_pod has 2 FK columns pointing to content.title (program_title_id, title_id) (generic/unlabeled: title_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table sales.dai_event has 2 FK columns pointing to mediaasset.media_asset (content_asset_id, media_asset_id) (generic/unlabeled: media_asset_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table audience.guarantee has 2 FK columns pointing to scheduling.channel (channel_id, network_channel_id) (generic/unlabeled: channel_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table distribution.playback_session has 2 FK columns pointing to distribution.device_type (device_device_type_id, device_type_id) (generic/unlabeled: device_type_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.budget_version has 2 FK columns pointing to workforce.employee (approver_employee_id, employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table partner.affiliate_agreement has 3 FK columns pointing to scheduling.channel (affiliate_station_channel_id, channel_id, network_channel_id) (generic/unlabeled: channel_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table rights.license_amendment has 2 FK columns pointing to partner.partner_partner (licensee_party_partner_id, partner_id) (generic/unlabeled: partner_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table sales.sales_contact has 2 FK columns pointing to workforce.employee (employee_id, last_modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table sales.proposal_distribution has 2 FK columns pointing to sales.sales_contact (contact_sales_contact_id, sales_contact_id) (generic/unlabeled: sales_contact_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table production.episode_sponsorship has 2 FK columns pointing to production.production_episode (episode_production_episode_id, production_episode_id) (generic/unlabeled: production_episode_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table audience.segment_regulatory_compliance has 2 FK columns pointing to audience.segment (audience_segment_id, segment_id) (generic/unlabeled: segment_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.project_assignment has 2 FK columns pointing to workforce.employee (employee_id, project_manager_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.cost_center_authorization has 3 FK columns pointing to workforce.employee (employee_id, granted_by_employee_id, revoked_by_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.recurring_entry_template has 3 FK columns pointing to workforce.employee (created_by_user_employee_id, employee_id, last_modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table production.shoot_day has 3 FK columns pointing to workforce.employee (director_of_photography_employee_id, employee_id, first_assistant_director_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table rights.rights_audit_session has 4 FK columns pointing to workforce.employee (approved_by_employee_id, created_by_employee_id, employee_id, modified_by_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.benefit_plan has 2 FK columns pointing to workforce.employee (employee_id, modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - 10 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 505 attribute(s) match person-data patterns but lack pii_ tags
+  - 48 non-PK attributes redundantly prefixed with their product name
+  - 2 attribute(s) have value_regex on typed columns (DATE/BOOLEAN/INT/etc.) — regex is redundant when data_type constrains format
+  - 1 attribute(s) have pipe-enum value_regex with >8 values — consider creating a reference product instead
+
+Deterministic score: 50/100 (LLM assessment: 62/100)

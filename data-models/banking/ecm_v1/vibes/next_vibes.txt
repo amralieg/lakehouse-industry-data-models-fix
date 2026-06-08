@@ -1,0 +1,244 @@
+**Model Quality Score: 50/100**
+
+**Static Analysis Findings (61 actionable):**
+  - [SA:unlinked_fk] Column asset.fund.administrator_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column channel.sla_breach.channel_sla_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column fraud.fraud_alert.escalated_to_case_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column fraud.sar_filing.aml_case_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column payment.batch.journal_entry_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column payment.payment_transaction.aml_alert_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column wealth.managed_portfolio.custodian_account_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column wealth.managed_portfolio.investment_policy_statement_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column channel.override_request.account_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column channel.override_request.approved_by_user_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column channel.override_request.channel_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column channel.override_request.customer_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column channel.override_request.requested_by_user_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column channel.override_request.secondary_approver_user_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column hr.competency_framework.approved_by_employee_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column hr.competency_framework.business_unit_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column hr.competency_framework.created_by_employee_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column hr.competency_framework.job_family_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column hr.competency_framework.last_modified_by_employee_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column hr.competency_framework.owner_employee_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column payment.merchant_agreement.acquiring_bank_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column payment.merchant_agreement.approved_by_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column payment.merchant_agreement.merchant_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column payment.merchant_agreement.relationship_manager_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column payment.merchant_agreement.settlement_account_id looks like an FK but has no foreign_key_to reference
+  - [SA:duplicate_product_pair] Domain 'customer' has both 'beneficial_owner' and 'customer_beneficial_owner' — SSOT violation. Merge into 'beneficial_owner'.
+  - [SA:missing_pk] Product 'trade.isda_master_agreement' has no primary key attribute.
+  - [SA:missing_pk] Product 'payment.merchant' has no primary key attribute.
+  - [SA:denormalized_natural_key] Product 'hr.learning_enrollment' has both FK 'course_id' and natural key 'course_code' for entity 'course'. The natural key is redundant — use the FK join instead.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'account.account_transaction' and 'payment.payment_transaction' have the same entity name 'transaction' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'account.account_limit' and 'risk.risk_limit' have the same entity name 'limit' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'account.account_product' and 'channel.channel_product' have the same entity name 'product' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'account.account_position' and 'collateral.collateral_position' have the same entity name 'position' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'account.account_position' and 'hr.hr_position' have the same entity name 'position' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'account.account_position' and 'trade.trade_position' have the same entity name 'position' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'collateral.collateral_position' and 'hr.hr_position' have the same entity name 'position' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'collateral.collateral_position' and 'trade.trade_position' have the same entity name 'position' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'hr.hr_position' and 'trade.trade_position' have the same entity name 'position' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'account.account_collateral_pledge' and 'loan.loan_collateral_pledge' have the same entity name 'collateral_pledge' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'account.account_portfolio_holding' and 'wealth.wealth_portfolio_holding' have the same entity name 'portfolio_holding' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'account.account_pledge' and 'collateral.collateral_pledge' have the same entity name 'pledge' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'asset.asset_unit_register' and 'customer.customer_unit_register' have the same entity name 'unit_register' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'audit.audit_budget' and 'ledger.ledger_budget' have the same entity name 'budget' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'channel.channel' and 'payment.payment_channel' have the same entity name 'channel' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'channel.channel_relationship_manager' and 'customer.customer_relationship_manager' have the same entity name 'relationship_manager' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'channel.channel_incident' and 'fraud.fraud_incident' have the same entity name 'incident' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'channel.channel_alert' and 'fraud.fraud_alert' have the same entity name 'alert' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'collateral.collateral_margin_call' and 'trade.trade_margin_call' have the same entity name 'margin_call' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'collateral.collateral_valuation' and 'investment.investment_valuation' have the same entity name 'valuation' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'collateral.collateral_lifecycle_event' and 'trade.trade_lifecycle_event' have the same entity name 'lifecycle_event' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'collateral.isda_master_agreement' and 'trade.isda_master_agreement' have the same entity name 'isda_master_agreement' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'compliance.compliance_regulatory_filing' and 'investment.investment_regulatory_filing' have the same entity name 'regulatory_filing' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'compliance.compliance_sox_control' and 'ledger.ledger_sox_control' have the same entity name 'sox_control' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'customer.customer_investor_order' and 'investment.investment_investor_order' have the same entity name 'investor_order' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'fraud.fraud_watchlist' and 'security.security_watchlist' have the same entity name 'watchlist' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'fraud.merchant' and 'payment.merchant' have the same entity name 'merchant' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'investment.investment_mandate' and 'payment.payment_mandate' have the same entity name 'mandate' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'investment.investment_syndication' and 'loan.loan_syndication' have the same entity name 'syndication' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'loan.loan_ecl_provision' and 'risk.risk_ecl_provision' have the same entity name 'ecl_provision' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'loan.loan_fee_schedule' and 'wealth.wealth_fee_schedule' have the same entity name 'fee_schedule' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'security.security_holding' and 'wealth.wealth_holding' have the same entity name 'holding' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — connect_table: reference.currency** — add column issuing_country_id (BIGINT) with FK to reference.country.country_id — currency should reference its issuing country for regulatory and reporting purposes
+**PRIORITY 2 — connect_table: reference.instrument_classification** — add column parent_classification_id (BIGINT) with FK to reference.instrument_classification.instrument_classification_id — instrument classifications are hierarchical (e.g., Fixed Income > Corporate Bonds > High Yield)
+**PRIORITY 3 — connect_table: hr.benefit_plan** — add column legal_entity_id (BIGINT) with FK to ledger.legal_entity.legal_entity_id — benefit plans are offered by specific legal entities for regulatory compliance
+**PRIORITY 4 — connect_table: channel.campaign** — add column channel_id (BIGINT) with FK to channel.channel.channel_id — marketing campaigns are executed through specific channels
+**PRIORITY 5 — connect_table: channel.alert_template** — add column channel_id (BIGINT) with FK to channel.channel.channel_id — alert templates are channel-specific for proper formatting and delivery
+**PRIORITY 6 — connect_table: channel.override_request** — add column channel_id (BIGINT) with FK to channel.channel.channel_id — override requests originate from specific channels
+**PRIORITY 7 — connect_table: channel.override_request** — add column requested_by_employee_id (BIGINT) with FK to hr.employee.employee_id — override requests must track the requesting employee for audit
+**PRIORITY 8 — connect_table: trade.clearing_house** — add column country_id (BIGINT) with FK to reference.country.country_id — clearing houses operate under specific country jurisdictions
+**PRIORITY 9 — connect_table: trade.clearing_house** — add column currency_id (BIGINT) with FK to reference.currency.currency_id — clearing houses have primary settlement currencies
+**PRIORITY 10 — connect_table: trade.compression_cycle** — add column legal_entity_id (BIGINT) with FK to ledger.legal_entity.legal_entity_id — compression cycles are executed by specific legal entities
+**PRIORITY 11 — connect_table: trade.compression_cycle** — add column approved_by_employee_id (BIGINT) with FK to hr.employee.employee_id — compression cycles require approval tracking
+**PRIORITY 12 — connect_table: trade.trade_repository** — add column jurisdiction_id (BIGINT) with FK to reference.jurisdiction.jurisdiction_id — trade repositories operate under specific regulatory jurisdictions
+**PRIORITY 13 — connect_table: trade.isda_master_agreement** — add column legal_entity_id (BIGINT) with FK to ledger.legal_entity.legal_entity_id — ISDA agreements are signed by specific legal entities
+**PRIORITY 14 — connect_table: trade.commission_schedule** — add column currency_id (BIGINT) with FK to reference.currency.currency_id — commission schedules are denominated in specific currencies
+**PRIORITY 15 — connect_table: fraud.merchant** — add column country_id (BIGINT) with FK to reference.country.country_id — merchants operate in specific countries for fraud pattern analysis
+**PRIORITY 16 — connect_table: fraud.merchant** — add column industry_code_id (BIGINT) with FK to reference.industry_code.industry_code_id — merchant category codes are essential for fraud detection
+**PRIORITY 17 — connect_table: compliance.disclosure_template** — add column jurisdiction_id (BIGINT) with FK to reference.jurisdiction.jurisdiction_id — disclosure templates are jurisdiction-specific
+**PRIORITY 18 — connect_table: compliance.sanctions_list_entry** — add column country_id (BIGINT) with FK to reference.country.country_id — sanctions entries are associated with specific countries
+**PRIORITY 19 — connect_table: compliance.sanctions_list_entry** — add column added_by_employee_id (BIGINT) with FK to hr.employee.employee_id — sanctions list maintenance requires audit trail
+**PRIORITY 20 — connect_table: audit.program_step** — add column program_id (BIGINT) with FK to audit.program.program_id — program steps must belong to an audit program
+**PRIORITY 21 — connect_table: audit.quality_assurance_review** — add column engagement_id (BIGINT) with FK to audit.engagement.engagement_id — QA reviews are performed on specific audit engagements
+**PRIORITY 22 — connect_table: audit.quality_assurance_review** — add column reviewer_employee_id (BIGINT) with FK to hr.employee.employee_id — QA reviews require reviewer identification
+**PRIORITY 23 — connect_table: audit.cae_charter** — add column legal_entity_id (BIGINT) with FK to ledger.legal_entity.legal_entity_id — CAE charters are established for specific legal entities
+**PRIORITY 24 — connect_table: audit.cae_charter** — add column approved_by_employee_id (BIGINT) with FK to hr.employee.employee_id — CAE charters require board/committee approval tracking
+**PRIORITY 25 — connect_table: account.rate_tier** — add column account_product_id (BIGINT) with FK to account.account_product.account_product_id — rate tiers apply to specific account products
+**PRIORITY 26 — connect_table: account.type** — add column legal_entity_id (BIGINT) with FK to ledger.legal_entity.legal_entity_id — account types are offered by specific legal entities
+**PRIORITY 27 — connect_table: loan.covenant_package** — add column facility_id (BIGINT) with FK to loan.facility.facility_id — covenant packages are associated with specific facilities
+**PRIORITY 28 — connect_table: hr.competency_framework** — add column org_unit_id (BIGINT) with FK to hr.org_unit.org_unit_id — competency frameworks are defined at organizational unit level
+**PRIORITY 29 — connect_table: hr.rating_scale** — add column org_unit_id (BIGINT) with FK to hr.org_unit.org_unit_id — rating scales may vary by organizational unit
+**PRIORITY 30 — connect_table: hr.work_location** — add column country_id (BIGINT) with FK to reference.country.country_id — work locations exist in specific countries for labor compliance
+**PRIORITY 31 — connect_table: investment.approval_committee** — add column legal_entity_id (BIGINT) with FK to ledger.legal_entity.legal_entity_id — approval committees operate within specific legal entities
+**PRIORITY 32 — connect_table: investment.approval_committee** — add column chair_employee_id (BIGINT) with FK to hr.employee.employee_id — approval committees have designated chairs
+**PRIORITY 33 — connect_table: investment.pipeline_stage** — add column legal_entity_id (BIGINT) with FK to ledger.legal_entity.legal_entity_id — pipeline stages may vary by legal entity
+**PRIORITY 34 — connect_table: channel.journey_template** — add column channel_id (BIGINT) with FK to channel.channel.channel_id — journey templates are designed for specific channels
+**PRIORITY 35 — connect_table: payment.merchant_agreement** — add column legal_entity_id (BIGINT) with FK to ledger.legal_entity.legal_entity_id — merchant agreements are signed by specific legal entities
+**PRIORITY 36 — connect_table: payment.merchant_agreement** — add column currency_id (BIGINT) with FK to reference.currency.currency_id — merchant agreements specify settlement currency
+**PRIORITY 37 — connect_table: payment.payment_processor** — add column country_id (BIGINT) with FK to reference.country.country_id — payment processors operate in specific countries
+**PRIORITY 38 — connect_table: payment.payment_processor** — add column legal_entity_id (BIGINT) with FK to ledger.legal_entity.legal_entity_id — payment processors contract with specific legal entities
+**PRIORITY 39 — connect_table: risk.appetite** — add column legal_entity_id (BIGINT) with FK to ledger.legal_entity.legal_entity_id — risk appetite is defined at legal entity level
+**PRIORITY 40 — connect_table: risk.appetite** — add column approved_by_employee_id (BIGINT) with FK to hr.employee.employee_id — risk appetite requires board approval tracking
+**PRIORITY 41 — connect_table: risk.valuation_model** — add column legal_entity_id (BIGINT) with FK to ledger.legal_entity.legal_entity_id — valuation models are deployed by specific legal entities
+**PRIORITY 42 — connect_table: risk.stress_scenario** — add column created_by_employee_id (BIGINT) with FK to hr.employee.employee_id — stress scenarios require authorship tracking
+**PRIORITY 43 — connect_table: collateral.haircut_schedule** — add column legal_entity_id (BIGINT) with FK to ledger.legal_entity.legal_entity_id — haircut schedules vary by legal entity
+**PRIORITY 44 — connect_table: collateral.eligibility_rule** — add column legal_entity_id (BIGINT) with FK to ledger.legal_entity.legal_entity_id — eligibility rules are entity-specific
+**PRIORITY 45 — connect_table: security.benchmark** — add column provider_party_id (BIGINT) with FK to customer.party.party_id — benchmarks are provided by specific index providers
+**PRIORITY 46 — connect_table: customer.marketing_campaign** — add column legal_entity_id (BIGINT) with FK to ledger.legal_entity.legal_entity_id — marketing campaigns are run by specific legal entities
+**PRIORITY 47 — connect_table: customer.marketing_campaign** — add column owner_employee_id (BIGINT) with FK to hr.employee.employee_id — marketing campaigns have designated owners
+**PRIORITY 48 — connect_table: fraud.typology** — add column jurisdiction_id (BIGINT) with FK to reference.jurisdiction.jurisdiction_id — fraud typologies may be jurisdiction-specific
+**PRIORITY 49 — connect_table: fraud.detection_rule** — add column created_by_employee_id (BIGINT) with FK to hr.employee.employee_id — detection rules require authorship for audit
+**PRIORITY 50 — connect_table: fraud.device_fingerprint** — add column party_id (BIGINT) with FK to customer.party.party_id — device fingerprints should link to known parties
+**PRIORITY 51 — connect_table: wealth.investment_committee** — add column legal_entity_id (BIGINT) with FK to ledger.legal_entity.legal_entity_id — investment committees operate within legal entities
+**PRIORITY 52 — rename_product: account.type** — rename to account_type because generic name "type" conflicts with reserved words and lacks domain context
+**PRIORITY 53 — rename_product: account.document** — rename to account_document because generic name "document" is ambiguous across domains
+**PRIORITY 54 — rename_product: collateral.review** — rename to collateral_review because generic name "review" is ambiguous across domains
+**PRIORITY 55 — rename_product: collateral.transfer** — rename to collateral_transfer because generic name "transfer" is ambiguous across domains
+**PRIORITY 56 — rename_product: collateral.optimization** — rename to collateral_optimization because generic name "optimization" is ambiguous
+**PRIORITY 57 — rename_product: collateral.substitution** — rename to collateral_substitution because generic name "substitution" is ambiguous
+**PRIORITY 58 — rename_product: fraud.evidence** — rename to fraud_evidence because generic name "evidence" is ambiguous across domains
+**PRIORITY 59 — rename_product: fraud.claim** — rename to fraud_claim because generic name "claim" conflicts with insurance domain concepts
+**PRIORITY 60 — rename_product: fraud.loss** — rename to fraud_loss because generic name "loss" is ambiguous across domains
+**PRIORITY 61 — rename_product: audit.notification** — rename to audit_notification because generic name "notification" is ambiguous
+**PRIORITY 62 — rename_product: audit.resource** — rename to audit_resource because generic name "resource" is ambiguous
+**PRIORITY 63 — rename_product: audit.program** — rename to audit_program because generic name "program" conflicts with other domain concepts
+**PRIORITY 64 — rename_product: channel.preference** — rename to channel_preference because generic name "preference" is ambiguous
+**PRIORITY 65 — rename_product: channel.queue** — rename to service_queue because generic name "queue" is ambiguous
+**PRIORITY 66 — rename_product: compliance.coverage** — rename to compliance_coverage because generic name "coverage" conflicts with insurance concepts
+**PRIORITY 67 — rename_product: loan.pricing** — rename to loan_pricing because generic name "pricing" is ambiguous across domains
+**PRIORITY 68 — rename_product: loan.insurance** — rename to loan_insurance because generic name "insurance" is ambiguous
+**PRIORITY 69 — rename_product: loan.modification** — rename to loan_modification because generic name "modification" is ambiguous
+**PRIORITY 70 — rename_product: payment.routing** — rename to payment_routing because generic name "routing" is ambiguous
+**PRIORITY 71 — rename_product: payment.return** — rename to payment_return because generic name "return" is a reserved word in many languages
+**PRIORITY 72 — rename_product: security.classification** — rename to security_classification because generic name "classification" is ambiguous
+**PRIORITY 73 — rename_product: security.identifier** — rename to security_identifier because generic name "identifier" is ambiguous
+**PRIORITY 74 — rename_product: trade.allocation** — rename to trade_allocation because generic name "allocation" is ambiguous across domains
+**PRIORITY 75 — rename_product: trade.amendment** — rename to trade_amendment because generic name "amendment" is ambiguous
+**PRIORITY 76 — rename_product: trade.confirmation** — rename to trade_confirmation because generic name "confirmation" is ambiguous
+**PRIORITY 77 — rename_product: trade.execution** — rename to trade_execution because generic name "execution" is ambiguous
+**PRIORITY 78 — remove_fk: account.custodial_account** — remove FK on column loan_fee_schedule (referencing loan.loan_fee_schedule) because custodial accounts should not directly reference loan fee schedules; this is a semantic mismatch
+**PRIORITY 79 — remove_fk: account.direct_debit_mandate** — remove FK on column asset_investor_account (referencing asset.investor_account) because direct debit mandates are account-level constructs, not fund investor constructs
+**PRIORITY 80 — connect_table: account.deposit_account** — add column party_id (BIGINT) with FK to customer.party.party_id — deposit accounts must have an owning party for KYC and regulatory reporting
+**PRIORITY 81 — connect_table: account.account_product** — add column legal_entity_id (BIGINT) with FK to ledger.legal_entity.legal_entity_id — account products are offered by specific legal entities
+**PRIORITY 82 — connect_table: security.fixed_income** — add column instrument_id (BIGINT) with FK to security.instrument.instrument_id — fixed income records must link to the base instrument master
+**PRIORITY 83 — connect_table: security.index_constituent** — add column benchmark_id (BIGINT) with FK to security.benchmark.benchmark_id — index constituents belong to specific benchmark indices
+**PRIORITY 84 — connect_table: ledger.chart_of_accounts** — add column legal_entity_id (BIGINT) with FK to ledger.legal_entity.legal_entity_id — charts of accounts are maintained by specific legal entities
+**PRIORITY 85 — connect_table: ledger.task_template** — add column legal_entity_id (BIGINT) with FK to ledger.legal_entity.legal_entity_id — financial close task templates are entity-specific
+**PRIORITY 86 — connect_table: treasury.stress_scenario_cfp** — add column contingency_funding_plan_id (BIGINT) with FK to treasury.contingency_funding_plan.contingency_funding_plan_id — stress scenarios for CFP must link to the parent CFP
+**PRIORITY 87 — connect_table: wealth.composite** — add column legal_entity_id (BIGINT) with FK to ledger.legal_entity.legal_entity_id — GIPS composites are maintained by specific legal entities
+**PRIORITY 88 — connect_table: wealth.model_portfolio** — add column currency_id (BIGINT) with FK to reference.currency.currency_id — model portfolios have base currencies for performance calculation
+
+Other known issues from static analysis (87):
+  - Attribute 'optimization_run_code' in collateral.optimization has redundant product prefix 'optimization_'. Rename to 'run_code'
+  - Attribute 'pricing_tier' in loan.pricing has redundant product prefix 'pricing_'. Rename to 'tier'
+  - Attribute 'card_brand' in payment.card has redundant product prefix 'card_'. Rename to 'brand'
+  - Attribute 'card_delivery_address' in payment.card has redundant product prefix 'card_'. Rename to 'delivery_address'
+  - Attribute 'card_delivery_method' in payment.card has redundant product prefix 'card_'. Rename to 'delivery_method'
+  - Attribute 'card_design_code' in payment.card has redundant product prefix 'card_'. Rename to 'design_code'
+  - Attribute 'card_product_code' in payment.card has redundant product prefix 'card_'. Rename to 'product_code'
+  - Attribute 'merchant_category_code' in payment.merchant has redundant product prefix 'merchant_'. Rename to 'category_code'
+  - Table payment.merchant declares PK 'merchant_id' but no matching attribute exists in the attributes list
+  - Table trade.isda_master_agreement declares PK 'isda_master_agreement_id' but no matching attribute exists in the attributes list
+  - Table channel.branch_appointment has self-referencing FK on column 'rescheduled_from_appointment_id' with same name as PK 'branch_appointment_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table compliance.breach has self-referencing FK on column 'related_breach_id' with same name as PK 'breach_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table ledger.intercompany_transaction has self-referencing FK on column 'matched_transaction_id' with same name as PK 'intercompany_transaction_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table wealth.custodian_account has self-referencing FK on column 'omnibus_parent_account_id' with same name as PK 'custodian_account_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table wealth.tax_lot has self-referencing FK on column 'wash_sale_reference_lot_id' with same name as PK 'tax_lot_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table asset.investor_account has self-referencing FK on column 'linked_investor_account_id' with same name as PK 'investor_account_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table audit.issue_tracker has self-referencing FK on column 'related_issue_tracker_id' with same name as PK 'issue_tracker_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table audit.management_action has self-referencing FK on column 'related_management_action_id' with same name as PK 'management_action_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table audit.three_lines_assignment has self-referencing FK on column 'related_three_lines_assignment_id' with same name as PK 'three_lines_assignment_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table customer.complaint has self-referencing FK on column 'related_complaint_id' with same name as PK 'complaint_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table security.instrument_relationship has self-referencing FK on column 'related_instrument_relationship_id' with same name as PK 'instrument_relationship_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table asset.fund_switch has 2 FK columns pointing to customer.party (party_id, transfer_agent_party_id) (generic/unlabeled: party_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table audit.issue_tracker has 2 FK columns pointing to audit.issue_tracker (prior_issue_issue_tracker_id, related_issue_tracker_id) (generic/unlabeled: related_issue_tracker_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table channel.atm_transaction has 2 FK columns pointing to ledger.legal_entity (issuer_institution_legal_entity_id, legal_entity_id) (generic/unlabeled: legal_entity_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table channel.open_banking_consent has 2 FK columns pointing to hr.employee (employee_id, modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table collateral.collateral_position has 2 FK columns pointing to customer.party (party_id, primary_collateral_party_id) (generic/unlabeled: party_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table collateral.substitution has 2 FK columns pointing to customer.party (party_id, primary_substitution_party_id) (generic/unlabeled: party_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table collateral.margin_agreement has 2 FK columns pointing to hr.employee (employee_id, updated_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table collateral.margin_agreement has 2 FK columns pointing to customer.party (party_id, primary_margin_party_id) (generic/unlabeled: party_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table collateral.repo_agreement has 2 FK columns pointing to customer.party (party_id, primary_repo_party_id) (generic/unlabeled: party_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table collateral.variation_margin has 2 FK columns pointing to customer.party (party_id, primary_variation_party_id) (generic/unlabeled: party_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table compliance.sanctions_screening_event has 2 FK columns pointing to customer.party (party_id, screened_party_id) (generic/unlabeled: party_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table customer.relationship_hierarchy has 2 FK columns pointing to hr.employee (employee_id, modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table fraud.network_link has 2 FK columns pointing to hr.employee (employee_id, updated_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table hr.license_certification has 3 FK columns pointing to hr.employee (created_by_user_employee_id, employee_id, last_modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table hr.onboarding_event has 2 FK columns pointing to hr.employee (employee_id, primary_onboarding_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table hr.performance_review has 3 FK columns pointing to hr.employee (employee_id, primary_performance_employee_id, reviewer_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table hr.regulatory_disclosure has 4 FK columns pointing to hr.employee (employee_id, primary_regulatory_employee_id, reviewer_employee_id, tertiary_regulatory_preparer_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table loan.supply_chain_program has 2 FK columns pointing to hr.employee (employee_id, modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table loan.trade_event has 3 FK columns pointing to hr.employee (created_by_user_employee_id, employee_id, last_modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table payment.fx_transaction has 2 FK columns pointing to treasury.nostro_account (nostro_account_id, vostro_account_id) (generic/unlabeled: nostro_account_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table payment.batch has 3 FK columns pointing to hr.employee (created_by_user_employee_id, employee_id, last_modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table payment.batch has 2 FK columns pointing to ledger.legal_entity (legal_entity_id, receiving_institution_legal_entity_id) (generic/unlabeled: legal_entity_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table payment.batch has 2 FK columns pointing to treasury.nostro_account (nostro_account_id, vostro_account_id) (generic/unlabeled: nostro_account_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table payment.payment_fee has 2 FK columns pointing to account.deposit_account (creditor_account_id, deposit_account_id) (generic/unlabeled: deposit_account_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table payment.instruction has 2 FK columns pointing to account.deposit_account (beneficiary_account_id, deposit_account_id) (generic/unlabeled: deposit_account_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table payment.instruction has 2 FK columns pointing to treasury.nostro_account (nostro_account_id, vostro_account_id) (generic/unlabeled: nostro_account_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table payment.payment_mandate has 2 FK columns pointing to account.deposit_account (creditor_account_id, deposit_account_id) (generic/unlabeled: deposit_account_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table payment.reconciliation has 2 FK columns pointing to treasury.nostro_account (nostro_account_id, vostro_account_id) (generic/unlabeled: nostro_account_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table payment.payment_transaction has 2 FK columns pointing to treasury.nostro_account (nostro_account_id, vostro_account_id) (generic/unlabeled: nostro_account_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table risk.liquidity_metric has 2 FK columns pointing to ledger.legal_entity (legal_entity_id, reporting_unit_legal_entity_id) (generic/unlabeled: legal_entity_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table security.index_constituent has 2 FK columns pointing to security.instrument (index_instrument_id, instrument_id) (generic/unlabeled: instrument_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table wealth.portfolio_corporate_action has 2 FK columns pointing to security.instrument (instrument_id, new_security_instrument_id) (generic/unlabeled: instrument_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table account.account_collateral_pledge has 2 FK columns pointing to collateral.collateral_asset (asset_collateral_asset_id, collateral_asset_id) (generic/unlabeled: collateral_asset_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table fraud.subject_account_link has 2 FK columns pointing to fraud.subject (fraud_subject_id, subject_id) (generic/unlabeled: subject_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table security.trading_restriction has 3 FK columns pointing to hr.employee (created_by_user_employee_id, employee_id, last_modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table audit.business_process has 2 FK columns pointing to hr.employee (approved_by_employee_id, employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table channel.override_approval has 3 FK columns pointing to hr.employee (approver_user_employee_id, delegated_from_user_employee_id, employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table collateral.collateral_basket has 2 FK columns pointing to customer.party (counterparty_id, party_id) (generic/unlabeled: party_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table collateral.collateral_basket has 2 FK columns pointing to hr.employee (employee_id, last_modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table compliance.data_subject_request has 2 FK columns pointing to hr.employee (employee_id, modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table fraud.fraud_ring has 3 FK columns pointing to hr.employee (created_by_user_employee_id, employee_id, last_updated_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table hr.job_requisition has 6 FK columns pointing to hr.employee (approved_by_employee_id, created_by_employee_id, employee_id, last_modified_by_employee_id, recruiter_employee_id, replacement_for_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table hr.payroll_run has 3 FK columns pointing to hr.employee (created_by_user_employee_id, employee_id, last_modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table ledger.task_template has 3 FK columns pointing to hr.employee (approved_by_user_employee_id, employee_id, last_modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table loan.document_presentation has 5 FK columns pointing to customer.party (advising_bank_party_id, issuing_bank_party_id, nominated_bank_party_id, party_id, presenting_party_id) (generic/unlabeled: party_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table loan.document_presentation has 2 FK columns pointing to hr.employee (approval_user_employee_id, employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table wealth.prime_broker_agreement has 2 FK columns pointing to hr.employee (approved_by_user_employee_id, employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table wealth.investment_committee has 3 FK columns pointing to hr.employee (chair_employee_id, employee_id, secretary_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - PII-candidate attribute hr.work_location.emergency_contact_name has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute hr.work_location.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute hr.work_location.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute hr.payroll_run.total_gross_pay_amount has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute hr.payroll_run.total_net_pay_amount has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute hr.review_cycle.compensation_linked has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute payment.payment_processor.contact_name has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute payment.payment_processor.routing_number has no classification tags — expected restricted/confidential + PII tag
+  - Product 'audit.engagement' has 39 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'audit.workpaper' has 34 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'payment.instruction' has 31 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'audit.finding' has 30 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - 17 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 622 attribute(s) match person-data patterns but lack pii_ tags
+  - 7 attribute(s) have datatypes inconsistent with their column name pattern
+  - 94 non-PK attributes redundantly prefixed with their product name
+  - 4 attribute(s) have value_regex on typed columns (DATE/BOOLEAN/INT/etc.) — regex is redundant when data_type constrains format
+  - 6 attribute(s) have pipe-enum value_regex with >8 values — consider creating a reference product instead
+
+Deterministic score: 50/100 (LLM assessment: 72/100)

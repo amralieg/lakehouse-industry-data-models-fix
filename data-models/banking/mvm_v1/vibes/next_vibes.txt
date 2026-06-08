@@ -1,0 +1,39 @@
+**Model Quality Score: 79/100**
+
+**Static Analysis Findings (9 actionable):**
+  - [SA:unlinked_fk] Column payment.payment_transaction.aml_alert_id looks like an FK but has no foreign_key_to reference
+  - [SA:fk_namespace_mismatch] fraud.sar_filing.primary_sar_aml_case_id: description says 'compliance' but FK points to 'fraud'
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'account.account_transaction' and 'payment.payment_transaction' have the same entity name 'transaction' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'account.account_limit' and 'risk.risk_limit' have the same entity name 'limit' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'channel.channel' and 'payment.payment_channel' have the same entity name 'channel' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'collateral.collateral_valuation' and 'investment.investment_valuation' have the same entity name 'valuation' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'collateral.collateral_position' and 'trade.trade_position' have the same entity name 'position' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'investment.investment_mandate' and 'payment.payment_mandate' have the same entity name 'mandate' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'loan.loan_ecl_provision' and 'risk.risk_ecl_provision' have the same entity name 'ecl_provision' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — connect_table: account.account_holder** — add column holder_id (BIGINT) with FK to account.holder.holder_id — because holder information (e.g., account ownership) is not currently linked to the account_holder entity, preventing accurate relationship tracking.
+**PRIORITY 2 — connect_table: account.account_fee** — add column statement_id (BIGINT) with FK to account.statement.statement_id — because fees incurred on an account need to be associated with the corresponding account statement for proper reporting and reconciliation.
+**PRIORITY 3 — connect_table: account.account_limit** — add column statement_id (BIGINT) with FK to account.statement.statement_id — because account limits are often evaluated per statement period and should be traceable to the relevant statement record.
+**PRIORITY 4 — connect_table: account.holder** — add column account_holder_id (BIGINT) with FK to account.account_holder.account_holder_id — because the holder entity should reference the canonical account holder record to maintain a clear ownership hierarchy.
+**PRIORITY 5 — connect_table: fraud.alert** — add column account_fee_id (BIGINT) with FK to account.account_fee.account_fee_id — because fraud alerts may be triggered by fee transactions, and linking directly to the fee record improves investigation traceability.
+
+Other known issues from static analysis (17):
+  - Attribute 'pricing_tier' in loan.pricing has redundant product prefix 'pricing_'. Rename to 'tier'
+  - Table wealth.custodian_account has self-referencing FK on column 'omnibus_parent_account_id' with same name as PK 'custodian_account_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table wealth.tax_lot has self-referencing FK on column 'wash_sale_reference_lot_id' with same name as PK 'tax_lot_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table ledger.intercompany_transaction has self-referencing FK on column 'matched_transaction_id' with same name as PK 'intercompany_transaction_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Product 'fraud.case' has 33 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'trade.allocation' has 30 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'fraud.incident' has 30 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'trade.execution' has 29 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'trade.trade_position' has 29 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'payment.fx_transaction' has 29 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'payment.instruction' has 27 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'fraud.loss_recovery' has 26 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'investment.tranche' has 26 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - 9 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 223 attribute(s) match person-data patterns but lack pii_ tags
+  - 21 non-PK attributes redundantly prefixed with their product name
+  - 6 attribute(s) have pipe-enum value_regex with >8 values — consider creating a reference product instead
+
+Deterministic score: 79/100 (LLM assessment: 70/100)

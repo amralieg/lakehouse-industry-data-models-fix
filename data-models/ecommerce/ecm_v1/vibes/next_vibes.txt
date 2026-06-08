@@ -1,0 +1,153 @@
+**Model Quality Score: 68/100**
+
+**Static Analysis Findings (24 actionable):**
+  - [SA:unlinked_fk] Column marketing.campaign.creative_asset_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column logistics.driver.vehicle_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column customer.party.national_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column customer.party.tax_id looks like an FK but has no foreign_key_to reference
+  - [SA:duplicate_product_pair] Domain 'order' has both 'line' and 'order_line' — SSOT violation. Merge into 'line'.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'analytics.session' and 'order.session' have the same entity name 'session' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'analytics.session' and 'search.search_session' have the same entity name 'session' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'order.session' and 'search.search_session' have the same entity name 'session' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'compliance.compliance_exception' and 'fulfillment.fulfillment_exception' have the same entity name 'exception' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'content.content_digital_asset' and 'product.product_digital_asset' have the same entity name 'digital_asset' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'content.content_ab_test' and 'marketing.marketing_ab_test' have the same entity name 'ab_test' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'customer.customer_profile' and 'seller.seller_profile' have the same entity name 'profile' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'customer.customer_address' and 'order.order_address' have the same entity name 'address' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'finance.finance_bank_account' and 'seller.seller_bank_account' have the same entity name 'bank_account' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'fulfillment.fulfillment_shipment' and 'logistics.logistics_shipment' have the same entity name 'shipment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'inventory.inventory_goods_receipt' and 'procurement.procurement_goods_receipt' have the same entity name 'goods_receipt' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'marketing.ad_group' and 'marketplace.ad_group' have the same entity name 'ad_group' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'marketplace.marketplace_listing' and 'product.product_listing' have the same entity name 'listing' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'marketplace.marketplace_transaction' and 'payment.payment_transaction' have the same entity name 'transaction' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'marketplace.marketplace_promotion' and 'order.order_promotion' have the same entity name 'promotion' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'payment.payment_refund' and 'service.service_refund' have the same entity name 'refund' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'pricing.pricing_price_list_assignment' and 'seller.seller_price_list_assignment' have the same entity name 'price_list_assignment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'pricing.pricing_agreement' and 'seller.seller_agreement' have the same entity name 'agreement' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'seller.seller_support_case' and 'service.service_support_case' have the same entity name 'support_case' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — rename_product: content.performance** — rename to content_performance because "performance" is too generic and conflicts with common metric terminology across analytics, marketing, and seller domains
+**PRIORITY 2 — rename_product: order.line** — rename to order_line_detail because "line" conflicts with the existing "order_line" product in the same domain, creating ambiguity about which represents the actual order line item
+**PRIORITY 3 — rename_product: analytics.incident** — rename to operational_incident because "incident" is generic and could conflict with service domain concepts; clarifies this is an operational/system incident
+**PRIORITY 4 — connect_table: content.rights_license** — add column supplier_id (BIGINT) with FK to procurement.supplier.supplier_id — rights licenses are typically granted by content suppliers/vendors and need traceability to the licensor
+**PRIORITY 5 — connect_table: payment.funding_source** — add column customer_profile_id (BIGINT) with FK to customer.customer_profile.customer_profile_id — funding sources belong to customers and must be linked for KYC and payment method management
+**PRIORITY 6 — connect_table: service.entitlement** — add column customer_account_id (BIGINT) with FK to customer.account.account_id — entitlements define what service levels a customer account is eligible for
+**PRIORITY 7 — connect_table: product.attribute_definition** — add column category_id (BIGINT) with FK to product.category.category_id — attribute definitions are typically scoped to product categories for catalog governance
+**PRIORITY 8 — connect_table: marketing.audience_segment** — add column segment_id (BIGINT) with FK to customer.segment.segment_id — audience segments should derive from or map to customer segments for consistent targeting
+**PRIORITY 9 — connect_table: compliance.data_processing_agreement** — add column supplier_id (BIGINT) with FK to procurement.supplier.supplier_id — DPAs are signed with data processors/suppliers under GDPR
+**PRIORITY 10 — connect_table: compliance.legal_hold** — add column regulation_id (BIGINT) with FK to compliance.regulation.regulation_id — legal holds are triggered by regulatory or litigation requirements
+**PRIORITY 11 — remove_fk: analytics.conversion_event** — remove FK on column order_address_id because conversion events track customer actions (purchases, signups) and should reference order.header not order.order_address; an address is not a meaningful conversion target
+**PRIORITY 12 — remove_fk: finance.budget_line** — remove FK on column relevance_config_id because budget line items have no business relationship to search relevance configurations
+**PRIORITY 13 — remove_fk: finance.budget** — remove FK on column relevance_config_id because financial budgets have no business relationship to search relevance configurations
+**PRIORITY 14 — remove_fk: logistics.route_stop** — remove FK on column document_id because route stops should not reference seller documents; this appears to be a mislinked FK that should reference a logistics-specific document or proof-of-delivery
+**PRIORITY 15 — connect_table: order.cart** — add column channel_id (BIGINT) with FK to marketing.channel.channel_id — carts originate from specific channels (web, mobile, app) critical for attribution and analytics
+**PRIORITY 16 — connect_table: inventory.warehouse_node** — add column legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — warehouses are owned by legal entities for financial consolidation and intercompany inventory transfers
+**PRIORITY 17 — connect_table: logistics.tracking_event** — add column logistics_shipment_id (BIGINT) with FK to logistics.logistics_shipment.logistics_shipment_id — tracking events must be linked to the shipment they describe
+**PRIORITY 18 — connect_table: logistics.delivery_zone** — add column route_id (BIGINT) with FK to logistics.route.route_id — delivery zones are served by specific routes for last-mile planning
+**PRIORITY 19 — remove_fk: content.item** — remove FK on column finance_cost_center_id because content items are creative assets, not cost-bearing entities; cost tracking belongs at campaign or project level
+**PRIORITY 20 — remove_fk: content.item** — remove FK on column finance_profit_center_id because content items should not directly reference profit centers; monetization is tracked at product or campaign level
+**PRIORITY 21 — connect_table: seller.seller_bank_account** — add column payment_method_id (BIGINT) with FK to payment.method.method_id — seller bank accounts are payment methods used for disbursements and should integrate with the payment domain
+**PRIORITY 22 — connect_table: fulfillment.store** — add column seller_profile_id (BIGINT) with FK to seller.seller_profile.seller_profile_id — stores for BOPIS are operated by sellers/merchants and need seller attribution
+**PRIORITY 23 — connect_table: pricing.price_experiment** — add column product_category_id (BIGINT) with FK to product.category.category_id — price experiments are typically scoped to product categories for controlled testing
+**PRIORITY 24 — connect_table: logistics.depot** — add column carrier_id (BIGINT) with FK to logistics.carrier.carrier_id — depots are operated by carriers and must be linked for fleet management
+**PRIORITY 25 — connect_table: logistics.driver** — add column carrier_id (BIGINT) with FK to logistics.carrier.carrier_id — drivers are employed by carriers and must be associated for workforce management
+**PRIORITY 26 — rename_attribute: analytics.dimension_member** — rename column parent_member_dimension_member_id to parent_dimension_member_id because the current name is redundant and confusing with two parent references
+**PRIORITY 27 — remove_fk: analytics.dimension_member** — remove FK on column parent_dimension_member_id because this table already has parent_member_dimension_member_id as a self-reference creating duplicate hierarchy semantics
+**PRIORITY 28 — rename_attribute: analytics.reporting_dimension** — rename column parent_dimension_reporting_dimension_id to parent_reporting_dimension_id because the current name is redundant with the existing parent_reporting_dimension_id column
+**PRIORITY 29 — remove_fk: analytics.reporting_dimension** — remove FK on column parent_reporting_dimension_id because this table already has parent_dimension_reporting_dimension_id creating duplicate self-referential hierarchy
+**PRIORITY 30 — connect_table: compliance.legal_hold_custodian** — add column customer_profile_id (BIGINT) with FK to customer.customer_profile.customer_profile_id — custodians are individuals (customers or employees) whose data is subject to legal hold
+**PRIORITY 31 — connect_table: payment.gateway** — add column merchant_account_id (BIGINT) with FK to payment.merchant_account.merchant_account_id — gateways process transactions for specific merchant accounts and need this relationship
+**PRIORITY 32 — connect_table: inventory.investigation** — add column warehouse_node_id (BIGINT) with FK to inventory.warehouse_node.warehouse_node_id — inventory investigations occur at specific warehouse locations
+**PRIORITY 33 — connect_table: inventory.investigation** — add column sku_id (BIGINT) with FK to product.sku.sku_id — inventory investigations concern specific SKUs with discrepancies
+**PRIORITY 34 — connect_table: fulfillment.pack_station** — add column center_id (BIGINT) with FK to fulfillment.center.center_id — pack stations are physically located within fulfillment centers
+**PRIORITY 35 — connect_table: compliance.tester** — add column program_id (BIGINT) with FK to compliance.program.program_id — testers are assigned to compliance programs for control testing
+**PRIORITY 36 — connect_table: customer.party** — add column customer_profile_id (BIGINT) with FK to customer.customer_profile.customer_profile_id — party is a supertype that should link to customer profiles for unified identity
+**PRIORITY 37 — connect_table: customer.organization** — add column account_id (BIGINT) with FK to customer.account.account_id — organizations are B2B entities that should be linked to their customer accounts
+**PRIORITY 38 — remove_fk: marketplace.marketplace_transaction** — remove FK on column inventory_lot_id because individual marketplace transactions should not directly reference inventory lots; lot assignment happens at fulfillment level
+**PRIORITY 39 — remove_fk: marketplace.marketplace_transaction** — remove FK on column inventory_stock_position_id because marketplace transactions should not directly reference stock positions; this is managed by fulfillment allocation
+**PRIORITY 40 — connect_table: order.delivery_confirmation** — add column logistics_shipment_id (BIGINT) with FK to logistics.logistics_shipment.logistics_shipment_id — delivery confirmations should reference the shipment that was delivered
+**PRIORITY 41 — connect_table: order.cancellation** — add column order_line_id (BIGINT) with FK to order.order_line.order_line_id — cancellations can occur at line level not just header level for partial cancellations
+**PRIORITY 42 — connect_table: pricing.competitor** — add column category_id (BIGINT) with FK to product.category.category_id — competitors are tracked within specific product categories for competitive intelligence
+**PRIORITY 43 — connect_table: seller.commission** — add column category_id (BIGINT) with FK to product.category.category_id — commission rates vary by product category and must be linked
+**PRIORITY 44 — connect_table: seller.gmv_settlement** — add column fiscal_period_id (BIGINT) with FK to finance.fiscal_period.fiscal_period_id — GMV settlements occur within fiscal periods for financial reconciliation
+**PRIORITY 45 — connect_table: content.content_ab_test** — add column campaign_id (BIGINT) with FK to marketing.campaign.campaign_id — content A/B tests are typically run as part of marketing campaigns
+**PRIORITY 46 — connect_table: marketplace.ad_group** — add column seller_profile_id (BIGINT) with FK to seller.seller_profile.seller_profile_id — marketplace ad groups are created by sellers for their sponsored advertising
+**PRIORITY 47 — connect_table: fulfillment.bin_location** — add column zone_id (BIGINT) with FK to inventory.zone.zone_id — bin locations exist within warehouse zones for pick path optimization
+**PRIORITY 48 — connect_table: logistics.vehicle** — add column carrier_id (BIGINT) with FK to logistics.carrier.carrier_id — vehicles belong to carrier fleets and must be associated
+**PRIORITY 49 — remove_fk: search.click_event** — remove FK on column payment_transaction_id because search click events are pre-purchase behavioral signals and should not reference payment transactions
+**PRIORITY 50 — connect_table: order.subscription_plan** — add column product_catalog_item_id (BIGINT) with FK to product.catalog_item.catalog_item_id — subscription plans are for specific products and need product linkage
+**PRIORITY 51 — connect_table: seller.scorecard** — add column fiscal_period_id (BIGINT) with FK to finance.fiscal_period.fiscal_period_id — seller scorecards are generated for specific fiscal periods
+**PRIORITY 52 — connect_table: marketplace.commission_schedule** — add column seller_profile_id (BIGINT) with FK to seller.seller_profile.seller_profile_id — commission schedules can be seller-specific for negotiated rates
+**PRIORITY 53 — connect_table: service.entitlement** — add column product_catalog_item_id (BIGINT) with FK to product.catalog_item.catalog_item_id — entitlements are often product-specific (warranty, support tier)
+**PRIORITY 54 — connect_table: compliance.certification** — add column seller_profile_id (BIGINT) with FK to seller.seller_profile.seller_profile_id — certifications are held by sellers for marketplace compliance
+**PRIORITY 55 — connect_table: customer.loyalty_enrollment** — add column account_id (BIGINT) with FK to customer.account.account_id — loyalty enrollments should be linked to accounts for B2B loyalty programs
+**PRIORITY 56 — move_product: analytics.incident** — move to service because operational incidents are service management concerns and should be co-located with case management, SLA tracking, and escalation workflows
+**PRIORITY 57 — connect_table: fulfillment.third_party_fulfillment** — add column supplier_id (BIGINT) with FK to procurement.supplier.supplier_id — 3PL fulfillment partners are suppliers and need procurement linkage for contract management
+**PRIORITY 58 — connect_table: marketing.platform** — add column channel_id (BIGINT) with FK to marketing.channel.channel_id — marketing platforms operate within specific channels (social, search, display)
+**PRIORITY 59 — connect_table: finance.fixed_asset** — add column legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — fixed assets are owned by legal entities for balance sheet reporting
+**PRIORITY 60 — connect_table: pricing.coupon** — add column seller_profile_id (BIGINT) with FK to seller.seller_profile.seller_profile_id — sellers issue coupons for their products on the marketplace
+**PRIORITY 61 — connect_table: order.session** — add column customer_profile_id (BIGINT) with FK to customer.customer_profile.customer_profile_id — order sessions should link to customer profiles for personalization even before account login
+**PRIORITY 62 — remove_fk: order.header** — remove FK on column search_query_log_id because order headers should not directly reference search query logs; attribution is handled through analytics.session and marketing.attribution_touchpoint
+**PRIORITY 63 — connect_table: logistics.customs_broker** — add column carrier_id (BIGINT) with FK to logistics.carrier.carrier_id — customs brokers work with specific carriers for cross-border shipments
+**PRIORITY 64 — remove_fk: logistics.customs_broker** — remove FK on column order_tax_id because customs brokers are entities/organizations, not transactional records linked to specific order taxes
+**PRIORITY 65 — remove_fk: procurement.supplier_onboarding** — remove FK on column order_tax_id because supplier onboarding is a process workflow unrelated to order-level tax records; tax registration should be a separate attribute
+**PRIORITY 66 — connect_table: seller.seller_agreement** — add column compliance_program_id (BIGINT) with FK to compliance.program.program_id — seller agreements enforce compliance program requirements
+**PRIORITY 67 — connect_table: marketplace.policy** — add column compliance_regulation_id (BIGINT) with FK to compliance.regulation.regulation_id — marketplace policies implement regulatory requirements
+**PRIORITY 68 — connect_table: seller.verification** — add column compliance_program_id (BIGINT) with FK to compliance.program.program_id — KYC/KYB verifications are part of compliance programs
+**PRIORITY 69 — connect_table: analytics.cohort_definition** — add column segment_id (BIGINT) with FK to customer.segment.segment_id — cohorts are often derived from customer segments for retention analysis
+**PRIORITY 70 — connect_table: fulfillment.fulfillment_sla** — add column carrier_id (BIGINT) with FK to logistics.carrier.carrier_id — fulfillment SLAs depend on carrier performance commitments
+**PRIORITY 71 — connect_table: content.template** — add column channel_id (BIGINT) with FK to marketing.channel.channel_id — content templates are designed for specific channels (email, web, mobile)
+**PRIORITY 72 — connect_table: finance.fiscal_period** — add column legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — fiscal periods can vary by legal entity across jurisdictions
+
+Other known issues from static analysis (49):
+  - Attribute 'account_tier' in customer.account has redundant product prefix 'account_'. Rename to 'tier'
+  - Attribute 'carrier_tier' in logistics.carrier has redundant product prefix 'carrier_'. Rename to 'tier'
+  - Attribute 'supplier_tier' in procurement.supplier has redundant product prefix 'supplier_'. Rename to 'tier'
+  - Attribute 'store_region' in fulfillment.store has redundant product prefix 'store_'. Rename to 'region'
+  - Attribute 'store_sla_minutes' in fulfillment.store has redundant product prefix 'store_'. Rename to 'sla_minutes'
+  - Attribute 'driver_license_class' in logistics.driver has redundant product prefix 'driver_'. Rename to 'license_class'
+  - Attribute 'driver_status_reason' in logistics.driver has redundant product prefix 'driver_'. Rename to 'status_reason'
+  - Attribute 'ad_group_label' in marketing.ad_group has redundant product prefix 'ad_group_'. Rename to 'label'
+  - Attribute 'marketplace_owner' in marketplace.marketplace has redundant product prefix 'marketplace_'. Rename to 'owner'
+  - Attribute 'ad_group_version' in marketplace.ad_group has redundant product prefix 'ad_group_'. Rename to 'version'
+  - Attribute 'session_duration_seconds' in order.session has redundant product prefix 'session_'. Rename to 'duration_seconds'
+  - Attribute 'session_end_timestamp' in order.session has redundant product prefix 'session_'. Rename to 'end_timestamp'
+  - Attribute 'session_start_timestamp' in order.session has redundant product prefix 'session_'. Rename to 'start_timestamp'
+  - Table analytics.operational_alert has self-referencing FK on column 'related_operational_alert_id' with same name as PK 'operational_alert_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table compliance.audit_finding has self-referencing FK on column 'related_audit_finding_id' with same name as PK 'audit_finding_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table analytics.incident has self-referencing FK on column 'related_incident_id' with same name as PK 'incident_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table inventory.investigation has self-referencing FK on column 'related_investigation_id' with same name as PK 'investigation_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table customer.organization has self-referencing FK on column 'buyer_org_id' with same name as PK 'organization_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table payment.funding_source has self-referencing FK on column 'backup_funding_source_id' with same name as PK 'funding_source_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table seller.fraud_investigation has self-referencing FK on column 'related_fraud_investigation_id' with same name as PK 'fraud_investigation_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table customer.merge_event has 2 FK columns pointing to service.agent (agent_id, created_by_user_agent_id) (generic/unlabeled: agent_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.budget has 2 FK columns pointing to service.agent (agent_id, approved_by_agent_id) (generic/unlabeled: agent_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.budget_line has 2 FK columns pointing to service.agent (agent_id, approved_by_agent_id) (generic/unlabeled: agent_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.journal_entry has 2 FK columns pointing to finance.general_ledger (general_ledger_id, ledger_id) (generic/unlabeled: general_ledger_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table order.cart_item has 2 FK columns pointing to product.sku (sku_id, variant_sku_id) (generic/unlabeled: sku_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table pricing.price_list_item has 2 FK columns pointing to product.sku (product_variant_sku_id, sku_id) (generic/unlabeled: sku_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table pricing.price_override has 2 FK columns pointing to customer.account (account_id, audit_user_account_id) (generic/unlabeled: account_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table analytics.incident has 2 FK columns pointing to service.agent (agent_id, reporter_agent_id) (generic/unlabeled: agent_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - PII-candidate attribute analytics.conversion_event.billing_address_id has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute analytics.conversion_event.shipping_address_id has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute analytics.conversion_event.geo_latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute analytics.conversion_event.geo_longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute analytics.session.geo_latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute analytics.session.geo_longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute analytics.report_schedule.email_recipients has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute fulfillment.store.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute fulfillment.store.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute fulfillment.pack_station.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute fulfillment.pack_station.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute logistics.vehicle.gps_latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute logistics.vehicle.gps_longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute logistics.driver.driver_license_class has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute order.subscription_plan.support_contact_email has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute logistics.depot.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute logistics.depot.longitude has no classification tags — expected restricted/confidential + PII tag
+  - 9 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 333 attribute(s) match person-data patterns but lack pii_ tags
+  - 21 non-PK attributes redundantly prefixed with their product name
+  - 1 attribute(s) have value_regex on typed columns (DATE/BOOLEAN/INT/etc.) — regex is redundant when data_type constrains format
+
+Deterministic score: 68/100 (LLM assessment: 62/100)

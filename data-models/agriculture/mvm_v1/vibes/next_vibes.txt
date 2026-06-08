@@ -1,0 +1,101 @@
+**Model Quality Score: 88/100**
+
+**Static Analysis Findings (5 actionable):**
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'finance.finance_ap_invoice' and 'procurement.procurement_ap_invoice' have the same entity name 'ap_invoice' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'inventory.inventory_goods_receipt' and 'procurement.procurement_goods_receipt' have the same entity name 'goods_receipt' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'product.product_certification' and 'quality.quality_certification' have the same entity name 'certification' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'product.product_certification' and 'workforce.workforce_certification' have the same entity name 'certification' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'quality.quality_certification' and 'workforce.workforce_certification' have the same entity name 'certification' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — rename_product: invoice.line** — rename to invoice_line because "line" is a generic reserved word that lacks domain context and conflicts with common SQL reserved terminology
+**PRIORITY 2 — rename_product: sales.order** — rename to sales_order because "order" is a SQL reserved word and lacks domain qualification for unambiguous referencing
+**PRIORITY 3 — rename_product: sales.quote** — rename to sales_quote because "quote" is ambiguous without domain context and could conflict with other quoting concepts
+**PRIORITY 4 — rename_product: customer.case** — rename to customer_case because "case" is a SQL reserved word and requires domain qualification
+**PRIORITY 5 — rename_product: customer.address** — rename to customer_address because "address" is overly generic and may conflict with address tables in other contexts
+**PRIORITY 6 — rename_product: customer.contact** — rename to customer_contact because "contact" is generic and benefits from domain qualification for clarity
+**PRIORITY 7 — rename_product: workforce.shift** — rename to work_shift because "shift" is generic and could be confused with data transformation concepts
+**PRIORITY 8 — rename_product: supply.route** — rename to transport_route because "route" is overly generic and needs supply chain context
+**PRIORITY 9 — rename_product: product.master** — rename to product_master because "master" alone is meaningless without domain context
+**PRIORITY 10 — rename_product: product.label** — rename to product_label because "label" is generic and ambiguous
+**PRIORITY 11 — rename_product: product.hierarchy** — rename to product_hierarchy because "hierarchy" alone lacks business meaning
+**PRIORITY 12 — connect_table: product.mrl_threshold** — add column commodity_id (BIGINT) with FK to product.commodity.commodity_id — MRL thresholds are always defined per commodity and this isolated lookup needs at minimum a commodity reference for contextual integrity
+**PRIORITY 13 — connect_table: product.crop_use_registration** — add column seed_variety_id (BIGINT) with FK to product.seed_variety.seed_variety_id — crop use registrations for agrochemicals should link to specific seed varieties for PHI/REI compatibility tracking
+**PRIORITY 14 — connect_table: land.ownership** — add column farm_unit_id (BIGINT) with FK to land.farm_unit.farm_unit_id — ownership records should connect to the operational farm unit for land management context
+**PRIORITY 15 — connect_table: land.field_boundary** — add column management_zone_id (BIGINT) with FK to land.management_zone.management_zone_id — field boundaries define spatial extents that directly relate to management zones for precision agriculture
+**PRIORITY 16 — connect_table: crop.scouting_observation** — add column pest_pressure_agrochemical_product_id (BIGINT) with FK to product.agrochemical_product.agrochemical_product_id — scouting observations that identify pest/disease issues should reference recommended treatment products
+**PRIORITY 17 — connect_table: crop.cover_crop** — add column rotation_plan_id (BIGINT) with FK to crop.rotation_plan.rotation_plan_id — cover crops are integral components of rotation plans and should be explicitly linked
+**PRIORITY 18 — connect_table: livestock.weight_measurement** — add column feed_ration_id (BIGINT) with FK to livestock.feed_ration.feed_ration_id — weight measurements should reference the active feed ration to correlate growth performance with nutrition
+**PRIORITY 19 — connect_table: livestock.parturition_record** — add column veterinary_prescription_id (BIGINT) with FK to livestock.veterinary_prescription.veterinary_prescription_id — parturition events often require veterinary intervention and prescription tracking
+**PRIORITY 20 — connect_table: equipment.parts_inventory** — add column storage_location_id (BIGINT) with FK to inventory.storage_location.storage_location_id — parts must be tracked at a physical storage location for warehouse management
+**PRIORITY 21 — connect_table: equipment.rental_lease** — add column work_order_id (BIGINT) with FK to equipment.work_order.work_order_id — rental/lease equipment usage should link to work orders that triggered the rental need
+**PRIORITY 22 — connect_table: land.water_right** — add column farm_unit_id (BIGINT) with FK to land.farm_unit.farm_unit_id — water rights are allocated at the farm unit level and need this organizational link
+**PRIORITY 23 — connect_table: land.soil_sample** — add column growing_season_id (BIGINT) with FK to crop.growing_season.growing_season_id — soil samples are collected within a specific growing season for temporal context
+**PRIORITY 24 — connect_table: land.lease** — add column finance_cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — lease costs must be allocated to a cost center for financial reporting
+**PRIORITY 25 — connect_table: land.conservation_practice** — add column growing_season_id (BIGINT) with FK to crop.growing_season.growing_season_id — conservation practices are implemented within specific growing seasons
+**PRIORITY 26 — connect_table: land.irrigation_zone** — add column growing_season_id (BIGINT) with FK to crop.growing_season.growing_season_id — irrigation zone configurations may change by season and need temporal binding
+**PRIORITY 27 — remove_fk: crop.cover_crop** — remove FK on livestock.herd because cover crops have no direct business relationship to livestock herds; grazing integration should go through field or rotation plan
+**PRIORITY 28 — remove_fk: crop.fertilization_event** — remove FK on livestock.herd because fertilization events relate to crop fields, not directly to herds; manure sourcing should reference a material/inventory record instead
+**PRIORITY 29 — remove_fk: crop.protection_event** — remove FK on livestock.herd because crop protection chemical applications have no direct business relationship to livestock herds
+**PRIORITY 30 — remove_fk: crop.loss_event** — remove FK on livestock.herd because crop loss events are agronomic in nature and should not directly reference herds
+**PRIORITY 31 — connect_table: invoice.payment_term** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — payment terms may vary by company code and need organizational context
+**PRIORITY 32 — connect_table: quality.laboratory** — add column facility_id (BIGINT) with FK to supply.facility.facility_id — laboratories operate at physical facilities and need location context
+**PRIORITY 33 — connect_table: livestock.breed** — add column commodity_id (BIGINT) with FK to product.commodity.commodity_id — breeds produce specific commodities (beef, dairy, wool) and need product linkage
+**PRIORITY 34 — connect_table: finance.gl_account** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — GL accounts are defined within a chart of accounts per company code
+**PRIORITY 35 — connect_table: finance.company_code** — add column employee_id (BIGINT) with FK to workforce.employee.employee_id — company codes need a responsible controller/manager assignment
+**PRIORITY 36 — connect_table: equipment.asset_category** — add column gl_account_id (BIGINT) with FK to finance.gl_account.gl_account_id — asset categories should map to default GL accounts for depreciation and cost posting
+**PRIORITY 37 — connect_table: sales.distribution_channel** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — distribution channels operate within specific company codes for organizational assignment
+**PRIORITY 38 — connect_table: crop.growing_season** — add column farm_unit_id (BIGINT) with FK to land.farm_unit.farm_unit_id — growing seasons already reference farm_unit per the FK list but should also have direct field-level linkage for completeness
+**PRIORITY 39 — connect_table: workforce.training_enrollment** — add column growing_season_id (BIGINT) with FK to crop.growing_season.growing_season_id — seasonal training enrollments (GAP, pesticide applicator) should reference the applicable growing season
+**PRIORITY 40 — connect_table: invoice.dispute** — add column corrective_action_id (BIGINT) with FK to quality.corrective_action.corrective_action_id — disputes arising from quality issues should link to the CAPA that resolves them
+**PRIORITY 41 — connect_table: procurement.vendor** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — vendors must be assigned to a company code for AP processing and legal entity context
+**PRIORITY 42 — connect_table: procurement.budget** — add column growing_season_id (BIGINT) with FK to crop.growing_season.growing_season_id — procurement budgets in agriculture are seasonal and need growing season temporal binding
+**PRIORITY 43 — rename_attribute: crop.cover_crop** — rename column parent_cover_crop_id to preceding_cover_crop_id
+**PRIORITY 44 — connect_table: livestock.ration_ingredient** — add column commodity_lot_id (BIGINT) with FK to inventory.commodity_lot.commodity_lot_id — ration ingredients sourced from specific commodity lots enable feed traceability
+**PRIORITY 45 — connect_table: equipment.telematics_reading** — add column growing_season_id (BIGINT) with FK to crop.growing_season.growing_season_id — telematics data should be contextualized within a growing season for operational analytics
+**PRIORITY 46 — connect_table: supply.transport_unit** — add column facility_id (BIGINT) with FK to supply.facility.facility_id — transport units (trailers, containers) are domiciled at facilities and need home base tracking
+**PRIORITY 47 — connect_table: land.field** — add column parcel_id (BIGINT) with FK to land.parcel.parcel_id — fields are physically located on legal parcels and this fundamental land hierarchy link is missing
+**PRIORITY 48 — connect_table: crop.irrigation_event** — add column management_zone_id (BIGINT) with FK to land.management_zone.management_zone_id — irrigation events should target specific management zones for VRA water application tracking
+**PRIORITY 49 — connect_table: crop.loss_event** — add column protection_event_id (BIGINT) with FK to crop.protection_event.protection_event_id — crop losses often result from failed protection events and need causal linkage
+**PRIORITY 50 — connect_table: workforce.labor_compliance** — add column position_id (BIGINT) with FK to workforce.position.position_id — labor compliance records (H-2A, OSHA) are tied to specific positions for regulatory reporting
+**PRIORITY 51 — connect_table: invoice.billing_schedule** — add column growing_season_id (BIGINT) with FK to crop.growing_season.growing_season_id — agricultural billing schedules are seasonal and need temporal context
+**PRIORITY 52 — connect_table: sales.market_price** — add column territory_id (BIGINT) with FK to sales.territory.territory_id — market prices vary by geographic territory and need spatial context
+**PRIORITY 53 — connect_table: equipment.fault** — add column work_order_id (BIGINT) with FK to equipment.work_order.work_order_id — faults should link to the work order created to resolve them
+**PRIORITY 54 — connect_table: crop.scouting_observation** — add column quality_inspection_finding_id (BIGINT) with FK to quality.inspection_finding.inspection_finding_id — scouting observations that identify issues should link to formal inspection findings for audit trail
+**PRIORITY 55 — connect_table: livestock.feed_ration** — add column growing_season_id (BIGINT) with FK to crop.growing_season.growing_season_id — feed rations change seasonally based on available forage and crop byproducts
+**PRIORITY 56 — connect_table: procurement.chemical_compliance** — add column vendor_id (BIGINT) with FK to procurement.vendor.vendor_id — chemical compliance records should reference the supplying vendor for accountability
+**PRIORITY 57 — connect_table: land.management_zone** — add column farm_unit_id (BIGINT) with FK to land.farm_unit.farm_unit_id — management zones need organizational context at the farm unit level beyond just field reference
+**PRIORITY 58 — connect_table: quality.audit** — add column growing_season_id (BIGINT) with FK to crop.growing_season.growing_season_id — quality audits (GAP, GLOBALG.A.P.) are conducted within specific growing seasons
+**PRIORITY 59 — connect_table: equipment.parts_issue** — add column cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — parts issues must be charged to a cost center for maintenance cost tracking
+**PRIORITY 60 — connect_table: equipment.parts_issue** — add column asset_id (BIGINT) with FK to equipment.asset.asset_id — parts issues should reference the specific asset being repaired for maintenance history
+**PRIORITY 61 — connect_table: invoice.payment_allocation** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — payment allocations need company code for multi-entity financial reconciliation
+**PRIORITY 62 — connect_table: crop.rotation_plan** — add column farm_unit_id (BIGINT) with FK to land.farm_unit.farm_unit_id — rotation plans span multiple fields within a farm unit and need this organizational link
+**PRIORITY 63 — rename_product: procurement.procurement_ap_invoice** — rename to vendor_invoice because the "procurement_" prefix is redundant with the domain name and "ap_invoice" duplicates the finance domain's naming
+**PRIORITY 64 — rename_product: procurement.procurement_goods_receipt** — rename to goods_receipt because the "procurement_" prefix is redundant with the domain name
+**PRIORITY 65 — rename_product: inventory.inventory_goods_receipt** — rename to inbound_receipt because the "inventory_" prefix is redundant with the domain name and it conflicts semantically with procurement.procurement_goods_receipt
+**PRIORITY 66 — connect_table: product.organic_certification** — add column commodity_id (BIGINT) with FK to product.commodity.commodity_id — organic certifications are granted for specific commodities and need this product classification link
+**PRIORITY 67 — connect_table: workforce.time_entry** — add column work_order_id (BIGINT) with FK to equipment.work_order.work_order_id — time entries for maintenance work should reference the work order for labor cost allocation
+**PRIORITY 68 — connect_table: sales.broker** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — brokers operate within specific legal entities for commission and AP processing
+**PRIORITY 69 — connect_table: livestock.health_protocol** — add column herd_id (BIGINT) with FK to livestock.herd.herd_id — health protocols are designed for specific herds or herd types
+**PRIORITY 70 — connect_table: supply.carrier** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — carriers need legal entity assignment for freight AP processing
+
+Other known issues from static analysis (18):
+  - Attribute 'account_tier' in customer.account has redundant product prefix 'account_'. Rename to 'tier'
+  - Attribute 'segment_tier' in customer.segment has redundant product prefix 'segment_'. Rename to 'tier'
+  - Table crop.growing_season has self-referencing FK on column 'double_crop_parent_season_id' with same name as PK 'growing_season_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table invoice.billing_account has 2 FK columns pointing to customer.account (account_id, billing_customer_account_id) (generic/unlabeled: account_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Product 'inventory.goods_issue' has 34 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'supply.lot_trace' has 33 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'sales.contract' has 31 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'inventory.inventory_goods_receipt' has 31 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'livestock.animal_disposition' has 31 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'livestock.animal_transaction' has 29 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'invoice.dispute' has 29 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'invoice.price_adjustment' has 28 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'invoice.settlement_statement' has 27 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'sales.order' has 26 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - 8 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 139 attribute(s) match person-data patterns but lack pii_ tags
+  - 15 non-PK attributes redundantly prefixed with their product name
+  - 5 attribute(s) have pipe-enum value_regex with >8 values — consider creating a reference product instead
+
+Deterministic score: 88/100 (LLM assessment: 62/100)

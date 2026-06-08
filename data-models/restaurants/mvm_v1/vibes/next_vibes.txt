@@ -1,0 +1,84 @@
+**Model Quality Score: 91/100**
+
+**Static Analysis Findings (2 actionable):**
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'menu.menu_item' and 'order.order_item' have the same entity name 'item' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'menu.menu_modifier' and 'order.order_modifier' have the same entity name 'modifier' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — remove_fk: foodsafety.illness_report** — remove FK on column marketing.campaign because an illness report has no logical business relationship to a marketing campaign
+**PRIORITY 2 — remove_fk: guest.complaint** — remove FK on column marketing.promotion because a guest complaint should not reference a promotion directly; the order or visit already provides that context
+**PRIORITY 3 — remove_fk: inventory.waste_log** — remove FK on column marketing.campaign because waste events are operational occurrences unrelated to marketing campaigns
+**PRIORITY 4 — remove_fk: inventory.waste_log** — remove FK on column realestate.maintenance_work_order because waste logging is an inventory event not caused by maintenance work orders
+**PRIORITY 5 — remove_fk: inventory.replenishment_order** — remove FK on column marketing.campaign because replenishment orders are supply-driven, not marketing-driven
+**PRIORITY 6 — remove_fk: inventory.replenishment_order** — remove FK on column marketing.promotion because stock replenishment is triggered by PAR levels not promotions
+**PRIORITY 7 — remove_fk: inventory.replenishment_order** — remove FK on column order.catering_order because replenishment orders serve the entire unit, not individual catering orders
+**PRIORITY 8 — remove_fk: order.discount** — remove FK on column workforce.shift because a discount is applied at order time and has no meaningful relationship to a specific shift record
+**PRIORITY 9 — remove_fk: loyalty.points_ledger** — remove FK on column loyalty.enrollment_event because points transactions reference members and orders, not the enrollment event itself
+**PRIORITY 10 — remove_fk: menu.item_86_event** — remove FK on column realestate.maintenance_work_order because 86-ing an item is a menu availability event not a maintenance event
+**PRIORITY 11 — remove_fk: franchise.nro_pipeline** — remove FK on column loyalty.program because a new restaurant opening pipeline record should not reference a loyalty program
+**PRIORITY 12 — remove_fk: franchise.nro_pipeline** — remove FK on column menu.menu because NRO pipeline tracks development milestones, not specific menu assignments
+**PRIORITY 13 — remove_fk: journal_entry_line** — remove FK on column guest.profile because journal entry lines are financial postings and should not reference individual guest profiles
+**PRIORITY 14 — remove_fk: inventory.adjustment** — remove FK on column workforce.shift because inventory adjustments are administrative corrections not tied to a specific shift
+**PRIORITY 15 — connect_table: realestate.landlord** — add column legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — landlords are legal entities requiring proper entity identification for lease and payment processing
+**PRIORITY 16 — connect_table: restaurant.capacity_config** — add column facility_id (BIGINT) with FK to realestate.facility.facility_id — seating/throughput capacity is a physical attribute of the facility, not just the unit
+**PRIORITY 17 — connect_table: restaurant.operating_hours** — add column financial_period_id (BIGINT) with FK to finance.financial_period.financial_period_id — operating hours change seasonally and need period-based versioning
+**PRIORITY 18 — connect_table: order.catering_order** — add column delivery_platform_id (BIGINT) with FK to order.delivery_platform.delivery_platform_id — catering orders may be placed through third-party platforms requiring platform tracking
+**PRIORITY 19 — connect_table: menu.combo_meal_component** — add column menu_modifier_id (BIGINT) with FK to menu.menu_modifier.menu_modifier_id — combo components can have default modifiers that need explicit linkage
+**PRIORITY 20 — rename_attribute: finance.ap_invoice** — rename column marketing.campaign reference (campaign_id) to marketing_campaign_id because the FK column name should clarify the cross-domain reference for AP invoices related to marketing spend
+**PRIORITY 21 — remove_fk: inventory.stock_transfer** — remove FK on column order.catering_order because stock transfers are inter-location movements not driven by individual catering orders
+**PRIORITY 22 — remove_fk: foodsafety.corrective_action** — remove FK on column workforce.training_completion because corrective actions may require training but should not FK to a specific past training completion record
+**PRIORITY 23 — remove_fk: loyalty.offer** — remove FK on column supply.supplier_contract because loyalty offers are guest-facing incentives not governed by supplier contracts
+**PRIORITY 24 — remove_fk: loyalty.offer** — remove FK on column supply.supplier because loyalty offers are marketing instruments not directly linked to suppliers
+**PRIORITY 25 — connect_table: restaurant.format_config** — add column area_management_id (BIGINT) with FK to restaurant.area_management.area_management_id — format configurations may vary by geographic area management zone
+**PRIORITY 26 — remove_fk: menu.menu_lto** — remove FK on column realestate.nro_project because limited time offers are menu decisions independent of new restaurant opening projects
+**PRIORITY 27 — remove_fk: menu.menu_lto** — remove FK on column supply.supplier_contract because LTO items are menu engineering decisions not directly tied to supplier contracts
+**PRIORITY 28 — remove_fk: foodsafety.illness_report** — remove FK on column workforce.shift because illness reports relate to the guest/employee and time, not a specific shift record
+**PRIORITY 29 — remove_fk: order.order_modifier** — remove FK on column realestate.site because order modifiers are menu customizations with no business relationship to real estate sites
+**PRIORITY 30 — remove_fk: inventory.food_cost_period** — remove FK on column workforce.labor_budget because food cost periods track COGS not labor budgets; these are separate P&L lines
+**PRIORITY 31 — remove_fk: inventory.food_cost_period** — remove FK on column marketing.campaign because food cost period calculations are not driven by marketing campaigns
+**PRIORITY 32 — connect_table: workforce.schedule** — add column department_id (BIGINT) with FK to restaurant.department.department_id — schedules are built per department (FOH/BOH) and need explicit department linkage
+**PRIORITY 33 — connect_table: workforce.shift** — add column department_id (BIGINT) with FK to restaurant.department.department_id — shifts are assigned to specific departments for labor allocation and reporting
+**PRIORITY 34 — remove_fk: franchise.sales_report** — remove FK on column order.delivery_platform because franchise sales reports aggregate all channels; platform-level detail belongs in order domain
+**PRIORITY 35 — connect_table: menu.pmix_record** — add column order_channel_id (BIGINT) with FK to order.channel.channel_id — product mix analysis must be segmented by order channel (DT, OLO, 3PD, dine-in)
+**PRIORITY 36 — remove_fk: guest.complaint** — remove FK on column supply.ingredient because guest complaints reference menu items or orders, not raw ingredients
+**PRIORITY 37 — remove_fk: guest.complaint** — remove FK on column supply.recall_event because recall events are supply chain events; complaints should link through order/menu item
+**PRIORITY 38 — remove_fk: guest.complaint** — remove FK on column inventory.stock_item because guests interact with menu items not internal stock items
+**PRIORITY 39 — connect_table: restaurant.unit_performance** — add column franchise_agreement_id (BIGINT) with FK to franchise.agreement.agreement_id — unit performance must link to franchise agreement for royalty and compliance reporting
+**PRIORITY 40 — remove_fk: loyalty.reward** — remove FK on column supply.supplier because rewards are guest-facing catalog items not directly linked to suppliers
+**PRIORITY 41 — remove_fk: loyalty.reward** — remove FK on column franchise.franchisee because rewards are program-level definitions not franchisee-specific
+**PRIORITY 42 — connect_table: order.guest_order** — add column catering_order_id (BIGINT) with FK to order.catering_order.catering_order_id — catering orders generate guest orders and need explicit parent linkage from order back to catering
+**PRIORITY 43 — remove_fk: menu.item_86_event** — remove FK on column finance.financial_period because 86 events are real-time operational events not period-based financial records
+**PRIORITY 44 — connect_table: workforce.labor_forecast** — add column department_id (BIGINT) with FK to restaurant.department.department_id — labor forecasts are built per department (FOH vs BOH) for accurate staffing
+**PRIORITY 45 — remove_fk: franchise.compliance_audit** — remove FK on column supply.recall_event because compliance audits assess franchisee adherence to standards, not specific recall events
+**PRIORITY 46 — connect_table: realestate.capex_budget** — add column franchise_agreement_id (BIGINT) with FK to franchise.agreement.agreement_id — CapEx budgets for franchised locations must reference the governing franchise agreement
+**PRIORITY 47 — remove_fk: guest.satisfaction_survey** — remove FK on column franchise.performance_scorecard because surveys feed into scorecards but should not FK to them; the relationship is derived not direct
+**PRIORITY 48 — remove_fk: inventory.receiving_order** — remove FK on column workforce.shift because receiving is a task performed during a shift but the receiving record itself should reference the employee, not the shift
+**PRIORITY 49 — connect_table: menu.item_price** — add column channel_id (BIGINT) with FK to order.channel.channel_id — menu item prices vary by channel (DT, OLO, 3PD) and need channel-specific pricing support
+**PRIORITY 50 — remove_fk: order.order_modifier** — remove FK on column marketing.promotion because individual order modifiers (extra cheese, no onion) are not promotion-driven
+**PRIORITY 51 — connect_table: restaurant.equipment_asset** — add column maintenance_contract_id (BIGINT) with FK to realestate.maintenance_contract.maintenance_contract_id — equipment assets are covered by maintenance contracts requiring explicit linkage
+**PRIORITY 52 — remove_fk: foodsafety.food_safety_certification** — remove FK on column finance.ap_invoice because certifications are compliance records not payment records
+**PRIORITY 53 — remove_fk: foodsafety.health_inspection** — remove FK on column finance.ap_invoice because health inspections are regulatory events not payable invoices
+**PRIORITY 54 — connect_table: workforce.employee** — add column brand_id (BIGINT) with FK to restaurant.brand.brand_id — employees in multi-brand organizations need brand affiliation for reporting and access control
+**PRIORITY 55 — remove_fk: loyalty.accrual_rule** — remove FK on column restaurant.area_management because accrual rules are program-level or brand-level, not area-specific
+**PRIORITY 56 — remove_fk: loyalty.offer** — remove FK on column restaurant.area_management because offers target segments or programs, not area management zones directly
+**PRIORITY 57 — connect_table: franchise.performance_scorecard** — add column unit_id (BIGINT) with FK to restaurant.unit.unit_id — performance scorecards measure specific restaurant units not just franchisees
+**PRIORITY 58 — remove_fk: menu.menu_item** — remove FK on column inventory.stock_item because menu items are composed of multiple stock items via recipes; a single FK implies 1:1 which is incorrect
+**PRIORITY 59 — connect_table: order.delivery_order** — add column channel_id (BIGINT) with FK to order.channel.channel_id — delivery orders must specify the ordering channel for analytics and commission tracking
+**PRIORITY 60 — remove_fk: inventory.adjustment** — remove FK on column supply.goods_receipt because adjustments correct on-hand balances and are not caused by goods receipts
+**PRIORITY 61 — connect_table: realestate.maintenance_work_order** — add column equipment_asset_id (BIGINT) with FK to restaurant.equipment_asset.equipment_asset_id — work orders are raised against specific equipment assets requiring explicit linkage
+**PRIORITY 62 — remove_fk: franchise.nro_pipeline** — remove FK on column foodsafety.food_safety_audit because NRO pipeline tracks development milestones; food safety audits occur post-opening
+**PRIORITY 63 — remove_fk: franchise.nro_pipeline** — remove FK on column foodsafety.haccp_plan because HACCP plans are facility-level operational documents not NRO pipeline attributes
+
+Other known issues from static analysis (11):
+  - Table inventory.physical_count has self-referencing FK on column 'recount_of_count_id' with same name as PK 'physical_count_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table finance.financial_period has self-referencing FK on column 'comparative_prior_period_id' with same name as PK 'financial_period_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table finance.financial_period has self-referencing FK on column 'comparative_prior_year_period_id' with same name as PK 'financial_period_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table menu.recipe_ingredient has 2 FK columns pointing to supply.ingredient (ingredient_id, primary_recipe_substitute_ingredient_id) (generic/unlabeled: ingredient_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.journal_entry has 4 FK columns pointing to workforce.employee (approver_user_employee_id, employee_id, primary_journal_employee_id, tertiary_journal_last_modified_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table inventory.replenishment_order has 6 FK columns pointing to workforce.employee (employee_id, primary_replenishment_employee_id, quaternary_replenishment_employee_id, receiving_user_employee_id, tertiary_replenishment_cancelled_by_user_employee_id, tertiary_replenishment_created_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - PII-candidate attribute guest.address.address_guest_profile_id has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute guest.address.address_profile_id has no classification tags — expected restricted/confidential + PII tag
+  - 7 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 141 attribute(s) match person-data patterns but lack pii_ tags
+  - 40 non-PK attributes redundantly prefixed with their product name
+
+Deterministic score: 91/100 (LLM assessment: 62/100)

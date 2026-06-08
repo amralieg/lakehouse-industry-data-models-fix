@@ -1,0 +1,208 @@
+**Model Quality Score: 70/100**
+
+**Static Analysis Findings (43 actionable):**
+  - [SA:unlinked_fk] Column compliance.corrective_action_plan.finding_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column customer.profile.household_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column ecommerce.digital_storefront.catalog_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column order.allocation.reservation_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column order.sales_order_line.allocation_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column shared.organization.parent_organization_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column logistics.contract.approved_by_employee_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column logistics.contract.contract_owner_employee_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column merchandising.sales_organization.parent_sales_organization_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column store.planogram.approved_by_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column store.planogram.category_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column store.planogram.parent_planogram_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column store.planogram.subcategory_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column store.planogram.visual_merchandiser_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column workforce.location.manager_employee_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column workforce.competency_model.approved_by_employee_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column workforce.competency_model.business_unit_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column workforce.competency_model.created_by_employee_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column workforce.competency_model.job_family_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column workforce.competency_model.job_level_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column workforce.competency_model.last_modified_by_employee_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column workforce.competency_model.owner_employee_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column workforce.competency_model.parent_model_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column workforce.competency_model.proficiency_scale_id looks like an FK but has no foreign_key_to reference
+  - [SA:denormalized_natural_key] Product 'store.zone' has both FK 'zone_id' and natural key 'zone_code' for entity 'zone'. The natural key is redundant — use the FK join instead.
+  - [SA:denormalized_natural_key] Product 'finance.bank_account' has both FK 'account_id' and natural key 'account_number' for entity 'account'. The natural key is redundant — use the FK join instead.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'compliance.compliance_certification' and 'quality.quality_certification' have the same entity name 'certification' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'compliance.compliance_audit_finding' and 'supplier.supplier_audit_finding' have the same entity name 'audit_finding' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'ecommerce.ecommerce_catalog_product_listing' and 'product.product_catalog_product_listing' have the same entity name 'catalog_product_listing' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'ecommerce.ecommerce_storefront_availability' and 'product.product_storefront_availability' have the same entity name 'storefront_availability' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'inventory.inventory_cycle_count' and 'store.store_cycle_count' have the same entity name 'cycle_count' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'inventory.zone' and 'store.zone' have the same entity name 'zone' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'marketing.brand' and 'product.brand' have the same entity name 'brand' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'order.order_purchase_order' and 'sourcing.sourcing_purchase_order' have the same entity name 'purchase_order' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'order.order_purchase_order_line' and 'sourcing.sourcing_purchase_order_line' have the same entity name 'purchase_order_line' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'order.order_hold' and 'quality.quality_hold' have the same entity name 'hold' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'product.product_sample' and 'quality.quality_sample' have the same entity name 'sample' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'product.product_tna_calendar' and 'sourcing.sourcing_tna_calendar' have the same entity name 'tna_calendar' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'product.product_material_supplier' and 'supplier.supplier_material_supplier' have the same entity name 'material_supplier' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'product.product_material_sourcing' and 'sourcing.sourcing_material_sourcing' have the same entity name 'material_sourcing' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'production.production_factory' and 'supplier.supplier_factory' have the same entity name 'factory' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'production.production_tna_milestone' and 'sourcing.sourcing_tna_milestone' have the same entity name 'tna_milestone' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'production.production_factory_certification' and 'supplier.supplier_factory_certification' have the same entity name 'factory_certification' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — connect_table: shared.organization** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — organization is nearly isolated with only one inbound link from inventory.inventory_pool; needs connection to finance for legal entity mapping
+**PRIORITY 2 — connect_table: marketing.affiliate_partner** — add column campaign_id (BIGINT) with FK to marketing.campaign.campaign_id — affiliate partners should be linked to campaigns they participate in, currently only referenced inbound from affiliate_conversion and promo_redemption with no outbound FKs
+**PRIORITY 3 — connect_table: marketing.influencer** — add column brand_id (BIGINT) with FK to product.brand.brand_id — influencers are typically aligned to specific brands in apparel/fashion; table has zero outbound FKs
+**PRIORITY 4 — connect_table: logistics.carrier** — add column finance_company_code_id (BIGINT) with FK to finance.company_code.company_code_id — carrier is a reference table with zero outbound FKs but should link to the company code for financial settlement purposes
+**PRIORITY 5 — connect_table: logistics.third_party_logistics** — add column finance_cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — 3PL providers have zero outbound FKs but need cost center linkage for expense allocation
+**PRIORITY 6 — connect_table: logistics.contract** — add column carrier_id (BIGINT) with FK to logistics.carrier.carrier_id — logistics contracts should reference the carrier they govern; currently only has self-ref FK
+**PRIORITY 7 — connect_table: logistics.contract** — add column vendor_id (BIGINT) with FK to supplier.vendor.vendor_id — logistics contracts may also be with vendors/3PLs and need supplier linkage
+**PRIORITY 8 — connect_table: quality.defect** — add column category_id (BIGINT) with FK to product.category.category_id — defect is a reference table with zero outbound FKs; linking to product category enables defect analysis by product type
+**PRIORITY 9 — connect_table: customer.contact** — add column wholesale_account_id (BIGINT) with FK to customer.wholesale_account.wholesale_account_id — contacts have zero outbound FKs but logically belong to wholesale accounts or profiles
+**PRIORITY 10 — connect_table: merchandising.sales_organization** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — sales organization is isolated with zero outbound FKs and should map to a legal entity
+**PRIORITY 11 — connect_table: workforce.job_profile** — add column job_family_id (BIGINT) with FK to workforce.job_family.job_family_id — job profiles logically belong to job families; currently job_profile has zero outbound FKs
+**PRIORITY 12 — rename_product: ecommerce.ecommerce_catalog_product_listing** — rename to catalog_product_listing because the domain prefix "ecommerce_" is redundant given the table already resides in the ecommerce domain
+**PRIORITY 13 — rename_product: ecommerce.ecommerce_storefront_availability** — rename to storefront_availability because the domain prefix "ecommerce_" is redundant given the table already resides in the ecommerce domain
+**PRIORITY 14 — rename_product: order.order_purchase_order** — rename to purchase_order because the domain prefix "order_" is redundant and confusing given the table resides in the order domain
+**PRIORITY 15 — rename_product: order.order_purchase_order_line** — rename to purchase_order_line because the domain prefix "order_" is redundant
+**PRIORITY 16 — rename_product: sourcing.sourcing_purchase_order** — rename to sourcing_po because the "sourcing_" prefix is redundant within the sourcing domain and conflicts with order.order_purchase_order semantically
+**PRIORITY 17 — rename_product: sourcing.sourcing_purchase_order_line** — rename to sourcing_po_line because the full name is excessively long and redundant within domain
+**PRIORITY 18 — rename_product: sourcing.sourcing_material_sourcing** — rename to material_sourcing because the "sourcing_" prefix is redundant within the sourcing domain
+**PRIORITY 19 — rename_product: sourcing.sourcing_tna_calendar** — rename to tna_calendar because the "sourcing_" prefix is redundant within the sourcing domain
+**PRIORITY 20 — rename_product: sourcing.sourcing_tna_milestone** — rename to tna_milestone because the "sourcing_" prefix is redundant within the sourcing domain
+**PRIORITY 21 — rename_product: supplier.supplier_factory** — rename to factory because the "supplier_" prefix is redundant within the supplier domain
+**PRIORITY 22 — rename_product: supplier.supplier_material_supplier** — rename to material_supplier because the double "supplier_" prefix is confusing and redundant
+**PRIORITY 23 — rename_product: supplier.supplier_factory_certification** — rename to factory_certification because the "supplier_" prefix is redundant within the supplier domain
+**PRIORITY 24 — rename_product: product.product_catalog_product_listing** — rename to catalog_listing because the triple "product" reference is excessively redundant
+**PRIORITY 25 — rename_product: product.product_storefront_availability** — rename to storefront_availability because the "product_" prefix is redundant within the product domain
+**PRIORITY 26 — rename_product: product.product_material_sourcing** — rename to material_sourcing_link because the "product_" prefix is redundant within the product domain
+**PRIORITY 27 — rename_product: product.product_material_supplier** — rename to material_supplier_link because the "product_" prefix is redundant within the product domain
+**PRIORITY 28 — rename_product: product.product_sample** — rename to sample because the "product_" prefix is redundant within the product domain
+**PRIORITY 29 — rename_product: product.product_tna_calendar** — rename to tna_calendar because the "product_" prefix is redundant within the product domain
+**PRIORITY 30 — connect_table: customer.profile** — add column segment_id (BIGINT) with FK to customer.segment.segment_id — customer profiles should directly reference their primary segment for efficient querying and personalization
+**PRIORITY 31 — connect_table: finance.margin_record** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — margin records need product linkage to enable margin analysis by SKU; currently only links to sustainability.environmental_impact which is unusual
+**PRIORITY 32 — connect_table: finance.margin_record** — add column channel_id (BIGINT) with FK to merchandising.channel.channel_id — margin analysis requires channel dimension per business description
+**PRIORITY 33 — connect_table: finance.margin_record** — add column season_id (BIGINT) with FK to merchandising.season.season_id — margin records need temporal context for seasonal profitability analysis
+**PRIORITY 34 — remove_fk: finance.margin_record** — remove FK on column environmental_impact_id because margin records should not have sustainability.environmental_impact as their sole FK; this appears to be a modeling error
+**PRIORITY 35 — connect_table: ecommerce.digital_payment** — add column digital_order_id (BIGINT) with FK to ecommerce.digital_order.digital_order_id — digital payments should link to digital orders, not just sales_order; the ecommerce payment flow originates from digital orders
+**PRIORITY 36 — connect_table: ecommerce.digital_payment** — add column customer_profile_id (BIGINT) with FK to customer.profile.profile_id — digital payments need customer linkage for payment history and fraud detection
+**PRIORITY 37 — connect_table: ecommerce.merchandising_rule** — add column digital_storefront_id (BIGINT) with FK to ecommerce.digital_storefront.digital_storefront_id — merchandising rules apply to specific storefronts; currently only has self-ref FK making it nearly isolated
+**PRIORITY 38 — connect_table: ecommerce.merchandising_rule** — add column category_id (BIGINT) with FK to product.category.category_id — merchandising rules typically target product categories for site merchandising
+**PRIORITY 39 — connect_table: ecommerce.wishlist** — add column sku_id (BIGINT) with FK to product.sku.sku_id — wishlists must reference products; currently missing product linkage
+**PRIORITY 40 — connect_table: marketing.brand** — add column product_brand_id (BIGINT) with FK to product.brand.brand_id — marketing.brand and product.brand appear to be duplicate concepts that should be linked or unified
+**PRIORITY 41 — move_product: marketing.brand** — move to product because product.brand already exists as the SSOT for brand definitions; marketing should reference product.brand rather than maintaining a separate brand table
+**PRIORITY 42 — connect_table: customer.loyalty_tier** — add column loyalty_program_id (BIGINT) with FK to customer.loyalty_program.loyalty_program_id — loyalty tiers logically belong to a specific loyalty program; currently only has self-ref FK
+**PRIORITY 43 — connect_table: store.planogram** — add column retail_store_id (BIGINT) with FK to store.retail_store.retail_store_id — planograms apply to stores; currently only has self-ref FK making it nearly isolated
+**PRIORITY 44 — connect_table: store.planogram** — add column season_id (BIGINT) with FK to merchandising.season.season_id — planograms are seasonal in apparel retail
+**PRIORITY 45 — connect_table: workforce.pay_period** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — pay periods are company-specific; currently only has self-ref FK
+**PRIORITY 46 — connect_table: workforce.location** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — workforce locations should map to legal entities
+**PRIORITY 47 — connect_table: sustainability.facility** — add column vendor_id (BIGINT) with FK to supplier.vendor.vendor_id — sustainability facilities should link to the vendor/supplier that operates them
+**PRIORITY 48 — connect_table: sustainability.scope3_category** — add column esg_report_id (BIGINT) with FK to sustainability.esg_report.esg_report_id — scope 3 categories need linkage to ESG reporting framework
+**PRIORITY 49 — connect_table: inventory.valuation_area** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — valuation areas in SAP are always assigned to a company code; currently only has self-ref FK
+**PRIORITY 50 — connect_table: order.allocation_rule** — add column channel_id (BIGINT) with FK to merchandising.channel.channel_id — allocation rules apply to specific channels for order orchestration; currently only has self-ref FK
+**PRIORITY 51 — connect_table: quality.fit_model** — add column category_id (BIGINT) with FK to product.category.category_id — fit models specialize in product categories (e.g., tops, bottoms); currently only has self-ref FK
+**PRIORITY 52 — connect_table: quality.gate** — add column standard_id (BIGINT) with FK to quality.standard.standard_id — quality gates enforce specific standards; currently only has self-ref FK
+**PRIORITY 53 — connect_table: quality.aql_plan** — add column standard_id (BIGINT) with FK to quality.standard.standard_id — AQL plans are derived from quality standards
+**PRIORITY 54 — connect_table: design.trend_report** — add column season_id (BIGINT) with FK to merchandising.season.season_id — trend reports are always seasonal in fashion; currently only has self-ref FK
+**PRIORITY 55 — connect_table: design.trend_report** — add column designer_id (BIGINT) with FK to design.designer.designer_id — trend reports are authored by designers
+**PRIORITY 56 — connect_table: design.pattern_block** — add column style_id (BIGINT) with FK to product.style.style_id — pattern blocks are developed for specific styles
+**PRIORITY 57 — connect_table: merchandising.division** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — merchandising divisions map to legal entities for financial reporting
+**PRIORITY 58 — connect_table: merchandising.capacity_booking** — add column vendor_id (BIGINT) with FK to supplier.vendor.vendor_id — capacity bookings are negotiated with vendors, not just factories
+**PRIORITY 59 — connect_table: merchandising.capacity_booking** — add column style_id (BIGINT) with FK to product.style.style_id — capacity is booked for specific styles in apparel production planning
+**PRIORITY 60 — connect_table: workforce.competency_model** — add column department_id (BIGINT) with FK to workforce.department.department_id — competency models are typically department-specific
+**PRIORITY 61 — connect_table: workforce.benefit_plan** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — benefit plans are company-specific
+**PRIORITY 62 — connect_table: workforce.budget_period** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — workforce budget periods are company-specific
+**PRIORITY 63 — connect_table: customer.size_profile** — add column size_scale_id (BIGINT) with FK to product.size_scale.size_scale_id — customer size profiles should reference the product size scale system for accurate size recommendations
+**PRIORITY 64 — connect_table: production.bulk_fabric_receipt** — add column lot_batch_id (BIGINT) with FK to inventory.lot_batch.lot_batch_id — bulk fabric receipts create inventory lots that need traceability
+**PRIORITY 65 — connect_table: production.fabric_roll** — add column material_id (BIGINT) with FK to product.material.material_id — fabric rolls are instances of specific materials; currently only links to fabric_type which is less specific
+**PRIORITY 66 — connect_table: store.fiscal_week** — add column company_code_id (BIGINT) with FK to finance.company_code.company_code_id — fiscal calendars are company-specific in retail
+**PRIORITY 67 — connect_table: ecommerce.ab_test** — add column site_catalog_id (BIGINT) with FK to ecommerce.site_catalog.site_catalog_id — A/B tests in ecommerce typically test catalog/merchandising variations
+**PRIORITY 68 — connect_table: compliance.regulatory_change** — add column product_category_id (BIGINT) with FK to product.category.category_id — regulatory changes often affect specific product categories (e.g., children's apparel CPSIA)
+**PRIORITY 69 — connect_table: customer.attendance** — add column loyalty_program_id (BIGINT) with FK to customer.loyalty_program.loyalty_program_id — event attendance often earns loyalty points in apparel retail
+**PRIORITY 70 — connect_table: production.factory_capacity** — add column vendor_id (BIGINT) with FK to supplier.vendor.vendor_id — factory capacity is managed through vendor relationships
+**PRIORITY 71 — remove_fk: customer.wholesale_account** — remove FK on column sourcing_rfq_id because wholesale accounts should not directly reference RFQs; RFQs are sourcing-internal documents not customer-facing
+**PRIORITY 72 — remove_fk: customer.wholesale_account** — remove FK on column supplier_factory_id because wholesale customer accounts should not directly reference supplier factories; this conflates customer and supplier concepts
+**PRIORITY 73 — connect_table: ecommerce.cart** — add column customer_profile_id (BIGINT) with FK to customer.profile.profile_id — carts already have this per the FK list but confirming the link exists; if the existing FK is through a different path, ensure direct profile linkage
+**PRIORITY 74 — connect_table: merchandising.collection_seeding** — add column product_style_id (BIGINT) with FK to product.style.style_id — collection seeding to influencers should specify which styles are being seeded
+**PRIORITY 75 — connect_table: supplier.vendor_defect_occurrence** — add column production_factory_id (BIGINT) with FK to production.production_factory.production_factory_id — defect occurrences happen at specific factories, not just at the vendor level
+**PRIORITY 76 — connect_table: supplier.vendor_defect_occurrence** — add column style_id (BIGINT) with FK to product.style.style_id — defect occurrences should reference the product style affected
+**PRIORITY 77 — connect_table: sustainability.initiative_carbon_contribution** — add column esg_report_id (BIGINT) with FK to sustainability.esg_report.esg_report_id — carbon contributions from initiatives should be reportable in ESG disclosures
+**PRIORITY 78 — connect_table: product.collection_sustainability_contribution** — add column target_id (BIGINT) with FK to sustainability.target.target_id — collection sustainability contributions should track against specific targets
+**PRIORITY 79 — connect_table: product.style_certification** — add column vendor_id (BIGINT) with FK to supplier.vendor.vendor_id — style certifications are often vendor-specific (e.g., GOTS certified at a specific supplier)
+**PRIORITY 80 — connect_table: product.material_compliance** — add column vendor_id (BIGINT) with FK to supplier.vendor.vendor_id — material compliance testing is vendor-specific
+**PRIORITY 81 — connect_table: production.factory_designer_collaboration** — add column style_id (BIGINT) with FK to product.style.style_id — factory-designer collaborations are typically for specific styles
+**PRIORITY 82 — connect_table: supplier.factory_sourcing_allocation** — add column season_id (BIGINT) with FK to merchandising.season.season_id — factory sourcing allocations are seasonal
+**PRIORITY 83 — connect_table: supplier.factory_sourcing_allocation** — add column style_id (BIGINT) with FK to product.style.style_id — factory allocations are for specific styles
+**PRIORITY 84 — connect_table: ecommerce.storefront_carrier_service** — add column logistics_carrier_service_agreement_id (BIGINT) with FK to logistics.carrier_service_agreement.carrier_service_agreement_id — storefront carrier services should reference the governing service agreement
+**PRIORITY 85 — connect_table: marketing.campaign_flight** — add column finance_budget_line_id (BIGINT) with FK to finance.budget_line.budget_line_id — campaign flights consume budget and need financial linkage
+**PRIORITY 86 — connect_table: marketing.audience_segment** — add column digital_storefront_id (BIGINT) with FK to ecommerce.digital_storefront.digital_storefront_id — audience segments are often storefront-specific for personalization
+**PRIORITY 87 — connect_table: workforce.course** — add column cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — training courses have associated costs that need allocation
+**PRIORITY 88 — connect_table: production.production_line** — add column category_id (BIGINT) with FK to product.category.category_id — production lines in apparel are typically specialized by product category (e.g., knits, wovens, footwear)
+
+Other known issues from static analysis (69):
+  - Attribute 'referral_tier' in customer.referral has redundant product prefix 'referral_'. Rename to 'tier'
+  - Attribute 'influencer_tier' in marketing.influencer has redundant product prefix 'influencer_'. Rename to 'tier'
+  - Attribute 'brand_manager_email' in product.brand has redundant product prefix 'brand_'. Rename to 'manager_email'
+  - Attribute 'brand_manager_name' in product.brand has redundant product prefix 'brand_'. Rename to 'manager_name'
+  - Attribute 'brand_ambassador_program' in marketing.brand has redundant product prefix 'brand_'. Rename to 'ambassador_program'
+  - Attribute 'brand_awareness_percentage' in marketing.brand has redundant product prefix 'brand_'. Rename to 'awareness_percentage'
+  - Attribute 'brand_color_primary' in marketing.brand has redundant product prefix 'brand_'. Rename to 'color_primary'
+  - Attribute 'brand_color_secondary' in marketing.brand has redundant product prefix 'brand_'. Rename to 'color_secondary'
+  - Attribute 'brand_equity_score' in marketing.brand has redundant product prefix 'brand_'. Rename to 'equity_score'
+  - Attribute 'brand_website_url' in marketing.brand has redundant product prefix 'brand_'. Rename to 'website_url'
+  - Attribute 'channel_manager_name' in merchandising.channel has redundant product prefix 'channel_'. Rename to 'manager_name'
+  - Attribute 'marker_creation_method' in production.marker has redundant product prefix 'marker_'. Rename to 'creation_method'
+  - Attribute 'marker_length_cm' in production.marker has redundant product prefix 'marker_'. Rename to 'length_cm'
+  - Attribute 'marker_notes' in production.marker has redundant product prefix 'marker_'. Rename to 'notes'
+  - Attribute 'marker_version' in production.marker has redundant product prefix 'marker_'. Rename to 'version'
+  - Attribute 'marker_width_cm' in production.marker has redundant product prefix 'marker_'. Rename to 'width_cm'
+  - Attribute 'district_manager_name' in store.district has redundant product prefix 'district_'. Rename to 'manager_name'
+  - Attribute 'role_family' in workforce.role has redundant product prefix 'role_'. Rename to 'family'
+  - Attribute 'contract_owner_employee_id' in logistics.contract has redundant product prefix 'contract_'. Rename to 'owner_employee_id'
+  - Table compliance.incident has self-referencing FK on column 'related_incident_id' with same name as PK 'incident_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table quality.lab_test has self-referencing FK on column 'retest_of_test_id' with same name as PK 'lab_test_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table store.vm_compliance_check has self-referencing FK on column 're_audit_compliance_check_id' with same name as PK 'vm_compliance_check_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table design.collaboration has self-referencing FK on column 'related_collaboration_id' with same name as PK 'collaboration_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table design.trend_item has self-referencing FK on column 'related_trend_item_id' with same name as PK 'trend_item_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table compliance.product_safety_test has 2 FK columns pointing to supplier.vendor (testing_laboratory_vendor_id, vendor_id) (generic/unlabeled: vendor_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table design.fabric_swatch has 2 FK columns pointing to supplier.vendor (supplier_mill_vendor_id, vendor_id) (generic/unlabeled: vendor_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table ecommerce.ecommerce_storefront_availability has 2 FK columns pointing to logistics.distribution_center (distribution_center_id, source_distribution_center_id) (generic/unlabeled: distribution_center_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.bank_account has 2 FK columns pointing to finance.gl_account (account_id, gl_account_id) (generic/unlabeled: gl_account_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table marketing.affiliate_conversion has 2 FK columns pointing to marketing.affiliate_partner (affiliate_partner_id, sub_affiliate_affiliate_partner_id) (generic/unlabeled: affiliate_partner_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table merchandising.allocation_plan has 3 FK columns pointing to merchandising.merchandise_hierarchy (class_merchandise_hierarchy_id, merchandise_hierarchy_id, subclass_merchandise_hierarchy_id) (generic/unlabeled: merchandise_hierarchy_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table merchandising.allocation_plan has 2 FK columns pointing to logistics.distribution_center (destination_distribution_center_id, distribution_center_id) (generic/unlabeled: distribution_center_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table production.work_order has 2 FK columns pointing to production.production_factory (factory_id, production_factory_id) (generic/unlabeled: production_factory_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.labor_compliance_event has 4 FK columns pointing to workforce.employee (employee_id, primary_labor_employee_id, quaternary_labor_remediation_owner_employee_id, tertiary_labor_manager_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.labor_compliance_event has 2 FK columns pointing to workforce.org_unit (location_org_unit_id, org_unit_id) (generic/unlabeled: org_unit_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.leave_request has 4 FK columns pointing to workforce.employee (employee_id, modified_by_user_employee_id, primary_leave_employee_id, tertiary_leave_coverage_assigned_to_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.leave_request has 2 FK columns pointing to workforce.org_unit (org_unit_id, work_location_org_unit_id) (generic/unlabeled: org_unit_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.shift_assignment has 2 FK columns pointing to workforce.employee (employee_id, primary_shift_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.time_entry has 2 FK columns pointing to workforce.employee (employee_id, primary_time_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.time_entry has 2 FK columns pointing to workforce.org_unit (org_unit_id, work_location_org_unit_id) (generic/unlabeled: org_unit_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table supplier.factory_sourcing_allocation has 2 FK columns pointing to sourcing.agreement (agreement_id, sourcing_agreement_id) (generic/unlabeled: agreement_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table supplier.factory_sourcing_allocation has 2 FK columns pointing to supplier.supplier_factory (factory_supplier_factory_id, supplier_factory_id) (generic/unlabeled: supplier_factory_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table compliance.substance_regulation has 2 FK columns pointing to compliance.obligation (compliance_obligation_id, obligation_id) (generic/unlabeled: obligation_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table supplier.vendor_quality_compliance has 2 FK columns pointing to quality.standard (quality_standard_id, standard_id) (generic/unlabeled: standard_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table marketing.campaign_initiative_promotion has 2 FK columns pointing to sustainability.initiative (initiative_id, sustainability_initiative_id) (generic/unlabeled: initiative_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table marketing.campaign_certification_usage has 2 FK columns pointing to compliance.compliance_certification (certification_compliance_certification_id, compliance_certification_id) (generic/unlabeled: compliance_certification_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.cost_center_initiative_participation has 2 FK columns pointing to sustainability.initiative (initiative_id, sustainability_initiative_id) (generic/unlabeled: initiative_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table production.production_factory_certification has 2 FK columns pointing to compliance.compliance_certification (certification_compliance_certification_id, compliance_certification_id) (generic/unlabeled: compliance_certification_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table marketing.influencer_initiative_partnership has 2 FK columns pointing to sustainability.initiative (initiative_id, sustainability_initiative_id) (generic/unlabeled: initiative_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table product.material_compliance has 2 FK columns pointing to quality.standard (quality_standard_id, standard_id) (generic/unlabeled: standard_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table logistics.lane has 2 FK columns pointing to logistics.distribution_center (destination_location_distribution_center_id, distribution_center_id) (generic/unlabeled: distribution_center_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.shift_swap_request has 3 FK columns pointing to workforce.employee (employee_id, requesting_employee_id, target_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - PII-candidate attribute finance.letter_of_credit.issuing_bank_account_id has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute customer.loyalty_tier.birthday_reward_enabled has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute order.trading_partner.primary_contact_name has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute sustainability.facility.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute sustainability.facility.living_wage_compliant has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute sustainability.facility.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute workforce.course.is_mobile_compatible has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute workforce.role.compensation_currency_code has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute workforce.job_family.compensation_grade_maximum has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute workforce.job_family.compensation_grade_minimum has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute workforce.location.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute workforce.location.longitude has no classification tags — expected restricted/confidential + PII tag
+  - Product 'inventory.stock_movement' has 35 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - 22 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 522 attribute(s) match person-data patterns but lack pii_ tags
+  - 73 non-PK attributes redundantly prefixed with their product name
+  - 3 attribute(s) have value_regex on typed columns (DATE/BOOLEAN/INT/etc.) — regex is redundant when data_type constrains format
+  - 2 attribute(s) have pipe-enum value_regex with >8 values — consider creating a reference product instead
+
+Deterministic score: 70/100 (LLM assessment: 62/100)

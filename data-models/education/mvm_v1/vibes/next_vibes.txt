@@ -1,0 +1,83 @@
+**Model Quality Score: 92/100**
+
+**Static Analysis Findings (8 actionable):**
+  - [SA:unlinked_fk] Column research.principal_investigator.instructor_id looks like an FK but has no foreign_key_to reference
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'advancement.advancement_fund' and 'aid.aid_fund' have the same entity name 'fund' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'advancement.advancement_fund' and 'finance.finance_fund' have the same entity name 'fund' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'aid.aid_fund' and 'finance.finance_fund' have the same entity name 'fund' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'aid.aid_application' and 'enrollment.enrollment_application' have the same entity name 'application' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'aid.aid_award' and 'research.research_award' have the same entity name 'award' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'enrollment.enrollment_applicant' and 'hr.hr_applicant' have the same entity name 'applicant' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'enrollment.enrollment_test_score' and 'student.student_test_score' have the same entity name 'test_score' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — rename_product: curriculum.map** — rename to curriculum_map because "map" is a generic reserved word in many languages and databases; "curriculum_map" provides business context linking PLOs to courses
+**PRIORITY 2 — connect_table: curriculum.cip_code** — add column regulatory_requirement_id (BIGINT) with FK to compliance.regulatory_requirement.regulatory_requirement_id — CIP codes are federally mandated classifications requiring compliance tracking for IPEDS reporting
+**PRIORITY 3 — remove_fk: billing.tuition_charge** — remove FK on column health_visit_id because a tuition charge should not directly reference a health visit; health-related fees would flow through fee_schedule or a billing event, not a clinical encounter record
+**PRIORITY 4 — remove_fk: advancement.stewardship_action** — remove FK on column ferpa_disclosure_id because stewardship actions (donor thank-you letters, reports) have no legitimate business relationship to FERPA student privacy disclosures
+**PRIORITY 5 — remove_fk: billing.tuition_charge** — remove FK on column graduation_application_id because tuition charges are assessed at registration time, not driven by graduation applications; graduation fees belong in fee_schedule
+**PRIORITY 6 — rename_attribute: curriculum.section** — rename column instructor_id to primary_instructor_id because this disambiguates from teaching_assignment relationships and clarifies the section-level role
+**PRIORITY 7 — connect_table: enrollment.term** — add column academic_year_label (already exists check) or confirm term has no FK to curriculum.academic_program; add column institution_id (BIGINT) with FK to curriculum.institution.institution_id — terms are institution-specific and multi-campus models require this linkage
+**PRIORITY 8 — remove_fk: aid.aid_application** — remove FK on column building_id because a financial aid application has no business relationship to a physical building
+**PRIORITY 9 — remove_fk: aid.aid_application** — remove FK on column instructor_id because financial aid applications are not associated with individual instructors
+**PRIORITY 10 — remove_fk: enrollment.enrollment_application** — remove FK on column instructor_id because admissions applications are processed by staff, not instructors; use hr.employee for reviewer tracking
+**PRIORITY 11 — remove_fk: enrollment.application_program** — remove FK on column instructor_id because program choices on applications are not linked to specific instructors at application time
+**PRIORITY 12 — remove_fk: enrollment.matriculation** — remove FK on column instructor_id because matriculation is an administrative enrollment event, not an instructional one
+**PRIORITY 13 — connect_table: student.profile** — add column institution_id (BIGINT) with FK to curriculum.institution.institution_id — students belong to a specific institution in multi-campus environments
+**PRIORITY 14 — rename_product: curriculum.section** — rename to course_section_catalog because the instruction domain already has course_section creating semantic confusion between catalog-level section definition and operational delivery
+**PRIORITY 15 — remove_fk: enrollment.enrollment_application** — remove FK on column principal_investigator_id because admissions applications for most programs have no relationship to a PI; this belongs only on research-specific graduate applications via application_program
+**PRIORITY 16 — remove_fk: enrollment.application_program** — remove FK on column principal_investigator_id because PI association should be at the research_award or admission_offer level, not at application-program selection
+**PRIORITY 17 — connect_table: hr.employee** — add column institution_id (BIGINT) with FK to curriculum.institution.institution_id — employees work at specific institutions in multi-campus systems
+**PRIORITY 18 — remove_fk: studentlife.conduct_sanction** — remove FK on column ar_invoice_id because sanctions should generate charges through billing.tuition_charge or billing.fee_schedule, not directly reference AR invoices
+**PRIORITY 19 — connect_table: facility.campus** — add column institution_id (BIGINT) with FK to curriculum.institution.institution_id — campuses belong to institutions and this is a fundamental hierarchical relationship
+**PRIORITY 20 — remove_fk: studentlife.housing_assignment** — remove FK on column account_hold_id because housing assignments do not create holds; holds are consequences managed in billing.account_hold referencing housing
+**PRIORITY 21 — connect_table: aid.award_year** — add column fiscal_period_id (BIGINT) with FK to finance.fiscal_period.fiscal_period_id — award years align with fiscal periods for financial reconciliation and Title IV reporting
+**PRIORITY 22 — remove_fk: research.proposal_personnel** — remove FK on column fee_schedule_id because proposal personnel records track people on proposals, not billing fee schedules
+**PRIORITY 23 — remove_fk: research.proposal_personnel** — remove FK on column alumnus_id because proposal personnel should reference hr.employee or student.profile, not alumni records directly
+**PRIORITY 24 — rename_attribute: advancement.campaign** — rename column parent_campaign_id to parent_campaign_id (verify this is correctly named; if the column is just campaign_id referencing self, rename to parent_campaign_id)
+**PRIORITY 25 — connect_table: instruction.submission** — add column enrollment_registration_id (BIGINT) with FK to enrollment.registration.registration_id — submissions should trace to the student's active registration in the section for enrollment verification
+**PRIORITY 26 — remove_fk: studentlife.immunization_record** — remove FK on column academic_program_id because immunization records are student health records unrelated to specific academic programs
+**PRIORITY 27 — connect_table: instruction.lms_course_shell** — add column course_section_id (BIGINT) with FK to instruction.course_section.course_section_id — LMS shells are created for specific course sections; the current model only links course_section to lms_course_shell but not the reverse, creating ambiguity
+**PRIORITY 28 — remove_fk: studentlife.service_learning_placement** — remove FK on column tuition_charge_id because service learning placements are co-curricular activities not directly tied to individual tuition charge line items
+**PRIORITY 29 — connect_table: enrollment.prospect** — add column institution_id (BIGINT) with FK to curriculum.institution.institution_id — prospects are recruited to specific institutions in multi-campus environments
+**PRIORITY 30 — remove_fk: aid.coa_budget** — remove FK on column dining_plan_id because COA budgets estimate costs by category; they should not FK to a specific dining plan instance but rather use estimated amounts
+**PRIORITY 31 — connect_table: billing.refund** — add column enrollment_term_id (BIGINT) with FK to enrollment.term.term_id — refunds are term-specific for proper period accounting and R2T4 calculations
+**PRIORITY 32 — remove_fk: advancement.engagement_activity** — remove FK on column event_id because engagement_activity already has campaign_id and alumnus_id; the FK to advancement.event creates a circular dependency where engagement_activity should BE the event participation record
+**PRIORITY 33 — connect_table: instruction.grade_entry** — add column registration_id (BIGINT) with FK to enrollment.registration.registration_id — grade entries must trace to a specific student registration for academic integrity and transcript generation
+**PRIORITY 34 — remove_fk: studentlife.health_visit** — remove FK on column irb_protocol_id because routine student health visits are clinical encounters, not research activities; only research-specific visits need IRB linkage
+**PRIORITY 35 — connect_table: faculty.instructor** — add column org_unit_id (BIGINT) with FK to hr.org_unit.org_unit_id — instructors have primary departmental appointments that should be directly accessible without joining through employee
+**PRIORITY 36 — remove_fk: enrollment.student_term_record** — remove FK on column principal_investigator_id because student term records track enrollment status, not research supervision; use faculty.advising_assignment for research advisor relationships
+**PRIORITY 37 — connect_table: studentlife.campus_event** — add column event_type_code (already may exist) — verify campus_event has enrollment.term FK which it does; add student_org_id confirmed present
+**PRIORITY 38 — remove_fk: advancement.alumni_event_registration** — remove FK on column student_account_id because alumni event registrations are post-graduation activities; alumni no longer have active student accounts
+**PRIORITY 39 — remove_fk: advancement.alumni_event_registration** — remove FK on column payment_id because event registration payments should flow through advancement's own payment processing, not the student billing.payment table
+**PRIORITY 40 — connect_table: compliance.training_program** — add column employee_id (BIGINT) with FK to hr.employee.employee_id — training programs need an owner/coordinator for accountability
+**PRIORITY 41 — remove_fk: faculty.compensation** — remove FK on column advancement_fund_id because faculty compensation is funded through institutional budgets and grants, not advancement funds directly; use finance.finance_fund instead
+**PRIORITY 42 — remove_fk: faculty.appointment** — remove FK on column advancement_fund_id because faculty appointments are HR/academic actions not directly funded by advancement funds; endowed chair funding flows through finance
+**PRIORITY 43 — connect_table: enrollment.admission_offer** — add column financial_aid_estimated_amount or confirm aid.award_package FK exists which it does — verified acceptable
+**PRIORITY 44 — rename_attribute: hr.employee** — rename column supervisor_employee_id to reports_to_employee_id because "reports_to" is the standard Workday HCM terminology and aligns with position.reports_to_position_id
+**PRIORITY 45 — connect_table: billing.sponsorship_authorization** — add column enrollment_term_id (BIGINT) with FK to enrollment.term.term_id — sponsorship authorizations are term-bounded for proper billing period control
+**PRIORITY 46 — connect_table: billing.sponsorship_authorization** — add column student_profile_id (BIGINT) with FK to student.profile.profile_id — sponsorship authorizations cover specific students and need direct student linkage beyond just student_account
+**PRIORITY 47 — remove_fk: aid.disbursement** — remove FK on column attendance_record_id because disbursements are financial transactions; attendance verification is a prerequisite check, not a direct FK relationship
+**PRIORITY 48 — connect_table: compliance.clery_incident** — add column campus_id (BIGINT) with FK to facility.campus.campus_id — Clery Act reporting is campus-specific and requires geographic classification of incidents
+**PRIORITY 49 — remove_fk: aid.disbursement** — remove FK on column leave_of_absence_id because disbursements are not caused by leaves of absence; R2T4 calculations reference leaves but the disbursement itself should not FK to leave
+**PRIORITY 50 — connect_table: compliance.obligation** — add column fiscal_period_id (BIGINT) with FK to finance.fiscal_period.fiscal_period_id — regulatory obligations have due dates that align with fiscal reporting periods
+**PRIORITY 51 — connect_table: studentlife.org_membership** — add column enrollment_term_id (BIGINT) with FK to enrollment.term.term_id — organization memberships are term-based for activity fee assessment and eligibility tracking
+**PRIORITY 52 — remove_fk: studentlife.conduct_case** — remove FK on column submission_id because conduct cases may involve academic integrity but should reference the assignment or course_section, not a specific submission artifact
+**PRIORITY 53 — connect_table: finance.fixed_asset** — add column org_unit_id (BIGINT) with FK to hr.org_unit.org_unit_id — fixed assets are assigned to departments for inventory control and F&A calculations
+**PRIORITY 54 — connect_table: advancement.constituent** — add column institution_id (BIGINT) with FK to curriculum.institution.institution_id — constituents are associated with specific institutions in multi-campus advancement operations
+**PRIORITY 55 — remove_fk: studentlife.dining_enrollment** — remove FK on column payment_plan_id because dining enrollment billing should flow through student_account charges, not directly reference payment plans
+**PRIORITY 56 — connect_table: compliance.policy** — add column org_unit_id (BIGINT) with FK to hr.org_unit.org_unit_id — policies are owned by specific organizational units for governance accountability
+**PRIORITY 57 — connect_table: instruction.assignment** — add column course_id (BIGINT) with FK to curriculum.course.course_id — assignments relate to courses for reuse across sections and curriculum alignment reporting
+**PRIORITY 58 — remove_fk: advancement.endowment** — remove FK on column student_org_id because endowments fund programs and scholarships, not student organizations directly; student org funding flows through finance_fund
+**PRIORITY 59 — remove_fk: advancement.advancement_fund** — remove FK on column student_org_id because advancement funds support institutional priorities, not student organizations directly
+**PRIORITY 60 — connect_table: enrollment.waitlist** — add column course_section_id (BIGINT) with FK to instruction.course_section.course_section_id — waitlists are for specific course sections, which is the fundamental business purpose of a waitlist
+**PRIORITY 61 — connect_table: enrollment.waitlist** — add column student_profile_id (BIGINT) with FK to student.profile.profile_id — waitlists track which students are waiting, requiring direct student identification
+**PRIORITY 62 — remove_fk: advancement.advancement_fund** — remove FK on column regulatory_filing_id because funds are subject to multiple filings over time; this should be a separate association, not a single FK on the fund
+**PRIORITY 63 — connect_table: studentlife.counseling_case** — add column student_profile_id_verified (confirm student.profile FK exists which it does) — verified acceptable
+**PRIORITY 64 — remove_fk: facility.space_assignment** — remove FK on column accreditation_review_id because space assignments are operational allocations not directly tied to specific accreditation review events
+
+Other known issues from static analysis (3):
+  - 208 attribute(s) match person-data patterns but lack pii_ tags
+  - 17 non-PK attributes redundantly prefixed with their product name
+  - 4 attribute(s) have pipe-enum value_regex with >8 values — consider creating a reference product instead
+
+Deterministic score: 92/100 (LLM assessment: 62/100)

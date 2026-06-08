@@ -1,0 +1,78 @@
+**Model Quality Score: 91/100**
+
+**Static Analysis Findings (5 actionable):**
+  - [SA:unlinked_fk] Column inventory.reservation.allocation_id looks like an FK but has no foreign_key_to reference
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'order.order_purchase_order' and 'sourcing.sourcing_purchase_order' have the same entity name 'purchase_order' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'order.order_purchase_order_line' and 'sourcing.sourcing_purchase_order_line' have the same entity name 'purchase_order_line' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'production.production_factory' and 'supplier.supplier_factory' have the same entity name 'factory' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'production.production_tna_milestone' and 'sourcing.sourcing_tna_milestone' have the same entity name 'tna_milestone' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — connect_table: marketing.influencer** — add column vendor_id (BIGINT) with FK to supplier.vendor.vendor_id — influencers are often contracted partners requiring payment terms and AP processing, and this table currently has ZERO outbound FKs making it isolated
+**PRIORITY 2 — rename_product: production.line** — rename to production_line because "line" is a reserved word in most databases and conflicts with common terminology (e.g., order line, BOM line), causing ambiguity
+**PRIORITY 3 — rename_attribute: order.order_purchase_order** — rename column order_purchase_order_id to order_purchase_order_id — this product name itself is redundant; rename_product: order.order_purchase_order — rename to purchase_order because the "order_" prefix is the domain name and creates stuttering (order.order_purchase_order)
+**PRIORITY 4 — rename_product: order.order_purchase_order** — rename to purchase_order because the "order_" domain prefix is redundant in the product name creating "order.order_purchase_order"
+**PRIORITY 5 — rename_product: order.order_purchase_order_line** — rename to purchase_order_line because the "order_" domain prefix is redundant creating "order.order_purchase_order_line"
+**PRIORITY 6 — rename_product: order.order_payment** — rename to payment because the "order_" domain prefix is redundant creating "order.order_payment"
+**PRIORITY 7 — rename_product: finance.finance_payment** — rename to payment because the "finance_" domain prefix is redundant creating "finance.finance_payment"
+**PRIORITY 8 — connect_table: marketing.influencer** — add column country_code (BIGINT) with FK to merchandising.region.region_id — influencers operate in specific geographic markets relevant to regional campaign targeting
+**PRIORITY 9 — connect_table: merchandising.season** — add column finance_profit_center_id (BIGINT) with FK to finance.profit_center.profit_center_id — seasons drive financial planning and P&L reporting by profit center
+**PRIORITY 10 — remove_fk: finance.cogs_entry** — remove FK on column store.retail_store because COGS entries already link to sales_order and sales_order_line which carry store context; direct store FK on a GL-level entry creates redundant paths and denormalization
+**PRIORITY 11 — connect_table: store.daily_sales_summary** — add column store_associate_id (BIGINT) with FK to store.associate.associate_id — daily sales summaries should optionally track top-performing associate for store KPI analysis
+**PRIORITY 12 — connect_table: store.register** — add column finance_cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — registers represent fixed assets that should be tied to cost centers for depreciation and maintenance tracking
+**PRIORITY 13 — connect_table: order.rma_line** — add column merchandising_season_id (BIGINT) with FK to merchandising.season.season_id — returns analysis requires seasonal attribution for STR and markdown planning
+**PRIORITY 14 — connect_table: product.material** — add column product_category_id (BIGINT) with FK to product.category.category_id — materials are categorized (fabrics, trims, packaging) and need hierarchy linkage for procurement reporting
+**PRIORITY 15 — connect_table: product.msrp_price** — add column merchandising_season_id (BIGINT) with FK to merchandising.season.season_id — MSRP varies by season and requires seasonal versioning for price lifecycle management
+**PRIORITY 16 — connect_table: product.msrp_price** — add column merchandising_channel_id (BIGINT) with FK to merchandising.channel.channel_id — MSRP often differs between DTC, wholesale, and outlet channels
+**PRIORITY 17 — connect_table: product.sample** — add column supplier_vendor_id (BIGINT) with FK to supplier.vendor.vendor_id — samples are produced by vendors and need vendor attribution for cost tracking and quality assessment
+**PRIORITY 18 — connect_table: sourcing.sample_evaluation** — add column supplier_vendor_id (BIGINT) with FK to supplier.vendor.vendor_id — sample evaluations assess vendor capability and must link to the vendor for scorecard aggregation
+**PRIORITY 19 — connect_table: store.planogram** — add column store_retail_store_id (BIGINT) with FK to store.retail_store.retail_store_id — planograms are deployed to specific stores and need direct store assignment
+**PRIORITY 20 — connect_table: production.marker** — add column product_colorway_id (BIGINT) with FK to product.colorway.colorway_id — markers are cut per colorway for fabric utilization optimization
+**PRIORITY 21 — connect_table: logistics.lane** — add column merchandising_region_id (BIGINT) with FK to merchandising.region.region_id — shipping lanes serve specific geographic regions for network optimization
+**PRIORITY 22 — connect_table: supplier.audit_finding** — add column supplier_factory_id (BIGINT) with FK to supplier.supplier_factory.supplier_factory_id — audit findings are discovered at specific factories, not just at audit level
+**PRIORITY 23 — connect_table: supplier.risk_assessment** — add column merchandising_season_id (BIGINT) with FK to merchandising.season.season_id — risk assessments are conducted seasonally and must be time-bound for trend analysis
+**PRIORITY 24 — connect_table: order.allocation** — add column merchandising_season_id (BIGINT) with FK to merchandising.season.season_id — allocations are seasonal activities tied to buy plans and OTB budgets
+**PRIORITY 25 — connect_table: inventory.reservation** — add column merchandising_channel_id (BIGINT) with FK to merchandising.channel.channel_id — reservations must be channel-attributed for omnichannel ATP calculations
+**PRIORITY 26 — rename_attribute: logistics.contract** — rename column master_contract_id to master_logistics_contract_id because self-referencing FK should clearly indicate it references the same entity type
+**PRIORITY 27 — connect_table: production.work_center** — add column finance_cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — work centers incur labor and overhead costs that must map to cost centers for manufacturing cost allocation
+**PRIORITY 28 — connect_table: product.brand** — add column merchandising_region_id (BIGINT) with FK to merchandising.region.region_id — brands often have regional ownership or licensing structures requiring geographic attribution
+**PRIORITY 29 — connect_table: store.cluster** — add column merchandising_region_id (BIGINT) with FK to merchandising.region.region_id — store clusters are geographically organized and should link to merchandising regions for planning alignment
+**PRIORITY 30 — connect_table: marketing.audience_segment** — add column merchandising_channel_id (BIGINT) with FK to merchandising.channel.channel_id — audience segments are channel-specific for targeted campaign execution
+**PRIORITY 31 — connect_table: production.routing** — add column product_collection_id (BIGINT) with FK to product.collection.collection_id — routings may vary by collection for seasonal manufacturing process changes
+**PRIORITY 32 — connect_table: order.backorder** — add column merchandising_channel_id (BIGINT) with FK to merchandising.channel.channel_id — backorders must be channel-attributed for priority fulfillment and customer communication
+**PRIORITY 33 — connect_table: finance.bank_account** — add column merchandising_region_id (BIGINT) with FK to merchandising.region.region_id — bank accounts serve specific geographic regions for treasury management and currency operations
+**PRIORITY 34 — connect_table: sourcing.lab_dip** — add column merchandising_season_id (BIGINT) with FK to merchandising.season.season_id — lab dips are developed for specific seasons as part of the color approval process
+**PRIORITY 35 — connect_table: production.bulk_fabric_receipt** — add column inventory_warehouse_location_id (BIGINT) with FK to inventory.warehouse_location.warehouse_location_id — fabric receipts are received at specific warehouse locations for inventory tracking
+**PRIORITY 36 — connect_table: production.cut_order** — add column merchandising_season_id (BIGINT) with FK to merchandising.season.season_id — cut orders are seasonal production activities requiring seasonal attribution
+**PRIORITY 37 — connect_table: store.bopis_order** — add column inventory_warehouse_location_id (BIGINT) with FK to inventory.warehouse_location.warehouse_location_id — BOPIS orders fulfill from specific store stock locations requiring location-level tracking
+**PRIORITY 38 — connect_table: customer.loyalty_enrollment** — add column merchandising_channel_id (BIGINT) with FK to merchandising.channel.channel_id — loyalty enrollments occur through specific channels (in-store, online, app) for attribution analysis
+**PRIORITY 39 — connect_table: finance.intercompany_transaction** — add column finance_company_code_id_target (BIGINT) with FK to finance.company_code.company_code_id — intercompany transactions require both source and target company codes for elimination during consolidation
+**PRIORITY 40 — connect_table: order.fulfillment** — add column logistics_distribution_center_id (BIGINT) with FK to logistics.distribution_center.distribution_center_id — fulfillments ship from DCs and need direct DC linkage beyond warehouse_location for network analytics
+**PRIORITY 41 — connect_table: product.tech_pack** — add column merchandising_season_id (BIGINT) with FK to merchandising.season.season_id — tech packs are versioned by season for design-to-production handoff
+**PRIORITY 42 — connect_table: product.colorway** — add column product_category_id (BIGINT) with FK to product.category.category_id — colorways inherit category from style but direct linkage enables category-level color analysis
+**PRIORITY 43 — remove_fk: logistics.shipment** — remove FK on column product.material because shipments carry finished goods (SKUs) not raw materials; material linkage belongs on packing_list or lot_batch level
+**PRIORITY 44 — connect_table: supplier.material_supplier** — add column merchandising_season_id (BIGINT) with FK to merchandising.season.season_id — material-supplier relationships have seasonal pricing and availability that must be time-bound
+**PRIORITY 45 — connect_table: supplier.vendor_scorecard** — add column supplier_supplier_factory_id (BIGINT) with FK to supplier.supplier_factory.supplier_factory_id — scorecards should be assessable at factory level not just vendor level for multi-factory vendors
+**PRIORITY 46 — connect_table: inventory.stock_valuation** — add column finance_company_code_id (BIGINT) with FK to finance.company_code.company_code_id — stock valuations must be company-code specific for statutory reporting and consolidation
+**PRIORITY 47 — connect_table: production.order_confirmation** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — production confirmations should record which SKU was produced for yield and quality tracking
+**PRIORITY 48 — connect_table: store.visual_merchandising_plan** — add column merchandising_channel_id (BIGINT) with FK to merchandising.channel.channel_id — VM plans may differ by channel (outlet vs full-price stores)
+**PRIORITY 49 — connect_table: customer.service_request** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — service requests about product issues need direct SKU linkage for quality feedback loops
+**PRIORITY 50 — connect_table: marketing.email_campaign** — add column merchandising_channel_id (BIGINT) with FK to merchandising.channel.channel_id — email campaigns target specific channel audiences (DTC vs wholesale)
+**PRIORITY 51 — connect_table: sourcing.vendor_quote** — add column merchandising_season_id (BIGINT) with FK to merchandising.season.season_id — vendor quotes are seasonal and expire; seasonal linkage enables cost comparison across seasons
+**PRIORITY 52 — connect_table: logistics.freight_booking** — add column inventory_warehouse_location_id (BIGINT) with FK to inventory.warehouse_location.warehouse_location_id — freight bookings deliver to specific warehouse locations for receiving coordination
+**PRIORITY 53 — connect_table: production.factory_capacity** — add column product_style_id (BIGINT) with FK to product.style.style_id — capacity planning is often style-specific for complex garments requiring specialized equipment
+**PRIORITY 54 — connect_table: supplier.compliance_audit** — add column supplier_supplier_factory_id (BIGINT) with FK to supplier.supplier_factory.supplier_factory_id — compliance audits are conducted at factory level, not just vendor level
+**PRIORITY 55 — connect_table: order.sales_order_line** — add column product_style_id (BIGINT) with FK to product.style.style_id — sales order lines should link to style for reporting when SKU-level detail is insufficient for analytics
+**PRIORITY 56 — connect_table: order.rma** — add column merchandising_channel_id (BIGINT) with FK to merchandising.channel.channel_id — RMAs originate from specific channels and return policies vary by channel
+**PRIORITY 57 — connect_table: finance.tax_item** — add column merchandising_region_id (BIGINT) with FK to merchandising.region.region_id — tax items are jurisdiction-specific and need regional linkage for tax compliance reporting
+
+Other known issues from static analysis (8):
+  - Attribute 'influencer_tier' in marketing.influencer has redundant product prefix 'influencer_'. Rename to 'tier'
+  - Attribute 'cluster_tier' in store.cluster has redundant product prefix 'cluster_'. Rename to 'tier'
+  - PII-candidate attribute finance.bank_account.bank_account_gl_account_id has no classification tags — expected restricted/confidential + PII tag
+  - Product 'inventory.stock_movement' has 33 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - 8 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 203 attribute(s) match person-data patterns but lack pii_ tags
+  - 10 non-PK attributes redundantly prefixed with their product name
+  - 1 attribute(s) have pipe-enum value_regex with >8 values — consider creating a reference product instead
+
+Deterministic score: 91/100 (LLM assessment: 62/100)

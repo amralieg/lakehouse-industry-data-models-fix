@@ -1,0 +1,156 @@
+**Model Quality Score: 78/100**
+
+**Static Analysis Findings (30 actionable):**
+  - [SA:unlinked_fk] Column maintenance.work_order.pm_schedule_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column finance.requisition.approval_workflow_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column finance.requisition.approver_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column finance.requisition.contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column finance.requisition.cost_center_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column finance.requisition.department_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column finance.requisition.gl_account_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column finance.requisition.project_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column finance.requisition.property_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column finance.requisition.requestor_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column maintenance.hvac_zone.air_handler_unit_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column maintenance.hvac_zone.building_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column maintenance.hvac_zone.tenant_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column workforce.training_program.owner_employee_id looks like an FK but has no foreign_key_to reference
+  - [SA:denormalized_natural_key] Product 'finance.journal_entry_line' has both FK 'profit_center_id' and natural key 'profit_center_code' for entity 'profit_center'. The natural key is redundant — use the FK join instead.
+  - [SA:denormalized_natural_key] Product 'transaction.transaction_deal_document' has both FK 'document_id' and natural key 'document_number' for entity 'document'. The natural key is redundant — use the FK join instead.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'brokerage.brokerage_deal' and 'investment.investment_deal' have the same entity name 'deal' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'brokerage.brokerage_prospect' and 'tenant.tenant_prospect' have the same entity name 'prospect' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'brokerage.brokerage_broker' and 'insurance.insurance_broker' have the same entity name 'broker' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'brokerage.brokerage_deal_document' and 'transaction.transaction_deal_document' have the same entity name 'deal_document' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'compliance.compliance_program' and 'insurance.insurance_program' have the same entity name 'program' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'compliance.compliance_training' and 'workforce.workforce_training' have the same entity name 'training' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'finance.finance_budget' and 'marketing.marketing_budget' have the same entity name 'budget' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'investment.investment_distribution' and 'owner.owner_distribution' have the same entity name 'distribution' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'lease.lease_agreement' and 'owner.owner_agreement' have the same entity name 'agreement' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'lease.lease_demised_space' and 'property.property_demised_space' have the same entity name 'demised_space' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'lease.lease_representation' and 'owner.owner_representation' have the same entity name 'representation' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'owner.owner_contact' and 'tenant.tenant_contact' have the same entity name 'contact' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'owner.owner_ownership_interest' and 'property.property_ownership_interest' have the same entity name 'ownership_interest' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'property.property_occupancy' and 'tenant.tenant_occupancy' have the same entity name 'occupancy' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — connect_table: finance.requisition** — add column requester_employee_id (BIGINT) with FK to workforce.employee.employee_id — requisitions must track who submitted the purchase request for approval workflow and audit trail
+**PRIORITY 2 — connect_table: finance.requisition** — add column cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — requisitions must be charged to a cost center for budget control
+**PRIORITY 3 — connect_table: finance.requisition** — add column asset_id (BIGINT) with FK to property.asset.asset_id — requisitions in real estate are typically for specific properties
+**PRIORITY 4 — connect_table: maintenance.hvac_zone** — add column building_id (BIGINT) with FK to property.building.building_id — HVAC zones must be associated with the building they serve
+**PRIORITY 5 — connect_table: maintenance.hvac_zone** — add column asset_id (BIGINT) with FK to property.asset.asset_id — HVAC zones are physical components of property assets
+**PRIORITY 6 — connect_table: maintenance.warehouse** — add column asset_id (BIGINT) with FK to property.asset.asset_id — warehouses storing parts inventory must be linked to property locations
+**PRIORITY 7 — connect_table: maintenance.warehouse** — add column cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — warehouse operations require cost center allocation
+**PRIORITY 8 — connect_table: finance.lender** — add column country_id (BIGINT) with FK to reference.country.country_id — lenders operate under specific country jurisdictions for regulatory compliance
+**PRIORITY 9 — connect_table: workforce.training_program** — add column regulatory_framework_id (BIGINT) with FK to reference.regulatory_framework.regulatory_framework_id — training programs often fulfill regulatory requirements
+**PRIORITY 10 — connect_table: workforce.grade_band** — add column currency_code_id (BIGINT) with FK to reference.currency_code.currency_code_id — grade bands define salary ranges which require currency context
+**PRIORITY 11 — connect_table: reference.construction_type** — add column regulatory_framework_id (BIGINT) with FK to reference.regulatory_framework.regulatory_framework_id — construction types are governed by building codes and regulations
+**PRIORITY 12 — connect_table: reference.industry_classification** — add column country_id (BIGINT) with FK to reference.country.country_id — industry classification systems vary by country (NAICS, SIC, NACE)
+**PRIORITY 13 — connect_table: reference.market_segment** — add column property_type_id (BIGINT) with FK to reference.property_type.property_type_id — market segments are typically defined within property type contexts
+**PRIORITY 14 — connect_table: reference.uom** — add column country_id (BIGINT) with FK to reference.country.country_id — units of measure have regional preferences (metric vs imperial)
+**PRIORITY 15 — connect_table: valuation.appraiser** — add column jurisdiction_id (BIGINT) with FK to compliance.jurisdiction.jurisdiction_id — appraisers are licensed and regulated by specific jurisdictions
+**PRIORITY 16 — connect_table: valuation.appraiser** — add column country_id (BIGINT) with FK to reference.country.country_id — appraisers operate within specific countries
+**PRIORITY 17 — connect_table: brokerage.commission_plan** — add column currency_code_id (BIGINT) with FK to reference.currency_code.currency_code_id — commission plans define monetary amounts requiring currency
+**PRIORITY 18 — connect_table: brokerage.commission_plan** — add column legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — commission plans are established by specific legal entities
+**PRIORITY 19 — connect_table: insurance.adjuster** — add column jurisdiction_id (BIGINT) with FK to compliance.jurisdiction.jurisdiction_id — adjusters are licensed in specific jurisdictions
+**PRIORITY 20 — connect_table: insurance.insurance_broker** — add column jurisdiction_id (BIGINT) with FK to compliance.jurisdiction.jurisdiction_id — insurance brokers are licensed by jurisdiction
+**PRIORITY 21 — connect_table: insurance.insurer** — add column jurisdiction_id (BIGINT) with FK to compliance.jurisdiction.jurisdiction_id — insurers are regulated by specific jurisdictions
+**PRIORITY 22 — connect_table: transaction.sale_type** — add column property_type_id (BIGINT) with FK to reference.property_type.property_type_id — sale types may vary by property type (residential vs commercial)
+**PRIORITY 23 — connect_table: transaction.bulk_sale_pool** — add column currency_code_id (BIGINT) with FK to reference.currency_code.currency_code_id — bulk sale pools have aggregate values requiring currency
+**PRIORITY 24 — connect_table: transaction.bulk_sale_pool** — add column property_type_id (BIGINT) with FK to reference.property_type.property_type_id — bulk sale pools typically contain similar property types
+**PRIORITY 25 — connect_table: transaction.auction** — add column currency_code_id (BIGINT) with FK to reference.currency_code.currency_code_id — auctions involve bidding amounts requiring currency context
+**PRIORITY 26 — connect_table: transaction.auction** — add column asset_id (BIGINT) with FK to property.asset.asset_id — auctions are conducted for specific property assets
+**PRIORITY 27 — connect_table: development.contractor** — add column jurisdiction_id (BIGINT) with FK to compliance.jurisdiction.jurisdiction_id — contractors are licensed in specific jurisdictions
+**PRIORITY 28 — connect_table: development.contractor** — add column currency_code_id (BIGINT) with FK to reference.currency_code.currency_code_id — contractor agreements involve monetary terms
+**PRIORITY 29 — connect_table: workforce.job_profile** — add column grade_band_id (BIGINT) with FK to workforce.grade_band.grade_band_id — job profiles should map to compensation grade bands
+**PRIORITY 30 — connect_table: workforce.benefit** — add column currency_code_id (BIGINT) with FK to reference.currency_code.currency_code_id — benefits have monetary values requiring currency
+**PRIORITY 31 — connect_table: workforce.applicant** — add column country_id (BIGINT) with FK to reference.country.country_id — applicants have citizenship and work authorization by country
+**PRIORITY 32 — connect_table: marketing.channel** — add column currency_code_id (BIGINT) with FK to reference.currency_code.currency_code_id — channels have cost metrics requiring currency context
+**PRIORITY 33 — connect_table: lease.cam_pool** — add column building_id (BIGINT) with FK to property.building.building_id — CAM pools are typically defined at the building level
+**PRIORITY 34 — connect_table: lease.collateral_assignment** — add column asset_id (BIGINT) with FK to property.asset.asset_id — collateral assignments secure debt against specific assets
+**PRIORITY 35 — connect_table: lease.collateral_assignment** — add column lender_id (BIGINT) with FK to finance.lender.lender_id — collateral assignments are made to specific lenders
+**PRIORITY 36 — connect_table: lease.coverage_requirement** — add column asset_id (BIGINT) with FK to property.asset.asset_id — coverage requirements apply to specific properties
+**PRIORITY 37 — connect_table: lease.enrollment** — add column tenant_id (BIGINT) with FK to tenant.tenant.tenant_id — program enrollments track which tenant is enrolled
+**PRIORITY 38 — connect_table: lease.regulatory_applicability** — add column asset_id (BIGINT) with FK to property.asset.asset_id — regulatory applicability is determined per property
+**PRIORITY 39 — connect_table: lease.underwriting_input** — add column asset_id (BIGINT) with FK to property.asset.asset_id — underwriting inputs are for specific property assets
+**PRIORITY 40 — connect_table: owner.subscription** — add column currency_code_id (BIGINT) with FK to reference.currency_code.currency_code_id — subscriptions have commitment amounts requiring currency
+**PRIORITY 41 — connect_table: owner.subscription** — add column commitment_id (BIGINT) with FK to investment.commitment.commitment_id — subscriptions formalize investor commitments
+**PRIORITY 42 — connect_table: investment.offering** — add column jurisdiction_id (BIGINT) with FK to compliance.jurisdiction.jurisdiction_id — offerings are regulated by specific jurisdictions
+**PRIORITY 43 — connect_table: investment.offering** — add column regulatory_obligation_id (BIGINT) with FK to compliance.regulatory_obligation.regulatory_obligation_id — offerings must comply with securities regulations
+**PRIORITY 44 — rename_product: lease.accounting_entry** — rename to lease_accounting_entry because generic name conflicts with finance domain accounting concepts and should clarify ASC 842/IFRS 16 lease accounting context
+**PRIORITY 45 — rename_product: lease.disclosure** — rename to lease_disclosure because generic name conflicts with compliance disclosure concepts and should clarify lease accounting disclosure context
+**PRIORITY 46 — rename_product: lease.enrollment** — rename to lease_program_enrollment because generic name is ambiguous and should clarify enrollment in lease-related compliance programs
+**PRIORITY 47 — rename_product: lease.payment** — rename to lease_payment because generic name conflicts with finance payment concepts
+**PRIORITY 48 — rename_product: valuation.approach** — rename to valuation_approach because generic name is ambiguous outside valuation context
+**PRIORITY 49 — rename_product: compliance.assessment** — rename to compliance_assessment because generic name conflicts with insurance.risk_assessment and valuation contexts
+**PRIORITY 50 — rename_product: property.allocation** — rename to parking_allocation because table specifically handles parking space allocations per FK signature
+**PRIORITY 51 — rename_product: property.assignment** — rename to property_assignment because generic name conflicts with workforce and other assignment concepts
+**PRIORITY 52 — connect_table: property.deal_asset** — add column brokerage_deal_id (BIGINT) with FK to brokerage.brokerage_deal.brokerage_deal_id — deal assets should link to brokerage deals not just investment deals
+**PRIORITY 53 — connect_table: marketing.campaign_contribution** — add column cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — campaign contributions need cost allocation tracking
+**PRIORITY 54 — connect_table: marketing.campaign_unit_inclusion** — add column asset_id (BIGINT) with FK to property.asset.asset_id — unit inclusions should reference parent asset for rollup reporting
+**PRIORITY 55 — connect_table: property.space_campaign_inclusion** — add column asset_id (BIGINT) with FK to property.asset.asset_id — space campaign inclusions should reference parent asset
+**PRIORITY 56 — connect_table: property.building_certification** — add column effective_date_employee_id (BIGINT) with FK to workforce.employee.employee_id — certifications should track who recorded them
+**PRIORITY 57 — connect_table: property.building_compliance_obligation** — add column employee_id (BIGINT) with FK to workforce.employee.employee_id — compliance obligations need responsible party tracking
+**PRIORITY 58 — connect_table: property.building_policy_coverage** — add column currency_code_id (BIGINT) with FK to reference.currency_code.currency_code_id — policy coverage amounts require currency
+**PRIORITY 59 — connect_table: property.asset_audit_scope** — add column employee_id (BIGINT) with FK to workforce.employee.employee_id — audit scope definitions need responsible party
+**PRIORITY 60 — connect_table: reference.program_property_type_coverage** — add column currency_code_id (BIGINT) with FK to reference.currency_code.currency_code_id — coverage limits require currency context
+**PRIORITY 61 — connect_table: maintenance.asset_coverage_schedule** — add column effective_employee_id (BIGINT) with FK to workforce.employee.employee_id — coverage schedules need approval tracking
+**PRIORITY 62 — connect_table: maintenance.asset_service_coverage** — add column cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — service coverage needs cost allocation
+**PRIORITY 63 — connect_table: maintenance.parts_usage** — add column employee_id (BIGINT) with FK to workforce.employee.employee_id — parts usage should track who used the parts
+**PRIORITY 64 — connect_table: lease.cam_charge_allocation** — add column currency_code_id (BIGINT) with FK to reference.currency_code.currency_code_id — charge allocations involve monetary amounts
+**PRIORITY 65 — connect_table: lease.meter_allocation** — add column effective_employee_id (BIGINT) with FK to workforce.employee.employee_id — meter allocations need approval tracking
+**PRIORITY 66 — connect_table: brokerage.deal_compliance** — add column employee_id (BIGINT) with FK to workforce.employee.employee_id — compliance tracking needs responsible party
+**PRIORITY 67 — connect_table: brokerage.listing_disclosure** — add column employee_id (BIGINT) with FK to workforce.employee.employee_id — disclosures need responsible party tracking
+**PRIORITY 68 — connect_table: investment.debt_covenant** — add column regulatory_obligation_id (BIGINT) with FK to compliance.regulatory_obligation.regulatory_obligation_id — debt covenants often have regulatory requirements
+**PRIORITY 69 — connect_table: valuation.nav_appraisal_input** — add column asset_id (BIGINT) with FK to property.asset.asset_id — NAV inputs should directly reference the valued asset
+**PRIORITY 70 — connect_table: workforce.role_training_requirement** — add column regulatory_framework_id (BIGINT) with FK to reference.regulatory_framework.regulatory_framework_id — training requirements often stem from regulations
+**PRIORITY 71 — connect_table: transaction.sale_attribution** — add column employee_id (BIGINT) with FK to workforce.employee.employee_id — sale attributions should track who recorded the attribution
+**PRIORITY 72 — connect_table: transaction.sale_attribution** — add column currency_code_id (BIGINT) with FK to reference.currency_code.currency_code_id — attribution values require currency context
+**PRIORITY 73 — connect_table: owner.entity_hierarchy** — add column owner_id (BIGINT) with FK to owner.owner.owner_id — entity hierarchies should link to owner records
+**PRIORITY 74 — connect_table: owner.owner_representation** — add column asset_id (BIGINT) with FK to property.asset.asset_id — owner representation is typically for specific properties
+**PRIORITY 75 — connect_table: owner.owner_representation** — add column jurisdiction_id (BIGINT) with FK to compliance.jurisdiction.jurisdiction_id — representation agreements are jurisdiction-specific
+**PRIORITY 76 — connect_table: lease.lease_representation** — add column asset_id (BIGINT) with FK to property.asset.asset_id — lease representation is for specific properties
+**PRIORITY 77 — connect_table: lease.lease_representation** — add column jurisdiction_id (BIGINT) with FK to compliance.jurisdiction.jurisdiction_id — representation agreements are jurisdiction-specific
+**PRIORITY 78 — connect_table: brokerage.project_broker_engagement** — add column commission_plan_id (BIGINT) with FK to brokerage.commission_plan.commission_plan_id — broker engagements should specify commission terms
+
+Other known issues from static analysis (40):
+  - Attribute 'investor_tier' in investment.investor has redundant product prefix 'investor_'. Rename to 'tier'
+  - Attribute 'brand_tier' in marketing.brand has redundant product prefix 'brand_'. Rename to 'tier'
+  - Attribute 'vendor_tier' in marketing.vendor has redundant product prefix 'vendor_'. Rename to 'tier'
+  - Attribute 'floor_finish_type' in property.floor has redundant product prefix 'floor_'. Rename to 'finish_type'
+  - Attribute 'floor_load_capacity_kg_sqm' in property.floor has redundant product prefix 'floor_'. Rename to 'load_capacity_kg_sqm'
+  - Attribute 'floor_load_capacity_lbs_sqft' in property.floor has redundant product prefix 'floor_'. Rename to 'load_capacity_lbs_sqft'
+  - Attribute 'floor_plate_efficiency_pct' in property.floor has redundant product prefix 'floor_'. Rename to 'plate_efficiency_pct'
+  - Attribute 'auction_terms_conditions' in transaction.auction has redundant product prefix 'auction_'. Rename to 'terms_conditions'
+  - Attribute 'auction_venue_type' in transaction.auction has redundant product prefix 'auction_'. Rename to 'venue_type'
+  - Attribute 'requisition_amount' in finance.requisition has redundant product prefix 'requisition_'. Rename to 'amount'
+  - Table lease.clause has self-referencing FK on column 'related_clause_id' with same name as PK 'clause_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table insurance.claim has self-referencing FK on column 'related_claim_id' with same name as PK 'claim_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table insurance.liability_event has self-referencing FK on column 'related_liability_event_id' with same name as PK 'liability_event_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table insurance.subrogation has self-referencing FK on column 'related_subrogation_id' with same name as PK 'subrogation_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table marketing.event has self-referencing FK on column 'related_event_id' with same name as PK 'event_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table maintenance.energy_meter has 2 FK columns pointing to property.unit (suite_unit_id, unit_id) (generic/unlabeled: unit_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table marketing.email_campaign has 2 FK columns pointing to marketing.campaign (campaign_id, source_system_campaign_id) (generic/unlabeled: campaign_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table property.space has 2 FK columns pointing to property.unit (suite_unit_id, unit_id) (generic/unlabeled: unit_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table tenant.arrears_event has 2 FK columns pointing to workforce.employee (employee_id, relationship_manager_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table valuation.appraisal_review has 2 FK columns pointing to compliance.audit_engagement (audit_engagement_id, engagement_id) (generic/unlabeled: audit_engagement_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table valuation.value_history has 2 FK columns pointing to finance.financial_period_close (financial_period_close_id, financial_period_financial_period_close_id) (generic/unlabeled: financial_period_close_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.payment_run has 5 FK columns pointing to workforce.employee (cancelled_by_user_employee_id, created_by_user_employee_id, employee_id, executed_by_user_employee_id, modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.lockbox_batch has 3 FK columns pointing to workforce.employee (approved_by_user_employee_id, employee_id, voided_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.netting_run has 2 FK columns pointing to workforce.employee (employee_id, executed_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.ledger has 2 FK columns pointing to workforce.employee (employee_id, last_modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.reporting_period has 2 FK columns pointing to workforce.employee (employee_id, locked_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table transaction.bulk_sale_pool has 2 FK columns pointing to workforce.employee (employee_id, modified_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - PII-candidate attribute finance.purchase_order.vendor_contact_name has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute finance.payment_run.bank_account_id has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute finance.lockbox_batch.bank_account_id has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute maintenance.warehouse.latitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute maintenance.warehouse.longitude has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute workforce.grade_band.salary_frequency has no classification tags — expected restricted/confidential + PII tag
+  - PII-candidate attribute workforce.training_session.address_id has no classification tags — expected restricted/confidential + PII tag
+  - Product 'valuation.appraisal' has 32 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'maintenance.work_order' has 31 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'development.dev_project' has 27 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - 12 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 486 attribute(s) match person-data patterns but lack pii_ tags
+  - 24 non-PK attributes redundantly prefixed with their product name
+
+Deterministic score: 78/100 (LLM assessment: 72/100)

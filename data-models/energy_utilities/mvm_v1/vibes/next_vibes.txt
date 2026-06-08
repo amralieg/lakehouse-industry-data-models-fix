@@ -1,0 +1,48 @@
+**Model Quality Score: 88/100**
+
+**Static Analysis Findings (14 actionable):**
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_service_agreement' and 'customer.customer_service_agreement' have the same entity name 'service_agreement' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_service_agreement' and 'transmission.transmission_service_agreement' have the same entity name 'service_agreement' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'customer.customer_service_agreement' and 'transmission.transmission_service_agreement' have the same entity name 'service_agreement' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'compliance.compliance_rec_certificate' and 'renewable.renewable_rec_certificate' have the same entity name 'rec_certificate' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'customer.customer_service_request' and 'transmission.transmission_service_request' have the same entity name 'service_request' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'distribution.distribution_substation' and 'transmission.transmission_substation' have the same entity name 'substation' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'distribution.distribution_switching_order' and 'grid.grid_switching_order' have the same entity name 'switching_order' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'distribution.distribution_switching_order' and 'outage.outage_switching_order' have the same entity name 'switching_order' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'distribution.distribution_switching_order' and 'transmission.transmission_switching_order' have the same entity name 'switching_order' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'grid.grid_switching_order' and 'outage.outage_switching_order' have the same entity name 'switching_order' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'grid.grid_switching_order' and 'transmission.transmission_switching_order' have the same entity name 'switching_order' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'outage.outage_switching_order' and 'transmission.transmission_switching_order' have the same entity name 'switching_order' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'distribution.distribution_reliability_event' and 'grid.grid_reliability_event' have the same entity name 'reliability_event' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'grid.grid_scada_measurement' and 'transmission.transmission_scada_measurement' have the same entity name 'scada_measurement' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+PRIORITY 1 — connect_table: renewable.der_registry — add column asset_registry_id (BIGINT) with FK to asset.registry.asset_registry_id — because each DER must be linked to its physical asset record for asset lifecycle and compliance tracking  
+PRIORITY 2 — connect_table: generation.generating_unit — add column asset_registry_id (BIGINT) with FK to asset.registry.asset_registry_id — because each generating unit represents a physical asset and should be associated with the asset registry for maintenance, valuation, and reporting  
+PRIORITY 3 — rename_attribute: grid.scada_point.pmu_device_id — rename column pmu_device_id to linked_pmu_device_id — because the column name should reflect its role as a foreign key linking to a PMU device, avoiding generic naming  
+PRIORITY 4 — remove_fk: billing.adjustment.adjustment_id — remove FK on column adjustment_id because it incorrectly points to itself; the primary key already uniquely identifies the record and the self‑reference is unnecessary  
+PRIORITY 5 — rename_product: billing.cycle — rename to billing.billing_cycle — because the generic term “cycle” is ambiguous and does not convey its purpose as a billing cycle, improving clarity while adhering to snake_case naming rules  
+PRIORITY 6 — rename_attribute: forecast.forecast_run.baseline_run_id — rename column baseline_run_id to parent_forecast_run_id — because the self‑reference should use a business‑meaningful name indicating the parent run relationship  
+PRIORITY 7 — rename_attribute: asset.work_order.parent_work_order_id — rename column parent_work_order_id to predecessor_work_order_id — because “parent” implies hierarchy, but work orders are sequential; “predecessor” better describes the relationship  
+PRIORITY 8 — rename_attribute: asset.registry.parent_asset_registry_id — rename column parent_asset_registry_id to superior_asset_registry_id — because “superior” clarifies the hierarchical relationship between assets  
+PRIORITY 9 — rename_attribute: billing.billing_service_agreement.billing_service_agreement_id — rename column billing_service_agreement_id to bsa_id — to conform to the primary key suffix convention (_id) and maintain consistent snake_case naming  
+PRIORITY 10 — rename_attribute: grid.control_center.control_center_id — rename column control_center_id to control_center_id (no change needed) — because the column currently matches the primary key suffix rule; this entry is retained to confirm compliance and requires no action.
+
+Other known issues from static analysis (16):
+  - Attribute 'segment_tier' in customer.segment has redundant product prefix 'segment_'. Rename to 'tier'
+  - Attribute 'invoice_for_service_agreement' in billing.invoice has redundant product prefix 'invoice_'. Rename to 'for_service_agreement'
+  - Attribute 'application_tier' in interconnection.application has redundant product prefix 'application_'. Rename to 'tier'
+  - Table forecast.forecast_run has self-referencing FK on column 'baseline_run_id' with same name as PK 'forecast_run_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
+  - Table distribution.transformer has 2 FK columns pointing to distribution.feeder (feeder_id, primary_transformer_feeder_id) (generic/unlabeled: feeder_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table billing.invoice has 2 FK columns pointing to billing.billing_service_agreement (billing_service_agreement_id, invoice_for_service_agreement) (generic/unlabeled: billing_service_agreement_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - FK column 'invoice_for_service_agreement' in billing.invoice doesn't end with target PK 'billing_service_agreement_id' — FK columns MUST end with the target table's PK (e.g., driver_billing_service_agreement_id or just billing_service_agreement_id)
+  - Product 'billing.adjustment' has 33 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'customer.complaint' has 31 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'billing.revenue_recognition' has 29 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'billing.determinant' has 27 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'demand.vpp_dispatch' has 27 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - 1 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 272 attribute(s) match person-data patterns but lack pii_ tags
+  - 26 non-PK attributes redundantly prefixed with their product name
+  - 4 attribute(s) have pipe-enum value_regex with >8 values — consider creating a reference product instead
+
+Deterministic score: 88/100 (LLM assessment: 85/100)

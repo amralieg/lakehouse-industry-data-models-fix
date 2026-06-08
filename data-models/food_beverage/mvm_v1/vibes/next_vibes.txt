@@ -1,0 +1,88 @@
+**Model Quality Score: 92/100**
+
+**Static Analysis Findings (1 actionable):**
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'finance.finance_standard_cost' and 'product.product_standard_cost' have the same entity name 'standard_cost' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — rename_product: ingredient.cost** — rename to ingredient_cost because "cost" is too generic and conflicts with common column names across finance domain
+**PRIORITY 2 — rename_product: supply.plan** — rename to supply_plan because "plan" is too generic and ambiguous across multiple domains (demand_plan, promotion_plan, media_plan already exist)
+**PRIORITY 3 — rename_product: sales.order** — rename to sales_order because "order" is a reserved word in most SQL dialects and causes query complications
+**PRIORITY 4 — connect_table: customer.segment** — add column marketing_market_id (BIGINT) with FK to marketing.market.market_id — segments are defined within geographic markets and need market context for regional segmentation strategies
+**PRIORITY 5 — connect_table: finance.company_code** — add column marketing_market_id (BIGINT) with FK to marketing.market.market_id — company codes operate within specific geographic markets and need market linkage for regional financial reporting
+**PRIORITY 6 — connect_table: regulatory.product_registration** — add column marketing_market_id (BIGINT) with FK to marketing.market.market_id — product registrations are market/country-specific and require geographic context for regulatory jurisdiction
+**PRIORITY 7 — connect_table: product.category** — add column marketing_market_id (BIGINT) with FK to marketing.market.market_id — category definitions and hierarchies vary by market/region in global F&B operations
+**PRIORITY 8 — remove_fk: distribution.cold_chain_event** — remove FK on column marketing_brand_id because cold chain temperature events are physical logistics occurrences unrelated to brand management
+**PRIORITY 9 — remove_fk: distribution.cold_chain_event** — remove FK on column product_formulation_id because cold chain events track temperature deviations on shipments, not formulation details
+**PRIORITY 10 — remove_fk: distribution.cold_chain_event** — remove FK on column quality_critical_control_point_id because CCPs are manufacturing process controls, not distribution temperature monitoring points
+**PRIORITY 11 — remove_fk: manufacturing.production_schedule** — remove FK on column marketing_campaign_id because production scheduling is driven by demand plans not marketing campaigns directly
+**PRIORITY 12 — remove_fk: manufacturing.equipment_master** — remove FK on column marketing_claim_id because equipment assets have no direct relationship to marketing claims
+**PRIORITY 13 — remove_fk: distribution.shipment** — remove FK on column marketing_brand_id because shipments carry SKUs not brands; brand is derivable through SKU
+**PRIORITY 14 — remove_fk: distribution.shipment** — remove FK on column marketing_campaign_id because shipments are logistics execution not marketing activities
+**PRIORITY 15 — remove_fk: distribution.otif_record** — remove FK on column marketing_brand_id because OTIF metrics measure delivery performance at order/shipment level, brand is derivable through SKU
+**PRIORITY 16 — remove_fk: distribution.otif_record** — remove FK on column marketing_campaign_id because OTIF measurement is logistics KPI unrelated to campaign execution
+**PRIORITY 17 — connect_table: sales.invoice** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — invoices must reference the products being billed for revenue recognition and COGS allocation
+**PRIORITY 18 — connect_table: sales.order** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — sales orders must reference specific SKUs being ordered for fulfillment and inventory allocation
+**PRIORITY 19 — connect_table: procurement.supplier_audit** — add column regulatory_gfsi_certification_id (BIGINT) with FK to regulatory.gfsi_certification.gfsi_certification_id — supplier audits validate GFSI certifications and need direct linkage for compliance tracking
+**PRIORITY 20 — connect_table: quality.customer_complaint** — add column regulatory_recall_event_id (BIGINT) with FK to regulatory.recall_event.recall_event_id — customer complaints may trigger or be associated with recall events
+**PRIORITY 21 — connect_table: ingredient.allergen** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — allergen declarations must link to finished goods SKUs for labeling compliance and consumer safety
+**PRIORITY 22 — connect_table: manufacturing.production_line** — add column manufacturing_work_center_id (BIGINT) with FK to manufacturing.work_center.work_center_id — production lines contain work centers and need hierarchical linkage for OEE rollup
+**PRIORITY 23 — rename_attribute: distribution.location** — rename column parent_location_id to parent_distribution_location_id
+**PRIORITY 24 — rename_attribute: product.category** — rename column parent_category_id to parent_product_category_id
+**PRIORITY 25 — rename_attribute: marketing.market** — rename column parent_market_id to parent_marketing_market_id
+**PRIORITY 26 — rename_attribute: product.hierarchy** — rename column parent_node_hierarchy_id to parent_hierarchy_id
+**PRIORITY 27 — connect_table: finance.profit_center** — add column marketing_market_id (BIGINT) with FK to marketing.market.market_id — profit centers align to geographic markets for regional P&L reporting
+**PRIORITY 28 — remove_fk: ingredient.formulation_line** — remove FK on column customer_account_id because formulation lines define recipe composition and have no direct customer relationship
+**PRIORITY 29 — remove_fk: ingredient.raw_material** — remove FK on column customer_account_id because raw materials are procurement-side master data unrelated to customer accounts
+**PRIORITY 30 — remove_fk: ingredient.cost** — remove FK on column customer_account_id because ingredient costs are supplier-side economics not customer-driven
+**PRIORITY 31 — connect_table: trade.volume_rebate** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — volume rebates are often calculated at SKU level for specific product incentives
+**PRIORITY 32 — connect_table: quality.specification** — add column ingredient_raw_material_id (BIGINT) with FK to ingredient.raw_material.raw_material_id — quality specifications govern raw material acceptance criteria for incoming inspection
+**PRIORITY 33 — connect_table: distribution.delivery_route** — add column customer_account_id (BIGINT) with FK to customer.account.account_id — delivery routes serve specific customer accounts in DSD operations
+**PRIORITY 34 — remove_fk: supply.safety_stock_policy** — remove FK on column marketing_campaign_id because safety stock parameters are inventory planning decisions not campaign-driven
+**PRIORITY 35 — remove_fk: supply.replenishment_order** — remove FK on column ingredient_cost_id because replenishment orders reference materials and quantities, not cost records directly
+**PRIORITY 36 — connect_table: manufacturing.batch_record** — add column product.bill_of_materials_id (BIGINT) with FK to product.bill_of_materials.bill_of_materials_id — batch records execute against a specific BOM version for material consumption tracking
+**PRIORITY 37 — connect_table: regulatory.label_approval** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — label approvals are granted for specific SKUs and must link directly for compliance tracking
+**PRIORITY 38 — connect_table: regulatory.nutrition_label** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — nutrition labels are created for specific SKUs for regulatory compliance
+**PRIORITY 39 — connect_table: regulatory.packaging_compliance** — add column marketing_market_id (BIGINT) with FK to marketing.market.market_id — packaging compliance requirements vary by market/jurisdiction
+**PRIORITY 40 — remove_fk: quality.food_safety_audit** — remove FK on column marketing_brand_id because food safety audits assess facilities and processes, not brands
+**PRIORITY 41 — remove_fk: quality.food_safety_audit** — remove FK on column marketing_claim_id because food safety audits verify GMP/HACCP compliance, not marketing claims
+**PRIORITY 42 — connect_table: sales.pos_transaction** — add column sales_store_id (BIGINT) with FK to sales.store.store_id — POS transactions already show this FK but verify line-level SKU quantity and price attributes exist
+**PRIORITY 43 — remove_fk: supply.capacity_constraint** — remove FK on column marketing_campaign_id because capacity constraints are physical manufacturing/warehouse limitations not campaign-related
+**PRIORITY 44 — remove_fk: supply.capacity_constraint** — remove FK on column finance_budget_id because capacity constraints describe physical limits, not financial budgets
+**PRIORITY 45 — connect_table: ingredient.religious_cert** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — religious certifications (Kosher/Halal) apply to finished goods SKUs for consumer labeling
+**PRIORITY 46 — remove_fk: manufacturing.production_order** — remove FK on column marketing_brand_id because production orders manufacture SKUs; brand is derivable through SKU master
+**PRIORITY 47 — connect_table: trade.promotion_event** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — promotion events target specific SKUs for promotional pricing and display
+**PRIORITY 48 — remove_fk: quality.haccp_plan** — remove FK on column marketing_brand_id because HACCP plans are food safety documents for facilities/processes, not brand-specific
+**PRIORITY 49 — connect_table: distribution.center** — add column supply_network_node_id (BIGINT) with FK to supply.network_node.network_node_id — distribution centers are nodes in the supply network and need explicit linkage for network optimization
+**PRIORITY 50 — remove_fk: manufacturing.batch_record** — remove FK on column marketing_brand_id because batch records document production execution; brand is derivable through SKU
+**PRIORITY 51 — connect_table: quality.micro_test_result** — add column ingredient_lot_id (BIGINT) with FK to ingredient.lot.lot_id — microbiological tests are performed on specific ingredient lots for incoming quality verification
+**PRIORITY 52 — remove_fk: supply.safety_stock_policy** — remove FK on column sales_contract_id because safety stock policies are inventory planning parameters not contract-driven
+**PRIORITY 53 — connect_table: manufacturing.haccp_ccp_log** — add column manufacturing_plant_id (BIGINT) with FK to manufacturing.plant.plant_id — CCP logs occur at specific plants and need plant context for facility-level food safety reporting
+**PRIORITY 54 — remove_fk: distribution.fulfillment_order** — remove FK on column marketing_campaign_id because fulfillment orders are logistics execution documents not marketing activities
+**PRIORITY 55 — connect_table: product.formulation** — add column marketing_brand_id (BIGINT) with FK to marketing.brand.brand_id — formulations are developed for specific brands and need brand context for R&D portfolio management
+**PRIORITY 56 — rename_attribute: sales.rebate_agreement** — rename column renewed_rebate_agreement_id to prior_rebate_agreement_id
+**PRIORITY 57 — rename_attribute: procurement.compliance_document** — rename column superseded_document_compliance_document_id to superseded_compliance_document_id
+**PRIORITY 58 — connect_table: inventory.quarantine_hold** — add column quality_non_conformance_id (BIGINT) with FK to quality.non_conformance.non_conformance_id — quarantine holds are typically triggered by non-conformances and need direct linkage for CAPA workflow
+**PRIORITY 59 — remove_fk: ingredient.lot** — remove FK on column sales_order_id because ingredient lots are inbound procurement items not related to sales orders
+**PRIORITY 60 — remove_fk: ingredient.fsma_traceability** — remove FK on column sales_order_id because FSMA traceability tracks upstream supply chain, not downstream sales
+**PRIORITY 61 — connect_table: product.label_spec** — add column marketing_market_id (BIGINT) with FK to marketing.market.market_id — label specifications vary by market for language, regulatory requirements, and local claims
+**PRIORITY 62 — connect_table: quality.hold_record** — add column regulatory_recall_event_id (BIGINT) with FK to regulatory.recall_event.recall_event_id — hold records may be placed due to recall events and need direct linkage for recall scope management
+**PRIORITY 63 — remove_fk: manufacturing.production_schedule** — remove FK on column ingredient_lot_id because production schedules plan future production; specific lots are assigned at execution time in batch records
+**PRIORITY 64 — connect_table: procurement.purchase_requisition** — add column manufacturing_plant_id (BIGINT) with FK to manufacturing.plant.plant_id — purchase requisitions originate from specific plants for plant-level material requirements planning
+**PRIORITY 65 — remove_fk: supply.replenishment_order** — remove FK on column product_product_standard_cost_id because replenishment orders are quantity-based logistics documents not cost-record references
+**PRIORITY 66 — connect_table: regulatory.recall_event** — add column quality_non_conformance_id (BIGINT) with FK to quality.non_conformance.non_conformance_id — recall events are triggered by non-conformances and need root cause linkage
+**PRIORITY 67 — remove_fk: distribution.cold_chain_event** — remove FK on column regulatory_product_registration_id because cold chain events are temperature excursions on shipments, not registration-related
+**PRIORITY 68 — connect_table: sales.broker** — add column marketing_brand_id (BIGINT) with FK to marketing.brand.brand_id — brokers represent specific brands in their territory and need brand assignment for commission tracking
+**PRIORITY 69 — remove_fk: manufacturing.routing** — remove FK on column marketing_market_id because routings define manufacturing process steps which are plant-specific not market-specific
+**PRIORITY 70 — connect_table: trade.settlement** — add column trade_promotion_event_id (BIGINT) with FK to trade.promotion_event.promotion_event_id — settlements resolve claims against specific promotion events for trade spend reconciliation
+**PRIORITY 71 — remove_fk: supply.demand_plan** — remove FK on column marketing_syndicated_market_data_id because demand plans use syndicated data as input but should not have direct FK to individual data records
+**PRIORITY 72 — connect_table: ingredient.nutritional_profile** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — nutritional profiles roll up to SKU level for nutritional panel generation
+**PRIORITY 73 — remove_fk: quality.non_conformance** — remove FK on column supply_capacity_constraint_id because non-conformances document quality failures not capacity limitations
+
+Other known issues from static analysis (6):
+  - Attribute 'supplier_tier' in procurement.supplier has redundant product prefix 'supplier_'. Rename to 'tier'
+  - Product 'supply.replenishment_order' has 38 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'quality.non_conformance' has 27 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - 11 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 133 attribute(s) match person-data patterns but lack pii_ tags
+  - 10 non-PK attributes redundantly prefixed with their product name
+
+Deterministic score: 92/100 (LLM assessment: 62/100)

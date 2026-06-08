@@ -1,0 +1,87 @@
+**Model Quality Score: 90/100**
+
+**Static Analysis Findings (11 actionable):**
+  - [SA:unlinked_fk] Column study.endpoint.objective_id looks like an FK but has no foreign_key_to reference
+  - [SA:denormalized_natural_key] Product 'compliance.protocol_deviation' has both FK 'tmf_document_id' and natural key 'tmf_document_ref' for entity 'tmf_document'. The natural key is redundant — use the FK join instead.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'compliance.compliance_inspection' and 'regulatory.regulatory_inspection' have the same entity name 'inspection' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'monitoring.monitoring_plan' and 'supply.supply_plan' have the same entity name 'plan' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'monitoring.monitoring_visit' and 'subject.subject_visit' have the same entity name 'visit' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'monitoring.monitoring_action_item' and 'regulatory.regulatory_action_item' have the same entity name 'action_item' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'monitoring.monitoring_cra_assignment' and 'site.site_cra_assignment' have the same entity name 'cra_assignment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'monitoring.monitoring_visit_schedule' and 'study.study_visit_schedule' have the same entity name 'visit_schedule' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'regulatory.regulatory_protocol_amendment' and 'study.study_protocol_amendment' have the same entity name 'protocol_amendment' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'regulatory.regulatory_milestone' and 'study.study_milestone' have the same entity name 'milestone' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'site.site_contact' and 'subject.subject_contact' have the same entity name 'contact' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — connect_table: regulatory.application** — add column study_id (BIGINT) with FK to study.study.study_id — regulatory applications are always filed for a specific study and this isolated reference table has zero outbound FKs making it disconnected from the study context
+**PRIORITY 2 — connect_table: regulatory.health_authority** — add column country_id (BIGINT) with FK to study.country.country_id — health authorities operate within specific countries and this isolated reference table needs a link to the country domain
+**PRIORITY 3 — connect_table: laboratory.lab_facility** — add column country_id (BIGINT) with FK to study.country.country_id — lab facilities are located in specific countries and this isolated reference table has zero outbound FKs
+**PRIORITY 4 — connect_table: site.principal_investigator** — add column investigational_site_id (BIGINT) with FK to site.investigational_site.investigational_site_id — PIs are affiliated with specific investigational sites and this table has zero outbound FKs
+**PRIORITY 5 — connect_table: document.tmf_artifact** — add column study_id (BIGINT) with FK to study.study.study_id — TMF artifacts are defined within study context and this isolated reference table has zero outbound FKs
+**PRIORITY 6 — connect_table: safety.meddra_term** — add column parent_meddra_term_id (BIGINT) with FK to safety.meddra_term.meddra_term_id — MedDRA has a hierarchical structure (SOC/HLGT/HLT/PT/LLT) requiring self-referencing for the coding hierarchy
+**PRIORITY 7 — rename_product: subject.deviation** — rename to subject_deviation because it conflicts semantically with compliance.protocol_deviation and needs domain-qualified clarity to distinguish subject-level deviations from protocol-level ones
+**PRIORITY 8 — rename_product: site.agreement** — rename to site_agreement because it collides with the intentionally removed agreement domain and creates naming ambiguity
+**PRIORITY 9 — connect_table: study.protocol** — add column study_id (BIGINT) with FK to study.study.study_id — protocols belong to studies; currently study references protocol but protocol only references ind_application, creating a unidirectional dependency that should be bidirectional
+**PRIORITY 10 — rename_attribute: compliance.compliance_inspection** — rename column prior_inspection_compliance_inspection_id to prior_inspection_id
+**PRIORITY 11 — rename_attribute: compliance.ethics_submission** — rename column parent_submission_ethics_submission_id to parent_submission_id
+**PRIORITY 12 — rename_attribute: compliance.ethics_submission** — rename column primary_amended_ethics_submission_id to amended_submission_id
+**PRIORITY 13 — rename_attribute: compliance.compliance_sop** — rename column superseded_sop_compliance_sop_id to superseded_sop_id
+**PRIORITY 14 — rename_attribute: regulatory.regulatory_inspection** — rename column prior_inspection_regulatory_inspection_id to prior_inspection_id
+**PRIORITY 15 — rename_attribute: compliance.inspection_finding** — rename column prior_finding_inspection_finding_id to prior_finding_id
+**PRIORITY 16 — rename_attribute: subject.population_assignment** — rename column primary_superseded_by_population_assignment_id to superseded_by_assignment_id
+**PRIORITY 17 — connect_table: supply.shipment** — add column study_id (BIGINT) with FK to study.study.study_id — shipments are always associated with a specific study for accountability and tracking purposes
+**PRIORITY 18 — connect_table: supply.depot** — add column country_id (BIGINT) with FK to study.country.country_id — depots are located in specific countries for import/export and cold-chain logistics
+**PRIORITY 19 — connect_table: document.document_sop** — add column study_id (BIGINT) with FK to study.study.study_id — while some SOPs are global, study-specific SOPs need a study linkage for scoping
+**PRIORITY 20 — connect_table: randomization.irt_transaction** — add column subject_randomization_id (BIGINT) with FK to randomization.subject_randomization.subject_randomization_id — IRT transactions directly relate to randomization events and should link to the subject randomization record
+**PRIORITY 21 — connect_table: supply.shipment_line** — add column kit_definition_id (BIGINT) with FK to supply.kit_definition.kit_definition_id — shipment lines contain specific kit types that should reference the kit definition
+**PRIORITY 22 — remove_fk: data.coding_assignment** — remove FK on column to supply.dispensing_record because coding assignments apply to clinical data fields (MedDRA/WHO-DD) not dispensing records
+**PRIORITY 23 — connect_table: monitoring.sdv_record** — add column study_visit_schedule_id (BIGINT) with FK to study.study_visit_schedule.study_visit_schedule_id — SDV records verify data at scheduled visits and need explicit linkage to the visit schedule
+**PRIORITY 24 — rename_attribute: monitoring.monitoring_visit_schedule** — rename column rescheduled_from_monitoring_visit_schedule_id to rescheduled_from_schedule_id
+**PRIORITY 25 — rename_attribute: monitoring.central_monitoring_alert** — rename column prior_alert_central_monitoring_alert_id to prior_alert_id
+**PRIORITY 26 — rename_attribute: monitoring.monitoring_action_item** — rename column parent_action_item_monitoring_action_item_id to parent_action_item_id
+**PRIORITY 27 — rename_attribute: regulatory.regulatory_action_item** — rename column prior_action_item_regulatory_action_item_id to prior_action_item_id
+**PRIORITY 28 — rename_attribute: regulatory.regulatory_milestone** — rename column upstream_milestone_regulatory_milestone_id to upstream_milestone_id
+**PRIORITY 29 — rename_attribute: safety.communication** — rename column parent_communication_safety_communication_id to parent_communication_id
+**PRIORITY 30 — rename_attribute: subject.concomitant_medication** — rename column continuation_of_concomitant_medication_id to continuation_of_medication_id
+**PRIORITY 31 — rename_attribute: safety.reporting_obligation** — rename column superseded_by_obligation_reporting_obligation_id to superseded_by_obligation_id
+**PRIORITY 32 — connect_table: regulatory.procedure** — add column study_id (BIGINT) with FK to study.study.study_id — regulatory procedures are executed in the context of specific studies
+**PRIORITY 33 — connect_table: laboratory.panel_facility_qualification** — add column study_id (BIGINT) with FK to study.study.study_id — panel qualifications at facilities are study-specific and need study context
+**PRIORITY 34 — connect_table: compliance.capa_action_item** — add column study_id (BIGINT) with FK to study.study.study_id — CAPA action items need study context for tracking and reporting
+**PRIORITY 35 — connect_table: compliance.sop_training_requirement** — add column site_id (BIGINT) with FK to site.study_site.study_site_id — training requirements may be site-specific and need linkage for compliance tracking
+**PRIORITY 36 — connect_table: document.site_filing** — add column study_id (BIGINT) with FK to study.study.study_id — site filings are study-specific document management records
+**PRIORITY 37 — connect_table: supply.depot** — add column study_id (BIGINT) with FK to study.study.study_id — depots serve specific studies and need study-level association for supply planning
+**PRIORITY 38 — remove_fk: data.discrepancy_query** — remove FK on column to supply.kit_inventory because data queries address clinical data discrepancies not supply inventory records
+**PRIORITY 39 — connect_table: randomization.stratification_cell** — add column rand_list_id (BIGINT) with FK to randomization.rand_list.rand_list_id — stratification cells are allocated within specific randomization lists
+**PRIORITY 40 — connect_table: compliance.ethics_committee** — add column country_id (BIGINT) with FK to study.country.country_id — ethics committees operate within specific jurisdictions/countries
+**PRIORITY 41 — rename_attribute: data.edc_study_build** — rename column predecessor_build_edc_study_build_id to predecessor_build_id
+**PRIORITY 42 — rename_attribute: randomization.rand_list** — rename column superseded_by_list_rand_list_id to superseded_by_list_id
+**PRIORITY 43 — rename_attribute: randomization.blinding_config** — rename column previous_version_blinding_config_id to previous_version_id
+**PRIORITY 44 — rename_attribute: compliance.ethics_approval** — rename column superseded_ethics_approval_id to superseded_approval_id
+**PRIORITY 45 — rename_attribute: compliance.quality_event** — rename column parent_event_quality_event_id to parent_event_id
+**PRIORITY 46 — rename_attribute: laboratory.critical_value** — rename column superseded_by_critical_value_id to superseded_by_id
+**PRIORITY 47 — rename_attribute: subject.randomization_assignment** — rename column prior_assignment_randomization_assignment_id to prior_assignment_id
+**PRIORITY 48 — rename_attribute: regulatory.clinical_trial_authorization** — rename column parent_cta_clinical_trial_authorization_id to parent_cta_id
+**PRIORITY 49 — rename_attribute: subject.demographic** — rename column corrected_demographic_id to corrected_record_id
+**PRIORITY 50 — rename_attribute: safety.causality_assessment** — rename column prior_assessment_causality_assessment_id to prior_assessment_id
+**PRIORITY 51 — rename_attribute: document.tmf_completeness** — rename column prior_assessment_tmf_completeness_id to prior_assessment_id
+**PRIORITY 52 — rename_attribute: visit_finding** — rename column original_finding_visit_finding_id to original_finding_id
+**PRIORITY 53 — connect_table: supply.imp_master** — add column study_id (BIGINT) with FK to study.study.study_id — IMP master records need study context since the same drug may have different configurations per study
+**PRIORITY 54 — connect_table: compliance.deviation_classification** — add column study_id (BIGINT) with FK to study.study.study_id — deviation classifications may be study-specific and need study context for reporting
+**PRIORITY 55 — connect_table: safety.ctcae_grade** — add column study_id (BIGINT) with FK to study.study.study_id — CTCAE grading versions are selected per study protocol and need study linkage
+**PRIORITY 56 — remove_fk: safety.ctcae_grade** — remove FK on column to safety.meddra_term because CTCAE grades are independent severity scales not derived from MedDRA terms; they may be mapped but are not structurally dependent
+**PRIORITY 57 — connect_table: randomization.irt_transaction** — add column kit_inventory_id (BIGINT) with FK to supply.kit_inventory.kit_inventory_id — IRT transactions allocate specific kit inventory items and need direct linkage
+**PRIORITY 58 — connect_table: monitoring.visit_checklist** — add column monitoring_visit_schedule_id (BIGINT) with FK to monitoring.monitoring_visit_schedule.monitoring_visit_schedule_id — checklists are prepared for scheduled visits and need schedule linkage
+**PRIORITY 59 — connect_table: supply.kit_definition** — add column study_id (BIGINT) with FK to study.study.study_id — kit definitions are study-specific configurations
+**PRIORITY 60 — connect_table: regulatory.ind_application** — add column study_id (BIGINT) with FK to study.study.study_id — IND applications are filed for specific studies
+**PRIORITY 61 — connect_table: study.investigational_product** — add column study_id (BIGINT) with FK to study.study.study_id — investigational products are studied within specific trials and need direct study linkage
+
+Other known issues from static analysis (7):
+  - Attribute 'inspection_readiness_tier' in document.inspection_readiness has redundant product prefix 'inspection_readiness_'. Rename to 'tier'
+  - Product 'site.closeout' has 28 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'safety.icsr' has 28 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'subject.deviation' has 27 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - Product 'safety.serious_adverse_event' has 26 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
+  - 3 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 235 attribute(s) match person-data patterns but lack pii_ tags
+
+Deterministic score: 90/100 (LLM assessment: 62/100)

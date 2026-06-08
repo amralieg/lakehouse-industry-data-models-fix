@@ -1,0 +1,1724 @@
+-- Schema for Domain: menu | Business: Restaurants | Version: v1_ecm
+-- Generated on: 2026-05-06 02:29:16
+
+-- ========= DATABASE =========
+CREATE DATABASE IF NOT EXISTS `restaurants_ecm`.`menu` COMMENT 'Single source of truth for all menu items, recipes, BOMs (Bill of Materials), nutritional data, allergen declarations, pricing, product mix (PMIX), limited time offers (LTO), and menu engineering decisions across dayparts, channels (DT, OLO, 3PD), and restaurant formats (QSR, casual, fine-dining). Governs what the business sells.';
+
+-- ========= TABLES =========
+CREATE OR REPLACE TABLE `restaurants_ecm`.`menu`.`menu_item` (
+    `menu_item_id` BIGINT COMMENT 'Unique surrogate identifier for each menu item record in the lakehouse. Primary key for the menu_item master data product.',
+    `campaign_id` BIGINT COMMENT 'Foreign key linking to marketing.campaign. Business justification: Required for Campaign Planning: associate specific menu items with marketing campaigns (e.g., seasonal featured dishes) to enable menu rollout, budgeting, and performance reporting.',
+    `employee_id` BIGINT COMMENT 'Foreign key linking to workforce.employee. Business justification: Menu item creation workflow requires recording the employee (chef/manager) who created the item for audit and traceability.',
+    `foodsafety_allergen_profile_id` BIGINT COMMENT 'Foreign key linking to foodsafety.allergen_profile. Business justification: COMPLIANCE: Each menu item must map to an allergen control profile for labeling and guest safety.',
+    `franchisee_id` BIGINT COMMENT 'Foreign key linking to franchise.franchisee. Business justification: Franchisee Menu Customization Report requires linking each menu item to the owning franchisee for localized availability and pricing decisions.',
+    `gl_account_id` BIGINT COMMENT 'Foreign key linking to finance.gl_account. Business justification: Revenue reporting requires each menu item to map to a GL account for posting sales; finance teams use this for daily sales ledger reconciliation.',
+    `haccp_plan_id` BIGINT COMMENT 'Foreign key linking to foodsafety.haccp_plan. Business justification: REGULATORY: HACCP compliance per menu item is required for safety reporting and audit traceability.',
+    `item_category_id` BIGINT COMMENT 'Foreign key linking to inventory.item_category. Business justification: Enables category‑level procurement and menu‑planning reports by aligning menu item categories with inventory item_category hierarchy, a standard practice in restaurant supply chain management.',
+    `stock_item_id` BIGINT COMMENT 'Foreign key linking to inventory.stock_item. Business justification: Required for POS and inventory forecasting: each menu item must be linked to its underlying stock item (SKU) to reconcile sales with inventory levels and generate daily sales‑vs‑stock reports.',
+    `supply_supplier_id` BIGINT COMMENT 'Foreign key linking to supply.supply_supplier. Business justification: REQUIRED: Supplier sourcing for each menu item is needed for cost analysis, procurement planning, and supplier performance dashboards; experts expect a direct supplier_id on menu_item.',
+    `allergen_flags` STRING COMMENT 'Pipe-delimited list of the FDAs 9 major food allergens present in this menu item (milk, eggs, fish, shellfish, tree_nuts, peanuts, wheat, soybeans, sesame). Required for FDA allergen labeling compliance and guest safety disclosures on OLO and 3PD platforms. Example: wheat|milk|soy.',
+    `base_price` DECIMAL(18,2) COMMENT 'The standard retail selling price of the menu item before any discounts, promotions, or channel-specific pricing adjustments. Expressed in the local operating currency. This is the principal quantitative value (MEASUREMENT_OR_VALUE) for this MASTER_RESOURCE entity.',
+    `calorie_count` STRING COMMENT 'Total caloric content of the menu item in kilocalories (kcal) per standard serving. Mandatory disclosure on menus for restaurant chains with 20+ locations under FDA Menu Labeling Rule (Section 4205 of the ACA).',
+    `cost` DECIMAL(18,2) COMMENT 'Standard cost of goods sold (COGS) for this menu item, representing the total ingredient and packaging cost per serving. Used to calculate CoGS% and gross margin in P&L reporting. Sourced from SAP S/4HANA CO and MarketMan BOM costing.',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this menu item record was first created in the system of record (Oracle MICROS POS). Represents the business creation event, not the ETL load time. Format: yyyy-MM-ddTHH:mm:ss.SSSXXX.',
+    `currency_code` STRING COMMENT 'ISO 4217 three-letter currency code for the base_price and cost fields (e.g., USD, CAD, GBP). Supports multi-currency operations across international franchise markets.. Valid values are `^[A-Z]{3}$`',
+    `daypart` STRING COMMENT 'The daypart(s) during which this menu item is available for sale. Daypart segmentation drives kitchen prep scheduling, labor planning, and PMIX reporting by time-of-day. Standard foodservice dayparts: breakfast, lunch, dinner, late_night, snack, all_day.. Valid values are `breakfast|lunch|dinner|late_night|all_day|snack`',
+    `discontinue_date` DATE COMMENT 'The date this menu item was permanently discontinued and removed from the menu. Null for active items. Used for menu lifecycle management, historical PMIX analysis, and supply chain wind-down planning.',
+    `image_url` STRING COMMENT 'URL of the approved product image for this menu item used on digital menus, OLO platform, 3PD marketplace listings, and marketing materials. Must reference the approved brand asset in the digital asset management system.. Valid values are `^https?://.+$`',
+    `is_3pd_available` BOOLEAN COMMENT 'Indicates whether this menu item is available through Third-Party Delivery (3PD) partners (e.g., DoorDash, Uber Eats, Grubhub). Controls item syndication to 3PD marketplace menus via Olo integration.',
+    `is_combo_eligible` BOOLEAN COMMENT 'Indicates whether this menu item can be included as a component in a combo meal offering. Used by menu engineering teams to configure combo meal bundles and upsell prompts in POS and OLO.',
+    `is_customizable` BOOLEAN COMMENT 'Indicates whether this menu item supports guest customization (e.g., add/remove ingredients, size selection, preparation modifications). Drives modifier group configuration in Oracle MICROS POS and OLO ordering flows.',
+    `is_dine_in_available` BOOLEAN COMMENT 'Indicates whether this menu item is available for dine-in service. Used to configure FOH (Front of House) menu boards and server-facing POS screens.',
+    `is_dt_available` BOOLEAN COMMENT 'Indicates whether this menu item is available for sale through the Drive-Thru (DT) channel. Used to configure channel-specific menus in Oracle MICROS POS and drive-thru menu boards.',
+    `is_gluten_free` BOOLEAN COMMENT 'Indicates whether this menu item is certified or designated as gluten-free per FDA gluten-free labeling standards (less than 20 ppm gluten). Used for allergen filtering on digital ordering platforms and guest safety disclosures.',
+    `is_lto` BOOLEAN COMMENT 'Indicates whether this menu item is a Limited Time Offer (LTO). LTO items have defined availability windows and are used for promotional campaigns, seasonal offerings, and new product testing. Drives marketing campaign execution and supply chain planning.',
+    `is_olo_available` BOOLEAN COMMENT 'Indicates whether this menu item is available through the Online Ordering (OLO) digital channel. Controls item visibility on the Olo Digital Ordering Platform for web and mobile ordering.',
+    `is_taxable` BOOLEAN COMMENT 'Indicates whether this menu item is subject to sales tax. Tax applicability varies by jurisdiction and item type (e.g., prepared food vs. grocery). Drives tax calculation in Oracle MICROS POS and SAP S/4HANA AR.',
+    `is_vegan` BOOLEAN COMMENT 'Indicates whether this menu item meets vegan dietary criteria (no animal products including dairy and eggs). Used for dietary filter functionality on OLO, 3PD platforms, and in-restaurant menu boards.',
+    `is_vegetarian` BOOLEAN COMMENT 'Indicates whether this menu item meets vegetarian dietary criteria (no meat, poultry, or seafood). Used for dietary filter functionality on OLO, 3PD platforms, and in-restaurant menu boards.',
+    `item_code` STRING COMMENT 'Externally-known alphanumeric business identifier for the menu item used across POS, KDS, ERP, and supply chain systems. Equivalent to the PLU (Price Look-Up) code in Oracle MICROS POS.. Valid values are `^[A-Z0-9_-]{2,30}$`',
+    `item_description` STRING COMMENT 'Long-form marketing and operational description of the menu item including key ingredients, preparation style, and flavor profile. Used on digital menus, OLO platform, 3PD integrations, and guest-facing materials.',
+    `item_name` STRING COMMENT 'The customer-facing display name of the menu item as it appears on the menu board, POS screen, and digital ordering channels (DT, OLO, 3PD).',
+    `item_status` STRING COMMENT 'Current lifecycle status of the menu item. active = currently sold; inactive = temporarily removed; lto = Limited Time Offer (LTO) with defined availability window; discontinued = permanently removed; pending_launch = approved but not yet live; suspended = pulled due to safety or supply issue.. Valid values are `active|inactive|lto|discontinued|pending_launch|suspended`',
+    `launch_date` DATE COMMENT 'The date this menu item was first made available for sale across the restaurant network. Used for item lifecycle tracking, PMIX trend analysis, and new product performance reporting.',
+    `lto_end_date` DATE COMMENT 'The date on which a Limited Time Offer (LTO) menu item is removed from sale. Null for non-LTO items. Triggers automatic item deactivation in POS and removal from OLO and 3PD channel menus.',
+    `lto_start_date` DATE COMMENT 'The date on which a Limited Time Offer (LTO) menu item becomes available for sale. Null for non-LTO items. Used to coordinate marketing campaign launches, supply chain procurement, and POS menu activation.',
+    `menu_engineering_class` STRING COMMENT 'Menu engineering quadrant classification based on the items profitability and popularity: star (high profit, high popularity), plow_horse (low profit, high popularity), puzzle (high profit, low popularity), dog (low profit, low popularity). Used by menu development teams to make pricing and promotion decisions.. Valid values are `star|plow_horse|puzzle|dog`',
+    `portion_size_grams` DECIMAL(18,2) COMMENT 'Standard portion weight of the menu item in grams as defined in the recipe and BOM (Bill of Materials). Used for food cost control, yield management, waste tracking, and FDA nutrition label compliance.',
+    `prep_time_seconds` STRING COMMENT 'Standard preparation time for this menu item measured in seconds, from order receipt on the KDS (Kitchen Display System) to item ready. Used for Speed of Service (SOS) benchmarking, Ticket Time targets, and kitchen throughput planning.',
+    `restaurant_format` STRING COMMENT 'Identifies which restaurant format(s) this menu item is eligible for: QSR (Quick-Service Restaurant), casual dining, fine dining, or all formats. Governs menu item availability across the restaurant portfolio.. Valid values are `qsr|casual|fine_dining|all`',
+    `serving_temperature` STRING COMMENT 'Required serving temperature classification for this menu item: hot, cold, ambient, or frozen. Critical for HACCP (Hazard Analysis Critical Control Points) compliance, food safety SOPs, and Zenput audit checklists.. Valid values are `hot|cold|ambient|frozen`',
+    `sku_code` STRING COMMENT 'Stock Keeping Unit (SKU) code that links the sellable menu item to its corresponding inventory and procurement record in MarketMan and SAP S/4HANA MM. Enables COGS tracking and PAR level management.. Valid values are `^[A-Z0-9_-]{4,20}$`',
+    `sodium_mg` DECIMAL(18,2) COMMENT 'Sodium content of the menu item in milligrams (mg) per standard serving. Required for FDA nutrition disclosure and supports guest health-conscious ordering decisions on digital platforms.',
+    `sort_order` STRING COMMENT 'Numeric sort order controlling the display sequence of this item within its category on POS screens, digital menu boards, OLO, and 3PD platforms. Lower values appear first. Used by menu engineering teams to influence guest ordering behavior.',
+    `source_system_code` STRING COMMENT 'The native item identifier from the operational source system (Oracle MICROS POS) from which this record was ingested into the lakehouse Silver layer. Enables lineage tracing and reconciliation between the lakehouse and the POS system of record.. Valid values are `^[A-Za-z0-9_-]{1,50}$`',
+    `subcategory` STRING COMMENT 'Secondary classification within the item category for granular PMIX analysis and menu engineering (e.g., Burger, Chicken Sandwich, Fountain Drink, Milkshake, French Fries). Supports drill-down reporting in P&L and product mix analytics.',
+    `tax_category_code` STRING COMMENT 'Tax category code assigned to this menu item in SAP S/4HANA for jurisdiction-specific tax rate determination. Maps to the tax condition type in SD pricing. Examples: FOOD_PREP, BEVERAGE_ALCO, BEVERAGE_NON_ALCO.. Valid values are `^[A-Z0-9_]{2,20}$`',
+    `updated_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent update to this menu item record in the system of record. Used to detect changes for incremental lakehouse ingestion and to track menu item modification history. Format: yyyy-MM-ddTHH:mm:ss.SSSXXX.',
+    CONSTRAINT pk_menu_item PRIMARY KEY(`menu_item_id`)
+) COMMENT 'Master record for every sellable item on the menu across all restaurant formats (QSR, casual, fine-dining) and service channels (DT, OLO, 3PD, dine-in). Captures item identity, guest-facing name, internal name, description, PLU/SKU code, category, sub-category, daypart availability flags, format eligibility flags, channel availability flags, item status (active/inactive/seasonal/LTO), prep time estimate, portion size, serving temperature, calorie display value, image asset reference, and lifecycle dates (created, launched, discontinued). This is the SSOT for what the business sells — the anchor entity for the entire menu domain.';
+
+CREATE OR REPLACE TABLE `restaurants_ecm`.`menu`.`menu` (
+    `menu_id` BIGINT COMMENT 'Unique surrogate identifier for each published menu record in the lakehouse. Serves as the primary key for all downstream joins and lineage tracking.',
+    `employee_id` BIGINT COMMENT 'Foreign key linking to workforce.employee. Business justification: Menu versioning is driven by a menu manager; capturing the creator enables change‑control and reporting.',
+    `franchisee_id` BIGINT COMMENT 'Foreign key linking to franchise.franchisee. Business justification: Franchisee‑specific menu versions are tracked for regional offerings; the Franchisee Menu Management process needs this FK.',
+    `haccp_plan_id` BIGINT COMMENT 'Foreign key linking to foodsafety.haccp_plan. Business justification: OPERATIONS: The entire menu is governed by a HACCP plan that drives safety checks across all items.',
+    `site_id` BIGINT COMMENT 'Foreign key linking to realestate.site. Business justification: Required for site‑specific menu publishing, compliance, and pricing; each restaurant location (site) maintains its own active menu.',
+    `territory_id` BIGINT COMMENT 'Foreign key linking to franchise.territory. Business justification: Regional Menu Planning uses territory assignment to determine which menu set applies to each geographic area.',
+    `unit_id` BIGINT COMMENT 'Foreign key linking to restaurant.unit. Business justification: Required for POS and reporting to assign each menu to the specific restaurant unit where it is served.',
+    `allergen_disclosure_required` BOOLEAN COMMENT 'Indicates whether this menu requires allergen declarations for the nine FDA-recognized major food allergens (milk, eggs, fish, shellfish, tree nuts, peanuts, wheat, soybeans, sesame). Supports HACCP compliance and guest safety.',
+    `approval_status` STRING COMMENT 'Current workflow state of the menu in the approval lifecycle. Menus must be approved before publishing. Tracks progression from draft through review, approval, and eventual archival.. Valid values are `draft|pending_review|approved|rejected|archived`',
+    `approved_by` STRING COMMENT 'Name or employee identifier of the individual who granted final approval for this menu version. Required for audit trail and regulatory compliance with FDA food labeling and franchise disclosure obligations.',
+    `approved_timestamp` TIMESTAMP COMMENT 'Date and time when the menu received final approval, recorded in ISO 8601 format with timezone offset. Establishes the official approval event in the menu lifecycle audit trail.',
+    `category_count` STRING COMMENT 'Total number of menu categories (e.g., Burgers, Sides, Beverages, Desserts) included in this menu version. Supports menu structure analysis and POS display configuration.',
+    `channel` STRING COMMENT 'The ordering or service channel this menu is published for. Drive-Thru (DT), Online Ordering (OLO), Third-Party Delivery (3PD), dine-in, kiosk, and catering channels may carry different item availability, pricing, and promotional content. [ENUM-REF-CANDIDATE: dine_in|drive_thru|olo|third_party_delivery|kiosk|catering|curbside|mobile_app — promote to reference product]. Valid values are `dine_in|drive_thru|olo|third_party_delivery|kiosk|catering`',
+    `country_code` STRING COMMENT 'ISO 3166-1 alpha-3 country code identifying the country where this menu is published. Drives regulatory compliance (FDA, USDA, local health departments), currency, and language localization.. Valid values are `^[A-Z]{3}$`',
+    `created_timestamp` TIMESTAMP COMMENT 'Date and time when this menu record was first created in the system, recorded in ISO 8601 format with timezone offset. Establishes the beginning of the menus audit trail.',
+    `currency_code` STRING COMMENT 'ISO 4217 three-letter currency code applicable to all pricing on this menu (e.g., USD, CAD, GBP). Ensures consistent financial reporting and P&L (Profit and Loss) attribution across markets.. Valid values are `^[A-Z]{3}$`',
+    `daypart` STRING COMMENT 'The meal period or daypart this menu is active for. Daypart segmentation drives kitchen prep, staffing, and PMIX (Product Mix) analytics. Standard dayparts include breakfast, lunch, dinner, late-night, snack, and all-day.. Valid values are `breakfast|lunch|dinner|late_night|all_day|snack`',
+    `daypart_end_time` TIMESTAMP COMMENT 'The local wall-clock time (HH:MM, 24-hour) at which this menus daypart ends service. Used by POS and KDS to automatically deactivate the menu and transition to the next daypart.',
+    `daypart_start_time` TIMESTAMP COMMENT 'The local wall-clock time (HH:MM, 24-hour) at which this menus daypart begins service. Used by POS and KDS (Kitchen Display System) to automatically switch active menus.',
+    `digital_menu_board_enabled` BOOLEAN COMMENT 'Indicates whether this menu is configured for display on digital menu boards in restaurant locations. Digital menu boards require specific image assets, layout templates, and real-time price synchronization.',
+    `effective_end_date` DATE COMMENT 'The calendar date on which this menu version is retired and no longer available for ordering. Null indicates an open-ended menu with no planned expiry. Critical for LTO (Limited Time Offer) lifecycle management.',
+    `effective_start_date` DATE COMMENT 'The calendar date on which this menu version becomes active and available for ordering. Governs menu rollout scheduling for New Restaurant Openings (NRO), Limited Time Offers (LTO), and seasonal rotations.',
+    `engineering_tier` STRING COMMENT 'Menu engineering classification based on the Boston Consulting Group (BCG) matrix adapted for foodservice: Stars (high popularity, high margin), Plow Horses (high popularity, low margin), Puzzles (low popularity, high margin), Dogs (low popularity, low margin). Drives strategic menu optimization decisions.. Valid values are `star|plow_horse|puzzle|dog`',
+    `haccp_reviewed` BOOLEAN COMMENT 'Indicates whether this menu version has undergone a HACCP (Hazard Analysis Critical Control Points) review to ensure all items meet food safety critical control point requirements before publication.',
+    `is_default` BOOLEAN COMMENT 'Indicates whether this menu is the default active menu for its restaurant format, channel, and daypart combination. Only one menu per format-channel-daypart combination should be flagged as default at any point in time.',
+    `is_franchise_menu` BOOLEAN COMMENT 'Indicates whether this menu is designated for franchise-operated restaurants as opposed to company-owned locations. Franchise menus may have restricted customization rights governed by the Franchise Disclosure Document (FDD).',
+    `is_lto` BOOLEAN COMMENT 'Indicates whether this menu is a Limited Time Offer (LTO) menu with a defined promotional window. LTO menus drive incremental traffic and require distinct PMIX tracking, marketing support, and supply chain coordination.',
+    `item_count` STRING COMMENT 'Total number of distinct menu items included in this menu version. Used in menu engineering analysis to assess menu complexity, PMIX (Product Mix) breadth, and operational throughput impact.',
+    `kds_routing_profile` STRING COMMENT 'Identifier for the KDS (Kitchen Display System) routing profile associated with this menu. Determines how orders are routed to BOH (Back of House) preparation stations based on item categories and prep sequences.',
+    `language_code` STRING COMMENT 'IETF BCP 47 language code for the menus display language (e.g., en-US, fr-CA, es-MX). Supports multilingual menu publishing for diverse guest populations and regulatory bilingual requirements.. Valid values are `^[a-z]{2}(-[A-Z]{2})?$`',
+    `last_modified_timestamp` TIMESTAMP COMMENT 'Date and time when this menu record was most recently updated, recorded in ISO 8601 format with timezone offset. Used for change detection, incremental ETL processing, and audit compliance.',
+    `market_region` STRING COMMENT 'The geographic market or region this menu is scoped to (e.g., US-Southeast, Canada, EMEA-UK). Supports regional menu variation, localization, and regulatory compliance across jurisdictions.',
+    `menu_code` STRING COMMENT 'Externally-known alphanumeric business identifier for the menu, used in Oracle MICROS POS configurations, franchise communications, and cross-system references (e.g., BRKFST-QSR-DT-2024).. Valid values are `^[A-Z0-9_-]{3,30}$`',
+    `menu_description` STRING COMMENT 'Free-text narrative description of the menus purpose, scope, and key characteristics. Used in internal documentation, franchise communications, and menu engineering review sessions.',
+    `menu_name` STRING COMMENT 'Human-readable display name of the menu as it appears in POS systems, digital ordering platforms, and internal reporting (e.g., Breakfast Drive-Thru Menu Q1 2024).',
+    `notes` STRING COMMENT 'Free-text field for operational notes, change justifications, or franchise-specific instructions associated with this menu version. Used by menu managers and franchise business consultants during review cycles.',
+    `nutritional_disclosure_required` BOOLEAN COMMENT 'Indicates whether this menu requires calorie and nutritional information disclosure per FDA menu labeling regulations (21 CFR Part 101.11). Mandatory for restaurant chains with 20 or more locations in the United States.',
+    `olo_menu_code` STRING COMMENT 'The native menu identifier as configured in the Olo Digital Ordering Platform. Enables reconciliation of digital channel menu versions with the master menu record.',
+    `pmix_tracking_enabled` BOOLEAN COMMENT 'Indicates whether Product Mix (PMIX) sales tracking is enabled for this menu version. When enabled, POS transaction data is aggregated to measure item-level sales velocity, supporting menu engineering and COGS% analysis.',
+    `pos_menu_code` STRING COMMENT 'The native menu identifier as configured in Oracle MICROS POS. Used for system-of-record reconciliation between the lakehouse silver layer and the POS operational system.',
+    `price_tier` STRING COMMENT 'Pricing tier classification for this menu, reflecting the overall price positioning strategy (value, standard, premium, luxury). Drives ACV (Average Check Value) benchmarking and revenue management decisions.. Valid values are `value|standard|premium|luxury`',
+    `publish_status` STRING COMMENT 'Current publishing state of the menu indicating whether it is live and visible to guests across channels. Distinct from approval_status — a menu may be approved but not yet published, or suspended post-publication.. Valid values are `unpublished|published|suspended|retired`',
+    `published_timestamp` TIMESTAMP COMMENT 'Date and time when the menu was pushed live to POS systems, digital ordering platforms (OLO), and third-party delivery (3PD) integrations. Critical for SSS (Same-Store Sales) period alignment and rollout governance.',
+    `restaurant_format` STRING COMMENT 'The restaurant service format this menu is designed for. Quick-Service Restaurant (QSR) menus differ structurally from casual or fine-dining menus in item count, pricing tiers, and daypart coverage.. Valid values are `QSR|casual|fine_dining|fast_casual|ghost_kitchen`',
+    `retired_timestamp` TIMESTAMP COMMENT 'Date and time when the menu was deactivated and retired from all channels. Null if the menu is still active. Used for historical PMIX analysis and LTO post-campaign reporting.',
+    `source_system` STRING COMMENT 'Identifies the operational system of record from which this menu record originated (e.g., Oracle MICROS POS, Olo Digital Ordering Platform, FranConnect). Supports data lineage and reconciliation in the lakehouse silver layer.. Valid values are `MICROS_POS|OLO|FRANCONNECT|MANUAL|SAP`',
+    `version_number` STRING COMMENT 'Sequential integer version of the menu, incremented each time the menu is revised and republished. Enables rollback, audit, and comparison of menu changes over time.',
+    CONSTRAINT pk_menu PRIMARY KEY(`menu_id`)
+) COMMENT 'Master record for each published menu — the container that groups menu items for a specific restaurant format, daypart, channel, and effective date range. Tracks menu name, version, format (QSR/casual/fine-dining), channel (DT/OLO/3PD/dine-in), daypart (breakfast/lunch/dinner/late-night), effective start/end dates, approval status, and publishing state. Enables menu versioning and rollout governance.';
+
+CREATE OR REPLACE TABLE `restaurants_ecm`.`menu`.`recipe` (
+    `recipe_id` BIGINT COMMENT 'Unique surrogate identifier for each standardized recipe record in the foodservice master recipe repository. Serves as the primary key for all downstream joins to menu items, Bill of Materials (BOM) components, and production specifications.',
+    `employee_id` BIGINT COMMENT 'Foreign key linking to workforce.employee. Business justification: Recipe development is performed by a chef; tracking the creator supports cost, quality, and compliance reporting.',
+    `foodsafety_allergen_profile_id` BIGINT COMMENT 'Foreign key linking to foodsafety.allergen_profile. Business justification: SAFETY: Recipes inherit allergen control profiles that affect ingredient sourcing and labeling.',
+    `haccp_plan_id` BIGINT COMMENT 'Foreign key linking to foodsafety.haccp_plan. Business justification: QUALITY: Recipes have specific HACCP plans defining critical limits for preparation steps.',
+    `menu_item_id` BIGINT COMMENT 'Reference to the parent menu item this recipe produces. Links the culinary production specification to the sellable menu item entity, enabling Product Mix (PMIX) analysis and menu engineering decisions.',
+    `allergen_flags` STRING COMMENT 'Pipe-delimited list of major food allergens present in this recipe as required by FDA Food Allergen Labeling and Consumer Protection Act (FALCPA). Includes the FDAs Big 9 allergens: milk, eggs, fish, shellfish, tree nuts, peanuts, wheat, soybeans, sesame. Used for menu labeling compliance and guest allergen communication. [ENUM-REF-CANDIDATE: milk|eggs|fish|shellfish|tree_nuts|peanuts|wheat|soybeans|sesame — promote to reference product]',
+    `approved_by` STRING COMMENT 'Name or employee identifier of the culinary or food safety authority who approved this recipe version for production use. Provides audit trail for recipe governance, food safety compliance, and SOP change management.',
+    `approved_date` DATE COMMENT 'Date on which this recipe version was formally approved for production use by the culinary or food safety authority. Supports recipe version lifecycle management, audit trail, and regulatory compliance documentation.',
+    `boh_prep_notes` STRING COMMENT 'Supplementary Back of House (BOH) preparation notes and special handling instructions for kitchen staff, including equipment-specific guidance, batch preparation tips, and quality checkpoints not captured in the structured prep_method field. Sourced from culinary SOP documentation.',
+    `calories` DECIMAL(18,2) COMMENT 'Total caloric content per serving in kilocalories (kcal) as required for FDA menu labeling compliance under the Affordable Care Act Section 4205. Displayed on menu boards and digital ordering platforms per FDA 21 CFR Part 101.',
+    `calories_from_fat` DECIMAL(18,2) COMMENT 'Calories derived from fat content per serving in kilocalories (kcal), as declared on the FDA Nutrition Facts Panel. Supports nutritional transparency and menu labeling compliance.',
+    `channel` STRING COMMENT 'The service channel(s) for which this recipe is approved and available. Supports channel-specific menu management across Dine-In, Drive-Thru (DT), Online Ordering (OLO via Olo platform), Third-Party Delivery (3PD), and Catering. Drives channel-specific menu configuration in Oracle MICROS POS and Olo.. Valid values are `dine_in|drive_thru|online_ordering|third_party_delivery|catering`',
+    `cook_method` STRING COMMENT 'The primary cooking technique applied to this recipe (e.g., fry, grill, bake, steam, broil, saute, raw, microwave, sous_vide, smoke). Drives Kitchen Display System (KDS) routing, equipment assignment, and HACCP critical control point identification. [ENUM-REF-CANDIDATE: fry|grill|bake|steam|broil|saute|raw|microwave|sous_vide|smoke — 10 candidates stripped; promote to reference product]',
+    `cook_temperature_f` DECIMAL(18,2) COMMENT 'Required internal or cooking equipment temperature in degrees Fahrenheit for this recipe. Critical for HACCP compliance, food safety critical control point (CCP) monitoring, and Zenput food safety audit verification. Ensures pathogen elimination per FDA Food Code minimum temperature requirements.',
+    `cook_time_seconds` STRING COMMENT 'Standardized cook time in seconds for this recipe as defined in the culinary SOP. Used for Kitchen Display System (KDS) timer configuration, Speed of Service (SOS) benchmarking, Ticket Time analysis, and throughput optimization in BOH operations.',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this recipe record was first created in the system, in ISO 8601 format (yyyy-MM-ddTHH:mm:ss.SSSXXX). Provides audit trail for data lineage, recipe version history, and compliance documentation.',
+    `daypart` STRING COMMENT 'The meal period or daypart during which this recipe is available for production and sale. Drives kitchen scheduling, labor forecasting via Planday, and daypart-level PMIX reporting. Standard foodservice dayparts include breakfast, lunch, dinner, late_night, snack, and all_day.. Valid values are `breakfast|lunch|dinner|late_night|all_day|snack`',
+    `effective_date` DATE COMMENT 'Date from which this recipe version becomes active and available for production in restaurant operations. Used for recipe version scheduling, Limited Time Offer (LTO) launch planning, and menu change management across Oracle MICROS POS and Olo.',
+    `expiration_date` DATE COMMENT 'Date on which this recipe version is retired from active production use. Applicable for Limited Time Offers (LTO), seasonal items, and superseded recipe versions. Null for open-ended core menu recipes.',
+    `food_cost` DECIMAL(18,2) COMMENT 'Calculated raw ingredient cost in USD to produce one yield unit of this recipe, derived from Bill of Materials (BOM) component costs in MarketMan Inventory Management. Used for Cost of Goods Sold (COGS) analysis, CoGS% reporting, menu pricing strategy, and P&L management in SAP S/4HANA.',
+    `food_cost_pct` DECIMAL(18,2) COMMENT 'Recipe food cost expressed as a percentage of the menu selling price, representing the Cost of Goods Sold Percentage (CoGS%). A key menu engineering metric used to evaluate recipe profitability, set pricing targets, and manage P&L performance. Calculated as food_cost divided by menu selling price.',
+    `haccp_ccp_flag` BOOLEAN COMMENT 'Indicates whether this recipe contains one or more Hazard Analysis Critical Control Points (HACCP CCPs) requiring mandatory monitoring, verification, and corrective action procedures per ISO 22000 and FDA Food Safety Modernization Act (FSMA). Drives Zenput food safety audit task generation.',
+    `holding_temperature_f` DECIMAL(18,2) COMMENT 'Required hot or cold holding temperature in degrees Fahrenheit for maintaining food safety after cooking and prior to service. Critical HACCP critical control point (CCP) parameter monitored via Zenput food safety audits and local health department inspections.',
+    `holding_time_max_minutes` STRING COMMENT 'Maximum allowable holding time in minutes after cooking before the item must be discarded, per HACCP and food safety SOP. Drives waste tracking in MarketMan and Zenput task management for BOH discard compliance and Waste% reporting.',
+    `is_gluten_free` BOOLEAN COMMENT 'Indicates whether this recipe meets FDA gluten-free labeling standards (less than 20 ppm gluten). Used for menu labeling compliance, guest dietary accommodation, and marketing of gluten-free menu options per FDA 21 CFR Part 101.91.',
+    `is_vegan` BOOLEAN COMMENT 'Indicates whether this recipe contains no animal-derived ingredients, qualifying it as vegan. Supports menu labeling, dietary filtering on Olo Digital Ordering Platform, and guest dietary accommodation.',
+    `is_vegetarian` BOOLEAN COMMENT 'Indicates whether this recipe contains no meat, poultry, or seafood ingredients, qualifying it as vegetarian. Supports menu labeling, dietary filtering on Olo Digital Ordering Platform, and guest dietary accommodation.',
+    `menu_price` DECIMAL(18,2) COMMENT 'Standard menu selling price in USD for this recipe as configured in Oracle MICROS POS. Used for revenue management, menu engineering analysis, Average Check Value (ACV) calculations, and Same-Store Sales (SSS) reporting.',
+    `plating_instructions` STRING COMMENT 'Standardized plating and presentation instructions for this recipe as defined in the culinary SOP. Specifies garnish placement, portioning, vessel type, and visual presentation standards for Front of House (FOH) service quality and brand consistency.',
+    `prep_method` STRING COMMENT 'Standardized description of the preparation technique for this recipe as defined in the culinary Standard Operating Procedure (SOP). Includes steps such as marinating, chopping, mixing, or assembling performed prior to cooking. Governs BOH preparation workflow and kitchen training.',
+    `prep_time_seconds` STRING COMMENT 'Standardized preparation time in seconds required before cooking begins, as defined in the culinary SOP. Contributes to total Ticket Time calculation and labor scheduling in Planday Workforce Scheduling for BOH staffing models.',
+    `recipe_category` STRING COMMENT 'Culinary category grouping for the recipe used in menu engineering and Product Mix (PMIX) reporting (e.g., Entrée, Appetizer, Dessert, Beverage, Side, Sauce, Condiment). Supports daypart analysis and menu mix optimization. [ENUM-REF-CANDIDATE: entree|appetizer|dessert|beverage|side|sauce|condiment|breakfast|snack — promote to reference product]',
+    `recipe_code` STRING COMMENT 'Externally-known alphanumeric business identifier for the recipe, used across Oracle MICROS POS, MarketMan Inventory Management, and SAP S/4HANA for cross-system reference. Follows the format RCP-XXXX. Serves as the operational lookup key in kitchen and procurement workflows.. Valid values are `^RCP-[A-Z0-9]{4,12}$`',
+    `recipe_name` STRING COMMENT 'Human-readable name of the standardized recipe as it appears in culinary Standard Operating Procedures (SOP) documentation and kitchen training materials. Used by Back of House (BOH) staff and culinary teams for identification and communication.',
+    `recipe_status` STRING COMMENT 'Current lifecycle state of the recipe within the culinary development and operations workflow. draft indicates in-development; active indicates approved for production use; inactive indicates temporarily suspended; archived indicates retired; under_review indicates pending culinary or food safety re-evaluation.. Valid values are `draft|active|inactive|archived|under_review`',
+    `recipe_type` STRING COMMENT 'Classification of the recipe by its menu permanence and scope. core indicates a permanent menu item; limited_time_offer (LTO) indicates a time-bound promotional item; seasonal indicates availability tied to seasonal ingredients; test indicates a recipe under culinary trial; regional indicates a market-specific variant.. Valid values are `core|limited_time_offer|seasonal|test|regional`',
+    `restaurant_format` STRING COMMENT 'The restaurant format or concept for which this recipe is designed and approved. Quick-Service Restaurant (QSR), casual, fine_dining, and fast_casual formats may have distinct recipe specifications, plating standards, and production methods.. Valid values are `qsr|casual|fine_dining|fast_casual`',
+    `serving_size_g` DECIMAL(18,2) COMMENT 'Standardized serving size in grams as declared for nutritional labeling purposes. Required for FDA Nutrition Facts Panel compliance and menu labeling regulations. Used in nutritional data calculations and USDA reporting.',
+    `shelf_life_hours` STRING COMMENT 'Maximum shelf life in hours for the prepared recipe item from time of production, as defined in the food safety SOP. Governs discard scheduling, holding time compliance, and waste tracking in MarketMan. Critical for HACCP date-marking compliance per FDA Food Code.',
+    `sodium_mg` DECIMAL(18,2) COMMENT 'Sodium content per serving in milligrams (mg) as declared on the FDA Nutrition Facts Panel. Critical for menu labeling compliance, nutritional transparency, and alignment with USDA Dietary Guidelines sodium reduction targets.',
+    `storage_temperature_f` DECIMAL(18,2) COMMENT 'Required storage temperature in degrees Fahrenheit for raw ingredients or prepared components of this recipe prior to production. HACCP critical control point (CCP) parameter for cold chain compliance, monitored via Zenput food safety audits.',
+    `subcategory` STRING COMMENT 'Secondary culinary classification providing finer granularity within the recipe category (e.g., Grilled, Fried, Baked, Raw, Blended). Used for BOH workflow routing, kitchen station assignment, and menu engineering analysis.',
+    `total_time_seconds` STRING COMMENT 'Total elapsed time in seconds from start of preparation to completion of plating, combining prep_time_seconds and cook_time_seconds plus any resting or holding time. Used for Speed of Service (SOS) targets, throughput modeling, and KDS configuration.',
+    `updated_timestamp` TIMESTAMP COMMENT 'Timestamp when this recipe record was last modified, in ISO 8601 format (yyyy-MM-ddTHH:mm:ss.SSSXXX). Supports change tracking, recipe version audit trail, and Silver Layer data freshness monitoring in the Databricks Lakehouse.',
+    `version` STRING COMMENT 'Version number of the recipe in major.minor format (e.g., 1.0, 2.3), tracking iterative culinary changes, reformulations, or ingredient substitutions over the recipe lifecycle. Enables version-controlled recipe management and rollback capability.. Valid values are `^[0-9]+.[0-9]+$`',
+    `waste_pct` DECIMAL(18,2) COMMENT 'Expected food waste percentage for this recipe during production, representing trim loss, cooking loss, and preparation waste as a proportion of raw ingredient weight. Used for Yield Management, PAR Level planning, and Waste% reporting in MarketMan Inventory Management.',
+    `yield_quantity` DECIMAL(18,2) COMMENT 'The standardized output quantity produced by one execution of this recipe (e.g., 1.0 for a single portion, 12.0 for a batch of 12 units). Used in Bill of Materials (BOM) scaling, food cost calculations, and PAR Level (Periodic Automatic Replenishment Level) planning in MarketMan.',
+    `yield_unit` STRING COMMENT 'Unit of measure for the recipe yield quantity (e.g., portion, oz, g, kg, lb, ml, L, each, batch, serving). Aligns with MarketMan Inventory Management unit-of-measure standards for accurate food cost and waste tracking. [ENUM-REF-CANDIDATE: portion|oz|g|kg|lb|ml|L|each|batch|serving — 10 candidates stripped; promote to reference product]',
+    CONSTRAINT pk_recipe PRIMARY KEY(`recipe_id`)
+) COMMENT 'Master record for each standardized recipe (SOP) associated with a menu item. Captures recipe name, version, yield quantity, yield unit, prep method, cook method, cook temperature, cook time, plating instructions, BOH preparation notes, and recipe status. Serves as the culinary SSOT linking menu items to their production specifications and BOM components.';
+
+CREATE OR REPLACE TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` (
+    `recipe_ingredient_id` BIGINT COMMENT 'Unique surrogate identifier for each Bill of Materials (BOM) line-item record linking an ingredient to a recipe. Primary key for the recipe_ingredient entity.',
+    `ingredient_id` BIGINT COMMENT 'Reference to the master ingredient or Stock Keeping Unit (SKU) record that identifies the specific raw material, semi-finished, or finished component used in this recipe line.',
+    `primary_recipe_substitute_ingredient_id` BIGINT COMMENT 'Reference to the approved substitute ingredient SKU that may replace this ingredient when is_substitution_allowed is True. Supports supply chain contingency planning and procurement flexibility.',
+    `procurement_supplier_id` BIGINT COMMENT 'Reference to the preferred or approved supplier for this ingredient as maintained in the Coupa Procurement supplier master. Used for procurement planning, spend analytics, and supplier performance management.',
+    `recipe_id` BIGINT COMMENT 'Reference to the parent recipe to which this ingredient belongs. Establishes the Bill of Materials (BOM) header-to-line relationship.',
+    `allergen_flags` STRING COMMENT 'Pipe-delimited list of major food allergens present in this ingredient as required by FDA Food Allergen Labeling and Consumer Protection Act (FALCPA) and EU Regulation 1169/2011 (e.g., gluten|milk|eggs|soy). Drives menu allergen declarations and guest-facing nutritional disclosures.',
+    `approved_by` STRING COMMENT 'Name or employee identifier of the culinary or quality assurance authority who approved this ingredient for use in the recipe. Supports recipe governance, food safety audit trails, and regulatory compliance documentation.',
+    `approved_date` DATE COMMENT 'Date on which this ingredient was formally approved for inclusion in the recipe by the designated culinary or quality assurance authority. Required for food safety compliance documentation and recipe change control audit trails.',
+    `bom_version` STRING COMMENT 'Version identifier for the recipe Bill of Materials (BOM) line, following semantic versioning convention (e.g., v1.0, v2.3). Enables change control tracking, regulatory audit trails, and rollback capability for recipe modifications.. Valid values are `^vd+.d+$`',
+    `contains_dairy` BOOLEAN COMMENT 'Indicates whether this ingredient contains milk or dairy derivatives as a major allergen per FDA FALCPA. True = dairy present; False = dairy-free. Supports allergen management and guest dietary accommodation.',
+    `contains_gluten` BOOLEAN COMMENT 'Indicates whether this ingredient contains or may contain gluten as a major allergen per FDA FALCPA requirements. True = gluten present or cross-contact risk; False = gluten-free. Used for menu allergen labeling and guest dietary accommodation.',
+    `cost_per_unit` DECIMAL(18,2) COMMENT 'Procurement cost of the ingredient per one unit of measure at the time of recipe costing. Used as the primary input for Cost of Goods Sold (COGS) and Cost of Goods Sold Percentage (CoGS%) calculations at the recipe level. Sourced from Coupa Procurement or SAP AP.',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this recipe ingredient BOM line record was first created in the system, in ISO 8601 format (yyyy-MM-ddTHH:mm:ss.SSSXXX). Provides audit trail for recipe development and change management.',
+    `currency_code` STRING COMMENT 'Three-letter ISO 4217 currency code in which ingredient cost values (cost_per_unit, extended_cost) are denominated (e.g., USD, CAD, GBP). Supports multi-currency operations across global franchise markets.. Valid values are `^[A-Z]{3}$`',
+    `effective_end_date` DATE COMMENT 'Date on which this ingredient version expires or is superseded within the recipe Bill of Materials (BOM). Null indicates the ingredient is currently active with no planned end date. Supports LTO lifecycle management and recipe change control.',
+    `effective_start_date` DATE COMMENT 'Date from which this ingredient version is active and valid within the recipe Bill of Materials (BOM). Supports recipe versioning, Limited Time Offer (LTO) ingredient management, and historical COGS analysis.',
+    `extended_cost` DECIMAL(18,2) COMMENT 'Total cost contribution of this ingredient line to the recipe, calculated as quantity × cost_per_unit adjusted for yield. Represents the line-level Cost of Goods Sold (COGS) input for recipe costing and menu engineering decisions.',
+    `haccp_critical_control_point` BOOLEAN COMMENT 'Indicates whether this ingredient represents a Hazard Analysis Critical Control Point (HACCP) in the recipe preparation process requiring mandatory temperature, time, or handling controls. True = CCP applies; False = standard handling. Drives food safety audit requirements in Zenput.',
+    `ingredient_status` STRING COMMENT 'Current lifecycle status of this ingredient within the recipe Bill of Materials (BOM). Controls whether the ingredient is actively used in production, pending approval, seasonal, or discontinued. Drives menu engineering and procurement decisions.. Valid values are `active|inactive|discontinued|pending_approval|seasonal`',
+    `is_critical_ingredient` BOOLEAN COMMENT 'Indicates whether this ingredient is designated as a critical or signature component of the recipe whose absence or substitution would materially alter the menu items identity, quality standard, or brand promise. True = critical; False = non-critical. Drives supply chain risk prioritization.',
+    `is_halal_certified` BOOLEAN COMMENT 'Indicates whether this ingredient holds a valid Halal certification from an accredited certifying body. True = Halal certified; False = not certified. Required for menu compliance in markets with Halal dietary requirements.',
+    `is_kosher_certified` BOOLEAN COMMENT 'Indicates whether this ingredient holds a valid Kosher certification. True = Kosher certified; False = not certified. Required for menu compliance in markets with Kosher dietary requirements.',
+    `is_organic` BOOLEAN COMMENT 'Indicates whether this ingredient is certified organic under USDA National Organic Program (NOP) standards. True = USDA Organic certified; False = conventional. Supports menu labeling claims and premium ingredient sourcing tracking.',
+    `is_substitution_allowed` BOOLEAN COMMENT 'Indicates whether this ingredient may be substituted with an approved alternative ingredient without altering the recipes quality, taste profile, or regulatory compliance. True = substitution permitted; False = ingredient is mandatory and cannot be substituted.',
+    `line_sequence` STRING COMMENT 'Ordinal position of this ingredient within the recipe Bill of Materials (BOM). Governs the assembly and preparation sequence displayed on Kitchen Display System (KDS) and Standard Operating Procedure (SOP) documentation.',
+    `min_internal_temp_f` DECIMAL(18,2) COMMENT 'Minimum required internal cooking temperature in degrees Fahrenheit for this ingredient as mandated by FDA Food Code and HACCP plan. Applicable when haccp_critical_control_point is True. Enforced via Zenput food safety task management.',
+    `notes` STRING COMMENT 'Free-text field for additional preparation instructions, handling notes, quality specifications, or sourcing requirements specific to this ingredient within the recipe (e.g., slice to 1/4 inch thickness, use Grade A only, apply after cooking). Supports kitchen SOP documentation.',
+    `par_level_quantity` DECIMAL(18,2) COMMENT 'Periodic Automatic Replenishment (PAR) level quantity for this ingredient at the restaurant level, expressed in the ingredients unit of measure. Drives automated reorder triggers in MarketMan and procurement planning in Coupa.',
+    `prep_state` STRING COMMENT 'Preparation state of the ingredient at the point of use in the recipe (e.g., raw, cooked, prepped, frozen, thawed). Drives kitchen workflow sequencing, food safety HACCP critical control point documentation, and yield calculations. [ENUM-REF-CANDIDATE: raw|cooked|prepped|frozen|thawed|marinated|portioned — promote to reference product]',
+    `quantity` DECIMAL(18,2) COMMENT 'Specified quantity of the ingredient required per one unit of the parent recipe, expressed in the designated unit of measure. Used as the basis for COGS calculations, procurement planning, and PAR level management.',
+    `shelf_life_days` STRING COMMENT 'Maximum number of days this ingredient remains safe and usable from the date of receipt or preparation, under specified storage conditions. Used for PAR level management, waste reduction, and FIFO inventory rotation in MarketMan.',
+    `storage_temperature_max_f` DECIMAL(18,2) COMMENT 'Maximum allowable storage temperature in degrees Fahrenheit for this ingredient. Exceeding this threshold triggers a food safety violation per HACCP plan and FDA Food Code requirements.',
+    `storage_temperature_min_f` DECIMAL(18,2) COMMENT 'Minimum allowable storage temperature in degrees Fahrenheit for this ingredient to maintain food safety and quality standards. Used in HACCP temperature monitoring and cold chain compliance tracking.',
+    `supplier_item_code` STRING COMMENT 'The suppliers own item or catalogue code for this ingredient, as used on purchase orders and delivery documentation. Enables cross-referencing between internal SKU and supplier catalogue for procurement and receiving.',
+    `unit_of_measure` STRING COMMENT 'Unit of measure in which the ingredient quantity is expressed (e.g., oz, g, ml, each). Must align with the unit of measure used in procurement and inventory systems to enable accurate COGS and PAR level calculations. [ENUM-REF-CANDIDATE: oz|lb|g|kg|ml|L|fl_oz|cup|tsp|tbsp|each|slice|portion|pkg — promote to reference product]',
+    `updated_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent modification to this recipe ingredient BOM line record, in ISO 8601 format (yyyy-MM-ddTHH:mm:ss.SSSXXX). Supports change tracking, data lineage, and Silver Layer incremental processing in Databricks.',
+    `waste_factor_pct` DECIMAL(18,2) COMMENT 'Percentage of the ingredient quantity expected to be lost during preparation, trimming, cooking, or handling (e.g., 5.00 = 5%). Applied in COGS calculations and procurement planning to account for Food Waste Percentage (Waste%). Sourced from MarketMan waste tracking.',
+    `yield_pct` DECIMAL(18,2) COMMENT 'Percentage of the as-purchased ingredient quantity that results in usable product after preparation (e.g., 80.00 = 80% yield). Complements waste_factor_pct and is used in Yield Management calculations to determine actual cost per usable unit.',
+    CONSTRAINT pk_recipe_ingredient PRIMARY KEY(`recipe_ingredient_id`)
+) COMMENT 'Bill of Materials (BOM) line-item record for each ingredient within a recipe. Captures ingredient SKU reference, ingredient name, quantity, unit of measure, preparation state (raw/cooked/prepped), waste factor percentage, yield percentage, sequence order, and substitution flag. Drives COGS calculations, procurement planning, and PAR level management.';
+
+CREATE OR REPLACE TABLE `restaurants_ecm`.`menu`.`item_price` (
+    `item_price_id` BIGINT COMMENT 'Unique surrogate identifier for each item price record in the menu pricing table. Primary key for the item_price data product.',
+    `approved_by_employee_id` BIGINT COMMENT 'Reference to the employee or user who approved this price record. Supports pricing governance and audit trail requirements.',
+    `employee_id` BIGINT COMMENT 'Reference to the employee or user who approved this price record. Supports pricing governance and audit trail requirements.',
+    `franchisee_id` BIGINT COMMENT 'Foreign key linking to franchise.franchisee. Business justification: Franchisee Pricing Audit Report tracks price overrides and royalty calculations per franchisee, requiring a direct FK.',
+    `menu_item_id` BIGINT COMMENT 'Reference to the menu item for which this price record applies. Links the pricing record to the specific product being sold.',
+    `tier_id` BIGINT COMMENT 'Reference to the price tier classification (e.g., value, standard, premium) that governs the pricing band for this record. Supports tiered pricing strategies across restaurant formats.',
+    `site_id` BIGINT COMMENT 'Reference to the specific restaurant location where this price is effective. Supports regional and location-level price variation.',
+    `unit_id` BIGINT COMMENT 'Reference to the specific restaurant location where this price is effective. Supports regional and location-level price variation.',
+    `approval_status` STRING COMMENT 'Current workflow state of the price record in the pricing governance process. Tracks whether the price is in draft, awaiting approval, approved for use, rejected, or superseded by a newer record.. Valid values are `draft|pending_approval|approved|rejected|superseded`',
+    `approved_timestamp` TIMESTAMP COMMENT 'The date and time when this price record was formally approved by the authorized approver. Null when the record has not yet been approved. Supports pricing governance audit trail.',
+    `base_price` DECIMAL(18,2) COMMENT 'The standard selling price of the menu item before any promotional discounts, modifiers, or channel surcharges are applied. Represents the menu board price for the item at this restaurant.',
+    `channel_surcharge` DECIMAL(18,2) COMMENT 'Additional amount added to the base price for specific ordering channels such as Third-Party Delivery (3PD) or Online Ordering (OLO) to offset platform fees or delivery costs. Zero when no surcharge applies.',
+    `cogs_pct` DECIMAL(18,2) COMMENT 'The ratio of Cost of Goods Sold (COGS) to the base selling price, expressed as a decimal (e.g., 0.28 = 28%). A key menu engineering metric used to assess item profitability and pricing adequacy.',
+    `cost_of_goods` DECIMAL(18,2) COMMENT 'The direct food and packaging cost associated with producing this menu item at the time of pricing. Used to calculate Cost of Goods Sold Percentage (CoGS%) and support menu engineering decisions.',
+    `country_code` STRING COMMENT 'ISO 3166-1 alpha-3 country code for the country in which this price is applicable. Supports international pricing management across global restaurant operations.. Valid values are `^[A-Z]{3}$`',
+    `created_timestamp` TIMESTAMP COMMENT 'The date and time when this price record was first created in the system. Audit field supporting data lineage and pricing history tracking.',
+    `currency_code` STRING COMMENT 'ISO 4217 three-letter currency code in which the price is denominated (e.g., USD, CAD, GBP). Supports multi-currency pricing for international restaurant operations.. Valid values are `^[A-Z]{3}$`',
+    `daypart` STRING COMMENT 'The meal period or time segment during which this price is applicable. Daypart pricing enables different price points for the same item across Breakfast, Lunch, Afternoon, Dinner, and Late Night periods.. Valid values are `breakfast|lunch|afternoon|dinner|late_night|all_day`',
+    `effective_end_date` DATE COMMENT 'The calendar date on which this price record expires and is no longer applied at the point of sale. Null for open-ended pricing records with no defined expiration.',
+    `effective_start_date` DATE COMMENT 'The calendar date on which this price record becomes active and the price is applied at the point of sale. Used to schedule future price changes and manage price transitions.',
+    `franchise_price_deviation_pct` DECIMAL(18,2) COMMENT 'The percentage deviation of the franchisees actual price from the franchisors Suggested Retail Price (SRP). Positive values indicate pricing above SRP; negative values indicate pricing below SRP. Used in franchise compliance monitoring.',
+    `is_active` BOOLEAN COMMENT 'Indicates whether this price record is currently active and eligible to be applied at the Point of Sale (POS). False for expired, superseded, or deactivated price records. Distinct from approval_status — a record may be approved but not yet active.',
+    `is_lto` BOOLEAN COMMENT 'Indicates whether this price record is associated with a Limited Time Offer (LTO) promotion. True when the price is part of a time-bound promotional campaign; False for standard menu pricing.',
+    `is_price_override_allowed` BOOLEAN COMMENT 'Indicates whether a cashier or manager is permitted to manually override this price at the Point of Sale (POS). Controls POS-level price override permissions for this item.',
+    `lto_campaign_code` STRING COMMENT 'Alphanumeric identifier linking this price record to a specific Limited Time Offer (LTO) marketing campaign. Populated only when is_lto is True. Enables PMIX and revenue analysis by LTO campaign.. Valid values are `^LTO-[A-Z0-9]{4,10}$`',
+    `max_order_quantity` STRING COMMENT 'The maximum number of units that can be ordered at this price point per transaction. Used to enforce promotional price limits and prevent abuse of discounted pricing.',
+    `menu_engineering_category` STRING COMMENT 'Menu engineering classification of the item based on its profitability and popularity (Product Mix / PMIX). Stars are high-profit/high-popularity; Plow Horses are low-profit/high-popularity; Puzzles are high-profit/low-popularity; Dogs are low-profit/low-popularity.. Valid values are `star|plow_horse|puzzle|dog`',
+    `min_order_quantity` STRING COMMENT 'The minimum number of units that must be ordered for this price to apply. Used for bulk pricing, catering orders, or combo deal minimum quantity thresholds.',
+    `ordering_channel` STRING COMMENT 'The sales channel for which this price record applies. Supports channel-specific pricing strategies across Dine-In, Drive-Thru (DT), Online Ordering (OLO), Third-Party Delivery (3PD), Kiosk, and Catering.. Valid values are `dine_in|drive_thru|olo|3pd|kiosk|catering`',
+    `ownership_type` STRING COMMENT 'Indicates whether the restaurant location is company-owned or franchised. Franchise pricing may be subject to different governance rules and royalty implications.. Valid values are `company_owned|franchised`',
+    `pos_price_level` STRING COMMENT 'The POS system price level code assigned to this price record in Oracle MICROS POS (e.g., PRICE_LEVEL_1, HAPPY_HOUR). Maps the price record to the POS configuration layer for terminal-level price application.. Valid values are `^[A-Z0-9_]{1,20}$`',
+    `price_change_reason` STRING COMMENT 'Business justification or reason code explaining why this price was set or changed. Common reasons include commodity cost increase, competitive repositioning, LTO activation, regional adjustment, or franchise directive. [ENUM-REF-CANDIDATE: commodity_cost|competitive_repositioning|lto_activation|regional_adjustment|franchise_directive|menu_engineering|regulatory_compliance|other — promote to reference product]',
+    `price_change_reason_notes` STRING COMMENT 'Free-text narrative providing additional context or detail for the price change reason. Supplements the structured reason code with qualitative business commentary.',
+    `price_display_label` STRING COMMENT 'The formatted price string as it should appear on the menu board, digital display, or OLO/3PD platform (e.g., $5.99, From $4.99). Supports localized and channel-specific price presentation.',
+    `price_elasticity_band` STRING COMMENT 'Classification of the menu items demand sensitivity to price changes. Used in menu engineering and revenue management to guide pricing decisions and promotional strategy.. Valid values are `inelastic|low_elastic|moderate_elastic|high_elastic`',
+    `price_override_limit` DECIMAL(18,2) COMMENT 'The maximum price value to which a POS operator may override this items price when is_price_override_allowed is True. Null when price override is not permitted.',
+    `price_record_code` STRING COMMENT 'Externally-known alphanumeric business identifier for this price record, used in POS configuration exports, pricing change communications, and audit references. Follows the format PRC-XXXXXXXX.. Valid values are `^PRC-[A-Z0-9]{6,12}$`',
+    `price_region_code` STRING COMMENT 'Alphanumeric code identifying the geographic pricing region to which this price record belongs. Enables regional price variation management across markets (e.g., NORTHEAST, SOUTH, WEST, INTL).. Valid values are `^[A-Z]{2,6}$`',
+    `price_source_system` STRING COMMENT 'Identifies the operational system of record from which this price record originated. Supports data lineage tracking and reconciliation between Oracle MICROS POS, SAP S/4HANA, Olo, and FranConnect.. Valid values are `micros_pos|sap_s4hana|manual|olo|franconnect`',
+    `price_version` STRING COMMENT 'Sequential version number for this price record, incremented each time the price is updated. Supports price history tracking and audit trail requirements for the same item-restaurant-channel-daypart combination.',
+    `promotional_price` DECIMAL(18,2) COMMENT 'The discounted or special selling price applied during a promotional period or Limited Time Offer (LTO). Null when no active promotion applies to this item at this location.',
+    `restaurant_format` STRING COMMENT 'The restaurant service format to which this price applies. Supports format-specific pricing across Quick-Service Restaurant (QSR), Casual Dining, Fine Dining, and Fast Casual establishments.. Valid values are `qsr|casual|fine_dining|fast_casual`',
+    `source_system_price_code` STRING COMMENT 'The native identifier of this price record in the originating operational system (e.g., MICROS POS price record ID, SAP condition record number). Enables traceability and reconciliation back to the system of record.',
+    `suggested_retail_price` DECIMAL(18,2) COMMENT 'The franchisor-recommended selling price for this menu item. For franchised locations, this is the corporate-suggested price that franchisees may adopt or deviate from within permitted bounds.',
+    `tax_category_code` STRING COMMENT 'Code identifying the applicable tax category or tax class for this menu item price. Used by the POS system to apply the correct tax rate at the time of sale based on jurisdiction and item type.. Valid values are `^[A-Z0-9_]{2,20}$`',
+    `updated_timestamp` TIMESTAMP COMMENT 'The date and time when this price record was last modified. Audit field supporting change tracking and data lineage for pricing governance.',
+    CONSTRAINT pk_item_price PRIMARY KEY(`item_price_id`)
+) COMMENT 'Transactional pricing record capturing the effective price of a menu item for a specific restaurant, channel, daypart, and date range. Tracks base price, promotional price, price tier, currency, effective start/end dates, price change reason, approval status, 3PD commission markup percentage, delivery surcharge amount, and dynamic pricing eligibility flag. Supports channel-specific pricing (DT vs OLO vs 3PD with commission pass-through), daypart pricing, regional price variation, and franchise price compliance monitoring. SSOT for what the guest pays per item per context.';
+
+CREATE OR REPLACE TABLE `restaurants_ecm`.`menu`.`nutrition_profile` (
+    `nutrition_profile_id` BIGINT COMMENT 'Unique surrogate identifier for each nutrition profile record in the Silver Layer lakehouse. Primary key for the nutrition_profile data product.',
+    `employee_id` BIGINT COMMENT 'Foreign key linking to workforce.employee. Business justification: Nutrition data is compiled by a nutritionist or chef; linking to the employee enables traceability for audits.',
+    `menu_item_id` BIGINT COMMENT 'Reference to the menu item for which this nutrition profile applies. Links the nutritional data to the specific sellable item on the menu.',
+    `recipe_id` BIGINT COMMENT 'Reference to the standardized recipe or Bill of Materials (BOM) version from which this nutrition profile was derived. Ensures traceability between formulation and declared nutritional values.',
+    `added_sugars_g` DECIMAL(18,2) COMMENT 'Added sugars content per declared serving size in grams. Mandatory declaration on FDA Nutrition Facts panel per 2016 labeling rule update. Critical for compliance with FDA dietary guidelines and sugar-reduction reformulation tracking.',
+    `approval_status` STRING COMMENT 'Current lifecycle state of the nutrition profile in the regulatory review and approval workflow. Only profiles in approved status may be published to customer-facing menu boards and digital ordering channels (OLO, 3PD) as required by FDA menu labeling rules.. Valid values are `draft|pending_review|approved|rejected|archived`',
+    `approved_by` STRING COMMENT 'Name or employee identifier of the Registered Dietitian, Quality Assurance Manager, or Regulatory Affairs Officer who approved this nutrition profile for publication. Supports regulatory audit trail and accountability.',
+    `approved_date` DATE COMMENT 'Date on which the nutrition profile received final regulatory or internal quality assurance approval for publication on customer-facing menu boards and digital ordering channels. Required for FDA menu labeling compliance audit trails.',
+    `calcium_mg` DECIMAL(18,2) COMMENT 'Calcium content per declared serving size in milligrams. Mandatory micronutrient declaration on FDA Nutrition Facts panel per 2016 labeling rule update. Supports bone-health menu claims and dietary compliance reporting.',
+    `calorie_range_high` STRING COMMENT 'Upper bound of the calorie range for menu items with variability in preparation. Used alongside calorie_range_low to display a calorie range on FDA-compliant menu boards when a single calorie value is not applicable.',
+    `calorie_range_low` STRING COMMENT 'Lower bound of the calorie range for menu items with variability in preparation (e.g., customizable items, combo meals with choice components). Required for FDA menu board labeling when a single calorie value cannot be declared due to preparation variability.',
+    `calories` STRING COMMENT 'Total caloric content per declared serving size, expressed in kilocalories (kcal). Mandatory disclosure on FDA Nutrition Facts panel and on customer-facing menu boards for restaurant chains with 20 or more locations.',
+    `calories_from_fat` STRING COMMENT 'Calories derived from total fat content per serving, expressed in kilocalories. Historically required on FDA Nutrition Facts panels; retained for legacy reporting, menu engineering analysis, and international market compliance.',
+    `cholesterol_mg` DECIMAL(18,2) COMMENT 'Cholesterol content per declared serving size in milligrams. Mandatory nutrient declaration on FDA Nutrition Facts panel. Critical for heart-health dietary compliance and menu engineering decisions.',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this nutrition profile record was first created in the system. Supports regulatory audit trail, data lineage tracking in the Silver Layer lakehouse, and compliance with FDA record-keeping requirements.',
+    `daily_value_basis_calories` STRING COMMENT 'Reference caloric intake used to calculate percent Daily Value (%DV) figures on the FDA Nutrition Facts panel. Standard FDA reference is 2,000 kcal/day for adults. Stored to support accurate %DV recalculation if FDA reference values are updated.',
+    `data_source` STRING COMMENT 'Method by which the nutritional values in this profile were determined. Drives confidence level and regulatory defensibility of declared values. Lab analysis is the gold standard for FDA compliance; recipe calculation is acceptable for composite items. [ENUM-REF-CANDIDATE: lab_analysis|database_lookup|recipe_calculation|supplier_provided|literature_value — promote to reference product if values expand]. Valid values are `lab_analysis|database_lookup|recipe_calculation|supplier_provided|literature_value`',
+    `dietary_fiber_g` DECIMAL(18,2) COMMENT 'Dietary fiber content per declared serving size in grams. Mandatory sub-component of total carbohydrate on FDA Nutrition Facts panel. Supports high-fiber menu claims and dietary guideline alignment.',
+    `effective_date` DATE COMMENT 'Date from which this nutrition profile version is the active, published record for the associated menu item. Used to manage version transitions when recipes are reformulated or ingredients change, ensuring correct values are displayed on menu boards.',
+    `expiration_date` DATE COMMENT 'Date on which this nutrition profile version expires and must be superseded by a new analysis or re-approval. Nullable for profiles with no defined expiry. Triggers re-analysis workflow when recipe changes occur or when regulatory re-certification is required.',
+    `insoluble_fiber_g` DECIMAL(18,2) COMMENT 'Insoluble fiber content per declared serving size in grams. Voluntary sub-component of dietary fiber on FDA Nutrition Facts panel; supports digestive health menu claims.',
+    `iron_mg` DECIMAL(18,2) COMMENT 'Iron content per declared serving size in milligrams. Mandatory micronutrient declaration on FDA Nutrition Facts panel per 2016 labeling rule update. Key metric for dietary adequacy reporting and menu engineering.',
+    `is_current_version` BOOLEAN COMMENT 'Indicates whether this nutrition profile record is the currently active and published version for the associated menu item. Supports Slowly Changing Dimension (SCD) Type 2 versioning in the Silver Layer lakehouse, ensuring only one active profile per menu item at any point in time.',
+    `lab_accreditation_number` STRING COMMENT 'Accreditation number of the third-party laboratory that performed the nutritional analysis. Supports regulatory audit defensibility and ensures analysis was conducted by an ISO 17025-accredited or FDA-recognized laboratory.',
+    `lab_analysis_date` DATE COMMENT 'Date on which the laboratory analysis was conducted to determine the nutritional values in this profile. Required for regulatory audit trails and to determine when re-analysis is needed due to recipe changes or ingredient substitutions.',
+    `last_modified_timestamp` TIMESTAMP COMMENT 'Timestamp when this nutrition profile record was most recently updated. Supports change detection, incremental ETL processing in the Databricks Silver Layer, and regulatory audit trail for nutrition data modifications.',
+    `menu_board_calorie_display` STRING COMMENT 'Formatted calorie string as it must appear on FDA-compliant customer-facing menu boards and digital ordering platforms (e.g., 540 Cal, 430-780 Cal). Derived from calories or calorie range fields; stored as the authoritative display string to ensure consistent rendering across POS, OLO, and 3PD channels.',
+    `monounsaturated_fat_g` DECIMAL(18,2) COMMENT 'Monounsaturated fat content per declared serving size in grams. Voluntary declaration on FDA Nutrition Facts panel; supports heart-healthy menu claims and nutritional transparency for guests.',
+    `polyunsaturated_fat_g` DECIMAL(18,2) COMMENT 'Polyunsaturated fat content per declared serving size in grams. Voluntary declaration on FDA Nutrition Facts panel; included to support health-conscious menu positioning and nutritional transparency initiatives.',
+    `potassium_mg` DECIMAL(18,2) COMMENT 'Potassium content per declared serving size in milligrams. Mandatory micronutrient declaration on FDA Nutrition Facts panel per 2016 labeling rule update. Supports heart-health and blood-pressure-related menu claims.',
+    `profile_code` STRING COMMENT 'Externally-known alphanumeric business identifier for this nutrition profile record, used in regulatory submissions, lab reports, and cross-system references (e.g., NP-BURG001). Distinct from the surrogate primary key.. Valid values are `^NP-[A-Z0-9]{4,12}$`',
+    `profile_name` STRING COMMENT 'Human-readable label for this nutrition profile, typically combining the menu item name and serving configuration (e.g., Classic Cheeseburger – Regular Serving). Used in regulatory filings and internal reporting.',
+    `profile_type` STRING COMMENT 'Classification of the nutrition profile indicating whether it represents a standard menu item, a customized build, a Limited Time Offer (LTO), a regional variant, or a test/pilot item. Drives which profiles are published to FDA-mandated menu boards. [ENUM-REF-CANDIDATE: standard|customized|limited_time_offer|regional|test — promote to reference product if values expand]. Valid values are `standard|customized|limited_time_offer|regional|test`',
+    `protein_g` DECIMAL(18,2) COMMENT 'Protein content per declared serving size in grams. Mandatory nutrient declaration on FDA Nutrition Facts panel. Key metric for high-protein menu positioning and athletic/dietary segment marketing.',
+    `saturated_fat_g` DECIMAL(18,2) COMMENT 'Saturated fat content per declared serving size in grams. Mandatory sub-component of total fat on FDA Nutrition Facts panel. Key metric for heart-health menu engineering and dietary guideline compliance.',
+    `serving_size_description` STRING COMMENT 'Household measure description of the serving size as it appears on the FDA Nutrition Facts panel (e.g., 1 sandwich, 1 cup (240 mL)). Required for consumer-facing menu labeling compliance.',
+    `serving_size_g` DECIMAL(18,2) COMMENT 'Gram weight of the declared serving size as required by FDA Nutrition Facts panel standards. Used as the basis for all per-serving nutrient calculations and regulatory compliance reporting.',
+    `sodium_mg` DECIMAL(18,2) COMMENT 'Sodium content per declared serving size in milligrams. Mandatory nutrient declaration on FDA Nutrition Facts panel. High-priority metric for menu reformulation initiatives, dietary guideline compliance, and public health reporting.',
+    `soluble_fiber_g` DECIMAL(18,2) COMMENT 'Soluble fiber content per declared serving size in grams. Voluntary sub-component of dietary fiber on FDA Nutrition Facts panel; supports heart-health and cholesterol-reduction menu claims.',
+    `total_carbohydrate_g` DECIMAL(18,2) COMMENT 'Total carbohydrate content per declared serving size in grams. Mandatory nutrient declaration on FDA Nutrition Facts panel. Includes dietary fiber, total sugars, and added sugars as sub-components.',
+    `total_fat_g` DECIMAL(18,2) COMMENT 'Total fat content per declared serving size in grams. Mandatory nutrient declaration on FDA Nutrition Facts panel. Includes saturated fat, trans fat, polyunsaturated fat, and monounsaturated fat.',
+    `total_sugars_g` DECIMAL(18,2) COMMENT 'Total sugars content per declared serving size in grams. Mandatory sub-component of total carbohydrate on FDA Nutrition Facts panel. Includes both naturally occurring and added sugars.',
+    `trans_fat_g` DECIMAL(18,2) COMMENT 'Trans fat content per declared serving size in grams. Mandatory sub-component of total fat on FDA Nutrition Facts panel. Regulatory threshold: items with less than 0.5g may declare 0g per FDA rounding rules.',
+    `version_number` STRING COMMENT 'Sequential version number of this nutrition profile for the associated menu item. Incremented each time a recipe reformulation, ingredient substitution, or regulatory re-analysis results in a new nutrition profile. Supports historical audit trail and regulatory change management.',
+    `vitamin_d_mcg` DECIMAL(18,2) COMMENT 'Vitamin D content per declared serving size in micrograms. Mandatory micronutrient declaration on FDA Nutrition Facts panel per 2016 labeling rule update. Expressed as micrograms (mcg) with percent Daily Value (%DV) calculated separately.',
+    CONSTRAINT pk_nutrition_profile PRIMARY KEY(`nutrition_profile_id`)
+) COMMENT 'Master nutritional data record for each menu item as required by FDA menu labeling regulations. Captures calories, total fat, saturated fat, trans fat, cholesterol, sodium, total carbohydrates, dietary fiber, total sugars, added sugars, protein, and serving size per FDA Nutrition Facts panel standards. Includes data source, lab analysis date, and regulatory approval status.';
+
+CREATE OR REPLACE TABLE `restaurants_ecm`.`menu`.`allergen_declaration` (
+    `allergen_declaration_id` BIGINT COMMENT 'Unique surrogate identifier for each allergen declaration record. Primary key for the allergen_declaration data product in the menu domain.',
+    `employee_id` BIGINT COMMENT 'Foreign key linking to workforce.employee. Business justification: Allergen declarations are authored by a qualified employee; tracking origin supports regulatory reporting.',
+    `menu_item_id` BIGINT COMMENT 'Reference to the menu item for which this allergen declaration applies. Links the allergen profile to the specific sellable item in the menu master.',
+    `superseded_by_allergen_declaration_id` BIGINT COMMENT 'Reference to the allergen_declaration_id of the newer declaration that supersedes this record when a recipe change or regulatory update requires a revised allergen profile. Null if this is the current active declaration. Enables full version history traversal.',
+    `approved_by` STRING COMMENT 'Name or employee identifier of the authorized approver (e.g., Director of Food Safety, QA Manager) who granted final approval for this allergen declaration. Required for regulatory audit compliance.',
+    `channel_applicability` STRING COMMENT 'Comma-separated list of service channels for which this allergen declaration is applicable (e.g., DT, OLO, 3PD, dine-in, catering). Supports channel-specific menu publishing and allergen disclosure requirements across Drive-Thru (DT), Online Ordering (OLO), and Third-Party Delivery (3PD) platforms. [ENUM-REF-CANDIDATE: dt|olo|3pd|dine_in|catering|kiosk|mobile_app — promote to reference product]',
+    `created_timestamp` TIMESTAMP COMMENT 'The timestamp when this allergen declaration record was first created in the system. Supports audit trail, data lineage, and regulatory compliance documentation requirements.',
+    `cross_contact_risk_level` STRING COMMENT 'Assessed risk level for unintentional allergen cross-contact during food preparation in the restaurant kitchen (BOH). Determined through HACCP analysis of shared equipment, preparation surfaces, and ingredient handling procedures. Drives operational protocols and guest advisories.. Valid values are `none|low|medium|high|critical`',
+    `cross_contact_source` STRING COMMENT 'Free-text description of the identified source(s) of potential allergen cross-contact risk in the kitchen environment (e.g., shared fryer oil, shared prep surfaces, shared utensils, proximity to allergen-containing ingredients). Supports HACCP documentation and staff training.',
+    `daypart_applicability` STRING COMMENT 'Daypart(s) during which this allergen declaration is applicable (e.g., breakfast, lunch, dinner, late_night, all_day). Relevant when the same menu item has different ingredient formulations by daypart, resulting in different allergen profiles. [ENUM-REF-CANDIDATE: breakfast|lunch|dinner|late_night|snack|all_day — promote to reference product]',
+    `declaration_date` DATE COMMENT 'The business date on which this allergen declaration was formally issued or last certified by the food safety team. Used for regulatory compliance tracking and HACCP documentation.',
+    `declaration_number` STRING COMMENT 'Externally-known business identifier for this allergen declaration record, used in regulatory submissions, audit trails, and cross-system references. Format: ALGN-{YYYY}-{NNNNNN}.. Valid values are `^ALGN-[0-9]{4}-[0-9]{6}$`',
+    `declaration_status` STRING COMMENT 'Current regulatory review and approval lifecycle status of this allergen declaration. Controls whether the declaration is active and publishable to guests and regulatory bodies. Valid values: draft, pending_review, approved, superseded, withdrawn.. Valid values are `draft|pending_review|approved|superseded|withdrawn`',
+    `declaration_type` STRING COMMENT 'Classification of the allergen declaration by menu item category context. Standard declarations apply to core menu items; LTO (Limited Time Offer) declarations apply to temporary promotional items; seasonal and regional declarations apply to market-specific or time-limited variants; custom applies to made-to-order or catering items.. Valid values are `standard|lto|seasonal|regional|custom`',
+    `effective_date` DATE COMMENT 'The date from which this allergen declaration is binding and must be communicated to guests across all channels (DT, OLO, 3PD, in-restaurant). Aligns with menu item launch or recipe change effective date.',
+    `eggs_status` STRING COMMENT 'Declares the presence status of eggs allergen in this menu item per FDA FALCPA major allergen requirements. Values: contains (intentionally present), may_contain (cross-contact risk), free_from (absent and no cross-contact risk).. Valid values are `contains|may_contain|free_from`',
+    `expiration_date` DATE COMMENT 'The date on which this allergen declaration expires and must be reviewed or renewed. Null indicates the declaration remains valid until superseded. Supports periodic review cycles mandated by food safety SOPs.',
+    `fish_species` STRING COMMENT 'Specific fish species present in the menu item (e.g., salmon, tuna, tilapia, cod) when fish_status is contains. FDA FALCPA requires species-level disclosure for fish allergens on food labels.',
+    `fish_status` STRING COMMENT 'Declares the presence status of fish allergen in this menu item per FDA FALCPA major allergen requirements. Values: contains (intentionally present), may_contain (cross-contact risk), free_from (absent and no cross-contact risk).. Valid values are `contains|may_contain|free_from`',
+    `gluten_free_certified` BOOLEAN COMMENT 'Indicates whether this menu item has been certified as gluten-free per FDA gluten-free labeling rule (21 CFR Part 101.91), requiring less than 20 ppm gluten. Distinct from wheat allergen status — an item may be wheat-free but not certified gluten-free.',
+    `guest_advisory_text` STRING COMMENT 'Standardized guest-facing allergen advisory statement for this menu item, suitable for display on menus, digital ordering platforms (OLO, 3PD), and in-restaurant signage. Drafted in compliance with FDA menu labeling and FTC advertising regulations.',
+    `haccp_ccp_reference` STRING COMMENT 'Reference identifier for the HACCP Critical Control Point (CCP) associated with allergen management for this menu item. Links the allergen declaration to the formal HACCP plan documentation maintained by the food safety team.',
+    `internal_notes` STRING COMMENT 'Internal food safety team notes regarding this allergen declaration, including rationale for cross-contact risk assessments, supplier-provided allergen data caveats, or pending ingredient change investigations. Not for guest-facing use. Classified as confidential business information.',
+    `may_contain_allergen_count` STRING COMMENT 'Count of the 9 FDA major allergens declared as may_contain (cross-contact risk) status for this menu item. Supports risk stratification, guest advisory communications, and HACCP reporting.',
+    `milk_status` STRING COMMENT 'Declares the presence status of milk (dairy) allergen in this menu item per FDA FALCPA major allergen requirements. Values: contains (intentionally present), may_contain (cross-contact risk), free_from (absent and no cross-contact risk).. Valid values are `contains|may_contain|free_from`',
+    `peanuts_status` STRING COMMENT 'Declares the presence status of peanuts allergen in this menu item per FDA FALCPA major allergen requirements. Values: contains (intentionally present), may_contain (cross-contact risk), free_from (absent and no cross-contact risk).. Valid values are `contains|may_contain|free_from`',
+    `recipe_version` STRING COMMENT 'Version identifier of the Bill of Materials (BOM) / recipe that this allergen declaration is based upon. Ensures traceability between allergen declarations and specific recipe formulations. When a recipe changes, a new allergen declaration version must be issued.. Valid values are `^v[0-9]+.[0-9]+$`',
+    `regulatory_submission_date` DATE COMMENT 'The date on which this allergen declaration was formally submitted to the relevant regulatory authority (e.g., FDA, local health department). Null if regulatory_submission_required is false or submission is pending.',
+    `regulatory_submission_required` BOOLEAN COMMENT 'Indicates whether this allergen declaration requires formal submission to a regulatory body (e.g., FDA, local health department) as part of menu labeling compliance. Drives workflow routing to the regulatory affairs team.',
+    `restaurant_format_applicability` STRING COMMENT 'Restaurant format(s) for which this allergen declaration applies. QSR (Quick-Service Restaurant), casual dining, fine dining, or all formats. Supports multi-format operations where the same menu item may have different preparation methods and allergen profiles by format.. Valid values are `qsr|casual|fine_dining|all`',
+    `review_date` DATE COMMENT 'The date on which this allergen declaration was last reviewed by the food safety or regulatory compliance team. Supports audit readiness and HACCP critical control point documentation.',
+    `reviewed_by` STRING COMMENT 'Name or employee identifier of the food safety officer or regulatory compliance specialist who last reviewed and certified this allergen declaration. Supports audit trail and accountability.',
+    `sesame_status` STRING COMMENT 'Declares the presence status of sesame allergen in this menu item per FDA FALCPA major allergen requirements (sesame added as the 9th major allergen effective January 1, 2023 under FASTER Act). Values: contains (intentionally present), may_contain (cross-contact risk), free_from (absent and no cross-contact risk).. Valid values are `contains|may_contain|free_from`',
+    `shellfish_species` STRING COMMENT 'Specific shellfish species present in the menu item (e.g., shrimp, crab, lobster, crayfish) when shellfish_status is contains. FDA FALCPA requires species-level disclosure for crustacean shellfish allergens.',
+    `shellfish_status` STRING COMMENT 'Declares the presence status of shellfish (crustacean shellfish) allergen in this menu item per FDA FALCPA major allergen requirements. Values: contains (intentionally present), may_contain (cross-contact risk), free_from (absent and no cross-contact risk).. Valid values are `contains|may_contain|free_from`',
+    `source_system` STRING COMMENT 'Identifies the operational system of record from which this allergen declaration data originated. Supports data lineage tracking in the Databricks Silver Layer. Primary sources include Zenput (food safety audits), Oracle MICROS POS (menu management), MarketMan (ingredient/BOM data), or manual entry.. Valid values are `zenput|micros_pos|marketman|manual|sap`',
+    `soybeans_status` STRING COMMENT 'Declares the presence status of soybeans allergen in this menu item per FDA FALCPA major allergen requirements. Values: contains (intentionally present), may_contain (cross-contact risk), free_from (absent and no cross-contact risk).. Valid values are `contains|may_contain|free_from`',
+    `total_allergen_count` STRING COMMENT 'Count of the 9 FDA major allergens declared as contains status for this menu item. Used in menu engineering, guest-facing allergen filtering tools, and regulatory reporting to quickly identify high-allergen items.',
+    `tree_nut_varieties` STRING COMMENT 'Specific tree nut varieties present in the menu item (e.g., almonds, cashews, walnuts, pecans, pistachios) when tree_nuts_status is contains. FDA FALCPA requires variety-level disclosure for tree nut allergens.',
+    `tree_nuts_status` STRING COMMENT 'Declares the presence status of tree nuts allergen in this menu item per FDA FALCPA major allergen requirements. Values: contains (intentionally present), may_contain (cross-contact risk), free_from (absent and no cross-contact risk).. Valid values are `contains|may_contain|free_from`',
+    `updated_timestamp` TIMESTAMP COMMENT 'The timestamp when this allergen declaration record was last modified. Tracks the most recent change to any allergen status, cross-contact risk assessment, or regulatory review field. Supports change management and audit compliance.',
+    `wheat_status` STRING COMMENT 'Declares the presence status of wheat allergen in this menu item per FDA FALCPA major allergen requirements. Values: contains (intentionally present), may_contain (cross-contact risk), free_from (absent and no cross-contact risk).. Valid values are `contains|may_contain|free_from`',
+    `zenput_audit_task_code` STRING COMMENT 'Reference identifier for the Zenput food safety audit task or operational compliance checklist item associated with the verification of this allergen declaration in restaurant operations. Supports traceability between the master declaration and field-level compliance verification.',
+    CONSTRAINT pk_allergen_declaration PRIMARY KEY(`allergen_declaration_id`)
+) COMMENT 'Regulatory master record capturing the allergen profile for each menu item per FDA Food Allergen Labeling and Consumer Protection Act (FALCPA) requirements. Tracks the presence, may-contain, and absence status for the 9 major FDA allergens (milk, eggs, fish, shellfish, tree nuts, peanuts, wheat, soybeans, sesame), cross-contact risk level, declaration date, and regulatory review status.';
+
+CREATE OR REPLACE TABLE `restaurants_ecm`.`menu`.`menu_lto` (
+    `menu_lto_id` BIGINT COMMENT 'Unique system-generated surrogate key identifying each Limited Time Offer (LTO) record. Primary key for the lto data product.',
+    `campaign_id` BIGINT COMMENT 'Reference to the associated marketing campaign in Salesforce CRM that supports this LTO. Links LTO performance data to marketing spend, campaign reach, and promotional ROI analytics.',
+    `franchisee_id` BIGINT COMMENT 'Foreign key linking to franchise.franchisee. Business justification: LTO rollout tracking per franchisee needs to associate each limited‑time offer with the responsible franchisee.',
+    `menu_item_id` BIGINT COMMENT 'Reference to the primary menu item record associated with this LTO in the menu domain. For bundle LTOs, references the parent bundle item. Links LTO governance to the underlying menu item master data including BOM, nutritional data, and allergen declarations.',
+    `previous_lto_menu_lto_id` BIGINT COMMENT 'Self-referencing identifier pointing to the prior LTO record if this is a returning or re-run offer. Enables lineage tracking of recurring LTOs, year-over-year performance comparison, and fan-favorite lifecycle analysis.',
+    `unit_id` BIGINT COMMENT 'Foreign key linking to restaurant.unit. Business justification: Needed to track LTO launch and performance per restaurant unit for regional rollout analysis.',
+    `actual_end_date` DATE COMMENT 'The actual calendar date on which the LTO was removed from menus. May differ from planned_end_date due to early discontinuation, extended popularity, or supply constraints. Used for LTO lifecycle duration analysis.',
+    `actual_launch_date` DATE COMMENT 'The actual calendar date on which the LTO went live in restaurants. May differ from planned_launch_date due to supply chain delays, regulatory approvals, or operational readiness issues. Used for post-launch performance analysis.',
+    `allergen_reviewed` BOOLEAN COMMENT 'Indicates whether a formal allergen review has been completed (True) for this LTO item, confirming all major allergens (per FDA FALCPA — Big 9 allergens) are identified and declared. Required for regulatory compliance and guest safety.',
+    `approval_date` DATE COMMENT 'Calendar date on which the LTO received final business approval to proceed. Used to measure ideation-to-approval cycle time and track governance compliance.',
+    `approval_status` STRING COMMENT 'Current approval workflow status of the LTO concept: pending (awaiting review), approved (cleared for production), rejected (not approved for launch), or on_hold (paused pending additional information). Distinct from lifecycle_status which tracks operational deployment state.. Valid values are `pending|approved|rejected|on_hold`',
+    `approved_by` STRING COMMENT 'Name or employee identifier of the business stakeholder (e.g., VP of Menu Innovation, Chief Culinary Officer) who granted final approval for the LTO to proceed to production. Supports governance audit trails.',
+    `concept_description` STRING COMMENT 'Internal narrative describing the culinary concept, inspiration, and strategic rationale behind the LTO. Used by Menu Development and Engineering teams during ideation and approval stages.',
+    `country_code` STRING COMMENT 'ISO 3166-1 alpha-3 three-letter country code identifying the primary country of LTO deployment (e.g., USA, CAN, GBR). Supports international menu localization, regulatory compliance tracking, and cross-border PMIX analysis.. Valid values are `^[A-Z]{3}$`',
+    `created_timestamp` TIMESTAMP COMMENT 'The date and time when this LTO record was first created in the system, in ISO 8601 format (yyyy-MM-ddTHH:mm:ss.SSSXXX). Provides the audit trail entry point for the LTO lifecycle and supports data lineage tracking in the Databricks Silver Layer.',
+    `daypart` STRING COMMENT 'The primary daypart during which the LTO is intended to be sold and promoted. Daypart segmentation drives kitchen prep scheduling, labor planning, and marketing campaign timing. Aligns with Oracle MICROS POS daypart configuration.. Valid values are `breakfast|lunch|dinner|late_night|all_day|snack`',
+    `estimated_weekly_units` STRING COMMENT 'Forecasted number of LTO units expected to be sold per restaurant per week during the active offer period. Used for supply chain procurement planning, PAR level setting in MarketMan, and labor scheduling in Planday.',
+    `food_safety_approved` BOOLEAN COMMENT 'Indicates whether the LTO item has received food safety clearance (True) per HACCP protocols and FDA/USDA regulatory requirements before launch. Tracked via Zenput food safety audit workflows. No LTO may go active without this flag being True.',
+    `is_national_launch` BOOLEAN COMMENT 'Indicates whether this LTO is a full national launch (True) as opposed to a regional, franchise group, or test market deployment (False). Used for executive reporting, national marketing budget allocation, and supply chain capacity planning.',
+    `is_returning_item` BOOLEAN COMMENT 'Indicates whether this LTO features an item that has been previously offered (True) or is a brand-new menu introduction (False). Supports fan-favorite tracking, nostalgia marketing strategies, and historical PMIX benchmarking.',
+    `is_test_market` BOOLEAN COMMENT 'Indicates whether this LTO is currently in a limited test market phase (True) or has been deployed beyond test market scope (False). Used to segregate test performance data from production PMIX reporting.',
+    `launch_lead_time_days` STRING COMMENT 'Number of calendar days between the LTO approval date and the planned launch date. Used by supply chain and procurement teams to validate that sufficient lead time exists for ingredient sourcing, supplier onboarding, and distribution via Coupa Procurement.',
+    `lifecycle_status` STRING COMMENT 'Current state of the LTO in its end-to-end lifecycle: ideation (concept under development), approved (greenlit for production), in_test (active in test markets only), active (live in production rollout), sunset (offer period ended naturally), cancelled (discontinued before planned end).. Valid values are `ideation|approved|in_test|active|sunset|cancelled`',
+    `lto_code` STRING COMMENT 'Externally-known alphanumeric business identifier for the LTO, used in Oracle MICROS POS menu management, Salesforce CRM campaign references, and Olo Digital Ordering Platform configurations. Serves as the cross-system reference key.. Valid values are `^LTO-[A-Z0-9]{4,12}$`',
+    `lto_type` STRING COMMENT 'Classification of the LTO by its nature: new_item (first-time introduction), returning_item (previously offered item brought back), bundle (combination of existing items at a promotional price), promotional_price (existing item at a temporary price), or seasonal (tied to a calendar season or holiday).. Valid values are `new_item|returning_item|bundle|promotional_price|seasonal`',
+    `marketing_headline` STRING COMMENT 'Short consumer-facing promotional tagline or headline used in advertising, in-restaurant POP (Point of Purchase) materials, and digital marketing for this LTO (e.g., Back by Popular Demand — For a Limited Time Only!). Sourced from Salesforce CRM campaign assets.',
+    `menu_lto_name` STRING COMMENT 'Consumer-facing marketing name of the Limited Time Offer as it appears on menus, POS displays, digital ordering platforms, and promotional materials (e.g., Spicy Crispy Chicken Sandwich LTO).',
+    `nutritional_approved` BOOLEAN COMMENT 'Indicates whether the LTO items nutritional profile has been reviewed and approved (True) for menu labeling compliance per FDA menu labeling regulations (21 CFR Part 101). Required before consumer-facing publication.',
+    `olo_item_code` STRING COMMENT 'The item identifier assigned to this LTO in the Olo Digital Ordering Platform for online ordering and third-party delivery (3PD) channel activation. Used to synchronize LTO availability across digital channels.',
+    `ownership_model` STRING COMMENT 'Indicates whether the LTO applies to franchise-operated restaurants, company-owned restaurants, or both. Governs FranConnect compliance tracking, royalty rate applicability, and franchise disclosure obligations under FTC regulations.. Valid values are `franchise|company_owned|both`',
+    `planned_duration_days` STRING COMMENT 'Total number of calendar days the LTO is planned to be active, calculated as the difference between planned_end_date and planned_launch_date. Used for supply chain volume forecasting, marketing campaign budgeting, and franchisee communication planning.',
+    `planned_end_date` DATE COMMENT 'The originally scheduled calendar date on which the LTO was planned to be removed from menus. Drives supply chain wind-down, inventory PAR level adjustments, and marketing campaign sunset planning.',
+    `planned_launch_date` DATE COMMENT 'The originally scheduled calendar date on which the LTO was planned to go live in restaurants. Used for supply chain procurement lead time planning, marketing campaign scheduling, and NRO coordination.',
+    `pmix_target_pct` DECIMAL(18,2) COMMENT 'The target Product Mix (PMIX) percentage representing the share of total transactions this LTO is expected to capture during its active period. Used by Menu Engineering to set performance benchmarks and evaluate LTO success post-launch.',
+    `pos_item_code` STRING COMMENT 'The item code assigned to this LTO in Oracle MICROS POS for order capture, menu display, and PMIX reporting. This is the operational identifier used by cashiers, KDS (Kitchen Display System), and sales reporting.',
+    `region_code` STRING COMMENT 'Geographic region code identifying the market(s) where this LTO is deployed (e.g., US-NORTHEAST, EMEA, APAC). Used for regional rollout scoping, localized marketing campaign alignment, and regional P&L reporting.',
+    `restaurant_format` STRING COMMENT 'The restaurant service format(s) for which this LTO is applicable: qsr (Quick-Service Restaurant), casual_dining, fine_dining, or all_formats. Governs which restaurant types are eligible to activate the LTO in Oracle MICROS POS.. Valid values are `qsr|casual_dining|fine_dining|all_formats`',
+    `rollout_scope` STRING COMMENT 'Geographic and operational scope of the LTO deployment: national (all restaurants), regional (specific geographic region), franchise_group (specific franchisee group), company_owned (company-operated units only), or test_market (limited pilot locations). Governs FranConnect franchise compliance and royalty tracking.. Valid values are `national|regional|franchise_group|company_owned|test_market`',
+    `season_or_occasion` STRING COMMENT 'The seasonal period or consumer occasion this LTO is designed to capitalize on (e.g., Summer 2025, Super Bowl, Halloween, Valentines Day, Back to School). Supports marketing calendar planning and year-over-year seasonal PMIX trend analysis.',
+    `source_system` STRING COMMENT 'Identifies the operational system of record from which this LTO record originated: oracle_micros_pos (menu management), salesforce_crm (campaign-driven LTO creation), franconnect (franchise-initiated LTO), olo (digital channel LTO), or manual (direct data entry). Supports data lineage and reconciliation.. Valid values are `oracle_micros_pos|salesforce_crm|franconnect|olo|manual`',
+    `suggested_retail_price` DECIMAL(18,2) COMMENT 'The recommended consumer-facing selling price for the LTO item or bundle, expressed in the local operating currency (USD for domestic operations). Used as the baseline for franchisee pricing guidance and competitive pricing analysis. Actual price may vary by market.',
+    `target_channel` STRING COMMENT 'The primary ordering channel(s) for which the LTO is available: dine_in (Front of House), drive_thru (DT), olo (Online Ordering via Olo Digital Ordering Platform), third_party_delivery (3PD aggregators), or all_channels. Governs channel-specific menu activation in Oracle MICROS POS and Olo.. Valid values are `dine_in|drive_thru|olo|third_party_delivery|all_channels`',
+    `target_food_cost_pct` DECIMAL(18,2) COMMENT 'The planned food cost as a percentage of the LTO selling price, representing the target CoGS% for this offer. Used by Menu Engineering to evaluate profitability and ensure the LTO meets financial thresholds before approval.',
+    `updated_timestamp` TIMESTAMP COMMENT 'The date and time when this LTO record was most recently modified, in ISO 8601 format (yyyy-MM-ddTHH:mm:ss.SSSXXX). Used to detect changes, trigger downstream refresh processes, and support audit compliance in the Databricks Silver Layer.',
+    CONSTRAINT pk_menu_lto PRIMARY KEY(`menu_lto_id`)
+) COMMENT 'Master record for each Limited Time Offer (LTO) — a time-bounded promotional menu item or bundle. Captures LTO name, concept description, target daypart, target channel, planned and actual launch/end dates, LTO type (new item/returning item/bundle), constituent menu item references with item roles (hero/side/beverage/component), marketing campaign reference, test market flag, rollout scope (national/regional/franchise group), and performance targets. Governs the full LTO lifecycle from ideation through execution to sunset analysis.';
+
+CREATE OR REPLACE TABLE `restaurants_ecm`.`menu`.`modifier_group` (
+    `modifier_group_id` BIGINT COMMENT 'Unique surrogate identifier for the modifier group record. Primary key for the modifier_group data product in the menu domain. Role: MASTER_RESOURCE.',
+    `allergen_relevance_flag` BOOLEAN COMMENT 'Indicates whether any modifier options within this group may introduce allergen variations that require disclosure to guests. True = allergen-relevant group requiring allergen declaration logic at POS/OLO; False = no allergen impact. Supports FDA food labeling compliance and HACCP (Hazard Analysis Critical Control Points) protocols.',
+    `approved_by` STRING COMMENT 'Name or identifier of the menu engineering or operations authority who approved this modifier group configuration for deployment to production POS and digital channels. Supports menu governance, brand standards compliance, and change management audit trails.',
+    `approved_date` DATE COMMENT 'The date on which this modifier group configuration was formally approved for production deployment by the authorized menu engineering or operations team. Supports menu governance workflows and audit compliance.',
+    `calorie_impact_flag` BOOLEAN COMMENT 'Indicates whether modifier selections within this group materially affect the calorie count of the parent menu item, triggering calorie range display requirements on menus and digital ordering platforms. Supports FDA menu labeling compliance (21 CFR Part 101).',
+    `channel_applicability` STRING COMMENT 'Defines which ordering channels (DT = Drive-Thru, OLO = Online Ordering, 3PD = Third-Party Delivery, POS = in-store Point of Sale) this modifier group is active on. Enables channel-specific menu configuration and supports omnichannel menu engineering. [ENUM-REF-CANDIDATE: all|pos_only|olo_only|dt_only|3pd_only|pos_olo|pos_dt — promote to reference product]',
+    `created_timestamp` TIMESTAMP COMMENT 'The date and time when this modifier group record was first created in the system of record. Serves as the RECORD_AUDIT_CREATED category for this MASTER_RESOURCE entity. Stored in ISO 8601 format with timezone offset.',
+    `daypart_applicability` STRING COMMENT 'Indicates which daypart(s) this modifier group is available during. Dayparts are standard foodservice time segments (breakfast, lunch, dinner, late-night, snack) used for menu engineering, PMIX analysis, and POS time-based menu activation.. Valid values are `all|breakfast|lunch|dinner|late_night|snack`',
+    `default_modifier_code` STRING COMMENT 'The business code of the modifier option that is pre-selected by default when a guest views this modifier group on POS or OLO. Supports speed of service (SOS) optimization by pre-populating the most common selection. Null if no default applies.',
+    `display_name` STRING COMMENT 'Customer-facing label shown on POS screens, KDS (Kitchen Display System), OLO (Online Ordering) interfaces, and 3PD (Third-Party Delivery) menus. May differ from the internal group_name for marketing or localization purposes. Example: Choose Your Protein, Pick a Sauce.',
+    `display_sequence` STRING COMMENT 'Numeric ordering position that controls the sequence in which this modifier group is presented to the guest on POS screens, KDS, OLO, and 3PD interfaces. Lower values appear first. Enables menu engineers to control the customization flow and upsell sequencing.',
+    `effective_end_date` DATE COMMENT 'The date after which this modifier group configuration is no longer valid. Null for open-ended configurations. Supports scheduled menu deactivation, LTO (Limited Time Offer) lifecycle management, and menu version control.',
+    `effective_start_date` DATE COMMENT 'The date from which this modifier group configuration is considered active and valid for use in POS, OLO, and 3PD channels. Supports menu lifecycle management, scheduled menu changes, and NRO (New Restaurant Opening) menu activation.',
+    `free_modifier_limit` STRING COMMENT 'Number of modifier selections within this group that are included at no additional charge. Selections beyond this limit may incur an upcharge per the individual modifiers pricing. A value of 0 means all selections are charged; null means unlimited free selections. Supports COGS (Cost of Goods Sold) management and pricing strategy.',
+    `group_code` STRING COMMENT 'Externally-known alphanumeric business identifier for the modifier group, used in POS configuration, OLO platform integration, and 3PD channel mapping. Serves as the BUSINESS_IDENTIFIER category for this MASTER_RESOURCE entity. Example: PROT-CHOICE, SAUCE-SEL, SIZE-UPG.. Valid values are `^[A-Z0-9_-]{2,30}$`',
+    `group_name` STRING COMMENT 'Internal business name for the modifier group used in back-office systems, menu engineering reports, and POS configuration. Serves as the IDENTITY_LABEL category for this MASTER_RESOURCE entity. Example: Protein Choice, Sauce Selection, Size Upgrade.',
+    `group_type` STRING COMMENT 'Categorical classification of the modifier group by its culinary or operational function. Drives menu engineering analysis (PMIX), reporting by customization category, and POS screen layout. [ENUM-REF-CANDIDATE: protein|sauce|size|add_on|side|beverage|preparation|topping|crust|dietary — promote to reference product]',
+    `image_url` STRING COMMENT 'URL pointing to the visual asset (image) representing this modifier group on digital ordering platforms (OLO, kiosk, 3PD). Used to enhance the guest customization experience on digital channels. Null if no image is assigned.. Valid values are `^https?://.+$`',
+    `is_collapsible` BOOLEAN COMMENT 'Indicates whether this modifier group can be collapsed or hidden in the guest-facing UI when not interacted with. True = group can be collapsed to reduce screen clutter on OLO and kiosk interfaces; False = always fully expanded. Supports UX optimization for digital ordering channels.',
+    `is_franchise_configurable` BOOLEAN COMMENT 'Indicates whether franchise operators are permitted to modify the configuration of this modifier group (e.g., adjust min/max selections, add local modifiers) within the bounds of the franchise agreement. True = franchisee may configure; False = corporate-locked configuration. Supports franchise management and brand standards compliance.',
+    `is_kds_displayed` BOOLEAN COMMENT 'Indicates whether this modifier group and its selected options are displayed on the KDS (Kitchen Display System) in the BOH (Back of House). True = modifier group selections are shown to kitchen staff; False = suppressed from KDS display (e.g., packaging or FOH-only modifiers). Supports BOH operational efficiency.',
+    `is_lto` BOOLEAN COMMENT 'Indicates whether this modifier group is associated with a Limited Time Offer (LTO) promotional campaign. True = LTO modifier group with defined start/end dates; False = permanent menu modifier group. Supports marketing campaign execution and menu lifecycle management.',
+    `is_printed_on_receipt` BOOLEAN COMMENT 'Indicates whether the modifier groups selected options are printed on the guest receipt. True = selections appear on receipt for guest reference; False = suppressed from receipt printing. Supports guest transparency and order accuracy.',
+    `is_required` BOOLEAN COMMENT 'Indicates whether the guest must make at least one selection from this modifier group before the parent menu item can be added to the order. True = mandatory selection; False = optional. Derived operationally from min_selections > 0 but stored explicitly for POS/OLO rendering logic.',
+    `localization_key` STRING COMMENT 'Reference key used to look up translated display names and descriptions for this modifier group in multi-language markets. Supports international franchise operations and localized guest-facing menu presentation across global markets.',
+    `lto_end_date` DATE COMMENT 'The date on which this modifier group is deactivated as part of a Limited Time Offer (LTO) promotion. Null for permanent modifier groups. Used by POS and OLO systems for automated menu deactivation scheduling.',
+    `lto_start_date` DATE COMMENT 'The date on which this modifier group becomes available as part of a Limited Time Offer (LTO) promotion. Null for permanent modifier groups. Used by POS and OLO systems for automated menu activation scheduling.',
+    `max_selections` STRING COMMENT 'Maximum number of modifier options a guest may select from this group. For single-select groups this is typically 1. For multi-select groups this caps the number of add-ons or customizations. Enforced at POS and OLO order validation.',
+    `min_selections` STRING COMMENT 'Minimum number of modifier options a guest must select from this group to complete an order. A value of 0 indicates the group is optional. A value of 1 or more makes the group mandatory. Enforced at POS and OLO order validation.',
+    `modifier_group_description` STRING COMMENT 'Detailed narrative description of the modifier groups purpose, scope, and applicable customization context. Used by menu engineers and franchise operators for documentation and training materials.',
+    `modifier_group_status` STRING COMMENT 'Current lifecycle state of the modifier group. Serves as the LIFECYCLE_STATUS category for this MASTER_RESOURCE entity. active = currently in use on POS/OLO; inactive = temporarily disabled; draft = under menu engineering review; archived = retired from all channels; suspended = paused due to supply or compliance issue.. Valid values are `active|inactive|draft|archived|suspended`',
+    `notes` STRING COMMENT 'Free-text field for operational notes, menu engineering commentary, or franchise-specific instructions related to this modifier group. Used by menu engineers, franchise business consultants, and operations teams for context that does not fit structured fields.',
+    `olo_group_ref` STRING COMMENT 'Native identifier assigned to this modifier group within the Olo Digital Ordering Platform. Used for synchronization between the enterprise menu master and the OLO channel, ensuring consistent customization options across in-store and digital ordering.',
+    `pmix_tracking_enabled` BOOLEAN COMMENT 'Indicates whether modifier selections within this group are tracked in PMIX (Product Mix) reporting for menu engineering analysis. True = modifier selection data flows into PMIX analytics; False = excluded from PMIX reporting (e.g., administrative or packaging modifiers). Supports menu engineering and revenue management decisions.',
+    `pos_group_ref` STRING COMMENT 'Native identifier or reference code assigned to this modifier group within the Oracle MICROS POS system. Used for reconciliation between the lakehouse silver layer and the POS system of record during menu synchronization and audit processes.',
+    `restaurant_format_applicability` STRING COMMENT 'Specifies which restaurant format(s) — QSR (Quick-Service Restaurant), casual dining, or fine dining — this modifier group applies to. Supports multi-format menu governance across the enterprises diverse restaurant portfolio.. Valid values are `all|qsr|casual|fine_dining|qsr_casual`',
+    `selection_type` STRING COMMENT 'Defines whether a guest may select only one modifier (single-select, e.g., Size Upgrade) or multiple modifiers (multi-select, e.g., Add-Ons, Sauce Selection) from this group. Drives POS and OLO customization logic and guest-facing UI rendering.. Valid values are `single|multi`',
+    `sort_order_method` STRING COMMENT 'Defines how individual modifier options within this group are sorted when displayed to the guest. manual = display_sequence on each modifier; alphabetical = A-Z by modifier name; price_asc/desc = by price; popularity = by historical selection frequency from PMIX data. Supports menu engineering and upsell optimization.. Valid values are `manual|alphabetical|price_asc|price_desc|popularity`',
+    `source_system` STRING COMMENT 'Identifies the operational system of record from which this modifier group record originated. Supports data lineage tracking, reconciliation, and master data management in the lakehouse silver layer. Values: micros_pos = Oracle MICROS POS; olo = Olo Digital Ordering Platform; franconnect = FranConnect; manual = manually entered.. Valid values are `micros_pos|olo|franconnect|manual`',
+    `upcharge_basis` STRING COMMENT 'Defines how additional charges are applied when a guest selects modifiers beyond the free_modifier_limit. per_item = each additional modifier is charged individually; flat_group = a single flat charge applies to the group regardless of count; none = no upcharges apply. Drives POS pricing logic and revenue management.. Valid values are `per_item|flat_group|none`',
+    `updated_timestamp` TIMESTAMP COMMENT 'The date and time when this modifier group record was last modified in the system of record. Used for change tracking, incremental data pipeline processing, and audit compliance in the lakehouse silver layer.',
+    `version_number` STRING COMMENT 'Monotonically incrementing version counter for this modifier group record. Incremented each time the group configuration is updated. Supports menu change management, audit trails, and rollback capabilities in the lakehouse silver layer.',
+    CONSTRAINT pk_modifier_group PRIMARY KEY(`modifier_group_id`)
+) COMMENT 'Master record for groups of customization options (modifiers) applicable to menu items — e.g., Protein Choice, Sauce Selection, Size Upgrade, Add-Ons. Captures group name, selection type (single/multi-select), min/max selections, display name, and item applicability rules (which menu items this group attaches to, display order, required/optional flag, channel-specific overrides). Drives POS and OLO customization logic and item-to-modifier mapping.';
+
+CREATE OR REPLACE TABLE `restaurants_ecm`.`menu`.`menu_modifier` (
+    `menu_modifier_id` BIGINT COMMENT 'Unique surrogate identifier for each modifier option record in the master modifier catalog. Serves as the primary key for all downstream references from Oracle MICROS POS and Olo Digital Ordering Platform.',
+    `employee_id` BIGINT COMMENT 'Foreign key linking to workforce.employee. Business justification: Modifiers (e.g., add‑ons) are defined by a chef or manager; tracking creator aids cost and allergen management.',
+    `menu_item_id` BIGINT COMMENT 'Reference to the parent menu item to which this modifier is applicable. Enables PMIX (Product Mix) analysis and menu engineering decisions at the item-modifier level.',
+    `modifier_group_id` BIGINT COMMENT 'Reference to the modifier group to which this modifier option belongs (e.g., Cheese Options, Bun Type, Size). Establishes the parent-child grouping used by Oracle MICROS POS for menu customization display.',
+    `allergen_flags` STRING COMMENT 'Pipe-delimited list of major food allergens introduced or removed by this modifier, per FDAs 9 major allergens (milk, eggs, fish, shellfish, tree_nuts, peanuts, wheat, soybeans, sesame). Example: milk|wheat. Critical for guest safety, HACCP compliance, and allergen declaration on digital ordering platforms. [ENUM-REF-CANDIDATE: milk|eggs|fish|shellfish|tree_nuts|peanuts|wheat|soybeans|sesame — promote to reference product]',
+    `approved_by` STRING COMMENT 'Name or employee identifier of the menu engineering or culinary team member who approved this modifier for inclusion in the menu catalog. Supports governance, audit trail, and change management for menu updates.',
+    `approved_date` DATE COMMENT 'The date on which this modifier was formally approved by the menu engineering team for deployment to production POS and digital ordering systems.',
+    `available_channels` STRING COMMENT 'Pipe-delimited list of ordering channels where this modifier is available (e.g., dine_in|drive_thru|olo|3pd). Supports channel-specific menu configuration for DT (Drive-Thru), OLO (Online Ordering), and 3PD (Third-Party Delivery) platforms. [ENUM-REF-CANDIDATE: dine_in|drive_thru|olo|3pd|kiosk|catering — promote to reference product]',
+    `available_dayparts` STRING COMMENT 'Pipe-delimited list of dayparts during which this modifier is available (e.g., breakfast|lunch|dinner|late_night). Enables daypart-specific menu engineering and ensures modifiers are only offered during operationally appropriate time windows.',
+    `calorie_delta` STRING COMMENT 'The incremental calorie change (in kilocalories) added to or subtracted from the base menu items calorie count when this modifier is selected. Positive for additions, negative for removals. Required for FDA menu labeling compliance and nutritional transparency on digital ordering channels.',
+    `carbohydrate_delta_g` DECIMAL(18,2) COMMENT 'Incremental change in total carbohydrate content (in grams) when this modifier is applied. Required for FDA nutritional labeling and supports guest dietary needs (e.g., low-carb, diabetic-friendly options).',
+    `cogs_delta` DECIMAL(18,2) COMMENT 'The incremental raw ingredient cost (COGS) associated with applying this modifier, expressed in the local currency. Used for menu engineering profitability analysis, CoGS% (Cost of Goods Sold Percentage) calculations, and P&L (Profit and Loss) reporting at the modifier level.',
+    `created_timestamp` TIMESTAMP COMMENT 'The timestamp when this modifier record was first created in the menu management system. Supports data lineage, audit trail, and Silver Layer ingestion tracking in the Databricks Lakehouse.',
+    `currency_code` STRING COMMENT 'ISO 4217 three-letter currency code applicable to the price_delta (e.g., USD, CAD, GBP). Supports multi-currency operations across international franchise markets.. Valid values are `^[A-Z]{3}$`',
+    `effective_end_date` DATE COMMENT 'The date after which this modifier record is no longer valid in the menu catalog. Null for currently active modifiers. Enables historical menu reconstruction for PMIX analysis, audit, and regulatory reporting.',
+    `effective_start_date` DATE COMMENT 'The date from which this modifier record is valid and active in the menu catalog. Supports temporal menu versioning, NRO (New Restaurant Opening) menu rollouts, and historical PMIX (Product Mix) analysis.',
+    `fat_delta_g` DECIMAL(18,2) COMMENT 'Incremental change in total fat content (in grams) when this modifier is applied to the base menu item. Required for FDA nutritional labeling compliance on menus and digital ordering platforms.',
+    `image_url` STRING COMMENT 'URL pointing to the digital image asset for this modifier, used on kiosk displays, OLO (Online Ordering) platforms, and 3PD (Third-Party Delivery) integrations to visually represent the modifier option to guests.. Valid values are `^https?://.+$`',
+    `is_allergen_free` BOOLEAN COMMENT 'Indicates whether this modifier introduces zero major allergens (True) or introduces at least one allergen (False). Used for rapid allergen filtering on digital ordering platforms and guest-facing allergen transparency tools.',
+    `is_available` BOOLEAN COMMENT 'Real-time availability flag indicating whether this modifier is currently orderable (True) or temporarily unavailable due to ingredient stockout, 86d item, or operational hold (False). Distinct from status, which reflects the lifecycle state; this flag reflects operational availability at a point in time.',
+    `is_default` BOOLEAN COMMENT 'Indicates whether this modifier is pre-selected by default when a guest orders the parent menu item (True) or must be explicitly chosen (False). Controls default state in Oracle MICROS POS and Olo Digital Ordering Platform order flows.',
+    `is_lto` BOOLEAN COMMENT 'Indicates whether this modifier is part of a Limited Time Offer (LTO) promotion (True) or is a permanent menu option (False). LTO modifiers are subject to promotional campaign timelines and require coordinated activation/deactivation across all channels.',
+    `is_required` BOOLEAN COMMENT 'Indicates whether a selection from this modifiers group is mandatory before the order can be completed (True) or optional (False). For example, selecting a size may be required for a beverage item. Enforced at POS and digital ordering checkout.',
+    `lto_end_date` DATE COMMENT 'The date on which this modifiers LTO availability expires. Null for permanent modifiers. Triggers automatic deactivation in POS and digital ordering systems upon expiry.',
+    `lto_start_date` DATE COMMENT 'The date on which this modifier becomes available as part of a Limited Time Offer (LTO) campaign. Null for permanent modifiers. Used to schedule activation in Oracle MICROS POS and Olo Digital Ordering Platform.',
+    `max_quantity` STRING COMMENT 'Maximum number of times this modifier can be applied to a single menu item in one order (e.g., a guest can add up to 3 extra cheese slices). Enforced at POS and digital ordering checkout to control portion and cost.',
+    `menu_modifier_description` STRING COMMENT 'Detailed description of the modifier option for internal documentation, menu engineering analysis, and digital channel display (e.g., online ordering, third-party delivery apps).',
+    `menu_modifier_name` STRING COMMENT 'Human-readable display name of the modifier option as it appears on POS terminals, KDS (Kitchen Display System), and digital ordering channels (e.g., Extra Cheese, No Onions, Gluten-Free Bun, Large Size).',
+    `menu_modifier_status` STRING COMMENT 'Current lifecycle status of the modifier option. active indicates available for ordering; inactive is temporarily unavailable; discontinued is permanently removed; pending_approval is awaiting menu engineering sign-off; seasonal is available only during specific periods.. Valid values are `active|inactive|discontinued|pending_approval|seasonal`',
+    `modifier_type` STRING COMMENT 'Categorical classification of the modifiers operational intent. addition adds an ingredient (e.g., Extra Cheese), removal removes an ingredient (e.g., No Onions), substitution replaces an ingredient (e.g., Gluten-Free Bun), size_upsize/size_downsize changes portion size, preparation specifies cooking instruction (e.g., Well Done). [ENUM-REF-CANDIDATE: addition|removal|substitution|size_upsize|size_downsize|preparation — promote to reference product]. Valid values are `addition|removal|substitution|size_upsize|size_downsize|preparation`',
+    `plu_code` STRING COMMENT 'Price Look-Up code assigned to this modifier in Oracle MICROS POS for transaction processing and sales reporting. Used for PMIX (Product Mix) reporting and COGS (Cost of Goods Sold) tracking at the modifier level.. Valid values are `^[A-Z0-9-]{1,20}$`',
+    `pos_button_color` STRING COMMENT 'Hexadecimal color code for the modifiers button on Oracle MICROS POS touchscreen terminals. Used to visually differentiate modifier categories (e.g., additions in green, removals in red) to improve FOH (Front of House) order accuracy and speed of service (SOS).. Valid values are `^#[0-9A-Fa-f]{6}$`',
+    `prep_instruction` STRING COMMENT 'Specific BOH (Back of House) preparation instruction associated with this modifier, transmitted to the KDS (Kitchen Display System) when the modifier is selected (e.g., Grill well done, Toast bun, Serve sauce on side). Supports SOP (Standard Operating Procedure) compliance in kitchen operations.',
+    `price_delta` DECIMAL(18,2) COMMENT 'The incremental price adjustment applied to the base menu item price when this modifier is selected. Positive values represent upcharges (e.g., +1.50 for Extra Cheese); negative values represent discounts or removals (e.g., -0.50 for No Protein). Zero indicates no price change. Used by Oracle MICROS POS for real-time transaction pricing.',
+    `protein_delta_g` DECIMAL(18,2) COMMENT 'Incremental change in protein content (in grams) when this modifier is applied. Supports FDA nutritional labeling requirements and enables protein-focused menu analytics for health-oriented menu engineering.',
+    `restaurant_format` STRING COMMENT 'Identifies the restaurant format(s) for which this modifier is applicable: QSR (Quick-Service Restaurant), casual dining, fine dining, or all formats. Supports format-specific menu configuration across the franchise and company-owned portfolio.. Valid values are `qsr|casual|fine_dining|all`',
+    `short_name` STRING COMMENT 'Abbreviated display name used on KDS (Kitchen Display System) screens and printed receipts where space is constrained (e.g., XTR CHSE, NO ONI, GF BUN).',
+    `sku` STRING COMMENT 'SKU (Stock Keeping Unit) code linking this modifier to the inventory and supply chain systems (MarketMan Inventory Management, SAP S/4HANA MM module) for ingredient-level cost tracking and PAR Level management.. Valid values are `^[A-Z0-9-]{1,30}$`',
+    `sodium_delta_mg` DECIMAL(18,2) COMMENT 'Incremental change in sodium content (in milligrams) when this modifier is applied. Critical for FDA menu labeling compliance and guest dietary transparency, particularly for health-conscious consumers and those managing sodium intake.',
+    `sort_order` STRING COMMENT 'Numeric sequence controlling the display order of this modifier within its modifier group on POS terminals, KDS screens, and digital ordering interfaces. Lower values appear first. Supports menu engineering decisions on modifier prominence.',
+    `source_system` STRING COMMENT 'Identifies the operational system of record from which this modifier record originated (e.g., micros_pos for Oracle MICROS POS, olo for Olo Digital Ordering Platform). Supports data lineage and master data management in the Databricks Lakehouse Silver Layer.. Valid values are `micros_pos|olo|franconnect|manual`',
+    `tax_category_code` STRING COMMENT 'Tax category code assigned to this modifier for POS tax calculation purposes. Certain modifiers (e.g., alcoholic additions, specific food categories) may carry different tax treatment than the base item. Integrates with SAP S/4HANA FI/CO for tax compliance.. Valid values are `^[A-Z0-9_]{1,20}$`',
+    `unavailability_reason` STRING COMMENT 'Reason code explaining why this modifier is currently unavailable (is_available = False). Supports operational reporting, supply chain issue tracking, and guest communication on digital ordering platforms.. Valid values are `out_of_stock|seasonal_end|operational_hold|discontinued|supplier_issue`',
+    `updated_timestamp` TIMESTAMP COMMENT 'The timestamp when this modifier record was most recently modified in the menu management system. Used for incremental data pipeline processing, change detection, and audit compliance in the Databricks Lakehouse Silver Layer.',
+    CONSTRAINT pk_menu_modifier PRIMARY KEY(`menu_modifier_id`)
+) COMMENT 'Master record for each individual modifier option within a modifier group — e.g., Extra Cheese, No Onions, Large Size, Gluten-Free Bun. Captures modifier name, modifier group reference, price delta (upcharge or discount), calorie delta, default selection flag, availability status, and channel applicability. Feeds Oracle MICROS POS and Olo Digital Ordering Platform for guest customization.';
+
+CREATE OR REPLACE TABLE `restaurants_ecm`.`menu`.`pmix_record` (
+    `pmix_record_id` BIGINT COMMENT 'Unique surrogate identifier for each product mix (PMIX) record in the Silver layer. Serves as the primary key for this transactional reporting entity.',
+    `financial_period_id` BIGINT COMMENT 'Identifier of the fiscal period (week, period, or quarter) to which this PMIX record belongs, aligned to the restaurants internal fiscal calendar. Supports period-over-period financial reporting.',
+    `menu_item_id` BIGINT COMMENT 'Identifier of the menu item whose sales performance is captured in this PMIX record. Links to the menu item master entity.',
+    `promotion_id` BIGINT COMMENT 'Identifier of the active marketing promotion or campaign associated with this menu item during the reporting period, if applicable. Links to the promotion master entity for campaign performance attribution.',
+    `site_id` BIGINT COMMENT 'Identifier of the restaurant location for which this PMIX record was generated. Links to the restaurant master entity.',
+    `unit_id` BIGINT COMMENT 'Identifier of the restaurant location for which this PMIX record was generated. Links to the restaurant master entity.',
+    `avg_selling_price` DECIMAL(18,2) COMMENT 'Average net selling price per unit of the menu item during the reporting period, calculated as net sales divided by units sold. Reflects actual realized price after discounts and may differ from the menu list price.',
+    `category_rank` STRING COMMENT 'Rank of the menu item within its menu category at the restaurant for the reporting period, ordered by units sold descending. Used to identify top and bottom performers within each category for menu rationalization decisions.',
+    `cogs_amount` DECIMAL(18,2) COMMENT 'Total Cost of Goods Sold (COGS) for the menu item during the reporting period, calculated as units sold multiplied by the items standard recipe cost. Core input for menu engineering profitability analysis.',
+    `cogs_pct` DECIMAL(18,2) COMMENT 'Cost of Goods Sold as a percentage of net sales (CoGS%) for the menu item during the reporting period. A key menu engineering metric used to classify items and assess profitability relative to category benchmarks.',
+    `comp_amount` DECIMAL(18,2) COMMENT 'Total monetary value of complimentary (comped) menu items given during the reporting period. Represents a direct cost to the restaurant and is tracked for P&L accuracy and loss prevention.',
+    `comp_count` STRING COMMENT 'Number of complimentary (comped) units of this menu item given to guests during the reporting period (e.g., for service recovery, employee meals, or promotional giveaways). Tracked for cost control and loss prevention.',
+    `contribution_margin_amount` DECIMAL(18,2) COMMENT 'Contribution margin for the menu item during the reporting period, calculated as net sales minus COGS. Represents the dollar contribution of the item toward covering fixed costs and generating profit. Core metric in menu engineering star/plow-horse/puzzle/dog classification.',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this PMIX record was first created in the Silver layer data product. Supports audit trail, data lineage, and SLA monitoring for data pipeline freshness.',
+    `currency_code` STRING COMMENT 'ISO 4217 three-letter currency code for all monetary amounts in this PMIX record (e.g., USD, CAD, GBP). Supports multi-currency reporting for international restaurant operations.. Valid values are `^[A-Z]{3}$`',
+    `daypart` STRING COMMENT 'Daypart segment during which the menu item sales are recorded (e.g., breakfast, lunch, dinner). Daypart is a core foodservice industry segmentation concept used for menu engineering, labor scheduling, and promotional analysis.. Valid values are `breakfast|lunch|afternoon|dinner|late_night|all_day`',
+    `discount_amount` DECIMAL(18,2) COMMENT 'Total value of discounts, promotional reductions, and coupon redemptions applied to the menu item during the reporting period. Used to reconcile gross to net sales and evaluate promotional effectiveness.',
+    `gross_sales_amount` DECIMAL(18,2) COMMENT 'Total gross sales revenue generated by the menu item during the reporting period, before discounts, voids, and comps. Expressed in local currency. Core component of the MONETARY_TRIPLET for revenue reporting.',
+    `is_available` BOOLEAN COMMENT 'Indicates whether the menu item was available for sale during the entire reporting period at the restaurant. A value of False may indicate a stock-out, 86d item, or temporary removal from the menu, which can suppress PMIX figures.',
+    `is_lto` BOOLEAN COMMENT 'Indicates whether the menu item is a Limited Time Offer (LTO) during the reporting period. LTO items require separate PMIX tracking to evaluate promotional performance and inform future LTO decisions.',
+    `menu_category` STRING COMMENT 'The menu category to which the item belongs (e.g., Burgers, Beverages, Sides, Desserts, LTO). Used for category-level PMIX analysis and menu engineering decisions. [ENUM-REF-CANDIDATE: entree|beverage|side|dessert|appetizer|lto|combo|condiment — promote to reference product]',
+    `menu_engineering_classification` STRING COMMENT 'Menu engineering quadrant classification of the item for the reporting period based on the Boston Consulting Group (BCG) matrix adapted for foodservice: Star (high popularity, high margin), Plow Horse (high popularity, low margin), Puzzle (low popularity, high margin), Dog (low popularity, low margin). Core output of menu engineering analysis.. Valid values are `star|plow_horse|puzzle|dog`',
+    `menu_list_price` DECIMAL(18,2) COMMENT 'The standard listed menu price for the item at the restaurant during the reporting period. Used to calculate price realization (average selling price vs. list price) and assess discount impact.',
+    `menu_mix_pct` DECIMAL(18,2) COMMENT 'The percentage of total units sold at the restaurant during the reporting period that this menu item represents. Core Product Mix (PMIX) metric used to identify high-velocity and low-velocity items for menu engineering decisions.',
+    `net_sales_amount` DECIMAL(18,2) COMMENT 'Net sales revenue for the menu item after deducting discounts, voids, and comps from gross sales. The primary revenue figure used in P&L reporting, PMIX analysis, and AUV calculations.',
+    `overall_rank` STRING COMMENT 'Rank of the menu item across all menu items at the restaurant for the reporting period, ordered by units sold descending. Provides a holistic view of item velocity for menu engineering and operational prioritization.',
+    `ownership_type` STRING COMMENT 'Indicates whether the restaurant is company-owned or franchised. Enables separate PMIX benchmarking and menu engineering analysis across ownership models, which is critical for franchise royalty and P&L reporting.. Valid values are `company_owned|franchised`',
+    `pos_report_reference` STRING COMMENT 'The externally-known report identifier or batch reference number from the Oracle MICROS POS system that is the source of this PMIX record. Enables traceability back to the originating POS report for audit and reconciliation purposes.',
+    `record_status` STRING COMMENT 'Lifecycle status of this PMIX record in the Silver layer. active indicates the current valid record; revised indicates the record has been superseded by a correction; voided indicates the record was invalidated due to a data quality issue.. Valid values are `active|revised|voided`',
+    `refund_amount` DECIMAL(18,2) COMMENT 'Total monetary value of refunds issued for this menu item during the reporting period. Used in net revenue reconciliation and guest satisfaction analysis.',
+    `refund_count` STRING COMMENT 'Number of refunds issued for this menu item during the reporting period. Elevated refund counts may indicate quality issues, order accuracy problems, or guest dissatisfaction.',
+    `reporting_date` DATE COMMENT 'Calendar date for which this PMIX record applies. Used for daily and weekly menu engineering analysis and comparable store sales (Comp Sales / SSS) reporting.',
+    `reporting_period_type` STRING COMMENT 'Granularity of the PMIX record — whether it represents a daily, weekly, or daypart-level aggregation. Determines how units sold and revenue figures should be interpreted.. Valid values are `daily|weekly|daypart`',
+    `restaurant_format` STRING COMMENT 'The restaurant service format (Quick-Service Restaurant (QSR), casual, or fine-dining) associated with this PMIX record. Supports cross-format menu performance benchmarking.. Valid values are `qsr|casual|fine_dining`',
+    `sales_channel` STRING COMMENT 'The ordering channel through which the menu item was sold (e.g., Drive-Thru (DT), Online Ordering (OLO), Third-Party Delivery (3PD), dine-in, kiosk). Enables channel-level PMIX analysis for menu engineering and pricing strategy.. Valid values are `dine_in|drive_thru|online|third_party_delivery|kiosk|catering`',
+    `sales_mix_pct` DECIMAL(18,2) COMMENT 'The percentage of total net sales revenue at the restaurant during the reporting period attributable to this menu item. Distinct from menu mix percentage (unit-based); this is revenue-based mix used for revenue contribution analysis.',
+    `sku_code` STRING COMMENT 'The Stock Keeping Unit (SKU) code assigned to the menu item in the POS and inventory management systems. Used to reconcile PMIX data with supply chain and inventory records in MarketMan.',
+    `source_system` STRING COMMENT 'The operational system of record from which this PMIX record was sourced (e.g., Oracle MICROS POS, Olo Digital Ordering Platform, or third-party delivery aggregator). Supports data lineage and reconciliation across channels.. Valid values are `micros_pos|olo|third_party_delivery`',
+    `unavailability_hours` DECIMAL(18,2) COMMENT 'Total number of hours during the reporting period that the menu item was unavailable for sale (e.g., due to stock-out or being 86d). Used to adjust PMIX velocity calculations and identify supply chain or inventory issues.',
+    `units_sold` STRING COMMENT 'Total number of individual menu item units sold during the reporting period at the restaurant. The primary volume metric in PMIX analysis and menu engineering.',
+    `updated_timestamp` TIMESTAMP COMMENT 'Timestamp when this PMIX record was last modified in the Silver layer, such as when a correction or revision was applied. Supports audit trail and change tracking for data governance.',
+    `void_amount` DECIMAL(18,2) COMMENT 'Total monetary value of voided transactions for this menu item during the reporting period. Used alongside void count for loss prevention analysis and operational quality monitoring.',
+    `void_count` STRING COMMENT 'Number of voided transactions for this menu item during the reporting period. Voids indicate order errors, customer changes, or operational issues and are tracked separately from discounts for loss prevention and operational quality analysis.',
+    CONSTRAINT pk_pmix_record PRIMARY KEY(`pmix_record_id`)
+) COMMENT 'Transactional menu performance record capturing the sales volume, revenue contribution, and margin performance of each menu item at a restaurant for a given reporting period (day/week/daypart). Tracks units sold, gross sales, net sales, discount amount, void count, contribution margin amount, contribution margin percentage, rank within category, daypart breakdown, channel breakdown, and menu engineering classification (star/plow-horse/puzzle/dog). References item_cost for theoretical COGS comparison but does NOT own cost data. Core input for menu engineering reviews, pricing optimization, item lifecycle decisions, and LTO performance evaluation.';
+
+CREATE OR REPLACE TABLE `restaurants_ecm`.`menu`.`engineering_review` (
+    `engineering_review_id` BIGINT COMMENT 'Unique surrogate identifier for each menu engineering review event. Primary key for this transactional record.',
+    `approved_by_employee_id` BIGINT COMMENT 'Identifier of the senior leader or menu director who formally approved the review findings and recommended actions. Nullable until review reaches approved status.',
+    `employee_id` BIGINT COMMENT 'Identifier of the employee or analyst who conducted and owns this menu engineering review. References the workforce record in Workday HCM. Serves as the PARTY_REFERENCE for this transaction.',
+    `category_id` BIGINT COMMENT 'Identifier of the primary menu category (e.g., Burgers, Beverages, Desserts) that is the focal scope of this review. Aligns with Oracle MICROS POS menu category structure.',
+    `primary_engineering_employee_id` BIGINT COMMENT 'Identifier of the employee or analyst who conducted and owns this menu engineering review. References the workforce record in Workday HCM. Serves as the PARTY_REFERENCE for this transaction.',
+    `allergen_review_required` BOOLEAN COMMENT 'Indicates whether any recommended changes require an allergen declaration review prior to implementation. Ensures compliance with FDA allergen labeling requirements and protects guest safety.',
+    `avg_contribution_margin` DECIMAL(18,2) COMMENT 'Average contribution margin (selling price minus Cost of Goods Sold) across all items evaluated in this review, expressed in the local currency. Used as the profitability threshold for engineering classification. Classified confidential as it reflects internal pricing strategy.',
+    `avg_menu_item_popularity_index` DECIMAL(18,2) COMMENT 'Average popularity index (typically based on PMIX share relative to expected mix) across all items evaluated in this review. Used as the demand threshold for engineering classification into Stars, Plowhorses, Puzzles, or Dogs.',
+    `channel_scope` STRING COMMENT 'Sales channel(s) in scope for this review: Drive-Thru (DT), Online Ordering (OLO), Third-Party Delivery (3PD), dine-in, or all channels. Impacts pricing and availability decisions made during the review.. Valid values are `DT|OLO|3PD|dine_in|all`',
+    `cogs_pct_threshold` DECIMAL(18,2) COMMENT 'The Cost of Goods Sold Percentage (CoGS%) threshold applied during this review to classify items as high or low cost. Items exceeding this threshold may be flagged for repricing or reformulation. Classified confidential as it reflects internal cost management strategy.',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this menu engineering review record was first created in the system. Audit trail field supporting data governance and lineage tracking in the Silver layer.',
+    `daypart_scope` STRING COMMENT 'Daypart(s) in scope for this review: breakfast, lunch, dinner, late-night, or all dayparts. Daypart-level PMIX and contribution margin data drives engineering decisions for each time window.. Valid values are `breakfast|lunch|dinner|late_night|all`',
+    `engineering_framework` STRING COMMENT 'The menu engineering analytical framework applied during this review. Common frameworks include the BCG matrix, Kasavana-Smith (Stars/Plowhorses/Puzzles/Dogs), or a custom proprietary model. Determines how items are classified by popularity and profitability.. Valid values are `BCG_matrix|kasavana_smith|star_plow_puzzle_dog|custom`',
+    `food_safety_review_required` BOOLEAN COMMENT 'Indicates whether any items evaluated in this review require a food safety or HACCP review prior to implementation of changes. Triggers a Zenput audit task when true.',
+    `implementation_status` STRING COMMENT 'Current status of the implementation of menu changes recommended by this review. Tracks whether actions are pending, in progress, completed, or deferred to a future cycle.. Valid values are `pending|in_progress|completed|deferred`',
+    `implementation_target_date` DATE COMMENT 'Target date by which the recommended menu changes from this review are expected to be implemented across in-scope restaurants and channels. Drives project planning and POS update scheduling.',
+    `is_comp_sales_impact_assessed` BOOLEAN COMMENT 'Indicates whether a Same-Store Sales (SSS) impact assessment was performed as part of this review. Ensures that menu changes are evaluated for their effect on comparable store sales performance before implementation.',
+    `is_franchise_applicable` BOOLEAN COMMENT 'Indicates whether the review outcomes and recommended actions apply to franchise-operated restaurants in addition to company-owned locations. Drives franchise communication and compliance workflows in FranConnect.',
+    `items_discontinue_count` STRING COMMENT 'Number of menu items recommended for discontinuation during this review. Drives menu simplification and SKU rationalization initiatives.',
+    `items_evaluated_count` STRING COMMENT 'Total number of menu items formally evaluated during this review session. Provides scope sizing for the review and supports review efficiency tracking.',
+    `items_keep_count` STRING COMMENT 'Number of menu items assigned a keep engineering decision during this review. Contributes to menu complexity and portfolio stability metrics.',
+    `items_reposition_count` STRING COMMENT 'Number of menu items recommended for repositioning (e.g., menu placement, daypart shift, channel availability change) during this review.',
+    `items_reprice_count` STRING COMMENT 'Number of menu items recommended for repricing during this review. Feeds into the pricing update workflow in Oracle MICROS POS.',
+    `last_updated_timestamp` TIMESTAMP COMMENT 'Timestamp when this menu engineering review record was most recently modified. Supports change tracking, incremental processing in the Databricks Lakehouse Silver layer, and audit compliance.',
+    `lto_items_evaluated_count` STRING COMMENT 'Number of Limited Time Offer (LTO) items specifically evaluated during this review. Supports LTO pipeline governance and performance assessment.',
+    `lto_pipeline_decision` STRING COMMENT 'Outcome decision for the LTO pipeline resulting from this review: advance to launch, hold for further development, cancel, extend the offer window, or convert to a core menu item.. Valid values are `advance|hold|cancel|extend|convert_to_core`',
+    `menu_complexity_score_after` DECIMAL(18,2) COMMENT 'Projected or actual menu complexity score for the in-scope category or group after implementation of review recommendations. Used to quantify the operational simplification impact of the review.',
+    `menu_complexity_score_before` DECIMAL(18,2) COMMENT 'Quantitative menu complexity score (e.g., total active SKU count or a weighted complexity index) for the in-scope category or group prior to this review. Enables before/after complexity reduction measurement.',
+    `next_review_date` DATE COMMENT 'Scheduled date for the next menu engineering review for the same scope (category/channel/format). Supports the ongoing menu governance calendar and review cycle management.',
+    `nutritional_review_required` BOOLEAN COMMENT 'Indicates whether any recommended changes (e.g., reformulation, new items) require a nutritional analysis update before implementation. Ensures compliance with FDA menu labeling regulations.',
+    `pmix_data_source` STRING COMMENT 'Source system from which Product Mix (PMIX) sales data was extracted for this review. Ensures traceability of the analytical inputs used in engineering decisions.. Valid values are `MICROS_POS|SAP|manual|OLO|3PD_aggregated`',
+    `pricing_strategy_notes` STRING COMMENT 'Internal notes documenting the pricing strategy rationale applied during this review, including competitive positioning, value perception, and margin optimization considerations. Classified confidential as it contains proprietary pricing strategy.',
+    `recommended_actions_summary` STRING COMMENT 'Free-text narrative summarizing the key recommended actions arising from this review, including pricing changes, item removals, repositioning strategies, and LTO decisions. Intended for executive reporting and menu governance documentation.',
+    `restaurant_format` STRING COMMENT 'Restaurant format applicability for this review: Quick-Service Restaurant (QSR), casual dining, fine-dining, or all formats. Governs which restaurant types are affected by the review outcomes.. Valid values are `QSR|casual|fine_dining|all`',
+    `restaurant_group_code` BIGINT COMMENT 'Identifier of the restaurant group, market cluster, or organizational unit in scope for this review. Enables multi-unit and franchise-level menu engineering analysis.',
+    `review_cycle` STRING COMMENT 'Frequency cadence of this menu engineering review: monthly, quarterly, semi-annual, annual, or ad-hoc. Supports scheduling and governance of the menu lifecycle process.. Valid values are `monthly|quarterly|semi_annual|annual|ad_hoc`',
+    `review_date` DATE COMMENT 'The principal business event date on which the formal menu engineering review was conducted. Distinct from record creation timestamp. Used for period-over-period analysis and review cycle tracking.',
+    `review_number` STRING COMMENT 'Externally-known business identifier for this review event, formatted as MER-{YYYY}-{NNNNNN}. Used for cross-referencing in communications, reports, and downstream systems such as Oracle MICROS POS and SAP S/4HANA.. Valid values are `^MER-[0-9]{4}-[0-9]{6}$`',
+    `review_period_end_date` DATE COMMENT 'End date of the sales and performance data window analyzed during this menu engineering review. Together with review_period_start_date, defines the full analysis window.',
+    `review_period_start_date` DATE COMMENT 'Start date of the sales and performance data window analyzed during this menu engineering review. Defines the lookback period for PMIX, ACV, and contribution margin analysis.',
+    `review_scope_type` STRING COMMENT 'Defines the primary dimension along which this review is scoped. Determines whether the review focuses on a menu category, a daypart (e.g., breakfast, lunch), a channel (DT, OLO, 3PD), a restaurant format (QSR, casual, fine-dining), or a geographic market.. Valid values are `category|daypart|channel|restaurant_format|market`',
+    `review_status` STRING COMMENT 'Current lifecycle state of the menu engineering review. Tracks progression from initial drafting through approval and closure. Drives workflow routing and downstream menu update actions.. Valid values are `draft|in_review|approved|closed|cancelled`',
+    `reviewer_name` STRING COMMENT 'Full name of the employee or analyst who conducted this menu engineering review. Denormalized for reporting convenience and audit trail clarity.',
+    `source_system` STRING COMMENT 'Operational system of record from which this review record originated or was primarily driven. Supports data lineage and Silver layer traceability in the Databricks Lakehouse.. Valid values are `MICROS_POS|SAP|manual|OLO|FranConnect`',
+    CONSTRAINT pk_engineering_review PRIMARY KEY(`engineering_review_id`)
+) COMMENT 'Transactional record capturing a formal menu engineering review event for a specific menu category or restaurant group during a defined review period. Records the review date, reviewer, scope (category/channel/format), items evaluated, engineering decisions made (keep/discontinue/reprice/reposition), and recommended actions. Drives the menu lifecycle governance process and LTO pipeline decisions.';
+
+CREATE OR REPLACE TABLE `restaurants_ecm`.`menu`.`item_cost` (
+    `item_cost_id` BIGINT COMMENT 'Unique surrogate identifier for each item cost record. Primary key for the item_cost data product in the menu domain.',
+    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Cost accounting assigns each menu items calculated cost to a cost center for internal budgeting and variance analysis; essential for COGS reporting.',
+    `menu_item_id` BIGINT COMMENT 'Reference to the menu item for which this theoretical cost record is calculated. Links to the menu.menu_item master product.',
+    `recipe_id` BIGINT COMMENT 'Reference to the specific recipe version (Bill of Materials) used to derive the theoretical cost. Ensures cost traceability to the exact ingredient composition at time of calculation.',
+    `actual_cogs_pct` DECIMAL(18,2) COMMENT 'Actual realized Cost of Goods Sold percentage sourced from MarketMan Inventory Management, reflecting real purchase costs, waste, and yield losses. Compared against theoretical_cogs_pct to compute variance and identify operational inefficiencies.',
+    `approved_by` STRING COMMENT 'Name or employee identifier of the menu engineering or finance team member who approved this cost record for use in pricing decisions and P&L reporting. Required for SOX compliance and internal audit trails.',
+    `approved_date` DATE COMMENT 'The date on which this item cost record was approved by the authorized reviewer. Used for audit trail and to establish the effective start of this cost record in menu engineering and P&L reporting.',
+    `base_selling_price` DECIMAL(18,2) COMMENT 'The menu items base selling price at the time of cost calculation, used as the denominator for CoGS% computation. Captured as a point-in-time snapshot to ensure historical cost percentage accuracy even when prices change.',
+    `channel` STRING COMMENT 'The sales channel for which this cost record applies: dine-in, Drive-Thru (DT), Online Ordering (OLO), Third-Party Delivery (3PD), or all channels. Packaging and portion costs may differ by channel, resulting in channel-specific cost records.. Valid values are `dine_in|drive_thru|olo|3pd|all`',
+    `cogs_pct_variance` DECIMAL(18,2) COMMENT 'Difference between actual_cogs_pct and theoretical_cogs_pct (actual minus theoretical). Positive variance indicates actual costs exceeded theoretical expectations, signaling waste, theft, or pricing issues. Critical metric for P&L reporting and operational control.',
+    `cost_calculation_date` DATE COMMENT 'The business date on which the theoretical item cost was calculated. Used to track cost trends over time and align with menu engineering review cycles and P&L reporting periods.',
+    `cost_calculation_method` STRING COMMENT 'Method used to derive the item cost: theoretical_bom = derived from recipe Bill of Materials and price snapshot; actual_marktman = sourced directly from MarketMan actual cost data; blended = weighted combination of theoretical and actual. Ensures analytical transparency.. Valid values are `theoretical_bom|actual_marktman|blended`',
+    `cost_per_gram` DECIMAL(18,2) COMMENT 'Theoretical cost per gram of the menu item (theoretical_cost_amount / portion_size_grams). Enables normalized cost comparison across items of different portion sizes and supports portion engineering decisions.',
+    `cost_status` STRING COMMENT 'Lifecycle status of this item cost record. draft indicates pending review; approved indicates validated and active for menu engineering; superseded indicates replaced by a newer calculation; archived indicates retired from active use.. Valid values are `draft|approved|superseded|archived`',
+    `created_timestamp` TIMESTAMP COMMENT 'The timestamp when this item cost record was first created in the system, in ISO 8601 format (yyyy-MM-ddTHH:mm:ss.SSSXXX). Provides the audit creation trail for the Silver layer record.',
+    `currency_code` STRING COMMENT 'ISO 4217 three-letter currency code in which the cost amounts are expressed (e.g., USD, CAD, GBP). Supports multi-currency operations across international franchise markets.. Valid values are `^[A-Z]{3}$`',
+    `daypart` STRING COMMENT 'The daypart for which this cost record applies (breakfast, lunch, dinner, late-night, or all). Ingredient compositions and portion standards may vary by daypart, resulting in daypart-specific cost records for the same menu item.. Valid values are `breakfast|lunch|dinner|late_night|all`',
+    `effective_end_date` DATE COMMENT 'The date on which this item cost record ceases to be active, typically when superseded by a new calculation. Null indicates the record is currently active. Supports bi-temporal cost history and trend analysis.',
+    `effective_start_date` DATE COMMENT 'The date from which this item cost record is considered active and applicable for menu engineering, pricing, and P&L reporting. Supports bi-temporal modeling of cost history.',
+    `fiscal_period` STRING COMMENT 'The fiscal accounting period (e.g., 2024-P04) to which this cost record is aligned for P&L reporting. Follows the companys internal fiscal calendar as managed in SAP S/4HANA. Enables period-over-period cost trend analysis.. Valid values are `^[0-9]{4}-P(0[1-9]|1[0-3])$`',
+    `ingredient_count` STRING COMMENT 'Total number of distinct ingredients in the Bill of Materials (BOM) used for this cost calculation. Provides a quick indicator of recipe complexity and the number of price inputs contributing to the theoretical cost.',
+    `is_lto` BOOLEAN COMMENT 'Indicates whether this cost record applies to a Limited Time Offer (LTO) menu item. LTO items often have unique cost structures due to specialty ingredients and require separate cost tracking for promotional P&L analysis.',
+    `marktman_cost_record_code` STRING COMMENT 'The native record identifier from MarketMan Inventory Management for the actual cost data used in this calculation. Enables direct traceability back to the source system record for audit and reconciliation purposes.',
+    `menu_engineering_class` STRING COMMENT 'Menu engineering quadrant classification based on the items profitability (CoGS%) and popularity (PMIX). star = high popularity, high margin; plow_horse = high popularity, low margin; puzzle = low popularity, high margin; dog = low popularity, low margin. Drives pricing and promotional strategy.. Valid values are `star|plow_horse|puzzle|dog`',
+    `notes` STRING COMMENT 'Free-text notes from the menu engineering or finance team explaining the rationale for this cost calculation, any manual adjustments made, or context for significant variances. Supports audit review and knowledge transfer.',
+    `packaging_cost` DECIMAL(18,2) COMMENT 'Cost contribution of packaging materials (containers, wrappers, bags, cups) to the total theoretical item cost. Tracked separately from food ingredients to support packaging procurement decisions and sustainability reporting.',
+    `portion_size_grams` DECIMAL(18,2) COMMENT 'Standard portion size in grams for the menu item as defined in the recipe BOM at the time of cost calculation. Used to normalize cost-per-gram comparisons across menu items and to validate portion compliance with HACCP standards.',
+    `price_basis` STRING COMMENT 'The pricing basis applied to ingredient costs in this calculation: last_purchase = most recent purchase price; moving_average = weighted average of recent purchases; contract = contracted supplier price from Coupa; standard = standard cost set by finance. Affects cost comparability.. Valid values are `last_purchase|moving_average|contract|standard`',
+    `price_snapshot_date` DATE COMMENT 'The effective date of the ingredient purchase prices used in this cost calculation. Distinct from cost_calculation_date — the snapshot may use prices from a prior period (e.g., last purchase price, rolling average). Critical for cost audit and variance explanation.',
+    `price_snapshot_reference` BIGINT COMMENT 'Reference to the ingredient price snapshot used in this cost calculation. Captures the specific point-in-time purchase prices from MarketMan that were applied to the Bill of Materials to derive theoretical Cost of Goods Sold (COGS).',
+    `primary_protein_cost` DECIMAL(18,2) COMMENT 'Cost contribution of the primary protein ingredient(s) to the total theoretical item cost. Proteins (beef, chicken, seafood) are typically the highest-cost BOM component and are tracked separately for commodity price sensitivity analysis and USDA-aligned procurement reporting.',
+    `recipe_version` STRING COMMENT 'Version identifier of the recipe / Bill of Materials (BOM) used in this cost calculation (e.g., v3.2). Enables traceability of cost changes driven by recipe reformulations versus ingredient price movements.',
+    `restaurant_format` STRING COMMENT 'The restaurant format for which this cost record applies: Quick-Service Restaurant (QSR), casual dining, fine dining, or all formats. Cost structures differ by format due to labor, portion, and ingredient standards.. Valid values are `QSR|casual|fine_dining|all`',
+    `source_system` STRING COMMENT 'The operational system of record from which this cost record originated: MarketMan (actual cost data), SAP S/4HANA (standard cost), Oracle MICROS POS (price data), or manual entry. Supports data lineage and audit traceability in the Databricks Silver layer.. Valid values are `MarketMan|SAP_S4HANA|MICROS_POS|manual`',
+    `target_cogs_pct` DECIMAL(18,2) COMMENT 'The budgeted or target CoGS% for this menu item as set by the finance and menu engineering teams. Used as the benchmark against which theoretical_cogs_pct and actual_cogs_pct are evaluated. Expressed as a decimal (e.g., 0.2800 = 28.00%).',
+    `target_variance_pct` DECIMAL(18,2) COMMENT 'Acceptable tolerance band for CoGS% variance (theoretical vs actual) before an alert or review is triggered. Expressed as a decimal (e.g., 0.0200 = ±2.00%). Supports automated exception reporting in menu engineering workflows.',
+    `theoretical_cogs_pct` DECIMAL(18,2) COMMENT 'Theoretical Cost of Goods Sold expressed as a percentage of the menu items base selling price (theoretical_cost_amount / base_price). Key menu engineering metric used to classify items and set pricing strategy. Expressed as a decimal (e.g., 0.2850 = 28.50%).',
+    `theoretical_cost_amount` DECIMAL(18,2) COMMENT 'The theoretical food cost amount in the operating currency for one unit of the menu item, derived by multiplying each Bill of Materials (BOM) ingredient quantity by its point-in-time purchase price. Core input to menu engineering and pricing decisions.',
+    `theoretical_cost_variance_amount` DECIMAL(18,2) COMMENT 'Absolute monetary variance between actual cost and theoretical cost per unit (actual cost amount minus theoretical_cost_amount). Expressed in the operating currency. Used alongside cogs_pct_variance for financial impact quantification in P&L reporting.',
+    `updated_timestamp` TIMESTAMP COMMENT 'The timestamp when this item cost record was last modified, in ISO 8601 format (yyyy-MM-ddTHH:mm:ss.SSSXXX). Tracks the most recent update for change management and audit trail purposes in the Databricks Silver layer.',
+    `waste_pct` DECIMAL(18,2) COMMENT 'Theoretical food waste percentage factored into the cost calculation, representing expected yield loss during preparation (e.g., trim waste, cooking shrinkage). Expressed as a decimal (e.g., 0.0500 = 5.00%). Sourced from recipe yield standards in MarketMan.',
+    `yield_pct` DECIMAL(18,2) COMMENT 'Expected usable yield percentage of the primary ingredient after preparation (e.g., 0.8500 = 85% yield after trimming). Used in yield management calculations to adjust raw ingredient quantities in the BOM to achieve the target portion size.',
+    CONSTRAINT pk_item_cost PRIMARY KEY(`item_cost_id`)
+) COMMENT 'Transactional record capturing the theoretical COGS (Cost of Goods Sold) for each menu item at a point in time, derived from recipe BOM and current ingredient purchase prices. Tracks theoretical food cost amount, theoretical CoGS%, actual CoGS% (from inventory management systems like MarketMan), variance amount, variance percentage, cost calculation date, ingredient price snapshot reference, and cost approval status. Updated when ingredient prices change (weekly/daily frequency) — distinct from pmix_record which captures periodic sales performance. Feeds menu engineering decisions, pricing optimization, P&L reporting, and franchise profitability benchmarking.';
+
+CREATE OR REPLACE TABLE `restaurants_ecm`.`menu`.`combo_meal` (
+    `combo_meal_id` BIGINT COMMENT 'Unique surrogate identifier for the combo meal record. Primary key for the combo_meal data product in the menu domain.',
+    `campaign_id` BIGINT COMMENT 'Foreign key linking to marketing.campaign. Business justification: Required for Combo Promotion: associate combo meals with marketing campaigns that promote them, supporting campaign budgeting, scheduling, and sales attribution.',
+    `menu_id` BIGINT COMMENT 'Foreign key linking to menu.menu. Business justification: Combo meals are defined within a specific menu; adding menu_id ties the combo to its parent menu.',
+    `allergen_flags` STRING COMMENT 'Comma-separated list of major allergens present in the combo meal based on its default component items (e.g., milk,wheat,soy). Supports FDA major food allergen labeling requirements and guest advisory communications. Detailed per-allergen declarations are managed in the allergen_declaration product.',
+    `approved_by` STRING COMMENT 'Name or employee identifier of the menu management authority who approved this combo meal for publication. Supports menu governance, audit trail, and compliance with internal SOP (Standard Operating Procedure) for menu changes.',
+    `approved_date` DATE COMMENT 'Date on which the combo meal was formally approved for publication by the designated menu authority. Supports audit trail and menu governance compliance.',
+    `bundle_discount_amount` DECIMAL(18,2) COMMENT 'The monetary discount provided to the guest by purchasing the combo meal versus buying each component item individually (individual_items_price_sum minus bundle_price). Key metric for menu engineering and promotional value analysis.',
+    `bundle_price` DECIMAL(18,2) COMMENT 'The retail selling price of the combo meal as a bundle, charged to the guest at POS or digital ordering channels. This is the price the guest pays for the full combo, distinct from the sum of individual item prices.',
+    `calorie_range_max` STRING COMMENT 'Maximum calorie count for the combo meal when customizable components are at their highest-calorie configuration. Required for FDA menu labeling compliance when combos offer substitution options.',
+    `calorie_range_min` STRING COMMENT 'Minimum calorie count for the combo meal when customizable components are at their lowest-calorie configuration. Required for FDA menu labeling compliance when combos offer substitution options.',
+    `combo_code` STRING COMMENT 'Externally-known alphanumeric business identifier for the combo meal, used in Oracle MICROS POS, Olo Digital Ordering Platform, and 3PD integrations for menu lookup and order capture. Serves as the canonical cross-system reference code.. Valid values are `^[A-Z0-9_-]{3,30}$`',
+    `combo_description` STRING COMMENT 'Detailed description of the combo meal contents and value proposition, used for digital menu boards, Olo OLO platform, and 3PD (Third-Party Delivery) channel listings. Supports guest decision-making and marketing copy.',
+    `combo_name` STRING COMMENT 'Human-readable marketing name of the combo meal as displayed on menu boards, POS screens, and digital ordering channels (e.g., Classic Value Meal, Family Pack, Kids Meal). Used for guest-facing display and reporting.',
+    `combo_status` STRING COMMENT 'Current lifecycle status of the combo meal offering. Controls whether the combo is available for sale across channels. test indicates a market-test combo not yet in full rollout.. Valid values are `active|inactive|pending|discontinued|test`',
+    `combo_type` STRING COMMENT 'Classification of the combo meal by bundle format. Drives menu engineering analysis, PMIX reporting, and promotional targeting. [ENUM-REF-CANDIDATE: value_meal|family_pack|kids_meal|party_pack|snack_combo|premium_combo — promote to reference product if additional types are needed]. Valid values are `value_meal|family_pack|kids_meal|party_pack|snack_combo|premium_combo`',
+    `country_code` STRING COMMENT 'ISO 3166-1 alpha-3 country code indicating the country where this combo meal is offered. Supports global menu management, regulatory compliance, and multi-currency pricing.. Valid values are `^[A-Z]{3}$`',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the combo meal record was first created in the data platform. Follows ISO 8601 format (yyyy-MM-ddTHH:mm:ss.SSSXXX). Supports audit trail and data lineage in the Silver layer.',
+    `currency_code` STRING COMMENT 'ISO 4217 three-letter currency code applicable to all monetary fields on this combo meal record (e.g., USD, CAD, GBP). Supports multi-currency operations across global franchise markets.. Valid values are `^[A-Z]{3}$`',
+    `daypart` STRING COMMENT 'Daypart(s) during which this combo meal is available for sale. Daypart segmentation is a core foodservice operational concept used in PMIX analysis, labor scheduling, and revenue management.. Valid values are `breakfast|lunch|dinner|late_night|all_day|snack`',
+    `discontinue_date` DATE COMMENT 'The date on which the combo meal was or is scheduled to be removed from the menu. Nullable for permanent menu fixtures. Used for menu lifecycle management and supply chain wind-down planning.',
+    `effective_end_date` DATE COMMENT 'The date on which the current version of the combo meal record ceases to be operationally effective. Nullable for open-ended records. Supports menu versioning and temporal pricing management.',
+    `effective_start_date` DATE COMMENT 'The date from which the current version of the combo meal record (including pricing, components, and availability) is operationally effective. Supports menu versioning and temporal pricing management.',
+    `food_cost_pct` DECIMAL(18,2) COMMENT 'Cost of Goods Sold as a percentage of the bundle price (item_cost / bundle_price * 100). Core menu engineering KPI used to classify combo meals and drive pricing decisions. Aligns with CoGS% jargon in foodservice P&L management.',
+    `image_url` STRING COMMENT 'URL of the primary product image for the combo meal used on digital menu boards, Olo OLO platform, and 3PD channel listings. Must be a publicly accessible HTTPS URL.. Valid values are `^https?://.+$`',
+    `individual_items_price_sum` DECIMAL(18,2) COMMENT 'The sum of the base prices of all individual component menu items if purchased separately. Used to calculate the bundle discount amount and communicate value to guests. Sourced from Oracle MICROS POS item pricing.',
+    `is_3pd_available` BOOLEAN COMMENT 'Indicates whether this combo meal is available through Third-Party Delivery (3PD) partners (e.g., DoorDash, Uber Eats, Grubhub). Controls 3PD channel menu syndication via Olo integration.',
+    `is_customizable` BOOLEAN COMMENT 'Indicates whether guests can substitute or modify component items within the combo meal (e.g., swap side item, upsize drink). Drives modifier group display logic in Oracle MICROS POS and Olo.',
+    `is_dine_in_available` BOOLEAN COMMENT 'Indicates whether this combo meal is available for dine-in service. Relevant for casual and fine-dining formats where combo availability may differ by service mode.',
+    `is_dt_available` BOOLEAN COMMENT 'Indicates whether this combo meal is available for sale through the Drive-Thru (DT) channel. Controls channel-specific menu display in Oracle MICROS POS and KDS routing.',
+    `is_national_launch` BOOLEAN COMMENT 'Indicates whether this combo meal is part of a national rollout versus a regional or test-market offering. Drives marketing campaign scope, supply chain planning, and franchise communication.',
+    `is_olo_available` BOOLEAN COMMENT 'Indicates whether this combo meal is available through the Olo Digital Ordering Platform (OLO) for web and mobile ordering. Controls digital menu availability.',
+    `is_taxable` BOOLEAN COMMENT 'Indicates whether the combo meal bundle price is subject to sales tax. Drives tax calculation logic in Oracle MICROS POS and SAP S/4HANA AR module. Tax applicability may vary by jurisdiction.',
+    `item_cost` DECIMAL(18,2) COMMENT 'Total Cost of Goods Sold (COGS) for the combo meal, representing the combined food cost of all component items. Used to calculate COGS% and support P&L and menu engineering decisions. Sourced from MarketMan Inventory Management and SAP S/4HANA CO module.',
+    `launch_date` DATE COMMENT 'The date on which the combo meal became or is scheduled to become available for sale. Used for menu lifecycle management, supply chain lead time planning, and marketing campaign alignment.',
+    `menu_engineering_class` STRING COMMENT 'Menu engineering quadrant classification for the combo meal based on profitability and popularity: star (high profit, high popularity), plow_horse (low profit, high popularity), puzzle (high profit, low popularity), dog (low profit, low popularity). Core menu engineering decision-support field.. Valid values are `star|plow_horse|puzzle|dog`',
+    `olo_item_code` STRING COMMENT 'Olo Digital Ordering Platform external identifier for this combo meal. Used for menu synchronization between the internal menu master and the Olo platform for web, mobile, and 3PD channel ordering.',
+    `ownership_model` STRING COMMENT 'Indicates whether this combo meal is available at franchise-operated locations, company-owned locations, or both. Supports franchise compliance tracking via FranConnect and royalty reporting.. Valid values are `franchise|company_owned|both`',
+    `pmix_target_pct` DECIMAL(18,2) COMMENT 'Target Product Mix (PMIX) percentage representing the expected share of total transactions this combo meal should represent within its category. Used for menu performance benchmarking and sales forecasting.',
+    `pos_item_code` STRING COMMENT 'Oracle MICROS POS-specific item code used to ring up the combo meal at the point of sale. This is the PLU/button code used by FOH (Front of House) staff and KDS (Kitchen Display System) routing.. Valid values are `^[A-Z0-9_-]{2,20}$`',
+    `region_code` STRING COMMENT 'Geographic region code where this combo meal is available (e.g., NORTHEAST, WEST, SOUTH). Supports regional menu variation, pricing strategy, and PMIX analysis across the restaurant network.. Valid values are `^[A-Z]{2,10}$`',
+    `restaurant_format` STRING COMMENT 'Restaurant format(s) for which this combo meal is applicable. QSR (Quick-Service Restaurant) combos differ structurally from casual or fine-dining bundles. Drives menu engineering and franchise compliance.. Valid values are `QSR|casual|fine_dining|all`',
+    `sort_order` STRING COMMENT 'Display sequence order for the combo meal on menu boards, POS screens, and digital ordering interfaces. Lower values appear first. Controls guest-facing menu presentation.',
+    `source_system` STRING COMMENT 'Identifies the operational system of record from which this combo meal record originated (e.g., Oracle MICROS POS, Olo Digital Ordering Platform). Supports data lineage tracking in the Databricks Lakehouse Silver layer.. Valid values are `MICROS_POS|OLO|MANUAL|SAP`',
+    `tax_category_code` STRING COMMENT 'Tax category code assigned to the combo meal for sales tax calculation in Oracle MICROS POS and SAP S/4HANA. Determines applicable tax rates by jurisdiction and product type.. Valid values are `^[A-Z0-9_]{2,20}$`',
+    `total_calories` STRING COMMENT 'Total calorie count for the combo meal as configured with default component items. Required for FDA menu labeling compliance on menus with 20+ locations. Displayed on menu boards and digital ordering platforms.',
+    `updated_timestamp` TIMESTAMP COMMENT 'Timestamp when the combo meal record was last modified in the data platform. Follows ISO 8601 format (yyyy-MM-ddTHH:mm:ss.SSSXXX). Supports change tracking, audit trail, and incremental data processing in the Silver layer.',
+    CONSTRAINT pk_combo_meal PRIMARY KEY(`combo_meal_id`)
+) COMMENT 'Master record for bundled combo meal offerings — pre-defined combinations of menu items sold together at a bundle price (e.g., Value Meal, Family Pack, Kids Meal). Captures combo name, component items, bundle price, individual item price sum, bundle discount amount, applicable channels, daypart availability, and active status. Distinct from LTOs in that combos are permanent or semi-permanent menu fixtures.';
+
+CREATE OR REPLACE TABLE `restaurants_ecm`.`menu`.`item_86_event` (
+    `item_86_event_id` BIGINT COMMENT 'Unique surrogate identifier for each 86 event record — when a menu item is temporarily pulled from service at a restaurant. Primary key of this table.',
+    `equipment_asset_id` BIGINT COMMENT 'Reference to the specific kitchen equipment unit that failed and caused the 86 event, when reason_code = equipment_failure. Supports Repairs and Maintenance (R&M) tracking and equipment reliability analysis.',
+    `equipment_equipment_asset_id` BIGINT COMMENT 'Reference to the specific kitchen equipment unit that failed and caused the 86 event, when reason_code = equipment_failure. Supports Repairs and Maintenance (R&M) tracking and equipment reliability analysis.',
+    `ingredient_lot_id` BIGINT COMMENT 'Foreign key linking to supply.ingredient_lot. Business justification: REQUIRED: Food‑safety incident reports must link an event to the specific ingredient lot used, enabling traceability and regulatory recall reporting.',
+    `employee_id` BIGINT COMMENT 'Reference to the employee (Back of House (BOH) or Front of House (FOH) staff member) who first reported or logged the 86 event. Links to workforce employee master.',
+    `menu_item_id` BIGINT COMMENT 'Reference to the menu item that was 86d (removed from service). Links to the menu.menu_item master record.',
+    `procurement_supplier_id` BIGINT COMMENT 'Reference to the primary supplier of the ingredient or item involved in the 86 event, particularly relevant for out_of_stock and supplier_delay reason codes. Supports supply chain root cause analysis.',
+    `site_id` BIGINT COMMENT 'Reference to the restaurant location where the 86 event occurred. Enables operational and geographic analysis of item unavailability.',
+    `unit_id` BIGINT COMMENT 'Reference to the restaurant location where the 86 event occurred. Enables operational and geographic analysis of item unavailability.',
+    `channel_affected` STRING COMMENT 'The service channel(s) impacted by the 86 event. all = item unavailable across all channels; dine_in = in-restaurant only; drive_thru (DT) = drive-through only; olo = Online Ordering (OLO) platform; 3pd = Third-Party Delivery (3PD) partners such as DoorDash or Uber Eats.. Valid values are `all|dine_in|drive_thru|olo|3pd`',
+    `created_timestamp` TIMESTAMP COMMENT 'Date and time when this 86 event record was first created in the data platform. Audit trail field for data lineage and Silver layer ingestion tracking.',
+    `daypart_affected` STRING COMMENT 'The daypart during which the 86 event was active or first occurred. Enables PMIX (Product Mix) and daypart-level impact analysis. Aligns with menu.daypart definitions.. Valid values are `breakfast|lunch|dinner|late_night|all_day`',
+    `duration_minutes` STRING COMMENT 'Total elapsed time in minutes from start_timestamp to end_timestamp. Populated upon resolution. Used for Speed of Service (SOS) impact analysis and operational KPI reporting.',
+    `end_timestamp` TIMESTAMP COMMENT 'Date and time when the menu item was restored to service and the 86 event was closed. Null if the event is still open. Used to calculate total downtime duration.',
+    `escalated_to_team` STRING COMMENT 'The internal team to which the 86 event was escalated, if applicable. Supports accountability tracking and cross-functional response coordination.. Valid values are `operations|supply_chain|food_safety|franchise_support|marketing`',
+    `escalation_timestamp` TIMESTAMP COMMENT 'Date and time when the 86 event was escalated to operations management, supply chain, or franchise support teams. Null if the event was resolved without escalation. Supports SLA and response time analysis.',
+    `estimated_lost_covers` STRING COMMENT 'Estimated number of guest covers (transactions) that could not be fulfilled due to the 86 event during the affected period. Derived operationally at the restaurant level for guest experience impact reporting. Not a calculated KPI — captured as a manager estimate at time of resolution.',
+    `event_number` STRING COMMENT 'Human-readable, externally referenceable identifier for the 86 event (e.g., 86-2024-07-15-A3F9K2). Used in operational communications, Zenput audit tasks, and guest experience escalations.. Valid values are `^86-[0-9]{4}-[0-9]{2}-[0-9]{2}-[A-Z0-9]{6}$`',
+    `event_status` STRING COMMENT 'Current lifecycle state of the 86 event. open = item currently unavailable; resolved = item restored to service; escalated = issue elevated to operations or supply chain team; cancelled = event logged in error.. Valid values are `open|resolved|escalated|cancelled`',
+    `guest_notification_sent` BOOLEAN COMMENT 'Indicates whether a guest-facing notification was sent (e.g., via OLO or 3PD platform) to inform customers that the item is temporarily unavailable. True = notification dispatched. Supports Customer Satisfaction (CSAT) and Net Promoter Score (NPS) impact tracking.',
+    `haccp_ccp_reference` STRING COMMENT 'Reference code to the specific HACCP Critical Control Point (CCP) that was breached or triggered this 86 event, if applicable. Used for food safety audit trails and regulatory compliance reporting.',
+    `inventory_quantity_on_hand` DECIMAL(18,2) COMMENT 'The recorded inventory quantity on hand for the primary ingredient or item at the time the 86 event was triggered. Captured from MarketMan at event time. Supports PAR Level (Periodic Automatic Replenishment Level) analysis and stockout root cause investigation.',
+    `inventory_unit_of_measure` STRING COMMENT 'Unit of measure for the inventory_quantity_on_hand value (e.g., each, oz, lb, kg, liter, gallon, portion). Ensures correct interpretation of the quantity field. [ENUM-REF-CANDIDATE: each|oz|lb|kg|liter|gallon|portion — 7 candidates stripped; promote to reference product]',
+    `is_food_safety_related` BOOLEAN COMMENT 'Indicates whether the 86 event was triggered by a food safety concern (e.g., HACCP Critical Control Point (CCP) failure, quality issue, or regulatory recall). True = food safety event requiring Zenput audit task and potential regulatory notification.',
+    `is_lto_item` BOOLEAN COMMENT 'Indicates whether the 86d item is a Limited Time Offer (LTO). True = LTO item. 86 events on LTO items carry heightened business impact due to marketing commitments and guest expectations, and may require immediate escalation.',
+    `is_recall_related` BOOLEAN COMMENT 'Indicates whether the 86 event was triggered by a formal supplier or regulatory product recall. True = item must not be served and recall protocol must be followed per FDA/USDA guidelines.',
+    `kds_alert_sent` BOOLEAN COMMENT 'Indicates whether a Kitchen Display System (KDS) alert was sent to BOH staff notifying them of the 86 event. True = KDS alert dispatched. Supports BOH operational awareness and throughput management.',
+    `olo_item_code` STRING COMMENT 'The item identifier in the Olo Digital Ordering Platform at the time of the 86 event. Used to confirm whether the item was also suppressed on the OLO channel during the event.',
+    `olo_suppressed` BOOLEAN COMMENT 'Indicates whether the item was suppressed on the Olo Digital Ordering Platform during the 86 event. True = item hidden from online ordering menu. Prevents guest orders for unavailable items on digital channels.',
+    `ownership_model` STRING COMMENT 'Indicates whether the restaurant where the 86 event occurred is a franchise location or a company-owned location. Drives escalation routing and compliance accountability.. Valid values are `franchise|company_owned`',
+    `par_level_quantity` DECIMAL(18,2) COMMENT 'The Periodic Automatic Replenishment (PAR) Level quantity set for the item at this restaurant at the time of the 86 event. Compared against inventory_quantity_on_hand to assess whether the stockout was preventable.',
+    `pos_item_code` STRING COMMENT 'The Point of Sale (POS) item code as configured in Oracle MICROS POS at the time of the 86 event. Captured at event time to preserve the POS state even if the menu item code changes later.',
+    `pos_suppressed` BOOLEAN COMMENT 'Indicates whether the item was actively suppressed (hidden/disabled) on the Oracle MICROS POS system during the 86 event. True = item removed from POS ordering screens. Ensures operational accuracy and prevents staff from ringing up unavailable items.',
+    `reason_code` STRING COMMENT 'Standardized reason code explaining why the menu item was removed from service. out_of_stock = inventory depleted; equipment_failure = kitchen equipment down; quality_issue = item failed quality/HACCP check; recall = supplier or regulatory recall; supplier_delay = ingredient not delivered; prep_time_exceeded = throughput constraint. [ENUM-REF-CANDIDATE: out_of_stock|equipment_failure|quality_issue|recall|supplier_delay|prep_time_exceeded — promote to reference product]. Valid values are `out_of_stock|equipment_failure|quality_issue|recall|supplier_delay|prep_time_exceeded`',
+    `reason_detail` STRING COMMENT 'Free-text narrative providing additional context beyond the reason_code. For example, specifying which piece of equipment failed, which ingredient was out of stock, or the nature of the quality issue. Supports root cause analysis.',
+    `reported_by_role` STRING COMMENT 'Job role of the employee who reported the 86 event (e.g., manager, Back of House (BOH) staff, Front of House (FOH) staff, shift lead, franchisee). Supports accountability and training gap analysis.. Valid values are `manager|boh_staff|foh_staff|shift_lead|franchisee`',
+    `resolution_action` STRING COMMENT 'The corrective action taken to resolve the 86 event and restore the item to service. restocked = inventory replenished; equipment_repaired = kitchen equipment fixed; item_substituted = alternative item offered; recalled_item_removed = item permanently pulled per recall; supplier_order_placed = emergency procurement initiated; no_action = event closed without resolution (e.g., end of daypart). [ENUM-REF-CANDIDATE: restocked|equipment_repaired|item_substituted|recalled_item_removed|supplier_order_placed|no_action — promote to reference product]. Valid values are `restocked|equipment_repaired|item_substituted|recalled_item_removed|supplier_order_placed|no_action`',
+    `restaurant_format` STRING COMMENT 'The restaurant format (Quick-Service Restaurant (QSR), casual, or fine-dining) of the location where the 86 event occurred. Supports format-level operational benchmarking.. Valid values are `qsr|casual|fine_dining`',
+    `source_system` STRING COMMENT 'The operational system of record from which this 86 event was originated or captured. micros_pos = Oracle MICROS POS; zenput = Zenput operational compliance; marketman = MarketMan inventory alert; olo = Olo platform suppression event; manual = manually entered by operations staff.. Valid values are `micros_pos|zenput|marketman|olo|manual`',
+    `start_timestamp` TIMESTAMP COMMENT 'Date and time when the menu item was first removed from service (86d). This is the principal real-world event timestamp. Stored in ISO 8601 format with timezone offset.',
+    `updated_timestamp` TIMESTAMP COMMENT 'Date and time when this 86 event record was last modified in the data platform, such as when the event was resolved, escalated, or corrected. Supports data lineage and change tracking in the Silver layer.',
+    `zenput_task_code` STRING COMMENT 'Reference to the Zenput food safety audit task or operational compliance task created in response to this 86 event. Enables traceability between the 86 event and the corrective action workflow in Zenput.',
+    CONSTRAINT pk_item_86_event PRIMARY KEY(`item_86_event_id`)
+) COMMENT 'Transactional record capturing an 86 event — when a menu item is temporarily removed from service at a specific restaurant due to stockout, quality issue, or equipment failure. Captures the item, restaurant, channel affected, start timestamp, end timestamp, reason code (out-of-stock/equipment/quality/recall), reported-by, and resolution action. Critical for operational compliance and guest experience tracking.';
+
+CREATE OR REPLACE TABLE `restaurants_ecm`.`menu`.`dietary_tag` (
+    `dietary_tag_id` BIGINT COMMENT 'Unique identifier for the dietary_tag data product (auto-inserted pre-linking).',
+    `parent_dietary_tag_id` BIGINT COMMENT 'Self-referencing FK on dietary_tag (parent_dietary_tag_id)',
+    `dietary_tag_category` STRING COMMENT 'Broad classification of the tag indicating its origin: allergen‑derived, lifestyle, religious, health‑condition, or other.',
+    `certification_required` BOOLEAN COMMENT 'Indicates whether the tag must be backed by an external certification (true) or is self‑declared (false).',
+    `certifying_body` STRING COMMENT 'Name of the organization that provides certification for the tag, e.g., "USDA Organic", "Halal Certification Authority".',
+    `dietary_tag_code` STRING COMMENT 'Short alphanumeric code used for system integration and display, e.g., "VG" for vegan.',
+    `created_timestamp` TIMESTAMP COMMENT 'Date and time when the tag record was first created in the system.',
+    `display_order` STRING COMMENT 'Integer determining the sequence in which tags appear in UI lists; lower numbers appear first.',
+    `effective_from` TIMESTAMP COMMENT 'Timestamp when the tag becomes valid for use in menu displays and filtering.',
+    `effective_until` TIMESTAMP COMMENT 'Timestamp when the tag expires or is no longer valid; null if indefinite.',
+    `guest_label` STRING COMMENT 'Text label displayed to customers on menus and digital channels.',
+    `icon_url` STRING COMMENT 'Web URL pointing to the icon image shown to guests for this tag.',
+    `dietary_tag_name` STRING COMMENT 'Human‑readable name of the dietary tag, e.g., "Vegan", "Gluten‑Free".',
+    `notes` STRING COMMENT 'Free‑form text for internal comments, audit trails, or special handling instructions.',
+    `priority_score` DECIMAL(18,2) COMMENT 'Numeric weight used by recommendation engines to rank tags when multiple apply.',
+    `scope` STRING COMMENT 'Geographic or market scope where the tag is applicable.',
+    `dietary_tag_status` STRING COMMENT 'Current lifecycle state of the tag: active (available for use), inactive (temporarily unavailable), or deprecated (to be retired).',
+    `updated_timestamp` TIMESTAMP COMMENT 'Date and time of the most recent modification to the tag record.',
+    CONSTRAINT pk_dietary_tag PRIMARY KEY(`dietary_tag_id`)
+) COMMENT 'Master record for dietary and lifestyle classification tags applied to menu items — e.g., vegan, vegetarian, keto, halal, kosher, gluten-free, dairy-free, low-sodium, heart-healthy. Captures tag name, tag category (allergen-derived, lifestyle, religious, health-condition), certification requirement flag, certifying body reference, display icon, guest-facing label, and active status. Enables OLO/3PD menu filtering, personalized recommendations, and regulatory compliance for voluntary dietary claims. Distinct from allergen_declaration (which is mandatory FDA/FALCPA compliance) — dietary_tag covers voluntary marketing and guest-experience classifications.';
+
+CREATE OR REPLACE TABLE `restaurants_ecm`.`menu`.`combo_component` (
+    `combo_component_id` BIGINT COMMENT 'Primary key for the combo_component association',
+    `combo_meal_id` BIGINT COMMENT 'Foreign key linking to the combo_meal',
+    `menu_item_id` BIGINT COMMENT 'Foreign key linking to the menu_item',
+    `is_featured` BOOLEAN COMMENT 'Indicates if the item is highlighted in the combo presentation',
+    `item_price_override` DECIMAL(18,2) COMMENT 'Adjusted price for the menu_item when sold as part of the combo',
+    `quantity` STRING COMMENT 'Number of units of the menu_item included in the combo',
+    `sort_order` STRING COMMENT 'Order in which the item appears within the combo listing',
+    CONSTRAINT pk_combo_component PRIMARY KEY(`combo_component_id`)
+) COMMENT 'Represents the association between a combo_meal and a menu_item. Each record captures the specific items that make up a combo, including quantity, any price override, display order, and whether the item is featured in the combo.. Existence Justification: A combo meal is a bundle that consists of multiple menu items, and a single menu item can appear in many different combo meals. The business actively manages the composition of each combo, tracking quantities, price overrides, display order, and whether the item is featured within the combo. This many‑to‑many relationship is a core operational entity used for menu engineering and pricing.';
+
+CREATE OR REPLACE TABLE `restaurants_ecm`.`menu`.`dietary_tag_assignment` (
+    `dietary_tag_assignment_id` BIGINT COMMENT 'Primary key for the dietary_tag_assignment association',
+    `dietary_tag_id` BIGINT COMMENT 'Foreign key linking to dietary_tag',
+    `menu_item_id` BIGINT COMMENT 'Foreign key linking to menu_item',
+    `effective_end_date` DATE COMMENT 'Date when the tag assignment expires or is removed',
+    `effective_start_date` DATE COMMENT 'Date when the tag assignment becomes effective for the menu item',
+    `is_primary` BOOLEAN COMMENT 'Indicates whether this tag is the primary dietary classification for the menu item',
+    CONSTRAINT pk_dietary_tag_assignment PRIMARY KEY(`dietary_tag_assignment_id`)
+) COMMENT 'Represents the assignment of dietary tags to menu items, capturing which tags apply to each item and the validity period of each assignment.. Existence Justification: Each menu item can be associated with multiple dietary tags (e.g., vegan, gluten‑free) and each tag can apply to many menu items. The business actively manages these assignments, tracking which tags are primary for an item and the effective start/end dates of each assignment.';
+
+-- ========= FOREIGN KEYS =========
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ADD CONSTRAINT `fk_menu_recipe_menu_item_id` FOREIGN KEY (`menu_item_id`) REFERENCES `restaurants_ecm`.`menu`.`menu_item`(`menu_item_id`);
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ADD CONSTRAINT `fk_menu_recipe_ingredient_recipe_id` FOREIGN KEY (`recipe_id`) REFERENCES `restaurants_ecm`.`menu`.`recipe`(`recipe_id`);
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ADD CONSTRAINT `fk_menu_item_price_menu_item_id` FOREIGN KEY (`menu_item_id`) REFERENCES `restaurants_ecm`.`menu`.`menu_item`(`menu_item_id`);
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ADD CONSTRAINT `fk_menu_nutrition_profile_menu_item_id` FOREIGN KEY (`menu_item_id`) REFERENCES `restaurants_ecm`.`menu`.`menu_item`(`menu_item_id`);
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ADD CONSTRAINT `fk_menu_nutrition_profile_recipe_id` FOREIGN KEY (`recipe_id`) REFERENCES `restaurants_ecm`.`menu`.`recipe`(`recipe_id`);
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ADD CONSTRAINT `fk_menu_allergen_declaration_menu_item_id` FOREIGN KEY (`menu_item_id`) REFERENCES `restaurants_ecm`.`menu`.`menu_item`(`menu_item_id`);
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ADD CONSTRAINT `fk_menu_allergen_declaration_superseded_by_allergen_declaration_id` FOREIGN KEY (`superseded_by_allergen_declaration_id`) REFERENCES `restaurants_ecm`.`menu`.`allergen_declaration`(`allergen_declaration_id`);
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ADD CONSTRAINT `fk_menu_menu_lto_menu_item_id` FOREIGN KEY (`menu_item_id`) REFERENCES `restaurants_ecm`.`menu`.`menu_item`(`menu_item_id`);
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ADD CONSTRAINT `fk_menu_menu_lto_previous_lto_menu_lto_id` FOREIGN KEY (`previous_lto_menu_lto_id`) REFERENCES `restaurants_ecm`.`menu`.`menu_lto`(`menu_lto_id`);
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ADD CONSTRAINT `fk_menu_menu_modifier_menu_item_id` FOREIGN KEY (`menu_item_id`) REFERENCES `restaurants_ecm`.`menu`.`menu_item`(`menu_item_id`);
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ADD CONSTRAINT `fk_menu_menu_modifier_modifier_group_id` FOREIGN KEY (`modifier_group_id`) REFERENCES `restaurants_ecm`.`menu`.`modifier_group`(`modifier_group_id`);
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ADD CONSTRAINT `fk_menu_pmix_record_menu_item_id` FOREIGN KEY (`menu_item_id`) REFERENCES `restaurants_ecm`.`menu`.`menu_item`(`menu_item_id`);
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ADD CONSTRAINT `fk_menu_item_cost_menu_item_id` FOREIGN KEY (`menu_item_id`) REFERENCES `restaurants_ecm`.`menu`.`menu_item`(`menu_item_id`);
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ADD CONSTRAINT `fk_menu_item_cost_recipe_id` FOREIGN KEY (`recipe_id`) REFERENCES `restaurants_ecm`.`menu`.`recipe`(`recipe_id`);
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ADD CONSTRAINT `fk_menu_combo_meal_menu_id` FOREIGN KEY (`menu_id`) REFERENCES `restaurants_ecm`.`menu`.`menu`(`menu_id`);
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ADD CONSTRAINT `fk_menu_item_86_event_menu_item_id` FOREIGN KEY (`menu_item_id`) REFERENCES `restaurants_ecm`.`menu`.`menu_item`(`menu_item_id`);
+ALTER TABLE `restaurants_ecm`.`menu`.`dietary_tag` ADD CONSTRAINT `fk_menu_dietary_tag_parent_dietary_tag_id` FOREIGN KEY (`parent_dietary_tag_id`) REFERENCES `restaurants_ecm`.`menu`.`dietary_tag`(`dietary_tag_id`);
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_component` ADD CONSTRAINT `fk_menu_combo_component_combo_meal_id` FOREIGN KEY (`combo_meal_id`) REFERENCES `restaurants_ecm`.`menu`.`combo_meal`(`combo_meal_id`);
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_component` ADD CONSTRAINT `fk_menu_combo_component_menu_item_id` FOREIGN KEY (`menu_item_id`) REFERENCES `restaurants_ecm`.`menu`.`menu_item`(`menu_item_id`);
+ALTER TABLE `restaurants_ecm`.`menu`.`dietary_tag_assignment` ADD CONSTRAINT `fk_menu_dietary_tag_assignment_dietary_tag_id` FOREIGN KEY (`dietary_tag_id`) REFERENCES `restaurants_ecm`.`menu`.`dietary_tag`(`dietary_tag_id`);
+ALTER TABLE `restaurants_ecm`.`menu`.`dietary_tag_assignment` ADD CONSTRAINT `fk_menu_dietary_tag_assignment_menu_item_id` FOREIGN KEY (`menu_item_id`) REFERENCES `restaurants_ecm`.`menu`.`menu_item`(`menu_item_id`);
+
+-- ========= TAGS =========
+ALTER SCHEMA `restaurants_ecm`.`menu` SET TAGS ('dbx_division' = 'business');
+ALTER SCHEMA `restaurants_ecm`.`menu` SET TAGS ('dbx_domain' = 'menu');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` SET TAGS ('dbx_subdomain' = 'menu_design');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `menu_item_id` SET TAGS ('dbx_business_glossary_term' = 'Menu Item ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `campaign_id` SET TAGS ('dbx_business_glossary_term' = 'Campaign Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Created By Employee Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `foodsafety_allergen_profile_id` SET TAGS ('dbx_business_glossary_term' = 'Allergen Profile Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `franchisee_id` SET TAGS ('dbx_business_glossary_term' = 'Franchisee Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `gl_account_id` SET TAGS ('dbx_business_glossary_term' = 'Gl Account Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `haccp_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Haccp Plan Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `item_category_id` SET TAGS ('dbx_business_glossary_term' = 'Item Category Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `stock_item_id` SET TAGS ('dbx_business_glossary_term' = 'Stock Item Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `supply_supplier_id` SET TAGS ('dbx_business_glossary_term' = 'Supplier Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `allergen_flags` SET TAGS ('dbx_business_glossary_term' = 'Allergen Declaration Flags');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `base_price` SET TAGS ('dbx_business_glossary_term' = 'Base Menu Price');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `base_price` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `calorie_count` SET TAGS ('dbx_business_glossary_term' = 'Calorie Count (kcal)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `cost` SET TAGS ('dbx_business_glossary_term' = 'Menu Item Cost (COGS)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `cost` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `daypart` SET TAGS ('dbx_business_glossary_term' = 'Daypart');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `daypart` SET TAGS ('dbx_value_regex' = 'breakfast|lunch|dinner|late_night|all_day|snack');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `discontinue_date` SET TAGS ('dbx_business_glossary_term' = 'Menu Item Discontinuation Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `image_url` SET TAGS ('dbx_business_glossary_term' = 'Menu Item Image URL');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `image_url` SET TAGS ('dbx_value_regex' = '^https?://.+$');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `is_3pd_available` SET TAGS ('dbx_business_glossary_term' = 'Third-Party Delivery (3PD) Availability Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `is_combo_eligible` SET TAGS ('dbx_business_glossary_term' = 'Combo Meal Eligibility Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `is_customizable` SET TAGS ('dbx_business_glossary_term' = 'Item Customization Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `is_dine_in_available` SET TAGS ('dbx_business_glossary_term' = 'Dine-In Availability Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `is_dt_available` SET TAGS ('dbx_business_glossary_term' = 'Drive-Thru (DT) Availability Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `is_gluten_free` SET TAGS ('dbx_business_glossary_term' = 'Gluten-Free Item Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `is_lto` SET TAGS ('dbx_business_glossary_term' = 'Limited Time Offer (LTO) Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `is_olo_available` SET TAGS ('dbx_business_glossary_term' = 'Online Ordering (OLO) Availability Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `is_taxable` SET TAGS ('dbx_business_glossary_term' = 'Item Taxability Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `is_vegan` SET TAGS ('dbx_business_glossary_term' = 'Vegan Item Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `is_vegetarian` SET TAGS ('dbx_business_glossary_term' = 'Vegetarian Item Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `item_code` SET TAGS ('dbx_business_glossary_term' = 'Menu Item Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `item_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9_-]{2,30}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `item_description` SET TAGS ('dbx_business_glossary_term' = 'Menu Item Description');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `item_name` SET TAGS ('dbx_business_glossary_term' = 'Menu Item Name');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `item_status` SET TAGS ('dbx_business_glossary_term' = 'Menu Item Status');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `item_status` SET TAGS ('dbx_value_regex' = 'active|inactive|lto|discontinued|pending_launch|suspended');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `launch_date` SET TAGS ('dbx_business_glossary_term' = 'Menu Item Launch Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `lto_end_date` SET TAGS ('dbx_business_glossary_term' = 'Limited Time Offer (LTO) End Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `lto_start_date` SET TAGS ('dbx_business_glossary_term' = 'Limited Time Offer (LTO) Start Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `menu_engineering_class` SET TAGS ('dbx_business_glossary_term' = 'Menu Engineering Classification');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `menu_engineering_class` SET TAGS ('dbx_value_regex' = 'star|plow_horse|puzzle|dog');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `portion_size_grams` SET TAGS ('dbx_business_glossary_term' = 'Portion Size (Grams)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `prep_time_seconds` SET TAGS ('dbx_business_glossary_term' = 'Preparation Time (Seconds)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `restaurant_format` SET TAGS ('dbx_business_glossary_term' = 'Restaurant Format');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `restaurant_format` SET TAGS ('dbx_value_regex' = 'qsr|casual|fine_dining|all');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `serving_temperature` SET TAGS ('dbx_business_glossary_term' = 'Serving Temperature');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `serving_temperature` SET TAGS ('dbx_value_regex' = 'hot|cold|ambient|frozen');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `sku_code` SET TAGS ('dbx_business_glossary_term' = 'Stock Keeping Unit (SKU) Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `sku_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9_-]{4,20}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `sodium_mg` SET TAGS ('dbx_business_glossary_term' = 'Sodium Content (mg)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `sort_order` SET TAGS ('dbx_business_glossary_term' = 'Menu Display Sort Order');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `source_system_code` SET TAGS ('dbx_business_glossary_term' = 'Source System Item ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `source_system_code` SET TAGS ('dbx_value_regex' = '^[A-Za-z0-9_-]{1,50}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `subcategory` SET TAGS ('dbx_business_glossary_term' = 'Menu Item Subcategory');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `tax_category_code` SET TAGS ('dbx_business_glossary_term' = 'Tax Category Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `tax_category_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9_]{2,20}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_item` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Last Updated Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` SET TAGS ('dbx_subdomain' = 'menu_design');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `menu_id` SET TAGS ('dbx_business_glossary_term' = 'Menu ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Created By Employee Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `franchisee_id` SET TAGS ('dbx_business_glossary_term' = 'Franchisee Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `haccp_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Haccp Plan Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `site_id` SET TAGS ('dbx_business_glossary_term' = 'Site Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `territory_id` SET TAGS ('dbx_business_glossary_term' = 'Territory Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `unit_id` SET TAGS ('dbx_business_glossary_term' = 'Unit Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `allergen_disclosure_required` SET TAGS ('dbx_business_glossary_term' = 'Allergen Disclosure Required Indicator');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `approval_status` SET TAGS ('dbx_business_glossary_term' = 'Menu Approval Status');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `approval_status` SET TAGS ('dbx_value_regex' = 'draft|pending_review|approved|rejected|archived');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Menu Approved By');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `approved_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Menu Approval Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `category_count` SET TAGS ('dbx_business_glossary_term' = 'Menu Category Count');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `channel` SET TAGS ('dbx_business_glossary_term' = 'Service Channel');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `channel` SET TAGS ('dbx_value_regex' = 'dine_in|drive_thru|olo|third_party_delivery|kiosk|catering');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `country_code` SET TAGS ('dbx_business_glossary_term' = 'Country Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `country_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Menu Record Created Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `daypart` SET TAGS ('dbx_business_glossary_term' = 'Daypart');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `daypart` SET TAGS ('dbx_value_regex' = 'breakfast|lunch|dinner|late_night|all_day|snack');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `daypart_end_time` SET TAGS ('dbx_business_glossary_term' = 'Daypart End Time');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `daypart_start_time` SET TAGS ('dbx_business_glossary_term' = 'Daypart Start Time');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `digital_menu_board_enabled` SET TAGS ('dbx_business_glossary_term' = 'Digital Menu Board Enabled Indicator');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `effective_end_date` SET TAGS ('dbx_business_glossary_term' = 'Menu Effective End Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `effective_start_date` SET TAGS ('dbx_business_glossary_term' = 'Menu Effective Start Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `engineering_tier` SET TAGS ('dbx_business_glossary_term' = 'Menu Engineering Tier');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `engineering_tier` SET TAGS ('dbx_value_regex' = 'star|plow_horse|puzzle|dog');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `haccp_reviewed` SET TAGS ('dbx_business_glossary_term' = 'Hazard Analysis Critical Control Points (HACCP) Reviewed Indicator');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `is_default` SET TAGS ('dbx_business_glossary_term' = 'Default Menu Indicator');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `is_franchise_menu` SET TAGS ('dbx_business_glossary_term' = 'Franchise Menu Indicator');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `is_lto` SET TAGS ('dbx_business_glossary_term' = 'Limited Time Offer (LTO) Indicator');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `item_count` SET TAGS ('dbx_business_glossary_term' = 'Menu Item Count');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `kds_routing_profile` SET TAGS ('dbx_business_glossary_term' = 'Kitchen Display System (KDS) Routing Profile');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `language_code` SET TAGS ('dbx_business_glossary_term' = 'Menu Language Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `language_code` SET TAGS ('dbx_value_regex' = '^[a-z]{2}(-[A-Z]{2})?$');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Menu Record Last Modified Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `market_region` SET TAGS ('dbx_business_glossary_term' = 'Market Region');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `menu_code` SET TAGS ('dbx_business_glossary_term' = 'Menu Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `menu_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9_-]{3,30}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `menu_description` SET TAGS ('dbx_business_glossary_term' = 'Menu Description');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `menu_name` SET TAGS ('dbx_business_glossary_term' = 'Menu Name');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Menu Notes');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `nutritional_disclosure_required` SET TAGS ('dbx_business_glossary_term' = 'Nutritional Disclosure Required Indicator');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `olo_menu_code` SET TAGS ('dbx_business_glossary_term' = 'Online Ordering (OLO) Menu ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `pmix_tracking_enabled` SET TAGS ('dbx_business_glossary_term' = 'Product Mix (PMIX) Tracking Enabled Indicator');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `pos_menu_code` SET TAGS ('dbx_business_glossary_term' = 'Point of Sale (POS) Menu ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `price_tier` SET TAGS ('dbx_business_glossary_term' = 'Menu Price Tier');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `price_tier` SET TAGS ('dbx_value_regex' = 'value|standard|premium|luxury');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `publish_status` SET TAGS ('dbx_business_glossary_term' = 'Menu Publish Status');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `publish_status` SET TAGS ('dbx_value_regex' = 'unpublished|published|suspended|retired');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `published_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Menu Published Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `restaurant_format` SET TAGS ('dbx_business_glossary_term' = 'Restaurant Format');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `restaurant_format` SET TAGS ('dbx_value_regex' = 'QSR|casual|fine_dining|fast_casual|ghost_kitchen');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `retired_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Menu Retired Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `source_system` SET TAGS ('dbx_business_glossary_term' = 'Source System');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `source_system` SET TAGS ('dbx_value_regex' = 'MICROS_POS|OLO|FRANCONNECT|MANUAL|SAP');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu` ALTER COLUMN `version_number` SET TAGS ('dbx_business_glossary_term' = 'Menu Version Number');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` SET TAGS ('dbx_subdomain' = 'recipe_costing');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `recipe_id` SET TAGS ('dbx_business_glossary_term' = 'Recipe ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Created By Employee Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `foodsafety_allergen_profile_id` SET TAGS ('dbx_business_glossary_term' = 'Allergen Profile Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `haccp_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Haccp Plan Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `menu_item_id` SET TAGS ('dbx_business_glossary_term' = 'Menu Item ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `allergen_flags` SET TAGS ('dbx_business_glossary_term' = 'Allergen Flags');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Recipe Approved By');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `approved_date` SET TAGS ('dbx_business_glossary_term' = 'Recipe Approval Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `boh_prep_notes` SET TAGS ('dbx_business_glossary_term' = 'Back of House (BOH) Preparation Notes');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `calories` SET TAGS ('dbx_business_glossary_term' = 'Calories (kcal)');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `calories_from_fat` SET TAGS ('dbx_business_glossary_term' = 'Calories from Fat (kcal)');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `channel` SET TAGS ('dbx_business_glossary_term' = 'Service Channel');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `channel` SET TAGS ('dbx_value_regex' = 'dine_in|drive_thru|online_ordering|third_party_delivery|catering');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `cook_method` SET TAGS ('dbx_business_glossary_term' = 'Cook Method');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `cook_temperature_f` SET TAGS ('dbx_business_glossary_term' = 'Cook Temperature (Fahrenheit)');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `cook_time_seconds` SET TAGS ('dbx_business_glossary_term' = 'Cook Time (Seconds)');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `daypart` SET TAGS ('dbx_business_glossary_term' = 'Daypart');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `daypart` SET TAGS ('dbx_value_regex' = 'breakfast|lunch|dinner|late_night|all_day|snack');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `effective_date` SET TAGS ('dbx_business_glossary_term' = 'Recipe Effective Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `expiration_date` SET TAGS ('dbx_business_glossary_term' = 'Recipe Expiration Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `food_cost` SET TAGS ('dbx_business_glossary_term' = 'Recipe Food Cost (USD)');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `food_cost` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `food_cost_pct` SET TAGS ('dbx_business_glossary_term' = 'Food Cost Percentage (CoGS%)');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `food_cost_pct` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `haccp_ccp_flag` SET TAGS ('dbx_business_glossary_term' = 'Hazard Analysis Critical Control Point (HACCP) Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `holding_temperature_f` SET TAGS ('dbx_business_glossary_term' = 'Holding Temperature (Fahrenheit)');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `holding_time_max_minutes` SET TAGS ('dbx_business_glossary_term' = 'Maximum Holding Time (Minutes)');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `is_gluten_free` SET TAGS ('dbx_business_glossary_term' = 'Gluten-Free Indicator');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `is_vegan` SET TAGS ('dbx_business_glossary_term' = 'Vegan Indicator');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `is_vegetarian` SET TAGS ('dbx_business_glossary_term' = 'Vegetarian Indicator');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `menu_price` SET TAGS ('dbx_business_glossary_term' = 'Menu Selling Price (USD)');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `menu_price` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `plating_instructions` SET TAGS ('dbx_business_glossary_term' = 'Plating Instructions');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `prep_method` SET TAGS ('dbx_business_glossary_term' = 'Preparation Method');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `prep_time_seconds` SET TAGS ('dbx_business_glossary_term' = 'Preparation Time (Seconds)');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `recipe_category` SET TAGS ('dbx_business_glossary_term' = 'Recipe Category');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `recipe_code` SET TAGS ('dbx_business_glossary_term' = 'Recipe Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `recipe_code` SET TAGS ('dbx_value_regex' = '^RCP-[A-Z0-9]{4,12}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `recipe_name` SET TAGS ('dbx_business_glossary_term' = 'Recipe Name');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `recipe_status` SET TAGS ('dbx_business_glossary_term' = 'Recipe Status');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `recipe_status` SET TAGS ('dbx_value_regex' = 'draft|active|inactive|archived|under_review');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `recipe_type` SET TAGS ('dbx_business_glossary_term' = 'Recipe Type');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `recipe_type` SET TAGS ('dbx_value_regex' = 'core|limited_time_offer|seasonal|test|regional');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `restaurant_format` SET TAGS ('dbx_business_glossary_term' = 'Restaurant Format');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `restaurant_format` SET TAGS ('dbx_value_regex' = 'qsr|casual|fine_dining|fast_casual');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `serving_size_g` SET TAGS ('dbx_business_glossary_term' = 'Serving Size (Grams)');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `shelf_life_hours` SET TAGS ('dbx_business_glossary_term' = 'Shelf Life (Hours)');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `sodium_mg` SET TAGS ('dbx_business_glossary_term' = 'Sodium Content (Milligrams)');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `storage_temperature_f` SET TAGS ('dbx_business_glossary_term' = 'Storage Temperature (Fahrenheit)');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `subcategory` SET TAGS ('dbx_business_glossary_term' = 'Recipe Subcategory');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `total_time_seconds` SET TAGS ('dbx_business_glossary_term' = 'Total Recipe Time (Seconds)');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Updated Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `version` SET TAGS ('dbx_business_glossary_term' = 'Recipe Version');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `version` SET TAGS ('dbx_value_regex' = '^[0-9]+.[0-9]+$');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `waste_pct` SET TAGS ('dbx_business_glossary_term' = 'Food Waste Percentage (Waste%)');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `yield_quantity` SET TAGS ('dbx_business_glossary_term' = 'Recipe Yield Quantity');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe` ALTER COLUMN `yield_unit` SET TAGS ('dbx_business_glossary_term' = 'Recipe Yield Unit');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` SET TAGS ('dbx_subdomain' = 'recipe_costing');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `recipe_ingredient_id` SET TAGS ('dbx_business_glossary_term' = 'Recipe Ingredient ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `ingredient_id` SET TAGS ('dbx_business_glossary_term' = 'Ingredient ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `primary_recipe_substitute_ingredient_id` SET TAGS ('dbx_business_glossary_term' = 'Substitute Ingredient ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `procurement_supplier_id` SET TAGS ('dbx_business_glossary_term' = 'Preferred Supplier ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `recipe_id` SET TAGS ('dbx_business_glossary_term' = 'Recipe ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `allergen_flags` SET TAGS ('dbx_business_glossary_term' = 'Allergen Declaration Flags');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Approved By');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `approved_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `bom_version` SET TAGS ('dbx_business_glossary_term' = 'Bill of Materials (BOM) Version');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `bom_version` SET TAGS ('dbx_value_regex' = '^vd+.d+$');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `contains_dairy` SET TAGS ('dbx_business_glossary_term' = 'Contains Dairy Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `contains_gluten` SET TAGS ('dbx_business_glossary_term' = 'Contains Gluten Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `cost_per_unit` SET TAGS ('dbx_business_glossary_term' = 'Ingredient Cost Per Unit');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `cost_per_unit` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code (ISO 4217)');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `effective_end_date` SET TAGS ('dbx_business_glossary_term' = 'Effective End Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `effective_start_date` SET TAGS ('dbx_business_glossary_term' = 'Effective Start Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `extended_cost` SET TAGS ('dbx_business_glossary_term' = 'Extended Ingredient Cost');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `extended_cost` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `haccp_critical_control_point` SET TAGS ('dbx_business_glossary_term' = 'HACCP Critical Control Point (CCP) Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `ingredient_status` SET TAGS ('dbx_business_glossary_term' = 'Ingredient Status');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `ingredient_status` SET TAGS ('dbx_value_regex' = 'active|inactive|discontinued|pending_approval|seasonal');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `is_critical_ingredient` SET TAGS ('dbx_business_glossary_term' = 'Critical Ingredient Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `is_halal_certified` SET TAGS ('dbx_business_glossary_term' = 'Halal Certified Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `is_kosher_certified` SET TAGS ('dbx_business_glossary_term' = 'Kosher Certified Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `is_organic` SET TAGS ('dbx_business_glossary_term' = 'Organic Certified Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `is_substitution_allowed` SET TAGS ('dbx_business_glossary_term' = 'Substitution Allowed Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `line_sequence` SET TAGS ('dbx_business_glossary_term' = 'BOM Line Sequence Number');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `min_internal_temp_f` SET TAGS ('dbx_business_glossary_term' = 'Minimum Internal Temperature (°F)');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Ingredient Notes');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `par_level_quantity` SET TAGS ('dbx_business_glossary_term' = 'Periodic Automatic Replenishment (PAR) Level Quantity');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `prep_state` SET TAGS ('dbx_business_glossary_term' = 'Ingredient Preparation State');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `quantity` SET TAGS ('dbx_business_glossary_term' = 'Ingredient Quantity');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `shelf_life_days` SET TAGS ('dbx_business_glossary_term' = 'Ingredient Shelf Life (Days)');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `storage_temperature_max_f` SET TAGS ('dbx_business_glossary_term' = 'Maximum Storage Temperature (°F)');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `storage_temperature_min_f` SET TAGS ('dbx_business_glossary_term' = 'Minimum Storage Temperature (°F)');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `supplier_item_code` SET TAGS ('dbx_business_glossary_term' = 'Supplier Item Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `unit_of_measure` SET TAGS ('dbx_business_glossary_term' = 'Unit of Measure (UOM)');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Updated Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `waste_factor_pct` SET TAGS ('dbx_business_glossary_term' = 'Waste Factor Percentage (Waste%)');
+ALTER TABLE `restaurants_ecm`.`menu`.`recipe_ingredient` ALTER COLUMN `yield_pct` SET TAGS ('dbx_business_glossary_term' = 'Yield Percentage');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` SET TAGS ('dbx_data_type' = 'transactional_data');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` SET TAGS ('dbx_subdomain' = 'recipe_costing');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `item_price_id` SET TAGS ('dbx_business_glossary_term' = 'Item Price ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `approved_by_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Approved By ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Approved By ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `franchisee_id` SET TAGS ('dbx_business_glossary_term' = 'Franchisee Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `menu_item_id` SET TAGS ('dbx_business_glossary_term' = 'Menu Item ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `tier_id` SET TAGS ('dbx_business_glossary_term' = 'Price Tier ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `site_id` SET TAGS ('dbx_business_glossary_term' = 'Restaurant ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `unit_id` SET TAGS ('dbx_business_glossary_term' = 'Restaurant ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `approval_status` SET TAGS ('dbx_business_glossary_term' = 'Approval Status');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `approval_status` SET TAGS ('dbx_value_regex' = 'draft|pending_approval|approved|rejected|superseded');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `approved_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Approved Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `base_price` SET TAGS ('dbx_business_glossary_term' = 'Base Price');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `base_price` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `channel_surcharge` SET TAGS ('dbx_business_glossary_term' = 'Channel Surcharge');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `channel_surcharge` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `cogs_pct` SET TAGS ('dbx_business_glossary_term' = 'Cost of Goods Sold Percentage (CoGS%)');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `cogs_pct` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `cost_of_goods` SET TAGS ('dbx_business_glossary_term' = 'Cost of Goods Sold (COGS)');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `cost_of_goods` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `country_code` SET TAGS ('dbx_business_glossary_term' = 'Country Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `country_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `daypart` SET TAGS ('dbx_business_glossary_term' = 'Daypart');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `daypart` SET TAGS ('dbx_value_regex' = 'breakfast|lunch|afternoon|dinner|late_night|all_day');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `effective_end_date` SET TAGS ('dbx_business_glossary_term' = 'Effective End Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `effective_start_date` SET TAGS ('dbx_business_glossary_term' = 'Effective Start Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `franchise_price_deviation_pct` SET TAGS ('dbx_business_glossary_term' = 'Franchise Price Deviation Percentage');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `franchise_price_deviation_pct` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `is_active` SET TAGS ('dbx_business_glossary_term' = 'Is Active Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `is_lto` SET TAGS ('dbx_business_glossary_term' = 'Is Limited Time Offer (LTO) Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `is_price_override_allowed` SET TAGS ('dbx_business_glossary_term' = 'Is Price Override Allowed Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `lto_campaign_code` SET TAGS ('dbx_business_glossary_term' = 'Limited Time Offer (LTO) Campaign Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `lto_campaign_code` SET TAGS ('dbx_value_regex' = '^LTO-[A-Z0-9]{4,10}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `max_order_quantity` SET TAGS ('dbx_business_glossary_term' = 'Maximum Order Quantity');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `menu_engineering_category` SET TAGS ('dbx_business_glossary_term' = 'Menu Engineering Category');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `menu_engineering_category` SET TAGS ('dbx_value_regex' = 'star|plow_horse|puzzle|dog');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `min_order_quantity` SET TAGS ('dbx_business_glossary_term' = 'Minimum Order Quantity');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `ordering_channel` SET TAGS ('dbx_business_glossary_term' = 'Ordering Channel');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `ordering_channel` SET TAGS ('dbx_value_regex' = 'dine_in|drive_thru|olo|3pd|kiosk|catering');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `ownership_type` SET TAGS ('dbx_business_glossary_term' = 'Ownership Type');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `ownership_type` SET TAGS ('dbx_value_regex' = 'company_owned|franchised');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `pos_price_level` SET TAGS ('dbx_business_glossary_term' = 'Point of Sale (POS) Price Level');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `pos_price_level` SET TAGS ('dbx_value_regex' = '^[A-Z0-9_]{1,20}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `price_change_reason` SET TAGS ('dbx_business_glossary_term' = 'Price Change Reason');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `price_change_reason_notes` SET TAGS ('dbx_business_glossary_term' = 'Price Change Reason Notes');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `price_display_label` SET TAGS ('dbx_business_glossary_term' = 'Price Display Label');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `price_elasticity_band` SET TAGS ('dbx_business_glossary_term' = 'Price Elasticity Band');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `price_elasticity_band` SET TAGS ('dbx_value_regex' = 'inelastic|low_elastic|moderate_elastic|high_elastic');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `price_override_limit` SET TAGS ('dbx_business_glossary_term' = 'Price Override Limit');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `price_override_limit` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `price_record_code` SET TAGS ('dbx_business_glossary_term' = 'Price Record Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `price_record_code` SET TAGS ('dbx_value_regex' = '^PRC-[A-Z0-9]{6,12}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `price_region_code` SET TAGS ('dbx_business_glossary_term' = 'Price Region Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `price_region_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{2,6}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `price_source_system` SET TAGS ('dbx_business_glossary_term' = 'Price Source System');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `price_source_system` SET TAGS ('dbx_value_regex' = 'micros_pos|sap_s4hana|manual|olo|franconnect');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `price_version` SET TAGS ('dbx_business_glossary_term' = 'Price Version');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `promotional_price` SET TAGS ('dbx_business_glossary_term' = 'Promotional Price');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `promotional_price` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `restaurant_format` SET TAGS ('dbx_business_glossary_term' = 'Restaurant Format');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `restaurant_format` SET TAGS ('dbx_value_regex' = 'qsr|casual|fine_dining|fast_casual');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `source_system_price_code` SET TAGS ('dbx_business_glossary_term' = 'Source System Price ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `suggested_retail_price` SET TAGS ('dbx_business_glossary_term' = 'Suggested Retail Price (SRP)');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `suggested_retail_price` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `tax_category_code` SET TAGS ('dbx_business_glossary_term' = 'Tax Category Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `tax_category_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9_]{2,20}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_price` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Updated Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` SET TAGS ('dbx_subdomain' = 'nutrition_compliance');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `nutrition_profile_id` SET TAGS ('dbx_business_glossary_term' = 'Nutrition Profile ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Created By Employee Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `menu_item_id` SET TAGS ('dbx_business_glossary_term' = 'Menu Item ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `recipe_id` SET TAGS ('dbx_business_glossary_term' = 'Recipe ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `added_sugars_g` SET TAGS ('dbx_business_glossary_term' = 'Added Sugars (Grams)');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `approval_status` SET TAGS ('dbx_business_glossary_term' = 'Regulatory Approval Status');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `approval_status` SET TAGS ('dbx_value_regex' = 'draft|pending_review|approved|rejected|archived');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Approved By');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `approved_date` SET TAGS ('dbx_business_glossary_term' = 'Regulatory Approval Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `calcium_mg` SET TAGS ('dbx_business_glossary_term' = 'Calcium (Milligrams)');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `calorie_range_high` SET TAGS ('dbx_business_glossary_term' = 'Calorie Range High (kcal)');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `calorie_range_low` SET TAGS ('dbx_business_glossary_term' = 'Calorie Range Low (kcal)');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `calories` SET TAGS ('dbx_business_glossary_term' = 'Calories (kcal)');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `calories_from_fat` SET TAGS ('dbx_business_glossary_term' = 'Calories from Fat (kcal)');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `cholesterol_mg` SET TAGS ('dbx_business_glossary_term' = 'Cholesterol (Milligrams)');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `daily_value_basis_calories` SET TAGS ('dbx_business_glossary_term' = 'Daily Value Basis Calories (kcal)');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `data_source` SET TAGS ('dbx_business_glossary_term' = 'Nutritional Data Source');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `data_source` SET TAGS ('dbx_value_regex' = 'lab_analysis|database_lookup|recipe_calculation|supplier_provided|literature_value');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `dietary_fiber_g` SET TAGS ('dbx_business_glossary_term' = 'Dietary Fiber (Grams)');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `effective_date` SET TAGS ('dbx_business_glossary_term' = 'Effective Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `expiration_date` SET TAGS ('dbx_business_glossary_term' = 'Expiration Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `insoluble_fiber_g` SET TAGS ('dbx_business_glossary_term' = 'Insoluble Fiber (Grams)');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `iron_mg` SET TAGS ('dbx_business_glossary_term' = 'Iron (Milligrams)');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `is_current_version` SET TAGS ('dbx_business_glossary_term' = 'Is Current Version Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `lab_accreditation_number` SET TAGS ('dbx_business_glossary_term' = 'Laboratory Accreditation Number');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `lab_analysis_date` SET TAGS ('dbx_business_glossary_term' = 'Laboratory Analysis Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `menu_board_calorie_display` SET TAGS ('dbx_business_glossary_term' = 'Menu Board Calorie Display');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `monounsaturated_fat_g` SET TAGS ('dbx_business_glossary_term' = 'Monounsaturated Fat (Grams)');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `polyunsaturated_fat_g` SET TAGS ('dbx_business_glossary_term' = 'Polyunsaturated Fat (Grams)');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `potassium_mg` SET TAGS ('dbx_business_glossary_term' = 'Potassium (Milligrams)');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `profile_code` SET TAGS ('dbx_business_glossary_term' = 'Nutrition Profile Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `profile_code` SET TAGS ('dbx_value_regex' = '^NP-[A-Z0-9]{4,12}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `profile_name` SET TAGS ('dbx_business_glossary_term' = 'Nutrition Profile Name');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `profile_type` SET TAGS ('dbx_business_glossary_term' = 'Nutrition Profile Type');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `profile_type` SET TAGS ('dbx_value_regex' = 'standard|customized|limited_time_offer|regional|test');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `protein_g` SET TAGS ('dbx_business_glossary_term' = 'Protein (Grams)');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `saturated_fat_g` SET TAGS ('dbx_business_glossary_term' = 'Saturated Fat (Grams)');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `serving_size_description` SET TAGS ('dbx_business_glossary_term' = 'Serving Size Description');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `serving_size_g` SET TAGS ('dbx_business_glossary_term' = 'Serving Size (Grams)');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `sodium_mg` SET TAGS ('dbx_business_glossary_term' = 'Sodium (Milligrams)');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `soluble_fiber_g` SET TAGS ('dbx_business_glossary_term' = 'Soluble Fiber (Grams)');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `total_carbohydrate_g` SET TAGS ('dbx_business_glossary_term' = 'Total Carbohydrate (Grams)');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `total_fat_g` SET TAGS ('dbx_business_glossary_term' = 'Total Fat (Grams)');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `total_sugars_g` SET TAGS ('dbx_business_glossary_term' = 'Total Sugars (Grams)');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `trans_fat_g` SET TAGS ('dbx_business_glossary_term' = 'Trans Fat (Grams)');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `version_number` SET TAGS ('dbx_business_glossary_term' = 'Version Number');
+ALTER TABLE `restaurants_ecm`.`menu`.`nutrition_profile` ALTER COLUMN `vitamin_d_mcg` SET TAGS ('dbx_business_glossary_term' = 'Vitamin D (Micrograms)');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` SET TAGS ('dbx_subdomain' = 'nutrition_compliance');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `allergen_declaration_id` SET TAGS ('dbx_business_glossary_term' = 'Allergen Declaration ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Created By Employee Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `menu_item_id` SET TAGS ('dbx_business_glossary_term' = 'Menu Item ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `superseded_by_allergen_declaration_id` SET TAGS ('dbx_business_glossary_term' = 'Superseded By Allergen Declaration ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Allergen Declaration Approved By');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `channel_applicability` SET TAGS ('dbx_business_glossary_term' = 'Channel Applicability');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `cross_contact_risk_level` SET TAGS ('dbx_business_glossary_term' = 'Cross-Contact Risk Level');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `cross_contact_risk_level` SET TAGS ('dbx_value_regex' = 'none|low|medium|high|critical');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `cross_contact_source` SET TAGS ('dbx_business_glossary_term' = 'Cross-Contact Source Description');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `daypart_applicability` SET TAGS ('dbx_business_glossary_term' = 'Daypart Applicability');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `declaration_date` SET TAGS ('dbx_business_glossary_term' = 'Allergen Declaration Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `declaration_number` SET TAGS ('dbx_business_glossary_term' = 'Allergen Declaration Number');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `declaration_number` SET TAGS ('dbx_value_regex' = '^ALGN-[0-9]{4}-[0-9]{6}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `declaration_status` SET TAGS ('dbx_business_glossary_term' = 'Allergen Declaration Status');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `declaration_status` SET TAGS ('dbx_value_regex' = 'draft|pending_review|approved|superseded|withdrawn');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `declaration_type` SET TAGS ('dbx_business_glossary_term' = 'Allergen Declaration Type');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `declaration_type` SET TAGS ('dbx_value_regex' = 'standard|lto|seasonal|regional|custom');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `effective_date` SET TAGS ('dbx_business_glossary_term' = 'Allergen Declaration Effective Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `eggs_status` SET TAGS ('dbx_business_glossary_term' = 'Eggs Allergen Status');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `eggs_status` SET TAGS ('dbx_value_regex' = 'contains|may_contain|free_from');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `expiration_date` SET TAGS ('dbx_business_glossary_term' = 'Allergen Declaration Expiration Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `fish_species` SET TAGS ('dbx_business_glossary_term' = 'Fish Species Declaration');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `fish_status` SET TAGS ('dbx_business_glossary_term' = 'Fish Allergen Status');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `fish_status` SET TAGS ('dbx_value_regex' = 'contains|may_contain|free_from');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `gluten_free_certified` SET TAGS ('dbx_business_glossary_term' = 'Gluten-Free Certified Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `guest_advisory_text` SET TAGS ('dbx_business_glossary_term' = 'Guest Advisory Text');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `haccp_ccp_reference` SET TAGS ('dbx_business_glossary_term' = 'Hazard Analysis Critical Control Points (HACCP) Critical Control Point (CCP) Reference');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `internal_notes` SET TAGS ('dbx_business_glossary_term' = 'Internal Allergen Notes');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `internal_notes` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `may_contain_allergen_count` SET TAGS ('dbx_business_glossary_term' = 'May-Contain Allergen Count');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `milk_status` SET TAGS ('dbx_business_glossary_term' = 'Milk Allergen Status');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `milk_status` SET TAGS ('dbx_value_regex' = 'contains|may_contain|free_from');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `peanuts_status` SET TAGS ('dbx_business_glossary_term' = 'Peanuts Allergen Status');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `peanuts_status` SET TAGS ('dbx_value_regex' = 'contains|may_contain|free_from');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `recipe_version` SET TAGS ('dbx_business_glossary_term' = 'Recipe Version');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `recipe_version` SET TAGS ('dbx_value_regex' = '^v[0-9]+.[0-9]+$');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `regulatory_submission_date` SET TAGS ('dbx_business_glossary_term' = 'Regulatory Submission Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `regulatory_submission_required` SET TAGS ('dbx_business_glossary_term' = 'Regulatory Submission Required Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `restaurant_format_applicability` SET TAGS ('dbx_business_glossary_term' = 'Restaurant Format Applicability');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `restaurant_format_applicability` SET TAGS ('dbx_value_regex' = 'qsr|casual|fine_dining|all');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `review_date` SET TAGS ('dbx_business_glossary_term' = 'Allergen Declaration Review Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `reviewed_by` SET TAGS ('dbx_business_glossary_term' = 'Allergen Declaration Reviewed By');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `sesame_status` SET TAGS ('dbx_business_glossary_term' = 'Sesame Allergen Status');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `sesame_status` SET TAGS ('dbx_value_regex' = 'contains|may_contain|free_from');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `shellfish_species` SET TAGS ('dbx_business_glossary_term' = 'Shellfish Species Declaration');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `shellfish_status` SET TAGS ('dbx_business_glossary_term' = 'Shellfish Allergen Status');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `shellfish_status` SET TAGS ('dbx_value_regex' = 'contains|may_contain|free_from');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `source_system` SET TAGS ('dbx_business_glossary_term' = 'Source System');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `source_system` SET TAGS ('dbx_value_regex' = 'zenput|micros_pos|marketman|manual|sap');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `soybeans_status` SET TAGS ('dbx_business_glossary_term' = 'Soybeans Allergen Status');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `soybeans_status` SET TAGS ('dbx_value_regex' = 'contains|may_contain|free_from');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `total_allergen_count` SET TAGS ('dbx_business_glossary_term' = 'Total Allergen Count');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `tree_nut_varieties` SET TAGS ('dbx_business_glossary_term' = 'Tree Nut Varieties Declaration');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `tree_nuts_status` SET TAGS ('dbx_business_glossary_term' = 'Tree Nuts Allergen Status');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `tree_nuts_status` SET TAGS ('dbx_value_regex' = 'contains|may_contain|free_from');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Updated Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `wheat_status` SET TAGS ('dbx_business_glossary_term' = 'Wheat Allergen Status');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `wheat_status` SET TAGS ('dbx_value_regex' = 'contains|may_contain|free_from');
+ALTER TABLE `restaurants_ecm`.`menu`.`allergen_declaration` ALTER COLUMN `zenput_audit_task_code` SET TAGS ('dbx_business_glossary_term' = 'Zenput Audit Task ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` SET TAGS ('dbx_subdomain' = 'menu_design');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `menu_lto_id` SET TAGS ('dbx_business_glossary_term' = 'Limited Time Offer (LTO) ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `campaign_id` SET TAGS ('dbx_business_glossary_term' = 'Marketing Campaign ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `franchisee_id` SET TAGS ('dbx_business_glossary_term' = 'Franchisee Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `menu_item_id` SET TAGS ('dbx_business_glossary_term' = 'Menu Item ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `previous_lto_menu_lto_id` SET TAGS ('dbx_business_glossary_term' = 'Previous Limited Time Offer (LTO) ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `unit_id` SET TAGS ('dbx_business_glossary_term' = 'Unit Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `actual_end_date` SET TAGS ('dbx_business_glossary_term' = 'Actual End Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `actual_launch_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Launch Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `allergen_reviewed` SET TAGS ('dbx_business_glossary_term' = 'Allergen Review Completed Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `approval_status` SET TAGS ('dbx_business_glossary_term' = 'Approval Status');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `approval_status` SET TAGS ('dbx_value_regex' = 'pending|approved|rejected|on_hold');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Approved By');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `concept_description` SET TAGS ('dbx_business_glossary_term' = 'Limited Time Offer (LTO) Concept Description');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `country_code` SET TAGS ('dbx_business_glossary_term' = 'Country Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `country_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `daypart` SET TAGS ('dbx_business_glossary_term' = 'Target Daypart');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `daypart` SET TAGS ('dbx_value_regex' = 'breakfast|lunch|dinner|late_night|all_day|snack');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `estimated_weekly_units` SET TAGS ('dbx_business_glossary_term' = 'Estimated Weekly Units');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `food_safety_approved` SET TAGS ('dbx_business_glossary_term' = 'Food Safety Approved Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `is_national_launch` SET TAGS ('dbx_business_glossary_term' = 'National Launch Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `is_returning_item` SET TAGS ('dbx_business_glossary_term' = 'Returning Item Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `is_test_market` SET TAGS ('dbx_business_glossary_term' = 'Test Market Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `launch_lead_time_days` SET TAGS ('dbx_business_glossary_term' = 'Launch Lead Time (Days)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `lifecycle_status` SET TAGS ('dbx_business_glossary_term' = 'Limited Time Offer (LTO) Lifecycle Status');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `lifecycle_status` SET TAGS ('dbx_value_regex' = 'ideation|approved|in_test|active|sunset|cancelled');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `lto_code` SET TAGS ('dbx_business_glossary_term' = 'Limited Time Offer (LTO) Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `lto_code` SET TAGS ('dbx_value_regex' = '^LTO-[A-Z0-9]{4,12}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `lto_type` SET TAGS ('dbx_business_glossary_term' = 'Limited Time Offer (LTO) Type');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `lto_type` SET TAGS ('dbx_value_regex' = 'new_item|returning_item|bundle|promotional_price|seasonal');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `marketing_headline` SET TAGS ('dbx_business_glossary_term' = 'Marketing Headline');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `menu_lto_name` SET TAGS ('dbx_business_glossary_term' = 'Limited Time Offer (LTO) Name');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `nutritional_approved` SET TAGS ('dbx_business_glossary_term' = 'Nutritional Approval Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `olo_item_code` SET TAGS ('dbx_business_glossary_term' = 'Online Ordering (OLO) Item ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `ownership_model` SET TAGS ('dbx_business_glossary_term' = 'Ownership Model');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `ownership_model` SET TAGS ('dbx_value_regex' = 'franchise|company_owned|both');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `planned_duration_days` SET TAGS ('dbx_business_glossary_term' = 'Planned Duration (Days)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `planned_end_date` SET TAGS ('dbx_business_glossary_term' = 'Planned End Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `planned_launch_date` SET TAGS ('dbx_business_glossary_term' = 'Planned Launch Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `pmix_target_pct` SET TAGS ('dbx_business_glossary_term' = 'Product Mix Target Percentage (PMIX%)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `pos_item_code` SET TAGS ('dbx_business_glossary_term' = 'Point of Sale (POS) Item Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `region_code` SET TAGS ('dbx_business_glossary_term' = 'Region Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `restaurant_format` SET TAGS ('dbx_business_glossary_term' = 'Restaurant Format');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `restaurant_format` SET TAGS ('dbx_value_regex' = 'qsr|casual_dining|fine_dining|all_formats');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `rollout_scope` SET TAGS ('dbx_business_glossary_term' = 'Rollout Scope');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `rollout_scope` SET TAGS ('dbx_value_regex' = 'national|regional|franchise_group|company_owned|test_market');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `season_or_occasion` SET TAGS ('dbx_business_glossary_term' = 'Season or Occasion');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `source_system` SET TAGS ('dbx_business_glossary_term' = 'Source System');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `source_system` SET TAGS ('dbx_value_regex' = 'oracle_micros_pos|salesforce_crm|franconnect|olo|manual');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `suggested_retail_price` SET TAGS ('dbx_business_glossary_term' = 'Suggested Retail Price');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `suggested_retail_price` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `target_channel` SET TAGS ('dbx_business_glossary_term' = 'Target Channel');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `target_channel` SET TAGS ('dbx_value_regex' = 'dine_in|drive_thru|olo|third_party_delivery|all_channels');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `target_food_cost_pct` SET TAGS ('dbx_business_glossary_term' = 'Target Cost of Goods Sold Percentage (CoGS%)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `target_food_cost_pct` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_lto` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Updated Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` SET TAGS ('dbx_subdomain' = 'menu_design');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `modifier_group_id` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `allergen_relevance_flag` SET TAGS ('dbx_business_glossary_term' = 'Allergen Relevance Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group Approved By');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `approved_date` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group Approved Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `calorie_impact_flag` SET TAGS ('dbx_business_glossary_term' = 'Calorie Impact Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `channel_applicability` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group Channel Applicability');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group Created Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `daypart_applicability` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group Daypart Applicability');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `daypart_applicability` SET TAGS ('dbx_value_regex' = 'all|breakfast|lunch|dinner|late_night|snack');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `default_modifier_code` SET TAGS ('dbx_business_glossary_term' = 'Default Modifier Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `display_name` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group Display Name');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `display_sequence` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group Display Sequence');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `effective_end_date` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group Effective End Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `effective_start_date` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group Effective Start Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `free_modifier_limit` SET TAGS ('dbx_business_glossary_term' = 'Free Modifier Limit');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `group_code` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `group_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9_-]{2,30}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `group_name` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group Name');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `group_type` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group Type');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `image_url` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group Image URL');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `image_url` SET TAGS ('dbx_value_regex' = '^https?://.+$');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `is_collapsible` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group Collapsible Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `is_franchise_configurable` SET TAGS ('dbx_business_glossary_term' = 'Franchise Configurable Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `is_kds_displayed` SET TAGS ('dbx_business_glossary_term' = 'Kitchen Display System (KDS) Displayed Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `is_lto` SET TAGS ('dbx_business_glossary_term' = 'Limited Time Offer (LTO) Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `is_printed_on_receipt` SET TAGS ('dbx_business_glossary_term' = 'Printed on Receipt Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `is_required` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group Required Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `localization_key` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group Localization Key');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `lto_end_date` SET TAGS ('dbx_business_glossary_term' = 'Limited Time Offer (LTO) End Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `lto_start_date` SET TAGS ('dbx_business_glossary_term' = 'Limited Time Offer (LTO) Start Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `max_selections` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group Maximum Selections');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `min_selections` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group Minimum Selections');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `modifier_group_description` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group Description');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `modifier_group_status` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group Status');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `modifier_group_status` SET TAGS ('dbx_value_regex' = 'active|inactive|draft|archived|suspended');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group Notes');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `olo_group_ref` SET TAGS ('dbx_business_glossary_term' = 'Online Ordering (OLO) Modifier Group Reference');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `pmix_tracking_enabled` SET TAGS ('dbx_business_glossary_term' = 'Product Mix (PMIX) Tracking Enabled Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `pos_group_ref` SET TAGS ('dbx_business_glossary_term' = 'Point of Sale (POS) Modifier Group Reference');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `restaurant_format_applicability` SET TAGS ('dbx_business_glossary_term' = 'Restaurant Format Applicability');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `restaurant_format_applicability` SET TAGS ('dbx_value_regex' = 'all|qsr|casual|fine_dining|qsr_casual');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `selection_type` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group Selection Type');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `selection_type` SET TAGS ('dbx_value_regex' = 'single|multi');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `sort_order_method` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group Sort Order Method');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `sort_order_method` SET TAGS ('dbx_value_regex' = 'manual|alphabetical|price_asc|price_desc|popularity');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `source_system` SET TAGS ('dbx_business_glossary_term' = 'Source System');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `source_system` SET TAGS ('dbx_value_regex' = 'micros_pos|olo|franconnect|manual');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `upcharge_basis` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group Upcharge Basis');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `upcharge_basis` SET TAGS ('dbx_value_regex' = 'per_item|flat_group|none');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group Updated Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`modifier_group` ALTER COLUMN `version_number` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group Version Number');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` SET TAGS ('dbx_subdomain' = 'menu_design');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `menu_modifier_id` SET TAGS ('dbx_business_glossary_term' = 'Modifier ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Created By Employee Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `menu_item_id` SET TAGS ('dbx_business_glossary_term' = 'Menu Item ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `modifier_group_id` SET TAGS ('dbx_business_glossary_term' = 'Modifier Group ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `allergen_flags` SET TAGS ('dbx_business_glossary_term' = 'Modifier Allergen Flags');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Modifier Approved By');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `approved_date` SET TAGS ('dbx_business_glossary_term' = 'Modifier Approval Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `available_channels` SET TAGS ('dbx_business_glossary_term' = 'Modifier Available Channels');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `available_dayparts` SET TAGS ('dbx_business_glossary_term' = 'Modifier Available Dayparts');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `calorie_delta` SET TAGS ('dbx_business_glossary_term' = 'Modifier Calorie Delta');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `carbohydrate_delta_g` SET TAGS ('dbx_business_glossary_term' = 'Modifier Total Carbohydrate Delta (grams)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `cogs_delta` SET TAGS ('dbx_business_glossary_term' = 'Modifier Cost of Goods Sold (COGS) Delta');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `cogs_delta` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modifier Record Created Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `effective_end_date` SET TAGS ('dbx_business_glossary_term' = 'Modifier Effective End Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `effective_start_date` SET TAGS ('dbx_business_glossary_term' = 'Modifier Effective Start Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `fat_delta_g` SET TAGS ('dbx_business_glossary_term' = 'Modifier Total Fat Delta (grams)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `image_url` SET TAGS ('dbx_business_glossary_term' = 'Modifier Image URL');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `image_url` SET TAGS ('dbx_value_regex' = '^https?://.+$');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `is_allergen_free` SET TAGS ('dbx_business_glossary_term' = 'Modifier Is Allergen-Free Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `is_available` SET TAGS ('dbx_business_glossary_term' = 'Modifier Is Currently Available Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `is_default` SET TAGS ('dbx_business_glossary_term' = 'Modifier Is Default Selection Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `is_lto` SET TAGS ('dbx_business_glossary_term' = 'Modifier Is Limited Time Offer (LTO) Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `is_required` SET TAGS ('dbx_business_glossary_term' = 'Modifier Is Required Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `lto_end_date` SET TAGS ('dbx_business_glossary_term' = 'Limited Time Offer (LTO) End Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `lto_start_date` SET TAGS ('dbx_business_glossary_term' = 'Limited Time Offer (LTO) Start Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `max_quantity` SET TAGS ('dbx_business_glossary_term' = 'Modifier Maximum Quantity');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `menu_modifier_description` SET TAGS ('dbx_business_glossary_term' = 'Modifier Description');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `menu_modifier_name` SET TAGS ('dbx_business_glossary_term' = 'Modifier Name');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `menu_modifier_status` SET TAGS ('dbx_business_glossary_term' = 'Modifier Status');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `menu_modifier_status` SET TAGS ('dbx_value_regex' = 'active|inactive|discontinued|pending_approval|seasonal');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `modifier_type` SET TAGS ('dbx_business_glossary_term' = 'Modifier Type');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `modifier_type` SET TAGS ('dbx_value_regex' = 'addition|removal|substitution|size_upsize|size_downsize|preparation');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `plu_code` SET TAGS ('dbx_business_glossary_term' = 'Price Look-Up (PLU) Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `plu_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9-]{1,20}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `pos_button_color` SET TAGS ('dbx_business_glossary_term' = 'Point of Sale (POS) Button Color');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `pos_button_color` SET TAGS ('dbx_value_regex' = '^#[0-9A-Fa-f]{6}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `prep_instruction` SET TAGS ('dbx_business_glossary_term' = 'Modifier Preparation Instruction');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `price_delta` SET TAGS ('dbx_business_glossary_term' = 'Modifier Price Delta');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `price_delta` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `protein_delta_g` SET TAGS ('dbx_business_glossary_term' = 'Modifier Protein Delta (grams)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `restaurant_format` SET TAGS ('dbx_business_glossary_term' = 'Restaurant Format Applicability');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `restaurant_format` SET TAGS ('dbx_value_regex' = 'qsr|casual|fine_dining|all');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `short_name` SET TAGS ('dbx_business_glossary_term' = 'Modifier Short Name');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `sku` SET TAGS ('dbx_business_glossary_term' = 'Stock Keeping Unit (SKU)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `sku` SET TAGS ('dbx_value_regex' = '^[A-Z0-9-]{1,30}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `sodium_delta_mg` SET TAGS ('dbx_business_glossary_term' = 'Modifier Sodium Delta (milligrams)');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `sort_order` SET TAGS ('dbx_business_glossary_term' = 'Modifier Display Sort Order');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `source_system` SET TAGS ('dbx_business_glossary_term' = 'Modifier Source System');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `source_system` SET TAGS ('dbx_value_regex' = 'micros_pos|olo|franconnect|manual');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `tax_category_code` SET TAGS ('dbx_business_glossary_term' = 'Modifier Tax Category Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `tax_category_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9_]{1,20}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `unavailability_reason` SET TAGS ('dbx_business_glossary_term' = 'Modifier Unavailability Reason');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `unavailability_reason` SET TAGS ('dbx_value_regex' = 'out_of_stock|seasonal_end|operational_hold|discontinued|supplier_issue');
+ALTER TABLE `restaurants_ecm`.`menu`.`menu_modifier` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modifier Record Last Updated Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` SET TAGS ('dbx_data_type' = 'transactional_data');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` SET TAGS ('dbx_subdomain' = 'nutrition_compliance');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `pmix_record_id` SET TAGS ('dbx_business_glossary_term' = 'Product Mix (PMIX) Record ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `financial_period_id` SET TAGS ('dbx_business_glossary_term' = 'Fiscal Period ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `menu_item_id` SET TAGS ('dbx_business_glossary_term' = 'Menu Item ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `promotion_id` SET TAGS ('dbx_business_glossary_term' = 'Promotion ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `site_id` SET TAGS ('dbx_business_glossary_term' = 'Restaurant ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `unit_id` SET TAGS ('dbx_business_glossary_term' = 'Restaurant ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `avg_selling_price` SET TAGS ('dbx_business_glossary_term' = 'Average Selling Price');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `category_rank` SET TAGS ('dbx_business_glossary_term' = 'Category Rank');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `cogs_amount` SET TAGS ('dbx_business_glossary_term' = 'Cost of Goods Sold (COGS) Amount');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `cogs_pct` SET TAGS ('dbx_business_glossary_term' = 'Cost of Goods Sold Percentage (CoGS%)');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `comp_amount` SET TAGS ('dbx_business_glossary_term' = 'Complimentary (Comp) Amount');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `comp_count` SET TAGS ('dbx_business_glossary_term' = 'Complimentary (Comp) Count');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `contribution_margin_amount` SET TAGS ('dbx_business_glossary_term' = 'Contribution Margin Amount');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `daypart` SET TAGS ('dbx_business_glossary_term' = 'Daypart');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `daypart` SET TAGS ('dbx_value_regex' = 'breakfast|lunch|afternoon|dinner|late_night|all_day');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `discount_amount` SET TAGS ('dbx_business_glossary_term' = 'Discount Amount');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `gross_sales_amount` SET TAGS ('dbx_business_glossary_term' = 'Gross Sales Amount');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `is_available` SET TAGS ('dbx_business_glossary_term' = 'Item Availability Indicator');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `is_lto` SET TAGS ('dbx_business_glossary_term' = 'Limited Time Offer (LTO) Indicator');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `menu_category` SET TAGS ('dbx_business_glossary_term' = 'Menu Category');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `menu_engineering_classification` SET TAGS ('dbx_business_glossary_term' = 'Menu Engineering Classification');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `menu_engineering_classification` SET TAGS ('dbx_value_regex' = 'star|plow_horse|puzzle|dog');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `menu_list_price` SET TAGS ('dbx_business_glossary_term' = 'Menu List Price');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `menu_mix_pct` SET TAGS ('dbx_business_glossary_term' = 'Menu Mix Percentage (PMIX%)');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `net_sales_amount` SET TAGS ('dbx_business_glossary_term' = 'Net Sales Amount');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `overall_rank` SET TAGS ('dbx_business_glossary_term' = 'Overall Rank');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `ownership_type` SET TAGS ('dbx_business_glossary_term' = 'Restaurant Ownership Type');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `ownership_type` SET TAGS ('dbx_value_regex' = 'company_owned|franchised');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `pos_report_reference` SET TAGS ('dbx_business_glossary_term' = 'Point of Sale (POS) Report Reference');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `record_status` SET TAGS ('dbx_business_glossary_term' = 'Record Status');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `record_status` SET TAGS ('dbx_value_regex' = 'active|revised|voided');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `refund_amount` SET TAGS ('dbx_business_glossary_term' = 'Refund Amount');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `refund_count` SET TAGS ('dbx_business_glossary_term' = 'Refund Count');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `reporting_date` SET TAGS ('dbx_business_glossary_term' = 'Reporting Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `reporting_period_type` SET TAGS ('dbx_business_glossary_term' = 'Reporting Period Type');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `reporting_period_type` SET TAGS ('dbx_value_regex' = 'daily|weekly|daypart');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `restaurant_format` SET TAGS ('dbx_business_glossary_term' = 'Restaurant Format');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `restaurant_format` SET TAGS ('dbx_value_regex' = 'qsr|casual|fine_dining');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `sales_channel` SET TAGS ('dbx_business_glossary_term' = 'Sales Channel');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `sales_channel` SET TAGS ('dbx_value_regex' = 'dine_in|drive_thru|online|third_party_delivery|kiosk|catering');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `sales_mix_pct` SET TAGS ('dbx_business_glossary_term' = 'Sales Mix Percentage');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `sku_code` SET TAGS ('dbx_business_glossary_term' = 'Stock Keeping Unit (SKU) Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `source_system` SET TAGS ('dbx_business_glossary_term' = 'Source System');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `source_system` SET TAGS ('dbx_value_regex' = 'micros_pos|olo|third_party_delivery');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `unavailability_hours` SET TAGS ('dbx_business_glossary_term' = 'Item Unavailability Hours');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `units_sold` SET TAGS ('dbx_business_glossary_term' = 'Units Sold');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Updated Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `void_amount` SET TAGS ('dbx_business_glossary_term' = 'Void Amount');
+ALTER TABLE `restaurants_ecm`.`menu`.`pmix_record` ALTER COLUMN `void_count` SET TAGS ('dbx_business_glossary_term' = 'Void Count');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` SET TAGS ('dbx_data_type' = 'transactional_data');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` SET TAGS ('dbx_subdomain' = 'nutrition_compliance');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `engineering_review_id` SET TAGS ('dbx_business_glossary_term' = 'Menu Engineering Review ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `approved_by_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Approved By Employee ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Reviewer Employee ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `category_id` SET TAGS ('dbx_business_glossary_term' = 'Menu Category ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `primary_engineering_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Reviewer Employee ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `primary_engineering_employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `primary_engineering_employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `allergen_review_required` SET TAGS ('dbx_business_glossary_term' = 'Allergen Review Required Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `avg_contribution_margin` SET TAGS ('dbx_business_glossary_term' = 'Average Contribution Margin');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `avg_contribution_margin` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `avg_menu_item_popularity_index` SET TAGS ('dbx_business_glossary_term' = 'Average Menu Item Popularity Index');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `channel_scope` SET TAGS ('dbx_business_glossary_term' = 'Channel Scope');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `channel_scope` SET TAGS ('dbx_value_regex' = 'DT|OLO|3PD|dine_in|all');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `cogs_pct_threshold` SET TAGS ('dbx_business_glossary_term' = 'Cost of Goods Sold Percentage (CoGS%) Threshold');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `cogs_pct_threshold` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `daypart_scope` SET TAGS ('dbx_business_glossary_term' = 'Daypart Scope');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `daypart_scope` SET TAGS ('dbx_value_regex' = 'breakfast|lunch|dinner|late_night|all');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `engineering_framework` SET TAGS ('dbx_business_glossary_term' = 'Menu Engineering Framework');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `engineering_framework` SET TAGS ('dbx_value_regex' = 'BCG_matrix|kasavana_smith|star_plow_puzzle_dog|custom');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `food_safety_review_required` SET TAGS ('dbx_business_glossary_term' = 'Food Safety Review Required Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `implementation_status` SET TAGS ('dbx_business_glossary_term' = 'Implementation Status');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `implementation_status` SET TAGS ('dbx_value_regex' = 'pending|in_progress|completed|deferred');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `implementation_target_date` SET TAGS ('dbx_business_glossary_term' = 'Implementation Target Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `is_comp_sales_impact_assessed` SET TAGS ('dbx_business_glossary_term' = 'Is Comparable Store Sales (SSS) Impact Assessed Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `is_franchise_applicable` SET TAGS ('dbx_business_glossary_term' = 'Is Franchise Applicable Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `items_discontinue_count` SET TAGS ('dbx_business_glossary_term' = 'Items Discontinue Count');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `items_evaluated_count` SET TAGS ('dbx_business_glossary_term' = 'Items Evaluated Count');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `items_keep_count` SET TAGS ('dbx_business_glossary_term' = 'Items Keep Count');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `items_reposition_count` SET TAGS ('dbx_business_glossary_term' = 'Items Reposition Count');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `items_reprice_count` SET TAGS ('dbx_business_glossary_term' = 'Items Reprice Count');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `last_updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Last Updated Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `lto_items_evaluated_count` SET TAGS ('dbx_business_glossary_term' = 'Limited Time Offer (LTO) Items Evaluated Count');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `lto_pipeline_decision` SET TAGS ('dbx_business_glossary_term' = 'Limited Time Offer (LTO) Pipeline Decision');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `lto_pipeline_decision` SET TAGS ('dbx_value_regex' = 'advance|hold|cancel|extend|convert_to_core');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `menu_complexity_score_after` SET TAGS ('dbx_business_glossary_term' = 'Menu Complexity Score After Review');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `menu_complexity_score_before` SET TAGS ('dbx_business_glossary_term' = 'Menu Complexity Score Before Review');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `next_review_date` SET TAGS ('dbx_business_glossary_term' = 'Next Scheduled Review Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `nutritional_review_required` SET TAGS ('dbx_business_glossary_term' = 'Nutritional Review Required Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `pmix_data_source` SET TAGS ('dbx_business_glossary_term' = 'Product Mix (PMIX) Data Source');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `pmix_data_source` SET TAGS ('dbx_value_regex' = 'MICROS_POS|SAP|manual|OLO|3PD_aggregated');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `pricing_strategy_notes` SET TAGS ('dbx_business_glossary_term' = 'Pricing Strategy Notes');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `pricing_strategy_notes` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `recommended_actions_summary` SET TAGS ('dbx_business_glossary_term' = 'Recommended Actions Summary');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `restaurant_format` SET TAGS ('dbx_business_glossary_term' = 'Restaurant Format');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `restaurant_format` SET TAGS ('dbx_value_regex' = 'QSR|casual|fine_dining|all');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `restaurant_group_code` SET TAGS ('dbx_business_glossary_term' = 'Restaurant Group ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `review_cycle` SET TAGS ('dbx_business_glossary_term' = 'Review Cycle');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `review_cycle` SET TAGS ('dbx_value_regex' = 'monthly|quarterly|semi_annual|annual|ad_hoc');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `review_date` SET TAGS ('dbx_business_glossary_term' = 'Menu Engineering Review Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `review_number` SET TAGS ('dbx_business_glossary_term' = 'Menu Engineering Review Number');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `review_number` SET TAGS ('dbx_value_regex' = '^MER-[0-9]{4}-[0-9]{6}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `review_period_end_date` SET TAGS ('dbx_business_glossary_term' = 'Review Period End Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `review_period_start_date` SET TAGS ('dbx_business_glossary_term' = 'Review Period Start Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `review_scope_type` SET TAGS ('dbx_business_glossary_term' = 'Review Scope Type');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `review_scope_type` SET TAGS ('dbx_value_regex' = 'category|daypart|channel|restaurant_format|market');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `review_status` SET TAGS ('dbx_business_glossary_term' = 'Menu Engineering Review Status');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `review_status` SET TAGS ('dbx_value_regex' = 'draft|in_review|approved|closed|cancelled');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_business_glossary_term' = 'Reviewer Name');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `source_system` SET TAGS ('dbx_business_glossary_term' = 'Source System');
+ALTER TABLE `restaurants_ecm`.`menu`.`engineering_review` ALTER COLUMN `source_system` SET TAGS ('dbx_value_regex' = 'MICROS_POS|SAP|manual|OLO|FranConnect');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` SET TAGS ('dbx_data_type' = 'transactional_data');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` SET TAGS ('dbx_subdomain' = 'recipe_costing');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `item_cost_id` SET TAGS ('dbx_business_glossary_term' = 'Item Cost ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `menu_item_id` SET TAGS ('dbx_business_glossary_term' = 'Menu Item ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `recipe_id` SET TAGS ('dbx_business_glossary_term' = 'Recipe ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `actual_cogs_pct` SET TAGS ('dbx_business_glossary_term' = 'Actual Cost of Goods Sold Percentage (Actual CoGS%)');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `actual_cogs_pct` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Approved By');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `approved_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `base_selling_price` SET TAGS ('dbx_business_glossary_term' = 'Base Selling Price');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `base_selling_price` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `channel` SET TAGS ('dbx_business_glossary_term' = 'Sales Channel');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `channel` SET TAGS ('dbx_value_regex' = 'dine_in|drive_thru|olo|3pd|all');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `cogs_pct_variance` SET TAGS ('dbx_business_glossary_term' = 'Cost of Goods Sold Percentage Variance (CoGS% Variance)');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `cogs_pct_variance` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `cost_calculation_date` SET TAGS ('dbx_business_glossary_term' = 'Cost Calculation Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `cost_calculation_method` SET TAGS ('dbx_business_glossary_term' = 'Cost Calculation Method');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `cost_calculation_method` SET TAGS ('dbx_value_regex' = 'theoretical_bom|actual_marktman|blended');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `cost_per_gram` SET TAGS ('dbx_business_glossary_term' = 'Cost Per Gram');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `cost_per_gram` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `cost_status` SET TAGS ('dbx_business_glossary_term' = 'Cost Record Status');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `cost_status` SET TAGS ('dbx_value_regex' = 'draft|approved|superseded|archived');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `daypart` SET TAGS ('dbx_business_glossary_term' = 'Daypart');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `daypart` SET TAGS ('dbx_value_regex' = 'breakfast|lunch|dinner|late_night|all');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `effective_end_date` SET TAGS ('dbx_business_glossary_term' = 'Effective End Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `effective_start_date` SET TAGS ('dbx_business_glossary_term' = 'Effective Start Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `fiscal_period` SET TAGS ('dbx_business_glossary_term' = 'Fiscal Period');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `fiscal_period` SET TAGS ('dbx_value_regex' = '^[0-9]{4}-P(0[1-9]|1[0-3])$');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `ingredient_count` SET TAGS ('dbx_business_glossary_term' = 'Ingredient Count');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `is_lto` SET TAGS ('dbx_business_glossary_term' = 'Limited Time Offer (LTO) Indicator');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `marktman_cost_record_code` SET TAGS ('dbx_business_glossary_term' = 'MarketMan Cost Record ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `menu_engineering_class` SET TAGS ('dbx_business_glossary_term' = 'Menu Engineering Classification');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `menu_engineering_class` SET TAGS ('dbx_value_regex' = 'star|plow_horse|puzzle|dog');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Cost Record Notes');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `packaging_cost` SET TAGS ('dbx_business_glossary_term' = 'Packaging Cost Amount');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `packaging_cost` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `portion_size_grams` SET TAGS ('dbx_business_glossary_term' = 'Portion Size (Grams)');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `price_basis` SET TAGS ('dbx_business_glossary_term' = 'Ingredient Price Basis');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `price_basis` SET TAGS ('dbx_value_regex' = 'last_purchase|moving_average|contract|standard');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `price_snapshot_date` SET TAGS ('dbx_business_glossary_term' = 'Ingredient Price Snapshot Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `price_snapshot_reference` SET TAGS ('dbx_business_glossary_term' = 'Ingredient Price Snapshot ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `primary_protein_cost` SET TAGS ('dbx_business_glossary_term' = 'Primary Protein Cost Amount');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `primary_protein_cost` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `recipe_version` SET TAGS ('dbx_business_glossary_term' = 'Recipe Version');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `restaurant_format` SET TAGS ('dbx_business_glossary_term' = 'Restaurant Format');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `restaurant_format` SET TAGS ('dbx_value_regex' = 'QSR|casual|fine_dining|all');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `source_system` SET TAGS ('dbx_business_glossary_term' = 'Source System');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `source_system` SET TAGS ('dbx_value_regex' = 'MarketMan|SAP_S4HANA|MICROS_POS|manual');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `target_cogs_pct` SET TAGS ('dbx_business_glossary_term' = 'Target Cost of Goods Sold Percentage (Target CoGS%)');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `target_cogs_pct` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `target_variance_pct` SET TAGS ('dbx_business_glossary_term' = 'Target Cost Variance Percentage');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `target_variance_pct` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `theoretical_cogs_pct` SET TAGS ('dbx_business_glossary_term' = 'Theoretical Cost of Goods Sold Percentage (CoGS%)');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `theoretical_cogs_pct` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `theoretical_cost_amount` SET TAGS ('dbx_business_glossary_term' = 'Theoretical Cost of Goods Sold (COGS) Amount');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `theoretical_cost_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `theoretical_cost_variance_amount` SET TAGS ('dbx_business_glossary_term' = 'Theoretical Cost Variance Amount');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `theoretical_cost_variance_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Updated Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `waste_pct` SET TAGS ('dbx_business_glossary_term' = 'Food Waste Percentage (Waste%)');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_cost` ALTER COLUMN `yield_pct` SET TAGS ('dbx_business_glossary_term' = 'Yield Percentage');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` SET TAGS ('dbx_subdomain' = 'menu_design');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `combo_meal_id` SET TAGS ('dbx_business_glossary_term' = 'Combo Meal ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `campaign_id` SET TAGS ('dbx_business_glossary_term' = 'Campaign Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `menu_id` SET TAGS ('dbx_business_glossary_term' = 'Menu Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `allergen_flags` SET TAGS ('dbx_business_glossary_term' = 'Allergen Flags');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Approved By');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `approved_date` SET TAGS ('dbx_business_glossary_term' = 'Approved Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `bundle_discount_amount` SET TAGS ('dbx_business_glossary_term' = 'Bundle Discount Amount');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `bundle_price` SET TAGS ('dbx_business_glossary_term' = 'Bundle Price');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `calorie_range_max` SET TAGS ('dbx_business_glossary_term' = 'Calorie Range Maximum');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `calorie_range_min` SET TAGS ('dbx_business_glossary_term' = 'Calorie Range Minimum');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `combo_code` SET TAGS ('dbx_business_glossary_term' = 'Combo Meal Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `combo_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9_-]{3,30}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `combo_description` SET TAGS ('dbx_business_glossary_term' = 'Combo Meal Description');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `combo_name` SET TAGS ('dbx_business_glossary_term' = 'Combo Meal Name');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `combo_status` SET TAGS ('dbx_business_glossary_term' = 'Combo Meal Status');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `combo_status` SET TAGS ('dbx_value_regex' = 'active|inactive|pending|discontinued|test');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `combo_type` SET TAGS ('dbx_business_glossary_term' = 'Combo Meal Type');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `combo_type` SET TAGS ('dbx_value_regex' = 'value_meal|family_pack|kids_meal|party_pack|snack_combo|premium_combo');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `country_code` SET TAGS ('dbx_business_glossary_term' = 'Country Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `country_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `daypart` SET TAGS ('dbx_business_glossary_term' = 'Daypart');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `daypart` SET TAGS ('dbx_value_regex' = 'breakfast|lunch|dinner|late_night|all_day|snack');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `discontinue_date` SET TAGS ('dbx_business_glossary_term' = 'Combo Meal Discontinue Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `effective_end_date` SET TAGS ('dbx_business_glossary_term' = 'Effective End Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `effective_start_date` SET TAGS ('dbx_business_glossary_term' = 'Effective Start Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `food_cost_pct` SET TAGS ('dbx_business_glossary_term' = 'Food Cost Percentage (CoGS%)');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `food_cost_pct` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `image_url` SET TAGS ('dbx_business_glossary_term' = 'Combo Meal Image URL');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `image_url` SET TAGS ('dbx_value_regex' = '^https?://.+$');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `individual_items_price_sum` SET TAGS ('dbx_business_glossary_term' = 'Individual Items Price Sum');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `is_3pd_available` SET TAGS ('dbx_business_glossary_term' = 'Third-Party Delivery (3PD) Available');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `is_customizable` SET TAGS ('dbx_business_glossary_term' = 'Combo Meal Customizable');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `is_dine_in_available` SET TAGS ('dbx_business_glossary_term' = 'Dine-In Available');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `is_dt_available` SET TAGS ('dbx_business_glossary_term' = 'Drive-Thru (DT) Available');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `is_national_launch` SET TAGS ('dbx_business_glossary_term' = 'National Launch Indicator');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `is_olo_available` SET TAGS ('dbx_business_glossary_term' = 'Online Ordering (OLO) Available');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `is_taxable` SET TAGS ('dbx_business_glossary_term' = 'Combo Meal Taxable');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `item_cost` SET TAGS ('dbx_business_glossary_term' = 'Combo Meal Item Cost (COGS)');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `item_cost` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `launch_date` SET TAGS ('dbx_business_glossary_term' = 'Combo Meal Launch Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `menu_engineering_class` SET TAGS ('dbx_business_glossary_term' = 'Menu Engineering Classification');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `menu_engineering_class` SET TAGS ('dbx_value_regex' = 'star|plow_horse|puzzle|dog');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `olo_item_code` SET TAGS ('dbx_business_glossary_term' = 'Online Ordering (OLO) Item ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `ownership_model` SET TAGS ('dbx_business_glossary_term' = 'Restaurant Ownership Model');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `ownership_model` SET TAGS ('dbx_value_regex' = 'franchise|company_owned|both');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `pmix_target_pct` SET TAGS ('dbx_business_glossary_term' = 'Product Mix Target Percentage (PMIX%)');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `pos_item_code` SET TAGS ('dbx_business_glossary_term' = 'Point of Sale (POS) Item Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `pos_item_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9_-]{2,20}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `region_code` SET TAGS ('dbx_business_glossary_term' = 'Region Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `region_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{2,10}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `restaurant_format` SET TAGS ('dbx_business_glossary_term' = 'Restaurant Format');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `restaurant_format` SET TAGS ('dbx_value_regex' = 'QSR|casual|fine_dining|all');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `sort_order` SET TAGS ('dbx_business_glossary_term' = 'Combo Meal Sort Order');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `source_system` SET TAGS ('dbx_business_glossary_term' = 'Source System');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `source_system` SET TAGS ('dbx_value_regex' = 'MICROS_POS|OLO|MANUAL|SAP');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `tax_category_code` SET TAGS ('dbx_business_glossary_term' = 'Tax Category Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `tax_category_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9_]{2,20}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `total_calories` SET TAGS ('dbx_business_glossary_term' = 'Total Combo Meal Calories');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_meal` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Updated Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` SET TAGS ('dbx_data_type' = 'transactional_data');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` SET TAGS ('dbx_subdomain' = 'nutrition_compliance');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `item_86_event_id` SET TAGS ('dbx_business_glossary_term' = 'Item 86 Event ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `equipment_asset_id` SET TAGS ('dbx_business_glossary_term' = 'Equipment ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `equipment_equipment_asset_id` SET TAGS ('dbx_business_glossary_term' = 'Equipment ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `ingredient_lot_id` SET TAGS ('dbx_business_glossary_term' = 'Ingredient Lot Id (Foreign Key)');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Reported By Employee ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `menu_item_id` SET TAGS ('dbx_business_glossary_term' = 'Menu Item ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `procurement_supplier_id` SET TAGS ('dbx_business_glossary_term' = 'Supplier ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `site_id` SET TAGS ('dbx_business_glossary_term' = 'Restaurant ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `unit_id` SET TAGS ('dbx_business_glossary_term' = 'Restaurant ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `channel_affected` SET TAGS ('dbx_business_glossary_term' = 'Affected Service Channel');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `channel_affected` SET TAGS ('dbx_value_regex' = 'all|dine_in|drive_thru|olo|3pd');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `daypart_affected` SET TAGS ('dbx_business_glossary_term' = 'Affected Daypart');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `daypart_affected` SET TAGS ('dbx_value_regex' = 'breakfast|lunch|dinner|late_night|all_day');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `duration_minutes` SET TAGS ('dbx_business_glossary_term' = '86 Event Duration (Minutes)');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `end_timestamp` SET TAGS ('dbx_business_glossary_term' = '86 Event End Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `escalated_to_team` SET TAGS ('dbx_business_glossary_term' = 'Escalated To Team');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `escalated_to_team` SET TAGS ('dbx_value_regex' = 'operations|supply_chain|food_safety|franchise_support|marketing');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `escalation_timestamp` SET TAGS ('dbx_business_glossary_term' = '86 Event Escalation Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `estimated_lost_covers` SET TAGS ('dbx_business_glossary_term' = 'Estimated Lost Cover Count');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `event_number` SET TAGS ('dbx_business_glossary_term' = '86 Event Number');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `event_number` SET TAGS ('dbx_value_regex' = '^86-[0-9]{4}-[0-9]{2}-[0-9]{2}-[A-Z0-9]{6}$');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `event_status` SET TAGS ('dbx_business_glossary_term' = '86 Event Status');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `event_status` SET TAGS ('dbx_value_regex' = 'open|resolved|escalated|cancelled');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `guest_notification_sent` SET TAGS ('dbx_business_glossary_term' = 'Guest Notification Sent Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `haccp_ccp_reference` SET TAGS ('dbx_business_glossary_term' = 'Hazard Analysis Critical Control Points (HACCP) Critical Control Point (CCP) Reference');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `inventory_quantity_on_hand` SET TAGS ('dbx_business_glossary_term' = 'Inventory Quantity On Hand at 86 Event');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `inventory_unit_of_measure` SET TAGS ('dbx_business_glossary_term' = 'Inventory Unit of Measure');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `is_food_safety_related` SET TAGS ('dbx_business_glossary_term' = 'Food Safety Related Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `is_lto_item` SET TAGS ('dbx_business_glossary_term' = 'Limited Time Offer (LTO) Item Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `is_recall_related` SET TAGS ('dbx_business_glossary_term' = 'Recall Related Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `kds_alert_sent` SET TAGS ('dbx_business_glossary_term' = 'Kitchen Display System (KDS) Alert Sent Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `olo_item_code` SET TAGS ('dbx_business_glossary_term' = 'Online Ordering (OLO) Item ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `olo_suppressed` SET TAGS ('dbx_business_glossary_term' = 'Online Ordering (OLO) Item Suppressed Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `ownership_model` SET TAGS ('dbx_business_glossary_term' = 'Restaurant Ownership Model');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `ownership_model` SET TAGS ('dbx_value_regex' = 'franchise|company_owned');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `par_level_quantity` SET TAGS ('dbx_business_glossary_term' = 'Periodic Automatic Replenishment (PAR) Level Quantity');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `pos_item_code` SET TAGS ('dbx_business_glossary_term' = 'Point of Sale (POS) Item Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `pos_suppressed` SET TAGS ('dbx_business_glossary_term' = 'Point of Sale (POS) Item Suppressed Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `reason_code` SET TAGS ('dbx_business_glossary_term' = '86 Event Reason Code');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `reason_code` SET TAGS ('dbx_value_regex' = 'out_of_stock|equipment_failure|quality_issue|recall|supplier_delay|prep_time_exceeded');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `reason_detail` SET TAGS ('dbx_business_glossary_term' = '86 Event Reason Detail');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `reported_by_role` SET TAGS ('dbx_business_glossary_term' = 'Reported By Role');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `reported_by_role` SET TAGS ('dbx_value_regex' = 'manager|boh_staff|foh_staff|shift_lead|franchisee');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `resolution_action` SET TAGS ('dbx_business_glossary_term' = '86 Event Resolution Action');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `resolution_action` SET TAGS ('dbx_value_regex' = 'restocked|equipment_repaired|item_substituted|recalled_item_removed|supplier_order_placed|no_action');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `restaurant_format` SET TAGS ('dbx_business_glossary_term' = 'Restaurant Format');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `restaurant_format` SET TAGS ('dbx_value_regex' = 'qsr|casual|fine_dining');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `source_system` SET TAGS ('dbx_business_glossary_term' = 'Source System');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `source_system` SET TAGS ('dbx_value_regex' = 'micros_pos|zenput|marketman|olo|manual');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `start_timestamp` SET TAGS ('dbx_business_glossary_term' = '86 Event Start Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Updated Timestamp');
+ALTER TABLE `restaurants_ecm`.`menu`.`item_86_event` ALTER COLUMN `zenput_task_code` SET TAGS ('dbx_business_glossary_term' = 'Zenput Audit Task ID');
+ALTER TABLE `restaurants_ecm`.`menu`.`dietary_tag` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `restaurants_ecm`.`menu`.`dietary_tag` SET TAGS ('dbx_subdomain' = 'nutrition_compliance');
+ALTER TABLE `restaurants_ecm`.`menu`.`dietary_tag` ALTER COLUMN `dietary_tag_id` SET TAGS ('dbx_business_glossary_term' = 'Primary Key for dietary_tag');
+ALTER TABLE `restaurants_ecm`.`menu`.`dietary_tag` ALTER COLUMN `parent_dietary_tag_id` SET TAGS ('dbx_self_ref_fk' = 'true');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_component` SET TAGS ('dbx_data_type' = 'association_data');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_component` SET TAGS ('dbx_subdomain' = 'menu_design');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_component` SET TAGS ('dbx_association_edges' = 'menu.combo_meal,menu.menu_item');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_component` ALTER COLUMN `combo_component_id` SET TAGS ('dbx_business_glossary_term' = 'Combo Component - Combo Component Id');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_component` ALTER COLUMN `combo_meal_id` SET TAGS ('dbx_business_glossary_term' = 'Combo Component - Combo Meal Id');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_component` ALTER COLUMN `menu_item_id` SET TAGS ('dbx_business_glossary_term' = 'Combo Component - Menu Item Id');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_component` ALTER COLUMN `is_featured` SET TAGS ('dbx_business_glossary_term' = 'Featured Flag');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_component` ALTER COLUMN `item_price_override` SET TAGS ('dbx_business_glossary_term' = 'Price Override');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_component` ALTER COLUMN `quantity` SET TAGS ('dbx_business_glossary_term' = 'Component Quantity');
+ALTER TABLE `restaurants_ecm`.`menu`.`combo_component` ALTER COLUMN `sort_order` SET TAGS ('dbx_business_glossary_term' = 'Display Order');
+ALTER TABLE `restaurants_ecm`.`menu`.`dietary_tag_assignment` SET TAGS ('dbx_data_type' = 'association_data');
+ALTER TABLE `restaurants_ecm`.`menu`.`dietary_tag_assignment` SET TAGS ('dbx_subdomain' = 'nutrition_compliance');
+ALTER TABLE `restaurants_ecm`.`menu`.`dietary_tag_assignment` SET TAGS ('dbx_association_edges' = 'menu.menu_item,menu.dietary_tag');
+ALTER TABLE `restaurants_ecm`.`menu`.`dietary_tag_assignment` ALTER COLUMN `dietary_tag_assignment_id` SET TAGS ('dbx_business_glossary_term' = 'Dietary Tag Assignment - Menu Item Dietary Tag Id');
+ALTER TABLE `restaurants_ecm`.`menu`.`dietary_tag_assignment` ALTER COLUMN `dietary_tag_id` SET TAGS ('dbx_business_glossary_term' = 'Dietary Tag Assignment - Dietary Tag Id');
+ALTER TABLE `restaurants_ecm`.`menu`.`dietary_tag_assignment` ALTER COLUMN `menu_item_id` SET TAGS ('dbx_business_glossary_term' = 'Dietary Tag Assignment - Menu Item Id');
+ALTER TABLE `restaurants_ecm`.`menu`.`dietary_tag_assignment` ALTER COLUMN `effective_end_date` SET TAGS ('dbx_business_glossary_term' = 'Tag Assignment End Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`dietary_tag_assignment` ALTER COLUMN `effective_start_date` SET TAGS ('dbx_business_glossary_term' = 'Tag Assignment Start Date');
+ALTER TABLE `restaurants_ecm`.`menu`.`dietary_tag_assignment` ALTER COLUMN `is_primary` SET TAGS ('dbx_business_glossary_term' = 'Primary Tag Flag');
