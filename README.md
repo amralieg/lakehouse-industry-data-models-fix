@@ -6,6 +6,31 @@ Forty production-ready industry data models, each shipped in two flavours (ECM +
 
 ---
 
+## How to install a model
+
+Install any model into Unity Catalog — catalog, schemas, tables, foreign keys, governance tags, and metric views — with the **[`model-installer/data-model-installer.ipynb`](./model-installer/data-model-installer.ipynb)** notebook. It is Databricks Serverless compatible (every operation is a plain `spark.sql` call).
+
+### Steps
+
+1. **Import the installer.** Download [`model-installer/data-model-installer.ipynb`](./model-installer/data-model-installer.ipynb) and import it into your Databricks workspace (or clone this repo into a Git folder so the whole `model-installer/` folder comes with it).
+2. **Pick an industry and click `Run All`.** Open the `model` widget, choose an industry, and run the notebook. Everything else has a sensible default — no other input required.
+3. **Watch it install live.** With `session_id` left blank, the notebook launches itself as a Databricks job and prints the run URL so you can follow the install in real time. Progress is timestamped in dependency order: `catalog → schemas → tables → foreign keys → tags → metric views`. Any failed statements are retried automatically at the end.
+4. **Done.** The model lands in the `<catalog_name>` catalog (defaults to the industry name), ready to query.
+
+### Widgets
+
+| Widget | Default | Purpose |
+|---|---|---|
+| `model` | — | Industry to install (pre-loaded with all 40). |
+| `model_size` | `mvm` | `mvm` (demo-ready subset) or `ecm` (full coverage). The installer always resolves the **latest** version (`v2/`, `v3/`, …) automatically. |
+| `catalog_name` | industry name | Target Unity Catalog catalog. |
+| `local_install` | — | Optional workspace/Volume folder path. If set, the installer reads model files from there instead of fetching from this repo (useful for installing a pinned/older version offline). |
+| `session_id` | — | Leave blank to use the job launcher. The launched job sets this automatically to run the install in-place. |
+
+The launched job tags itself (prefix `dbx_vibe_agent_installer_`) with the `industry`, `size`, `version`, and final install `duration`. See [`model-installer/`](./model-installer/) for full notebook documentation.
+
+---
+
 ## At a glance
 
 | Metric | ECM | MVM | Combined |
@@ -33,14 +58,14 @@ The fastest way to explore one of these models visually is the **model-viewer ap
 
 ### Step 1 — Install the viewer app
 
-1. Download the installer notebook from this repo: [`viewer/model_viewer_app_installer.ipynb`](https://github.com/databricks-industry-solutions/lakehouse-business-data-models/blob/main/viewer/model_viewer_app_installer.ipynb).
+1. Download the installer notebook from this repo: [`model-viewer/model_viewer_app_installer.ipynb`](https://github.com/databricks-industry-solutions/lakehouse-industry-data-models/blob/main/model-viewer/model_viewer_app_installer.ipynb).
 2. Import the notebook into your Databricks workspace and run all cells. The installer provisions a Databricks App and prints the app URL when it finishes.
 
 ### Step 2 — Load a model
 
 Open the app URL. You have two ways to load any model from this repo:
 
-- **Load from repo** — paste `databricks-industry-solutions/lakehouse-business-data-models` and pick the industry + flavour from the dropdown. Note: GitHub sometimes rate-limits anonymous API calls — if you hit a 429 / "rate limit exceeded" message, fall back to the second option.
+- **Load from repo** — paste `databricks-industry-solutions/lakehouse-industry-data-models` and pick the industry + flavour from the dropdown. Note: GitHub sometimes rate-limits anonymous API calls — if you hit a 429 / "rate limit exceeded" message, fall back to the second option.
 - **Load from JSON** — navigate to the industry folder in this repo (e.g. [`data-models/retail/v1/mvm/`](./data-models/retail/v1/mvm/)), download `model.json`, and click **Load from JSON** in the app to upload it directly.
 
 ### What you see in the viewer
