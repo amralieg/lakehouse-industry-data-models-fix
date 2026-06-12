@@ -6,6 +6,27 @@ Forty production-ready industry data models, each shipped in two flavours (ECM +
 
 ---
 
+## At a glance
+
+| Metric | ECM | MVM | Combined |
+|---|---:|---:|---:|
+| Industries shipped | 40 | 40 | **40 / 40** |
+| Models published | 40 | 40 | **80** |
+| Domains | 720 | 560 | 1,280 |
+| Sub-domains | 2,504 | 1,600 | 4,104 |
+| Tables / data products | 16,510 | 7,408 | **23,918** |
+| Attributes / columns | 616,056 | 308,863 | **924,919** |
+| Foreign-key relationships | 98,640 | 68,574 | **167,214** |
+| Metric views (BI-ready) | 5,653 | 4,835 | **10,488** |
+| Distinct ontology tags | 859 | 643 | 1,502 |
+| Avg attributes / table | 37.3 | 41.7 | — |
+| Avg FKs / table | 5.97 | 9.26 | — |
+| Avg tables / domain | 22.9 | 13.2 | — |
+
+MVM ≈ 45% of ECM by table count, but retains 50% of attributes and 70% of FK relationships — confirming the MVM keeps the most join-heavy entities while shedding low-traffic reference tables.
+
+---
+
 ## How to install a model
 
 Install any model into Unity Catalog — catalog, schemas, tables, foreign keys, governance tags, and metric views — with the **[`model-installer/data-model-installer.ipynb`](./model-installer/data-model-installer.ipynb)** notebook. It is Databricks Serverless compatible (every operation is a plain `spark.sql` call).
@@ -28,27 +49,6 @@ Install any model into Unity Catalog — catalog, schemas, tables, foreign keys,
 | `session_id` | — | Leave blank to use the job launcher. The launched job sets this automatically to run the install in-place. |
 
 The launched job tags itself (prefix `dbx_vibe_agent_installer_`) with the `industry`, `size`, `version`, and final install `duration`. See [`model-installer/`](./model-installer/) for full notebook documentation.
-
----
-
-## At a glance
-
-| Metric | ECM | MVM | Combined |
-|---|---:|---:|---:|
-| Industries shipped | 40 | 40 | **40 / 40** |
-| Models published | 40 | 40 | **80** |
-| Domains | 720 | 560 | 1,280 |
-| Sub-domains | 2,504 | 1,600 | 4,104 |
-| Tables / data products | 16,510 | 7,408 | **23,918** |
-| Attributes / columns | 616,056 | 308,863 | **924,919** |
-| Foreign-key relationships | 98,640 | 68,574 | **167,214** |
-| Metric views (BI-ready) | 5,653 | 4,835 | **10,488** |
-| Distinct ontology tags | 859 | 643 | 1,502 |
-| Avg attributes / table | 37.3 | 41.7 | — |
-| Avg FKs / table | 5.97 | 9.26 | — |
-| Avg tables / domain | 22.9 | 13.2 | — |
-
-MVM ≈ 45% of ECM by table count, but retains 50% of attributes and 70% of FK relationships — confirming the MVM keeps the most join-heavy entities while shedding low-traffic reference tables.
 
 ---
 
