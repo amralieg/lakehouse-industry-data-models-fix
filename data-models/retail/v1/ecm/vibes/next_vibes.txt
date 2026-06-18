@@ -1,192 +1,660 @@
-**Model Quality Score: 69/100**
+===============================================================================
+VIBE REBUILD INSTRUCTION SET — retail
+===============================================================================
 
-**Static Analysis Findings (29 actionable):**
-  - [SA:unlinked_fk] Column customer.account.default_payment_method_id looks like an FK but has no foreign_key_to reference
-  - [SA:unlinked_fk] Column customer.profile.household_id looks like an FK but has no foreign_key_to reference
-  - [SA:unlinked_fk] Column ecommerce.digital_catalog.storefront_id looks like an FK but has no foreign_key_to reference
-  - [SA:unlinked_fk] Column inventory.goods_receipt.purchase_order_id looks like an FK but has no foreign_key_to reference
-  - [SA:unlinked_fk] Column returns.rma.exchange_order_id looks like an FK but has no foreign_key_to reference
-  - [SA:unlinked_fk] Column workforce.shift_schedule.shift_swap_request_id looks like an FK but has no foreign_key_to reference
-  - [SA:unlinked_fk] Column workforce.collective_bargaining_agreement.associate_id looks like an FK but has no foreign_key_to reference
-  - [SA:unlinked_fk] Column workforce.coverage_request.shift_schedule_id looks like an FK but has no foreign_key_to reference
-  - [SA:unlinked_fk] Column store.sales_territory.parent_territory_id looks like an FK but has no foreign_key_to reference
-  - [SA:unlinked_fk] Column store.sales_territory.region_id looks like an FK but has no foreign_key_to reference
-  - [SA:unlinked_fk] Column store.sales_territory.sales_manager_id looks like an FK but has no foreign_key_to reference
-  - [SA:unlinked_fk] Column finance.scenario.baseline_scenario_id looks like an FK but has no foreign_key_to reference
-  - [SA:unlinked_fk] Column finance.scenario.parent_scenario_id looks like an FK but has no foreign_key_to reference
-  - [SA:unlinked_fk] Column finance.legal_entity.parent_legal_entity_id looks like an FK but has no foreign_key_to reference
-  - [SA:unlinked_fk] Column finance.legal_entity.ultimate_parent_legal_entity_id looks like an FK but has no foreign_key_to reference
-  - [SA:unlinked_fk] Column workforce.payroll_calendar.business_unit_id looks like an FK but has no foreign_key_to reference
-  - [SA:unlinked_fk] Column workforce.payroll_calendar.created_by_user_id looks like an FK but has no foreign_key_to reference
-  - [SA:unlinked_fk] Column workforce.payroll_calendar.last_modified_by_user_id looks like an FK but has no foreign_key_to reference
-  - [SA:unlinked_fk] Column workforce.payroll_calendar.legal_entity_id looks like an FK but has no foreign_key_to reference
-  - [SA:unlinked_fk] Column workforce.payroll_calendar.workday_calendar_id looks like an FK but has no foreign_key_to reference
-  - [SA:cross_domain_duplicate] Potential SSOT violation: 'analytics.analytics_kpi_target' and 'workforce.workforce_kpi_target' have the same entity name 'kpi_target' in different domains. One should be the SSOT owner, the other should reference via FK.
-  - [SA:cross_domain_duplicate] Potential SSOT violation: 'compliance.compliance_program' and 'loyalty.loyalty_program' have the same entity name 'program' in different domains. One should be the SSOT owner, the other should reference via FK.
-  - [SA:cross_domain_duplicate] Potential SSOT violation: 'customer.customer_membership' and 'loyalty.loyalty_membership' have the same entity name 'membership' in different domains. One should be the SSOT owner, the other should reference via FK.
-  - [SA:cross_domain_duplicate] Potential SSOT violation: 'finance.finance_budget' and 'marketing.marketing_budget' have the same entity name 'budget' in different domains. One should be the SSOT owner, the other should reference via FK.
-  - [SA:cross_domain_duplicate] Potential SSOT violation: 'fulfillment.fulfillment_line' and 'order.order_line' have the same entity name 'line' in different domains. One should be the SSOT owner, the other should reference via FK.
-  - [SA:cross_domain_duplicate] Potential SSOT violation: 'fulfillment.fulfillment_node' and 'inventory.inventory_node' have the same entity name 'node' in different domains. One should be the SSOT owner, the other should reference via FK.
-  - [SA:cross_domain_duplicate] Potential SSOT violation: 'marketing.marketing_brand' and 'product.product_brand' have the same entity name 'brand' in different domains. One should be the SSOT owner, the other should reference via FK.
-  - [SA:cross_domain_duplicate] Potential SSOT violation: 'merchandising.merchandising_planogram' and 'store.store_planogram' have the same entity name 'planogram' in different domains. One should be the SSOT owner, the other should reference via FK.
-  - [SA:cross_domain_duplicate] Potential SSOT violation: 'supplier.supplier_edi_transaction' and 'supplychain.supplychain_edi_transaction' have the same entity name 'edi_transaction' in different domains. One should be the SSOT owner, the other should reference via FK.
+Source repo: [v1-repo-url-redacted]
+v1 generated by vibe-modelling-agent v0.7.1
+v2 rebuild target: [v1-repo-path-redacted]-v2
 
-**PRIORITY 1 — rename_attribute: finance.netting_run** — rename column reversal_netting_run_id to reversed_netting_run_id because the current naming is ambiguous and inconsistent with the pattern used by reversed_by_run_id on the same table
-**PRIORITY 2 — rename_attribute: order.gift_card** — rename column replacement_for_card_gift_card_id to replacement_for_gift_card_id because there are two self-ref columns with near-identical semantics (replacement_for_card_gift_card_id and replacement_for_gift_card_id) — remove the duplicate or consolidate to one
-**PRIORITY 3 — rename_attribute: compliance.regulatory_agency** — rename column parent_agency_id to parent_regulatory_agency_id because there are two self-ref columns (parent_agency_id and parent_regulatory_agency_id) that appear to be duplicates serving the same hierarchy purpose
-**PRIORITY 4 — rename_attribute: marketing.audience_segment** — rename column parent_segment_audience_segment_id to parent_audience_segment_id because there are two self-ref columns (parent_segment_audience_segment_id and parent_audience_segment_id) that are semantically identical
-**PRIORITY 5 — rename_attribute: marketing.email_template** — rename column parent_template_id to parent_email_template_id because there are two self-ref columns (parent_template_id and parent_email_template_id) that are duplicates
-**PRIORITY 6 — rename_attribute: marketing.marketing_brand** — rename column parent_brand_marketing_brand_id to parent_marketing_brand_id because there are two self-ref columns (parent_brand_marketing_brand_id and parent_marketing_brand_id) that are semantically identical
-**PRIORITY 7 — rename_attribute: analytics.metric_dimension** — rename column replacement_dimension_metric_dimension_id to replacement_metric_dimension_id because the redundant table-name embedding makes the column name unnecessarily long and confusing
-**PRIORITY 8 — rename_attribute: analytics.semantic_layer_entity** — rename column replacement_entity_semantic_layer_entity_id to replacement_semantic_layer_entity_id because redundant table-name prefix makes the column name unwieldy
-**PRIORITY 9 — rename_attribute: supplychain.sla_definition** — rename column superseded_by_sla_sla_definition_id to superseded_by_sla_definition_id because the double "sla_sla" is a naming error
-**PRIORITY 10 — connect_table: finance.legal_entity** — add column parent_legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — legal entities form hierarchies (subsidiaries under parent companies) which is essential for consolidated financial reporting
-**PRIORITY 11 — connect_table: finance.gl_account** — add column chart_of_accounts_id (BIGINT) with FK to finance.chart_of_accounts.chart_of_accounts_id — GL accounts must belong to a chart of accounts for proper financial structure
-**PRIORITY 12 — connect_table: finance.profit_center** — add column legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — profit centers operate within legal entities for statutory reporting
-**PRIORITY 13 — connect_table: finance.scenario** — add column financial_period_id (BIGINT) with FK to finance.financial_period.financial_period_id — budget/forecast scenarios are tied to specific financial periods
-**PRIORITY 14 — connect_table: inventory.inventory_node** — add column location_id (BIGINT) with FK to store.location.location_id — inventory nodes represent physical locations (stores, DCs) and must link to the store location master
-**PRIORITY 15 — connect_table: inventory.inventory_node** — add column dc_facility_id (BIGINT) with FK to supplychain.dc_facility.dc_facility_id — inventory nodes at distribution centers need explicit linkage to the DC facility master
-**PRIORITY 16 — connect_table: supplychain.dc_facility** — add column location_id (BIGINT) with FK to store.location.location_id — DC facilities have physical addresses and should reference the location master for geographic consistency
-**PRIORITY 17 — connect_table: store.format** — add column parent_format_id (BIGINT) with FK to store.format.format_id — store formats may have hierarchical relationships (e.g., hypermarket subtypes) needed for rollup reporting
-**PRIORITY 18 — connect_table: fulfillment.carrier** — add column vendor_id (BIGINT) with FK to supplier.vendor.vendor_id — carriers are vendors with contracts and should link to the vendor master for unified supplier management
-**PRIORITY 19 — connect_table: customer.profile** — add column household_id (BIGINT) with FK to customer.household.household_id — profiles should directly reference their household for efficient household-level analytics without requiring a reverse lookup
-**PRIORITY 20 — connect_table: order.header** — add column store_location_id (BIGINT) with FK to store.location.location_id — orders placed in-store must reference the originating store location
-**PRIORITY 21 — connect_table: order.header** — add column pricing_price_zone_id (BIGINT) with FK to pricing.price_zone.price_zone_id — orders should capture the price zone in effect at time of purchase for audit and analytics
-**PRIORITY 22 — connect_table: order.pos_transaction** — add column pricing_price_zone_id (BIGINT) with FK to pricing.price_zone.price_zone_id — POS transactions occur within a price zone that determines applicable pricing
-**PRIORITY 23 — connect_table: product.sku** — add column product_brand_id (BIGINT) with FK to product.product_brand.product_brand_id — SKUs belong to brands and this relationship is fundamental for brand-level reporting and assortment planning
-**PRIORITY 24 — connect_table: product.product_brand** — add column item_hierarchy_id (BIGINT) with FK to product.item_hierarchy.item_hierarchy_id — brands operate within product hierarchy categories for category management
-**PRIORITY 25 — connect_table: ecommerce.cart** — add column web_session_id (BIGINT) with FK to ecommerce.web_session.web_session_id — carts are created within web sessions and this linkage is critical for conversion funnel analysis
-**PRIORITY 26 — connect_table: loyalty.tier** — add column prior_tier_id (BIGINT) with FK to loyalty.tier.tier_id — tiers have a natural progression order that should be explicitly modeled for tier qualification logic
-**PRIORITY 27 — connect_table: marketing.campaign** — add column channel_id (BIGINT) with FK to marketing.channel.channel_id — campaigns execute through primary channels and need this linkage for channel attribution
-**PRIORITY 28 — connect_table: promotion.promo_redemption** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — redemptions occur against specific SKUs and this is essential for promotion effectiveness analysis at item level
-**PRIORITY 29 — connect_table: supplychain.demand_forecast** — add column merchandising_category_id (BIGINT) with FK to merchandising.category.category_id — demand forecasts are generated at category level in addition to SKU level for aggregate planning
-**PRIORITY 30 — connect_table: supplychain.demand_forecast** — add column financial_period_id (BIGINT) with FK to finance.financial_period.financial_period_id — forecasts align to financial periods for budget integration
-**PRIORITY 31 — connect_table: workforce.pay_period** — add column payroll_calendar_id (BIGINT) with FK to workforce.payroll_calendar.payroll_calendar_id — pay periods belong to a payroll calendar and this structural relationship is missing
-**PRIORITY 32 — connect_table: workforce.bargaining_unit** — add column union_id (BIGINT) with FK to workforce.union.union_id — bargaining units are organized under unions and this relationship is fundamental to labor relations
-**PRIORITY 33 — remove_fk: analytics.alert** — remove FK on column compliance_osha_incident_id because alerts about OSHA incidents should flow through the compliance domain's corrective_action or risk_register rather than directly linking alert to osha_incident, creating an overly coupled design
-**PRIORITY 34 — remove_fk: ecommerce.abandoned_cart_recovery** — remove FK on column compliance_privacy_assessment_id because privacy assessments are program-level governance artifacts and should not be linked at the individual cart recovery record level
-**PRIORITY 35 — remove_fk: ecommerce.ab_test** — remove FK on column compliance_privacy_assessment_id because privacy assessments govern programs not individual A/B tests; this creates unnecessary coupling
-**PRIORITY 36 — remove_fk: customer.identity_link** — remove FK on column pricing_rule_id because identity resolution links have no business relationship to pricing rules
-**PRIORITY 37 — connect_table: returns.return_policy** — add column merchandising_category_id (BIGINT) with FK to merchandising.category.category_id — return policies vary by merchandise category (electronics vs. apparel) and need this linkage beyond just item_hierarchy
-**PRIORITY 38 — connect_table: store.location** — add column legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — store locations operate under specific legal entities for statutory and tax reporting purposes
-**PRIORITY 39 — connect_table: finance.bank_account** — add column legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — bank accounts are held by legal entities and this ownership relationship is required for treasury management
-**PRIORITY 40 — connect_table: finance.cost_center** — add column profit_center_id (BIGINT) with FK to finance.profit_center.profit_center_id — cost centers roll up to profit centers in SAP FI/CO and this structural relationship is missing
-**PRIORITY 41 — connect_table: finance.cost_center** — add column legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — cost centers belong to legal entities for statutory reporting
-**PRIORITY 42 — connect_table: workforce.job_profile** — add column org_unit_id (BIGINT) with FK to workforce.org_unit.org_unit_id — job profiles are defined within organizational units for headcount planning
-**PRIORITY 43 — rename_product: store.pl** — rename to store_profit_loss because "pl" is an ambiguous abbreviation that violates clarity conventions
-**PRIORITY 44 — rename_product: store.sfs_fulfillment_node** — rename to ship_from_store_node because the abbreviation "sfs" is not self-documenting and the product overlaps conceptually with fulfillment.fulfillment_node
-**PRIORITY 45 — rename_product: store.dsd_receiving** — rename to direct_store_delivery because "dsd" abbreviation is not self-documenting in the data catalog
-**PRIORITY 46 — connect_table: order.order_line** — add column store_location_id (BIGINT) with FK to store.location.location_id — order lines may be fulfilled from different store locations in ship-from-store scenarios
-**PRIORITY 47 — connect_table: order.order_line** — add column supplier_vendor_id (BIGINT) with FK to supplier.vendor.vendor_id — order lines for drop-ship or marketplace orders need vendor attribution
-**PRIORITY 48 — connect_table: pricing.competitive_price** — add column supplier_vendor_id (BIGINT) with FK to supplier.vendor.vendor_id — competitive prices from marketplace sellers need vendor identification for price matching strategies
-**PRIORITY 49 — connect_table: supplychain.wave** — add column outbound_order_id (BIGINT) with FK to supplychain.outbound_order.outbound_order_id — waves group outbound orders for batch processing and this direct linkage is missing (currently only outbound_order references wave)
-**PRIORITY 50 — connect_table: merchandising.assortment_plan** — add column store_location_id (BIGINT) with FK to store.location.location_id — assortment plans are deployed to specific locations beyond just clusters and formats
-**PRIORITY 51 — connect_table: loyalty.engagement_campaign** — add column customer_segment_id (BIGINT) with FK to customer.segment.segment_id — engagement campaigns target customer segments and need this cross-domain linkage beyond just member_segment
-**PRIORITY 52 — connect_table: compliance.food_safety_log** — add column dc_facility_id (BIGINT) with FK to supplychain.dc_facility.dc_facility_id — food safety logs are recorded at DC facilities in addition to store locations
-**PRIORITY 53 — connect_table: finance.ap_invoice** — add column legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — AP invoices are booked against specific legal entities for statutory accounts payable
-**PRIORITY 54 — connect_table: finance.ar_invoice** — add column legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — AR invoices are issued by specific legal entities for revenue recognition
-**PRIORITY 55 — connect_table: product.recall** — add column compliance_program_id (BIGINT) with FK to compliance.compliance_program.compliance_program_id — product recalls are governed by compliance programs (FDA, CPSC) and need this regulatory linkage
-**PRIORITY 56 — connect_table: ecommerce.marketplace_listing** — add column storefront_id (BIGINT) with FK to ecommerce.storefront.storefront_id — marketplace listings are published through specific storefronts
-**PRIORITY 57 — connect_table: ecommerce.marketplace_listing** — add column pricing_sku_price_id (BIGINT) with FK to pricing.sku_price.sku_price_id — marketplace listings need explicit price references for price parity management
-**PRIORITY 58 — connect_table: customer.household** — add column customer_segment_id (BIGINT) with FK to customer.segment.segment_id — households are segmented for targeted marketing and need direct segment linkage
-**PRIORITY 59 — connect_table: workforce.staffing_plan** — add column store_location_id (BIGINT) with FK to store.location.location_id — staffing plans are created for specific store locations
-**PRIORITY 60 — connect_table: workforce.staffing_plan** — add column dc_facility_id (BIGINT) with FK to supplychain.dc_facility.dc_facility_id — staffing plans are also created for DC facilities
-**PRIORITY 61 — connect_table: workforce.staffing_plan** — add column financial_period_id (BIGINT) with FK to finance.financial_period.financial_period_id — staffing plans align to financial periods for budget integration
-**PRIORITY 62 — connect_table: supplychain.warehouse_zone** — add column inventory_node_id (BIGINT) with FK to inventory.inventory_node.inventory_node_id — warehouse zones are inventory storage locations and should link to the inventory node for stock visibility
-**PRIORITY 63 — connect_table: compliance.policy** — add column regulatory_agency_id (BIGINT) with FK to compliance.regulatory_agency.regulatory_agency_id — policies are often mandated by regulatory agencies and need this traceability
-**PRIORITY 64 — connect_table: compliance.requirement** — add column compliance_program_id (BIGINT) with FK to compliance.compliance_program.compliance_program_id — requirements belong to compliance programs and this structural relationship is missing
-**PRIORITY 65 — connect_table: compliance.requirement** — add column regulatory_agency_id (BIGINT) with FK to compliance.regulatory_agency.regulatory_agency_id — requirements originate from regulatory agencies
-**PRIORITY 66 — connect_table: analytics.retail_calendar** — add column financial_period_id (BIGINT) with FK to finance.financial_period.financial_period_id — retail calendar weeks/periods must map to financial periods (4-5-4 calendar alignment) for financial reporting
-**PRIORITY 67 — connect_table: store.sales_territory** — add column store_location_id (BIGINT) with FK to store.location.location_id — sales territories contain store locations and this assignment relationship is missing
-**PRIORITY 68 — connect_table: customer.b2b_contract** — add column pricing_price_list_id (BIGINT) with FK to pricing.price_list.price_list_id — B2B contracts specify negotiated price lists for corporate customers
-**PRIORITY 69 — connect_table: order.subscription** — add column product_sku_id (BIGINT) with FK to product.sku.sku_id — subscriptions are for specific products and need direct SKU linkage
-**PRIORITY 70 — connect_table: inventory.asn** — add column dc_facility_id (BIGINT) with FK to supplychain.dc_facility.dc_facility_id — ASNs are destined for specific DC facilities and this direct linkage supplements the inventory_node reference
-**PRIORITY 71 — remove_fk: customer.interaction** — remove FK on column compliance_training_completion_id because customer interactions have no direct business relationship to employee training completions
-**PRIORITY 72 — connect_table: promotion.promo_performance** — add column finance_financial_period_id (BIGINT) with FK to finance.financial_period.financial_period_id — promotion performance must be measured within financial periods for P&L impact analysis
-**PRIORITY 73 — connect_table: merchandising.vendor_negotiation** — add column vendor_contract_id (BIGINT) with FK to supplier.vendor_contract.vendor_contract_id — negotiations result in contracts and need this linkage for procurement lifecycle tracking
-**PRIORITY 74 — connect_table: store.comparable_sales** — add column store_department_id (BIGINT) with FK to store.department.department_id — comp sales are analyzed at department level in addition to store level
-**PRIORITY 75 — connect_table: workforce.benefit_enrollment** — add column financial_period_id (BIGINT) with FK to finance.financial_period.financial_period_id — benefit enrollments have effective periods that align to financial periods for cost accrual
+Read this entire file before generating. It has THREE sections:
+  Section 1 — required model structure (domains and products to preserve)
+  Section 2 — user/reviewer comments from the working-group sheet (VERBATIM)
+  Section 3 — agent-detected issues (must address in the rebuild)
 
-Other known issues from static analysis (80):
-  - Attribute 'account_tier' in customer.account has redundant product prefix 'account_'. Rename to 'tier'
-  - Attribute 'union_abbreviation' in workforce.union has redundant product prefix 'union_'. Rename to 'abbreviation'
-  - Table finance.financial_period has self-referencing FK on column 'comparable_period_id' with same name as PK 'financial_period_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
-  - Table marketing.attribution_model has self-referencing FK on column 'baseline_model_id' with same name as PK 'attribution_model_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
-  - Table analytics.dq_issue has self-referencing FK on column 'related_dq_issue_id' with same name as PK 'dq_issue_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
-  - Table compliance.audit_finding has self-referencing FK on column 'related_audit_finding_id' with same name as PK 'audit_finding_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
-  - Table compliance.environmental_event has self-referencing FK on column 'related_environmental_event_id' with same name as PK 'environmental_event_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
-  - Table compliance.osha_incident has self-referencing FK on column 'related_osha_incident_id' with same name as PK 'osha_incident_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
-  - Table compliance.violation_notice has self-referencing FK on column 'related_violation_notice_id' with same name as PK 'violation_notice_id' — the FK column must have a different name that describes the relationship (the LLM should choose a contextual label)
-  - Table analytics.dashboard_widget has 3 FK columns pointing to workforce.associate (associate_id, created_by_user_associate_id, modified_by_user_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table compliance.audit_finding has 2 FK columns pointing to compliance.audit_finding (previous_finding_audit_finding_id, related_audit_finding_id) (generic/unlabeled: related_audit_finding_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table compliance.osha_incident has 2 FK columns pointing to compliance.osha_incident (previous_incident_osha_incident_id, related_osha_incident_id) (generic/unlabeled: related_osha_incident_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table compliance.training_completion has 3 FK columns pointing to workforce.associate (associate_id, primary_training_associate_id, tertiary_training_waiver_approved_by_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table compliance.violation_notice has 2 FK columns pointing to compliance.violation_notice (previous_violation_notice_id, related_violation_notice_id) (generic/unlabeled: related_violation_notice_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table finance.fixed_asset has 3 FK columns pointing to workforce.associate (associate_id, created_by_user_associate_id, modified_by_user_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table loyalty.points_ledger has 2 FK columns pointing to loyalty.loyalty_membership (loyalty_membership_id, membership_id) (generic/unlabeled: loyalty_membership_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table marketing.ab_test_campaign has 3 FK columns pointing to workforce.associate (associate_id, modified_by_associate_id, primary_ab_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table marketing.agency_brief has 3 FK columns pointing to workforce.associate (agency_associate_id, associate_id, primary_agency_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table marketing.attribution_model has 3 FK columns pointing to workforce.associate (associate_id, created_by_associate_id, modified_by_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table marketing.campaign has 3 FK columns pointing to workforce.associate (approved_by_associate_id, associate_id, modified_by_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table marketing.conversion_event has 2 FK columns pointing to workforce.associate (associate_id, modified_by_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table marketing.creative_asset has 3 FK columns pointing to workforce.associate (associate_id, modified_by_associate_id, primary_creative_owner_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table marketing.influencer_engagement has 3 FK columns pointing to workforce.associate (associate_id, created_by_associate_id, modified_by_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table marketing.automation_flow has 3 FK columns pointing to workforce.associate (associate_id, created_by_associate_id, modified_by_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table marketing.marketing_brand has 3 FK columns pointing to workforce.associate (associate_id, modified_by_associate_id, primary_marketing_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table marketing.marketing_budget has 3 FK columns pointing to workforce.associate (associate_id, modified_by_associate_id, primary_marketing_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table marketing.channel has 2 FK columns pointing to workforce.associate (associate_id, modified_by_user_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table marketing.media_buy has 3 FK columns pointing to workforce.associate (associate_id, created_by_associate_id, modified_by_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table marketing.media_plan has 4 FK columns pointing to workforce.associate (associate_id, modified_by_associate_id, owner_associate_id, primary_media_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table marketing.opt_in_record has 2 FK columns pointing to workforce.associate (associate_id, modified_by_user_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table merchandising.buying_order_line has 2 FK columns pointing to merchandising.category (category_id, subclass_category_id) (generic/unlabeled: category_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table order.pos_transaction has 2 FK columns pointing to store.location (location_id, store_location_id) (generic/unlabeled: location_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table pricing.margin_target has 2 FK columns pointing to merchandising.category (category_id, subcategory_id) (generic/unlabeled: category_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table pricing.price_audit_log has 2 FK columns pointing to workforce.associate (approver_user_associate_id, associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table pricing.price_strategy has 2 FK columns pointing to merchandising.category (category_id, subcategory_id) (generic/unlabeled: category_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table promotion.rebate has 3 FK columns pointing to workforce.associate (associate_id, created_by_user_associate_id, last_modified_by_user_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table returns.disposition has 2 FK columns pointing to supplier.vendor (liquidation_partner_vendor_id, vendor_id) (generic/unlabeled: vendor_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table returns.liquidation_item has 2 FK columns pointing to supplier.vendor (liquidation_partner_vendor_id, vendor_id) (generic/unlabeled: vendor_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table returns.rtv_line has 2 FK columns pointing to product.sku (product_sku_id, sku_id) (generic/unlabeled: sku_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table supplier.edi_config has 2 FK columns pointing to supplier.vendor (trading_partner_vendor_id, vendor_id) (generic/unlabeled: vendor_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table supplychain.handling_unit has 2 FK columns pointing to supplychain.dc_facility (dc_facility_id, destination_dc_facility_id) (generic/unlabeled: dc_facility_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table supplychain.outbound_order has 2 FK columns pointing to supplychain.dc_facility (dc_facility_id, destination_dc_facility_id) (generic/unlabeled: dc_facility_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table supplychain.outbound_shipment has 2 FK columns pointing to supplychain.dc_facility (dc_facility_id, destination_dc_facility_id) (generic/unlabeled: dc_facility_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table supplychain.supplychain_edi_transaction has 2 FK columns pointing to supplier.vendor (sender_vendor_id, vendor_id) (generic/unlabeled: vendor_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table workforce.shift_schedule has 2 FK columns pointing to workforce.associate (associate_id, primary_shift_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table workforce.time_entry has 2 FK columns pointing to workforce.associate (associate_id, primary_time_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table supplier.vendor_program_enrollment has 2 FK columns pointing to compliance.compliance_program (compliance_program_id, program_compliance_program_id) (generic/unlabeled: compliance_program_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table compliance.facility_compliance_certification has 2 FK columns pointing to compliance.compliance_program (compliance_program_id, program_compliance_program_id) (generic/unlabeled: compliance_program_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table inventory.location_assignment has 2 FK columns pointing to inventory.inventory_node (inventory_node_id, node_inventory_node_id) (generic/unlabeled: inventory_node_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table workforce.org_unit_compliance_scope has 2 FK columns pointing to compliance.compliance_program (compliance_program_id, program_compliance_program_id) (generic/unlabeled: compliance_program_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table customer.b2b_contract has 2 FK columns pointing to workforce.associate (approved_by_associate_id, associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table ecommerce.message_template has 2 FK columns pointing to workforce.associate (associate_id, last_modified_by_user_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table finance.payment_run has 2 FK columns pointing to workforce.associate (approved_by_user_associate_id, associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table finance.plan_version has 4 FK columns pointing to workforce.associate (associate_id, created_by_user_associate_id, last_modified_by_user_associate_id, submitted_by_user_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table finance.netting_run has 2 FK columns pointing to workforce.associate (associate_id, initiated_by_user_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table marketing.email_template has 3 FK columns pointing to workforce.associate (approved_by_user_associate_id, associate_id, last_modified_by_user_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table pricing.cost_zone has 3 FK columns pointing to workforce.associate (associate_id, created_by_user_associate_id, last_modified_by_user_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table workforce.payroll_run has 2 FK columns pointing to workforce.associate (approved_by_user_associate_id, associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table workforce.shift_swap_request has 3 FK columns pointing to workforce.associate (approving_manager_associate_id, associate_id, target_employee_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table workforce.shift_swap_request has 2 FK columns pointing to workforce.shift_schedule (proposed_shift_shift_schedule_id, shift_schedule_id) (generic/unlabeled: shift_schedule_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - Table workforce.coverage_request has 4 FK columns pointing to workforce.associate (approver_associate_id, associate_id, covering_employee_associate_id, requesting_employee_associate_id) (generic/unlabeled: associate_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
-  - PII-candidate attribute compliance.regulatory_agency.primary_contact_name has no classification tags — expected restricted/confidential + PII tag
-  - PII-candidate attribute finance.payment_run.bank_account_id has no classification tags — expected restricted/confidential + PII tag
-  - PII-candidate attribute marketing.automation_step.sender_email has no classification tags — expected restricted/confidential + PII tag
-  - PII-candidate attribute marketing.email_template.mobile_optimized_flag has no classification tags — expected restricted/confidential + PII tag
-  - PII-candidate attribute workforce.collective_bargaining_agreement.wage_increase_percentage has no classification tags — expected restricted/confidential + PII tag
-  - PII-candidate attribute workforce.candidate.salary_currency_code has no classification tags — expected restricted/confidential + PII tag
-  - PII-candidate attribute workforce.payroll_run.gross_pay_amount has no classification tags — expected restricted/confidential + PII tag
-  - PII-candidate attribute workforce.payroll_run.net_pay_amount has no classification tags — expected restricted/confidential + PII tag
-  - PII-candidate attribute store.sales_territory.postal_code_range_end has no classification tags — expected restricted/confidential + PII tag
-  - PII-candidate attribute store.sales_territory.postal_code_range_start has no classification tags — expected restricted/confidential + PII tag
-  - PII-candidate attribute finance.chart_of_accounts.account_number has no classification tags — expected restricted/confidential + PII tag
-  - PII-candidate attribute finance.chart_of_accounts.parent_account_number has no classification tags — expected restricted/confidential + PII tag
-  - PII-candidate attribute workforce.bargaining_unit.wage_scale_reference has no classification tags — expected restricted/confidential + PII tag
-  - Product 'analytics.kpi_value' has 34 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
-  - Product 'analytics.alert' has 32 outgoing FKs (max recommended: 25). Consider splitting into multiple products or refactoring as a junction.
-  - 21 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
-  - 525 attribute(s) match person-data patterns but lack pii_ tags
-  - 37 non-PK attributes redundantly prefixed with their product name
-  - 2 attribute(s) have value_regex on typed columns (DATE/BOOLEAN/INT/etc.) — regex is redundant when data_type constrains format
+===============================================================================
+SECTION 1 — REQUIRED MODEL STRUCTURE
+===============================================================================
 
-Deterministic score: 69/100 (LLM assessment: 62/100)
+Follow the following structure. Preserve every domain and every product name.
+You may ADD new domains or products if Section 2 or Section 3 requires it,
+but you may NOT remove, rename, or merge anything listed below without
+explicit reviewer permission.
+
+Total: 19 domains, 401 products
+
+inventory
+  - stock_position
+  - stock_ledger
+  - inventory_node
+  - replenishment_order
+  - cycle_count
+  - adjustment
+  - stock_transfer
+  - goods_receipt
+  - rfid_tag
+  - vmi_agreement
+  - expiry_tracking
+  - reservation
+  - reorder_policy
+  - asn
+  - lot
+  - node_assortment
+  - promo_stock_allocation
+  - location_assignment
+  - assortment_deployment
+
+customer
+  - profile
+  - account
+  - household
+  - corporate_account
+  - contact
+  - address
+  - segment
+  - preference
+  - consent
+  - identity_link
+  - interaction
+  - service_case
+  - wishlist
+  - payment_method
+  - privacy_request
+  - customer_membership
+  - issuance
+  - targeting
+  - segment_banner_targeting
+  - client_relationship
+  - b2b_contract
+  - contract_template
+
+product
+  - sku
+  - item_hierarchy
+  - attribute
+  - product_brand
+  - item_variant
+  - image
+  - item_lifecycle_event
+  - product_compliance
+  - recall
+  - item_bundle
+  - gtin_registry
+  - item_nutritional
+  - item_cross_reference
+  - uom
+  - category_campaign_plan
+  - assortment
+  - category_kpi_target
+
+order
+  - header
+  - order_line
+  - status_history
+  - line_status_history
+  - pos_transaction
+  - pos_transaction_line
+  - payment
+  - discount
+  - cancellation
+  - hold
+  - promise
+  - gift_card
+  - gift_card_transaction
+  - subscription
+
+store
+  - location
+  - format
+  - pos_terminal
+  - store_planogram
+  - fixture
+  - traffic_count
+  - comparable_sales
+  - pl
+  - shrinkage_event
+  - department
+  - remodel
+  - cluster
+  - sfs_fulfillment_node
+  - audit
+  - dsd_receiving
+  - license
+  - cluster_membership
+  - format_offer_eligibility
+  - carrier_agreement
+  - sales_territory
+
+pricing
+  - price_list
+  - price_zone
+  - sku_price
+  - price_change
+  - markdown
+  - cost_price
+  - rule
+  - competitive_price
+  - price_approval
+  - margin_target
+  - price_override
+  - price_strategy
+  - price_sensitivity
+  - price_audit_log
+  - rule_application
+  - zone_price_list_assignment
+  - cost_zone
+
+promotion
+  - promo_campaign
+  - promo_offer
+  - coupon
+  - circular_ad
+  - rebate
+  - rebate_claim
+  - vendor_promo_agreement
+  - vendor_promo_claim
+  - promo_redemption
+  - promo_performance
+  - promo_budget
+  - promo_calendar
+  - promo_conflict_rule
+  - promo_forecast
+  - circular_ad_category_feature
+  - coupon_distribution
+  - promo_inventory_allocation
+  - promo_group
+  - promotion_stack
+
+supplier
+  - vendor
+  - vendor_contact
+  - vendor_address
+  - vendor_contract
+  - chargeback
+  - rtv_request
+  - vendor_scorecard
+  - vendor_certification
+  - edi_config
+  - supplier_edi_transaction
+  - lead_time_agreement
+  - vmi_config
+  - vendor_item
+  - vendor_allowance
+  - onboarding_request
+  - risk_assessment
+  - vendor_dispute
+  - routing_guide
+  - supply_lane
+  - vendor_program_enrollment
+  - vendor_category_sourcing
+  - vendor_training_requirement
+
+merchandising
+  - merch_plan
+  - assortment_plan
+  - category
+  - buyer
+  - season
+  - otb_budget
+  - buying_order
+  - buying_order_line
+  - merchandising_planogram
+  - planogram_position
+  - assortment_item
+  - vendor_negotiation
+  - markdown_event
+  - private_label_program
+  - category_campaign_placement
+  - buyer_profit_center_assignment
+  - category_accrual_rule
+
+loyalty
+  - loyalty_program
+  - loyalty_membership
+  - tier
+  - points_ledger
+  - accrual_rule
+  - redemption_rule
+  - reward
+  - redemption
+  - member_offer
+  - engagement_campaign
+  - clienteling_interaction
+  - member_segment
+  - partner_program
+  - partner_transaction
+  - referral
+  - campaign_storefront_deployment
+
+ecommerce
+  - storefront
+  - digital_catalog
+  - web_session
+  - cart
+  - cart_item
+  - checkout
+  - digital_payment
+  - product_page_view
+  - search_query
+  - product_review
+  - ab_test
+  - abandoned_cart_recovery
+  - marketplace_listing
+  - personalization_rule
+  - recommendation
+  - promotion_banner
+  - site_notification
+  - storefront_fulfillment_network
+  - storefront_assortment
+  - storefront_responsibility
+  - catalog_node_inventory
+  - message_template
+
+fulfillment
+  - fulfillment_order
+  - fulfillment_line
+  - shipment
+  - shipment_package
+  - pick_task
+  - pack_task
+  - delivery_route
+  - delivery_stop
+  - carrier
+  - carrier_service
+  - fulfillment_node
+  - bopis_appointment
+  - exception
+  - shipment_tracking_event
+  - sla
+  - carrier_rate
+  - drop_ship_order
+  - proof_of_delivery
+  - carrier_facility_contract
+
+returns
+  - rma
+  - rma_line
+  - return_request
+  - return_receipt
+  - disposition
+  - refund
+  - exchange_order
+  - rtv_line
+  - return_policy
+  - restock_event
+  - liquidation_batch
+  - liquidation_item
+  - return_shipment
+  - store_credit
+  - vendor_credit
+  - return_fraud_case
+
+finance
+  - cost_center
+  - profit_center
+  - gl_account
+  - journal_entry
+  - journal_entry_line
+  - ap_invoice
+  - ar_invoice
+  - revenue_recognition_event
+  - finance_budget
+  - financial_period
+  - fixed_asset
+  - lease_contract
+  - intercompany_transaction
+  - tax_posting
+  - bank_account
+  - payment_run
+  - plan_version
+  - netting_run
+  - ledger
+  - scenario
+  - legal_entity
+  - chart_of_accounts
+
+workforce
+  - associate
+  - job_profile
+  - shift_schedule
+  - time_entry
+  - payroll_record
+  - leave_request
+  - benefit_enrollment
+  - performance_review
+  - training_enrollment
+  - requisition
+  - job_application
+  - labor_budget
+  - compensation_change
+  - org_unit
+  - wf_certification
+  - staffing_plan
+  - dashboard_access
+  - workforce_kpi_target
+  - org_unit_compliance_scope
+  - collective_bargaining_agreement
+  - merit_cycle
+  - candidate
+  - payroll_run
+  - shift_swap_request
+  - coverage_request
+  - pay_period
+  - union
+  - bargaining_unit
+  - payroll_calendar
+
+marketing
+  - campaign
+  - campaign_brief
+  - audience_segment
+  - campaign_audience
+  - media_plan
+  - media_buy
+  - creative_asset
+  - email_send
+  - sms_send
+  - push_notification_send
+  - social_post
+  - influencer
+  - influencer_engagement
+  - attribution_touchpoint
+  - attribution_model
+  - conversion_event
+  - marketing_budget
+  - marketing_brand
+  - channel
+  - utm_parameter
+  - ab_test_campaign
+  - automation_flow
+  - automation_enrollment
+  - opt_in_record
+  - campaign_performance
+  - agency_brief
+  - campaign_deployment
+  - campaign_fulfillment
+  - campaign_policy_compliance
+  - automation_step
+  - email_template
+  - publisher
+
+analytics
+  - kpi_definition
+  - kpi_value
+  - report_definition
+  - dashboard_config
+  - dashboard_widget
+  - metric_dimension
+  - dq_rule
+  - dq_result
+  - dq_issue
+  - semantic_layer_entity
+  - semantic_metric
+  - report_subscription
+  - access_policy
+  - retail_calendar
+  - reporting_hierarchy
+  - analytics_kpi_target
+  - alert
+  - self_service_query
+  - glossary_term
+  - kpi_dimensionality
+  - report_composition
+  - metric_entity_dependency
+  - sla_kpi_measurement
+  - workspace
+
+compliance
+  - compliance_program
+  - obligation
+  - audit_schedule
+  - audit_event
+  - audit_finding
+  - corrective_action
+  - food_safety_plan
+  - haccp_control_point
+  - food_safety_log
+  - osha_incident
+  - safety_inspection
+  - pci_assessment
+  - pci_control
+  - privacy_assessment
+  - regulatory_filing
+  - license_permit
+  - certification
+  - environmental_event
+  - training_program
+  - training_completion
+  - violation_notice
+  - policy
+  - risk_register
+  - third_party_assessment
+  - facility_training_requirement
+  - facility_compliance_certification
+  - audit_checklist_template
+  - requirement
+  - regulatory_agency
+
+supplychain
+  - replenishment_plan
+  - demand_forecast
+  - purchase_order
+  - po_line
+  - plan
+  - sla_definition
+  - sla_performance
+  - inbound_appointment
+  - cross_dock_plan
+  - supplychain_edi_transaction
+  - dc_facility
+  - warehouse_zone
+  - inbound_shipment
+  - receiving_event
+  - warehouse_task
+  - outbound_order
+  - outbound_order_line
+  - wave
+  - outbound_shipment
+  - crossdock_transaction
+  - inventory_transfer
+  - dock_appointment
+  - handling_unit
+  - quality_hold
+  - po_shipment_receipt
+
+===============================================================================
+SECTION 2 — USER/REVIEWER COMMENTS (verbatim, from sheet column H)
+===============================================================================
+
+Source: [INTERNAL-SHEET]
+Sheet tab: 'Active Vibe Models Enriched' | Industry row: Retail
+
+These comments are PRESERVED VERBATIM. Do not paraphrase. Do not edit.
+They are reviewer feedback from solutions architects and customers and they
+are the SUPREME AUTHORITY for the rebuild (per CLAUDE.md §3c user vibes rule).
+
+--- BEGIN VERBATIM ---
+[INTERNAL-DOC]
+
+--- Linked review document (full text, verbatim) ---
+Holistic Critique — Retail Customer Schema (MVM v1)
+Holistic Critique — retail/mvm_v1/schemas/retail_customer_schema_v1_mvm.sql
+Source: vibe-business-data-models / retail / mvm_v1 / customer schema
+Reviewer: [REVIEWER]
+Date: 2026-05-21
+File metrics: 10 tables · 335 columns · 49 cross-domain FK references · 896 lines
+Top-line verdict: Impressive breadth and clear domain knowledge in the comments. But it is not minimum-viable — it is a full enterprise CDP/MDM/CRM rolled together, opinionated on specific vendors, with real correctness bugs and architectural smells that would make it hard to adopt as a neutral reference.
+---
+1. Hard correctness bugs (must fix)
+These are not taste issues — they are wrong.
+1a. Data type errors (13 columns)
+These break SUM/AVG/comparison and force casts in every downstream query. They are the giveaway that the LLM generated columns by description without checking the type.
+1b. Schema/database name mismatch
+File is named _v1_mvm.sql but the DDL uses ` retail_ecm.customer ` — i.e., it writes into the ECM catalog. The MVM and ECM schema files target the same catalog, which means deploying both blows away the first. Probably an agent bug.
+1c. Comment for customer database promises "households" but there is no household table
+Database comment says: "Single source of truth for all customer identity, profiles, households, segments…" — no household table exists. Either the comment lies or a table was dropped.
+---
+2. Vendor opinion is everywhere
+Counted vendor-name occurrences across the file:
+Two distinct problems:
+(a) Comments naming specific vendors — e.g., profile.profile_id: "Primary key for the golden customer record in Informatica MDM." These should be vendor-neutral: "Primary key for the master customer record." Implementation detail of which MDM tool you happen to use does not belong in a reference data model.
+(b) Enum constraints baking in vendor lists — e.g., payment_method.card_brand constrained to visa|mastercard|amex|discover|jcb|unionpay. This is half a real constraint and half marketing copy. Real retail data must also accommodate Maestro, Diners, RuPay, regional cards, store cards, EBT in the US. Either expand to ~20+ valid values (impractical) or stop trying to enum-constrain it. Same problem with BNPL providers (Klarna, Affirm, Afterpay, Zip, Sezzle — but not Sunbit, Splitit, PayPal Pay-in-4, Apple Pay Later, etc.) and wallets.
+Suggested fix: keep enum constraints only for type categories (payment_method_type ∈ {credit_card, debit_card, wallet, gift_card, store_credit, bnpl}), not for specific brands or providers. Store card_brand and wallet_provider as free STRING with a comment listing "common values include…".
+---
+3. Over-engineering — "minimum viable" is anything but
+For a model labeled Minimum Viable, 335 columns across 10 tables is the opposite of minimum. The Google Retail Data Model covers customer in ~60 attributes total. ARTS ODM 7.3 covers it in ~80. This MVM covers it in 335. The "minimum viable" claim is misleading.
+3a. Four separate places to declare marketing consent
+The same logical fact ("customer agreed to receive emails") is modeled in four tables:
+profile.email_opt_in_flag, profile.sms_opt_in_flag, profile.marketing_consent_flag, profile.gdpr_consent_flag, profile.ccpa_opt_out_flag
+account.marketing_opt_in, account.data_sharing_consent, account.marketing_opt_in_date, account.marketing_opt_out_date
+contact.opt_in_marketing, contact.opt_in_transactional, contact.opt_in_date, contact.opt_out_date
+consent table (the actual right place — 32 columns dedicated to it)
+If you've got a consent table with full GDPR/CCPA scaffolding, the redundant flags on profile / account / contact are pure denormalization and a guaranteed consistency-bug source. Pick one (the consent table) and delete the rest.
+3b. The preference table is a god-table
+preference.preference_category can be any of: communication_channel | product_category_affinity | dietary_restriction | brand_preference | store_preference | language | notification_frequency | privacy_consent | marketing_opt_in | delivery_preference | payment_method_preference | shopping_time_preference.
+That is 12 unrelated concepts crammed into one EAV-ish table. Communication channel preference, dietary restriction, and delivery preference are not the same kind of thing and should not share a row schema. This is the kind of model an LLM produces when asked "what could a preference look like?" — it union-types every example into one table.
+For a clean model: separate communication_preference, dietary_restriction, and a small customer_attribute(key, value) extensibility table for the long tail.
+3c. service_case belongs in its own domain
+52 columns. 18+ FKs reaching into compliance, ecommerce, fulfillment, supplychain, supplier, store, merchandising, pricing, promotion, loyalty. This is not customer master data — it is customer-service operational data. Put it in a service domain. Same for customer_membership and segment — these are marketing-analytics constructs, not identity.
+The customer domain currently contains:
+Identity (profile) — belongs here
+Commercial relationship (account) — debatable, see 3e
+Contact methods (contact) — belongs here
+Addresses (address) — belongs here
+Saved payment methods (payment_method) — debatable, see 3f
+consent — probably belongs in a compliance or privacy domain (regulator-facing, not identity)
+preference — split it up; not master data
+segment — marketing domain
+customer_membership — marketing domain
+service_case — service domain
+A real minimum-viable customer schema is 4-5 tables, not 10.
+3d. Computed-from-transactions metrics stored on master tables
+profile.last_interaction_date, profile.last_purchase_date, profile.cltv_score, profile.cac_amount, profile.nps_score, account.total_lifetime_orders, account.last_transaction_date, account.outstanding_balance — all derivable from other tables.
+Putting derived metrics on master records means every transaction has to update profile, which is the classic OLAP-bleed-into-OLTP smell. These should be metric views or materialized views, not columns. The metrics/ folder in this repo presumably has them — they should not be duplicated.
+3e. profile vs account overlap
+profile (39 cols) and account (38 cols) share huge overlap: both have preferred_channel, both have marketing opt-in flags, both have status. The split makes sense for B2B (one corporate account → multiple users), but it is awkward for B2C where everyone is a 1:1.
+Cleaner pattern: keep profile as the identity entity. account becomes optional and exists only for B2B/wholesale relationships — most B2C rows have null or default account rows.
+3f. payment_method on the customer schema
+PCI DSS scope: storing cardholder_name (column 338) puts this table in PCI scope, which means everything joined to it transitively becomes audit territory. Industry practice is to keep tokenized payment instruments in a vault-adjacent schema (often finance.payment_instrument), not on customer master tables, so non-payment workloads stay out of PCI scope.
+---
+4. Tags and metadata smell
+The file ends with ~500 ALTER ... SET TAGS statements (lines 410–896 are mostly tags). Pattern is:
+Every column gets dbx_business_glossary_term = '' — but those values are mostly just the column name capitalized. E.g., account_id → 'Account ID'. That is noise, not glossary.
+PII tags (dbx_pii_name, dbx_pii_phone, dbx_pii_email, dbx_pii_dob, dbx_pii_address, dbx_pii_financial) — these are useful. Keep.
+dbx_value_regex tags duplicate what is already in the column comment as text. Pick one source.
+If you can cut the auto-generated glossary noise, the file gets ~40% shorter.
+---
+5. Architectural smells
+5a. 49 cross-domain FKs from one schema
+The customer schema reaches into product, pricing, promotion, supplier, supplychain, store, merchandising, fulfillment, loyalty, finance, ecommerce. Essentially every other domain. This is the LLM optimistically adding plausible joins everywhere.
+Real customer data should depend on almost nothing. Customer is the root. Transactions depend on customer, not the other way around. A profile.location_id FK into store makes sense (preferred store). A consent.promo_campaign_id FK into promotion does not — campaigns reference consent records, not the other way.
+The dependency arrow direction looks reversed in many of these FKs.
+5b. No SCD pattern consistency
+Some tables (preference, contact, segment, customer_membership) have effective_start_date / effective_end_date / status — proper SCD Type 2 vibes.
+Other tables (profile, account, address) just have last_modified_timestamp — i.e., destructive update, no history.
+For a model claiming to be a "golden record" with audit trails for GDPR, the master tables (profile, account) need SCD-2 or change-data-capture, not destructive update.
+5c. customer_type confusion
+profile.customer_type ∈ {individual, corporate, employee, vip, wholesale} — mixes:
+Entity type (individual vs corporate) — should determine which subtype table to look at
+Classification (vip) — also exists as vip_flag and account_tier='vip'. Redundant.
+Relationship (employee) — also exists as employee_flag. Redundant.
+A cleaner schema separates what kind of legal entity (individual/organization) from what role they play to us (consumer/employee/wholesale_buyer/...).
+---
+6. What's actually good (keep these)
+Don't throw the whole thing out:
+Domain decomposition at the top level (customer/loyalty/order/fulfillment/...) is sensible.
+MVM/ECM split is a great product framing.
+PII tagging with consistent dbx_pii_* tag values is useful for masking and access control.
+GDPR/CCPA scaffolding in the consent table is genuinely thorough — keep this table almost as-is, just move it to a privacy or compliance domain.
+Most enum constraints are reasonable category lists (status values, lifecycle stages) — only the vendor-flavored ones (card brands, BNPL providers, wallet providers) need rework.
+Column comments are domain-aware — they read like someone who knows retail wrote them (or guided the LLM well). Just need to strip vendor names.
+Cross-domain FK *justifications* in comments — when accurate, these are gold. They explain why the relationship exists, which is exactly what's missing from ARTS ODM.
+---
+7. Concrete asks to take back to the author
+Frame it as five concrete asks:
+Vendor-strip pass: regex-replace ~15 vendor names with neutral descriptors in column comments. Specifically: Informatica MDM → "the customer master data system", Salesforce Commerce Cloud → "the e-commerce platform", Salesforce Service Cloud → "the case management system", SAP CAR → "the retail analytics platform", drop "Nike" examples entirely. Restrict enum constraints to abstract type categories only.
+Fix the 13 data type bugs listed in section 1a. These are correctness, not opinion.
+De-duplicate consent: pick the consent table as the single source of truth, delete the 11 redundant opt-in flags scattered across profile / account / contact.
+Split god-tables and re-home: preference → break into focused tables; service_case → move to a service domain; segment / customer_membership → move to a marketing or customer_intelligence domain. Truly minimum-viable customer = profile + address + contact + consent (+ optional account for B2B).
+Remove derived columns from master tables: cltv_score, cac_amount, nps_score, last_purchase_date, total_lifetime_orders, outstanding_balance should be metric views or materialized views, not stored on profile / account. They invite write amplification and staleness.
+Plus the broader points already covered:
+Add a LICENSE (Apache 2.0) so it can be referenced or forked.
+Add a provenance disclosure ("LLM-generated, last human-reviewed YYYY-MM-DD by …") so adopters know to vet.
+Clarify catalog name discipline (retail_mvm / retail_ecm distinct catalogs, not both writing to retail_ecm).
+---
+8. The deeper question
+The LLM has produced a plausibly comprehensive retail customer model that reads as if it was written by someone who consulted with five different retailers (each with their own MDM/CRM stack) and tried to satisfy all of them. The result has the union of everyone's opinions — which is exactly what you don't want in a reference model. A reference model needs the intersection of universal concepts, with extensibility hooks for everything else.
+If the goal is Databricks Open Retail Data Model — vendor-neutral, opinionated only where the industry has genuine consensus, minimal in MVM — this needs substantial editing, not just polishing. The bones are good; the muscles are bloated.
+
+--- END VERBATIM ---
+
+===============================================================================
+SECTION 3 — AGENT-DETECTED ISSUES (must address in v2 build)
+===============================================================================
+
+3a. STUBS — 0 products in ECM with only PK + FK columns and no
+    data attributes. Their existing descriptions promise rich business content
+    but attribute arrays were never populated. The v2 rebuild MUST derive
+    full data-attribute sets for each from business context. (Per the user's
+    direction, do not consult the v1 descriptions — re-derive from business
+    context and the user comments in Section 2.)
+
+  (none detected at the stub threshold of data_attrs <= 3)
+
+3b. THIN PRODUCTS — 10 additional products with 4-8 data attributes.
+    These are not stubs but are likely under-populated. Review and expand
+    where Section 2 or domain norms warrant more depth.
+
+  - inventory.location_assignment (data=8)
+  - customer.issuance (data=8)
+  - customer.client_relationship (data=8)
+  - store.format_offer_eligibility (data=8)
+  - promotion.promo_inventory_allocation (data=8)
+  - merchandising.buyer_profit_center_assignment (data=6)
+  - merchandising.category_accrual_rule (data=8)
+  - ecommerce.storefront_assortment (data=8)
+  - workforce.dashboard_access (data=8)
+  - supplychain.po_shipment_receipt (data=7)
+
+3c. STRUCTURAL ISSUES from v1 next_vibes.txt (ECM scope)
+
+  - Prior ECM quality score: 69.0/100 (target >= 80)
+  - Cross-domain SSOT duplicates: 9
+      - 'analytics.analytics_kpi_target' vs 'workforce.workforce_kpi_target'
+      - 'compliance.compliance_program' vs 'loyalty.loyalty_program'
+      - 'customer.customer_membership' vs 'loyalty.loyalty_membership'
+      - 'finance.finance_budget' vs 'marketing.marketing_budget'
+      - 'fulfillment.fulfillment_line' vs 'order.order_line'
+      - 'fulfillment.fulfillment_node' vs 'inventory.inventory_node'
+      - 'marketing.marketing_brand' vs 'product.product_brand'
+      - 'merchandising.merchandising_planogram' vs 'store.store_planogram'
+      - 'supplier.supplier_edi_transaction' vs 'supplychain.supplychain_edi_transaction'
+  - Top priorities from v1 next_vibes (first 20):
+      - P1: rename_attribute: finance.netting_run** — rename column reversal_netting_run_id to reversed_netting_run_id because the current naming is ambiguous and inconsist
+      - P2: rename_attribute: order.gift_card** — rename column replacement_for_card_gift_card_id to replacement_for_gift_card_id because there are two self-ref columns wit
+      - P3: rename_attribute: compliance.regulatory_agency** — rename column parent_agency_id to parent_regulatory_agency_id because there are two self-ref columns (parent_
+      - P4: rename_attribute: marketing.audience_segment** — rename column parent_segment_audience_segment_id to parent_audience_segment_id because there are two self-ref c
+      - P5: rename_attribute: marketing.email_template** — rename column parent_template_id to parent_email_template_id because there are two self-ref columns (parent_templ
+      - P6: rename_attribute: marketing.marketing_brand** — rename column parent_brand_marketing_brand_id to parent_marketing_brand_id because there are two self-ref column
+      - P7: rename_attribute: analytics.metric_dimension** — rename column replacement_dimension_metric_dimension_id to replacement_metric_dimension_id because the redundan
+      - P8: rename_attribute: analytics.semantic_layer_entity** — rename column replacement_entity_semantic_layer_entity_id to replacement_semantic_layer_entity_id because 
+      - P9: rename_attribute: supplychain.sla_definition** — rename column superseded_by_sla_sla_definition_id to superseded_by_sla_definition_id because the double "sla_sl
+      - P10: connect_table: finance.legal_entity** — add column parent_legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — legal entities form hierarc
+      - P11: connect_table: finance.gl_account** — add column chart_of_accounts_id (BIGINT) with FK to finance.chart_of_accounts.chart_of_accounts_id — GL accounts must belo
+      - P12: connect_table: finance.profit_center** — add column legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — profit centers operate within leg
+      - P13: connect_table: finance.scenario** — add column financial_period_id (BIGINT) with FK to finance.financial_period.financial_period_id — budget/forecast scenarios 
+      - P14: connect_table: inventory.inventory_node** — add column location_id (BIGINT) with FK to store.location.location_id — inventory nodes represent physical locations
+      - P15: connect_table: inventory.inventory_node** — add column dc_facility_id (BIGINT) with FK to supplychain.dc_facility.dc_facility_id — inventory nodes at distributi
+      - P16: connect_table: supplychain.dc_facility** — add column location_id (BIGINT) with FK to store.location.location_id — DC facilities have physical addresses and sho
+      - P17: connect_table: store.format** — add column parent_format_id (BIGINT) with FK to store.format.format_id — store formats may have hierarchical relationships (e.g.
+      - P18: connect_table: fulfillment.carrier** — add column vendor_id (BIGINT) with FK to supplier.vendor.vendor_id — carriers are vendors with contracts and should link 
+      - P19: connect_table: customer.profile** — add column household_id (BIGINT) with FK to customer.household.household_id — profiles should directly reference their house
+      - P20: connect_table: order.header** — add column store_location_id (BIGINT) with FK to store.location.location_id — orders placed in-store must reference the originat
+
+3d. STRUCTURAL ISSUES from v1 next_vibes.txt (MVM scope)
+
+  - Prior MVM quality score: 92.0/100 (target >= 80)
+  - Cross-domain SSOT duplicates: 3
+
+===============================================================================
+END OF VIBE — REBUILD INSTRUCTION
+===============================================================================
