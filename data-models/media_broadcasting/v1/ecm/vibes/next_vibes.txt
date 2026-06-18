@@ -816,3 +816,61 @@ SECTION 3 — AGENT-DETECTED ISSUES (must address in v2 build)
 ===============================================================================
 END OF VIBE — REBUILD INSTRUCTION
 ===============================================================================
+
+=== SECTION 3E — AUDIT-DETECTED CRITICAL FIXES (v2 MUST fix) ===
+Source: structural audit of v1 ECM model.json (fork). These are SUPREME-AUTHORITY
+directives for the v2 build (CLAUDE.md user-vibe primacy). Apply ALL; do not skip.
+
+3E.0 STUB DOMAINS (<5 products) — expand with real entities: advertising(2)
+
+3E.1 SKELETON PRODUCTS (2) — have ONLY PK/FK, ZERO data attributes;
+     add the real business attributes that make each a usable entity:
+     - sales.proposal(data=0/2)
+     - sales.scatter_order(data=0/2)
+
+3E.2 STUB PRODUCTS (2, <5 attrs total) — under-populated; enrich:
+     - sales.proposal(2)
+     - sales.scatter_order(2)
+
+3E.3 WRONG ATTRIBUTE TYPES (23) — correct the physical type:
+     - content.title.aspect_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - content.series.aspect_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - content.content_episode.aspect_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - content.version.aspect_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - content.metadata_profile.aspect_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - content.artwork.aspect_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - content.ingest_event.source_aspect_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - content.content_library.aspect_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - content.vod_library.aspect_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - content.content_portfolio.aspect_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - production.vfx_shot.aspect_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - production.deliverable.aspect_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - production.ingest_record.aspect_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - production.format_spec.aspect_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - scheduling.schedule_slot.aspect_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - distribution.delivery_channel.aspect_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - distribution.playout_feed.aspect_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - mediaasset.media_asset.aspect_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - mediaasset.asset_version.aspect_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - mediaasset.ingest_job.aspect_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - mediaasset.qc_inspection.detected_aspect_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - mediaasset.format_specification.aspect_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - sales.isci_creative.aspect_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+
+3E.4 UNTAGGED CRITICAL PII (9) — add a sensitivity/PII classification
+     tag (sensitivity=pii / phi where health) to each; mask in non-prod:
+     - content.content_clearance.rights_holder_name:person_name
+     - production.cost_transaction.payee_name:person_name
+     - production.call_sheet.first_ad_name:person_name
+     - rights.royalty_statement_line.rights_holder_name:person_name
+     - rights.music_sync_license.rights_holder_name:person_name
+     - rights.exploitation_report.rights_holder_name:person_name
+     - rights.holder.rights_holder_name:person_name
+     - technology.software_license.renewal_owner_name:person_name
+     - technology.tech_project.technology_owner_name:person_name
+
+3E.5 GENERIC RULE (industry-agnostic): every monetary attribute -> DECIMAL(18,2);
+     every rate/ratio/percent -> DECIMAL/DOUBLE; every *_flag/is_*/has_* -> BOOLEAN;
+     every *_date/_at/_timestamp -> DATE/TIMESTAMP; every person email/phone/name/dob/
+     ssn/passport/national_id/tax_id/card/address/gender/race/diagnosis -> PII tag.
+=== END SECTION 3E ===

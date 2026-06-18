@@ -580,3 +580,48 @@ SECTION 3 — AGENT-DETECTED ISSUES (must address in v2 build)
 ===============================================================================
 END OF VIBE — REBUILD INSTRUCTION
 ===============================================================================
+
+=== SECTION 3E — AUDIT-DETECTED CRITICAL FIXES (v2 MUST fix) ===
+Source: structural audit of v1 ECM model.json (fork). These are SUPREME-AUTHORITY
+directives for the v2 build (CLAUDE.md user-vibe primacy). Apply ALL; do not skip.
+
+3E.1 SKELETON PRODUCTS (1) — have ONLY PK/FK, ZERO data attributes;
+     add the real business attributes that make each a usable entity:
+     - care.coordinator_assignment(data=0/2)
+
+3E.2 STUB PRODUCTS (1, <5 attrs total) — under-populated; enrich:
+     - care.coordinator_assignment(2)
+
+3E.3 WRONG ATTRIBUTE TYPES (14) — correct the physical type:
+     - provider.provider_provider.status_flag:bool->STRING(want BOOLEAN)
+     - claim.drg.cc_mcc_flag:bool->STRING(want BOOLEAN)
+     - pharmacy.dispensing_pharmacy.chain_independent_flag:bool->STRING(want BOOLEAN)
+     - credential.cvo_relationship.compliance_flag:bool->STRING(want BOOLEAN)
+     - network.adequacy_standard.provider_to_member_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - network.par_agreement.compliance_status_flag:bool->STRING(want BOOLEAN)
+     - contract.service_scope.inclusion_exclusion_flag:bool->STRING(want BOOLEAN)
+     - appeal.review.compliance_flag:bool->STRING(want BOOLEAN)
+     - appeal.penalty.compliance_flag:bool->STRING(want BOOLEAN)
+     - risk.hcc_mapping.interaction_flag:bool->STRING(want BOOLEAN)
+     - risk.ibnr_reserve.reserve_adequacy_flag:bool->STRING(want BOOLEAN)
+     - risk.score_run.data_quality_flag:bool->STRING(want BOOLEAN)
+     - finance.reinsurance_transaction.sap_schedule_f_flag:bool->STRING(want BOOLEAN)
+     - vendor.po_line.compliance_flag:bool->STRING(want BOOLEAN)
+
+3E.4 UNTAGGED CRITICAL PII (9) — add a sensitivity/PII classification
+     tag (sensitivity=pii / phi where health) to each; mask in non-prod:
+     - member.identity.race:special_category
+     - member.authorization_document.member_gender:special_category
+     - provider.outreach_campaign.campaign_target_audience_gender:special_category
+     - pharmacy.pbm_contract.contract_owner_name:person_name
+     - utilization.episode_of_care.primary_diagnosis_code:health
+     - utilization.episode_of_care.secondary_diagnosis_codes:health
+     - employer.tpa.tpa_contact_name:person_name
+     - finance.budget.owner_name:person_name
+     - finance.legal_entity.legal_entity_fax:phone
+
+3E.5 GENERIC RULE (industry-agnostic): every monetary attribute -> DECIMAL(18,2);
+     every rate/ratio/percent -> DECIMAL/DOUBLE; every *_flag/is_*/has_* -> BOOLEAN;
+     every *_date/_at/_timestamp -> DATE/TIMESTAMP; every person email/phone/name/dob/
+     ssn/passport/national_id/tax_id/card/address/gender/race/diagnosis -> PII tag.
+=== END SECTION 3E ===

@@ -658,3 +658,37 @@ SECTION 3 — AGENT-DETECTED ISSUES (must address in v2 build)
 ===============================================================================
 END OF VIBE — REBUILD INSTRUCTION
 ===============================================================================
+
+=== SECTION 3E — AUDIT-DETECTED CRITICAL FIXES (v2 MUST fix) ===
+Source: structural audit of v1 ECM model.json (fork). These are SUPREME-AUTHORITY
+directives for the v2 build (CLAUDE.md user-vibe primacy). Apply ALL; do not skip.
+
+3E.3 WRONG ATTRIBUTE TYPES (5) — correct the physical type:
+     - product.image.aspect_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - order.discount.tax_treatment_flag:bool->STRING(want BOOLEAN)
+     - store.traffic_count.data_quality_flag:bool->STRING(want BOOLEAN)
+     - pricing.competitive_price.observation_quality_flag:bool->STRING(want BOOLEAN)
+     - promotion.promo_offer.maximum_redemption_total:money->INT(want DECIMAL)
+
+3E.4 UNTAGGED CRITICAL PII (14) — add a sensitivity/PII classification
+     tag (sensitivity=pii / phi where health) to each; mask in non-prod:
+     - product.product_brand.owner_name:person_name
+     - store.cluster.owner_name:person_name
+     - promotion.promo_campaign.owner_name:person_name
+     - promotion.promo_calendar.planning_owner_name:person_name
+     - marketing.email_send.resend_of_email_send_id:email
+     - marketing.channel.owner_name:person_name
+     - marketing.automation_step.sender_email:email
+     - marketing.email_template.email_template_id:email
+     - marketing.email_template.parent_email_template_id:email
+     - analytics.dashboard_config.dashboard_owner_name:person_name
+     - analytics.glossary_term.business_owner_name:person_name
+     - compliance.corrective_action.assigned_owner_name:person_name
+     - compliance.training_program.program_owner_name:person_name
+     - compliance.regulatory_agency.primary_contact_name:person_name
+
+3E.5 GENERIC RULE (industry-agnostic): every monetary attribute -> DECIMAL(18,2);
+     every rate/ratio/percent -> DECIMAL/DOUBLE; every *_flag/is_*/has_* -> BOOLEAN;
+     every *_date/_at/_timestamp -> DATE/TIMESTAMP; every person email/phone/name/dob/
+     ssn/passport/national_id/tax_id/card/address/gender/race/diagnosis -> PII tag.
+=== END SECTION 3E ===

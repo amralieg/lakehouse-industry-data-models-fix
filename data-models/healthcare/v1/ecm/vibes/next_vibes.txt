@@ -847,3 +847,42 @@ SECTION 3 — AGENT-DETECTED ISSUES (must address in v2 build)
 ===============================================================================
 END OF VIBE — REBUILD INSTRUCTION
 ===============================================================================
+
+=== SECTION 3E — AUDIT-DETECTED CRITICAL FIXES (v2 MUST fix) ===
+Source: structural audit of v1 ECM model.json (fork). These are SUPREME-AUTHORITY
+directives for the v2 build (CLAUDE.md user-vibe primacy). Apply ALL; do not skip.
+
+3E.3 WRONG ATTRIBUTE TYPES (13) — correct the physical type:
+     - encounter.drg_assignment.cc_mcc_flag:bool->STRING(want BOOLEAN)
+     - clinical.allergy.data_quality_flag:bool->STRING(want BOOLEAN)
+     - clinical.vital_sign.abnormal_flag:bool->STRING(want BOOLEAN)
+     - clinical.observation.interpretation_flag:bool->STRING(want BOOLEAN)
+     - laboratory.test_result.abnormal_flag:bool->STRING(want BOOLEAN)
+     - laboratory.point_of_care_test.abnormal_flag:bool->STRING(want BOOLEAN)
+     - facility.unit.nurse_to_patient_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - research.study_arm.randomization_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - reference.icd_code.gender_specific_flag:bool->STRING(want BOOLEAN)
+     - reference.loinc_code.order_observation_flag:bool->STRING(want BOOLEAN)
+     - reference.ndc_drug.rxnorm_suppress_flag:bool->STRING(want BOOLEAN)
+     - reference.crosswalk.scenario_flag:bool->STRING(want BOOLEAN)
+     - finance.chart_of_accounts.natural_balance:money->STRING(want DECIMAL)
+
+3E.4 UNTAGGED CRITICAL PII (11) — add a sensitivity/PII classification
+     tag (sensitivity=pii / phi where health) to each; mask in non-prod:
+     - patient.communication_campaign.campaign_owner_name:person_name
+     - clinical.cdi_query.diagnosis_id:health
+     - clinical.hai_event.diagnosis_id:health
+     - order.routing_rule.diagnosis_code:health
+     - order.routing_rule.patient_gender:special_category
+     - claim.remittance.payee_name:person_name
+     - facility.contract.owner_name:person_name
+     - compliance.corrective_action_plan.responsible_owner_name:person_name
+     - interoperability.interface_channel.business_owner_name:person_name
+     - interoperability.interface_channel.technical_owner_name:person_name
+     - interoperability.onboarding_project.business_owner_name:person_name
+
+3E.5 GENERIC RULE (industry-agnostic): every monetary attribute -> DECIMAL(18,2);
+     every rate/ratio/percent -> DECIMAL/DOUBLE; every *_flag/is_*/has_* -> BOOLEAN;
+     every *_date/_at/_timestamp -> DATE/TIMESTAMP; every person email/phone/name/dob/
+     ssn/passport/national_id/tax_id/card/address/gender/race/diagnosis -> PII tag.
+=== END SECTION 3E ===

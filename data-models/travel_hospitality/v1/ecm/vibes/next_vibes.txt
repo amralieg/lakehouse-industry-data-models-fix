@@ -516,3 +516,41 @@ SECTION 3 — AGENT-DETECTED ISSUES (must address in v2 build)
 ===============================================================================
 END OF VIBE — REBUILD INSTRUCTION
 ===============================================================================
+
+=== SECTION 3E — AUDIT-DETECTED CRITICAL FIXES (v2 MUST fix) ===
+Source: structural audit of v1 ECM model.json (fork). These are SUPREME-AUTHORITY
+directives for the v2 build (CLAUDE.md user-vibe primacy). Apply ALL; do not skip.
+
+3E.0 STUB DOMAINS (<5 products) — expand with real entities: workforce(1)
+
+3E.1 SKELETON PRODUCTS (1) — have ONLY PK/FK, ZERO data attributes;
+     add the real business attributes that make each a usable entity:
+     - channel.inventory_allocation(data=0/2)
+
+3E.2 STUB PRODUCTS (1, <5 attrs total) — under-populated; enrich:
+     - channel.inventory_allocation(2)
+
+3E.3 WRONG ATTRIBUTE TYPES (8) — correct the physical type:
+     - property.media.aspect_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - loyalty.partner_program.maximum_transfer_amount:money->INT(want DECIMAL)
+     - loyalty.partner_program.minimum_transfer_amount:money->INT(want DECIMAL)
+     - fnb.revenue_center.day_part_service_flag:bool->STRING(want BOOLEAN)
+     - housekeeping.team.end_time:temporal->STRING(want DATE/TIMESTAMP)
+     - housekeeping.team.start_time:temporal->STRING(want DATE/TIMESTAMP)
+     - procurement.request_for_quotation.capex_opex_flag:bool->STRING(want BOOLEAN)
+     - marketing.campaign_offer.redemption_limit_total:money->INT(want DECIMAL)
+
+3E.4 UNTAGGED CRITICAL PII (6) — add a sensitivity/PII classification
+     tag (sensitivity=pii / phi where health) to each; mask in non-prod:
+     - guest.contact_info.email_type:email
+     - event.inquiry.lead_owner_name:person_name
+     - fnb.waste_log.recording_staff_name:person_name
+     - spa.product.gender_restriction:special_category
+     - spa.product_line.gender_restriction:special_category
+     - compliance.permit.holder_name:person_name
+
+3E.5 GENERIC RULE (industry-agnostic): every monetary attribute -> DECIMAL(18,2);
+     every rate/ratio/percent -> DECIMAL/DOUBLE; every *_flag/is_*/has_* -> BOOLEAN;
+     every *_date/_at/_timestamp -> DATE/TIMESTAMP; every person email/phone/name/dob/
+     ssn/passport/national_id/tax_id/card/address/gender/race/diagnosis -> PII tag.
+=== END SECTION 3E ===

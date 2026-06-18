@@ -522,3 +522,47 @@ SECTION 3 — AGENT-DETECTED ISSUES (must address in v2 build)
 ===============================================================================
 END OF VIBE — REBUILD INSTRUCTION
 ===============================================================================
+
+=== SECTION 3E — AUDIT-DETECTED CRITICAL FIXES (v2 MUST fix) ===
+Source: structural audit of v1 ECM model.json (fork). These are SUPREME-AUTHORITY
+directives for the v2 build (CLAUDE.md user-vibe primacy). Apply ALL; do not skip.
+
+3E.0 STUB DOMAINS (<5 products) — expand with real entities: subcontractor(4)
+
+3E.1 SKELETON PRODUCTS (1) — have ONLY PK/FK, ZERO data attributes;
+     add the real business attributes that make each a usable entity:
+     - design.drawing_incident_link(data=1/4)
+
+3E.2 STUB PRODUCTS (1, <5 attrs total) — under-populated; enrich:
+     - design.drawing_incident_link(4)
+
+3E.3 WRONG ATTRIBUTE TYPES (12) — correct the physical type:
+     - material.wastage.regulatory_compliance_flag:bool->STRING(want BOOLEAN)
+     - workforce.labor_agreement.apprentice_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - safety.environmental_monitoring.data_quality_flag:bool->STRING(want BOOLEAN)
+     - bid.bid_prequalification.confidentiality_flag:bool->STRING(want BOOLEAN)
+     - compliance.env_monitoring.data_quality_flag:bool->STRING(want BOOLEAN)
+     - compliance.pci_assessment.control_total:money->INT(want DECIMAL)
+     - hr.onboarding_checklist.task_total:money->INT(want DECIMAL)
+     - sustainability.esg_disclosure_item.data_quality_flag:bool->STRING(want BOOLEAN)
+     - sustainability.biodiversity_assessment.data_quality_flag:bool->STRING(want BOOLEAN)
+     - sustainability.social_value_record.data_quality_flag:bool->STRING(want BOOLEAN)
+     - sustainability.sustainability_audit.data_quality_flag:bool->STRING(want BOOLEAN)
+     - sustainability.carbon_reduction_initiative.data_quality_flag:bool->STRING(want BOOLEAN)
+
+3E.4 UNTAGGED CRITICAL PII (8) — add a sensitivity/PII classification
+     tag (sensitivity=pii / phi where health) to each; mask in non-prod:
+     - site.site_location.primary_contact_name:person_name
+     - design.review.client_representative_name:person_name
+     - quality.acceptance_test.client_representative_name:person_name
+     - quality.punch_item.client_representative_name:person_name
+     - quality.quality_plan.client_approved_by_name:person_name
+     - finance.company_code.primary_contact_name:person_name
+     - bid.insurance_certificate.certificate_holder_name:person_name
+     - sustainability.waste_carrier.primary_contact_name:person_name
+
+3E.5 GENERIC RULE (industry-agnostic): every monetary attribute -> DECIMAL(18,2);
+     every rate/ratio/percent -> DECIMAL/DOUBLE; every *_flag/is_*/has_* -> BOOLEAN;
+     every *_date/_at/_timestamp -> DATE/TIMESTAMP; every person email/phone/name/dob/
+     ssn/passport/national_id/tax_id/card/address/gender/race/diagnosis -> PII tag.
+=== END SECTION 3E ===

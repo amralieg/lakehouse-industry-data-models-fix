@@ -568,3 +568,51 @@ SECTION 3 — AGENT-DETECTED ISSUES (must address in v2 build)
 ===============================================================================
 END OF VIBE — REBUILD INSTRUCTION
 ===============================================================================
+
+=== SECTION 3E — AUDIT-DETECTED CRITICAL FIXES (v2 MUST fix) ===
+Source: structural audit of v1 ECM model.json (fork). These are SUPREME-AUTHORITY
+directives for the v2 build (CLAUDE.md user-vibe primacy). Apply ALL; do not skip.
+
+3E.0 STUB DOMAINS (<5 products) — expand with real entities: customer(1), shared(1)
+
+3E.1 SKELETON PRODUCTS (3) — have ONLY PK/FK, ZERO data attributes;
+     add the real business attributes that make each a usable entity:
+     - procurement.procurement_vmi_agreement2(data=0/1)
+     - marketing.event_participation(data=1/4)
+     - finance.chart_of_accounts(data=0/2)
+
+3E.2 STUB PRODUCTS (3, <5 attrs total) — under-populated; enrich:
+     - procurement.procurement_vmi_agreement2(1)
+     - marketing.event_participation(4)
+     - finance.chart_of_accounts(2)
+
+3E.3 WRONG ATTRIBUTE TYPES (9) — correct the physical type:
+     - manufacturing.production_line.humidity_range_percent:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - quality.laboratory.compliance_flag:bool->STRING(want BOOLEAN)
+     - research.consumer_test_result.data_quality_flag:bool->STRING(want BOOLEAN)
+     - regulatory.epa_registration.active_ingredient_percentage:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - sustainability.carbon_emission.cdpr_reporting_flag:bool->STRING(want BOOLEAN)
+     - sustainability.carbon_emission.data_quality_flag:bool->STRING(want BOOLEAN)
+     - sustainability.water_consumption.data_quality_flag:bool->STRING(want BOOLEAN)
+     - sustainability.carbon_offset.compliance_flag:bool->STRING(want BOOLEAN)
+     - sustainability.biodiversity_impact.data_quality_flag:bool->STRING(want BOOLEAN)
+
+3E.4 UNTAGGED CRITICAL PII (11) — add a sensitivity/PII classification
+     tag (sensitivity=pii / phi where health) to each; mask in non-prod:
+     - manufacturing.yield_record.routing_operation_number:card/bank
+     - consumer.preference_center.email_opt_in:email
+     - consumer.panel.ethnicity:special_category
+     - consumer.panel.gender:special_category
+     - supply.otif_target.target_owner_name:person_name
+     - marketing.media_spend.media_owner_name:person_name
+     - finance.sox_control.control_owner_name:person_name
+     - research.respondent.ethnicity:special_category
+     - research.respondent.gender:special_category
+     - workforce.applicant.expected_salary:financial_personal
+     - workforce.work_location.emergency_contact_name:person_name
+
+3E.5 GENERIC RULE (industry-agnostic): every monetary attribute -> DECIMAL(18,2);
+     every rate/ratio/percent -> DECIMAL/DOUBLE; every *_flag/is_*/has_* -> BOOLEAN;
+     every *_date/_at/_timestamp -> DATE/TIMESTAMP; every person email/phone/name/dob/
+     ssn/passport/national_id/tax_id/card/address/gender/race/diagnosis -> PII tag.
+=== END SECTION 3E ===

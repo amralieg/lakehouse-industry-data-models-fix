@@ -461,3 +461,87 @@ SECTION 3 — AGENT-DETECTED ISSUES (must address in v2 build)
 ===============================================================================
 END OF VIBE — REBUILD INSTRUCTION
 ===============================================================================
+
+=== SECTION 3E — AUDIT-DETECTED CRITICAL FIXES (v2 MUST fix) ===
+Source: structural audit of v1 ECM model.json (fork). These are SUPREME-AUTHORITY
+directives for the v2 build (CLAUDE.md user-vibe primacy). Apply ALL; do not skip.
+
+3E.1 SKELETON PRODUCTS (27) — have ONLY PK/FK, ZERO data attributes;
+     add the real business attributes that make each a usable entity:
+     - guest.guest_segment(data=0/1)
+     - guest.guest_segment_membership(data=0/3)
+     - guest.guest_visit(data=0/4)
+     - guest.guest_allergen_profile(data=0/4)
+     - order.daypart(data=0/2)
+     - supply.supply_supplier(data=0/1)
+     - supply.supply_purchase_order(data=0/4)
+     - supply.purchase_order_line(data=0/2)
+     - supply.invoice(data=0/2)
+     - workforce.tip_compliance(data=0/3)
+     - franchise.billing(data=0/2)
+     - franchise.franchise_corrective_action(data=0/2)
+     - franchise.fee_schedule(data=0/4)
+     - franchise.franchise_remodel_project(data=0/2)
+     - franchise.marketing_fund_contribution(data=0/2)
+     - foodsafety.foodsafety_supplier_certification(data=0/2)
+     - foodsafety.environmental_monitoring(data=0/3)
+     - loyalty.loyalty_segment_membership(data=0/3)
+     - loyalty.loyalty_visit(data=0/2)
+     - loyalty.loyalty_adjustment(data=0/2)
+     - marketing.marketing_lto(data=0/2)
+     - marketing.marketing_guest_segment(data=0/2)
+     - finance.lease_liability(data=0/3)
+     - realestate.realestate_remodel_project(data=0/3)
+     - procurement.category(data=0/1)
+     - procurement.procurement_supplier_certification(data=0/2)
+     - procurement.vendor_rebate(data=0/3)
+
+3E.2 STUB PRODUCTS (27, <5 attrs total) — under-populated; enrich:
+     - guest.guest_segment(1)
+     - guest.guest_segment_membership(3)
+     - guest.guest_visit(4)
+     - guest.guest_allergen_profile(4)
+     - order.daypart(2)
+     - supply.supply_supplier(1)
+     - supply.supply_purchase_order(4)
+     - supply.purchase_order_line(2)
+     - supply.invoice(2)
+     - workforce.tip_compliance(3)
+     - franchise.billing(2)
+     - franchise.franchise_corrective_action(2)
+     - franchise.fee_schedule(4)
+     - franchise.franchise_remodel_project(2)
+     - franchise.marketing_fund_contribution(2)
+     - foodsafety.foodsafety_supplier_certification(2)
+     - foodsafety.environmental_monitoring(3)
+     - loyalty.loyalty_segment_membership(3)
+     - loyalty.loyalty_visit(2)
+     - loyalty.loyalty_adjustment(2)
+     - marketing.marketing_lto(2)
+     - marketing.marketing_guest_segment(2)
+     - finance.lease_liability(3)
+     - realestate.realestate_remodel_project(3)
+     - procurement.category(1)
+     - procurement.procurement_supplier_certification(2)
+     - procurement.vendor_rebate(3)
+
+3E.3 WRONG ATTRIBUTE TYPES (6) — correct the physical type:
+     - order.status_event.data_quality_flag:bool->STRING(want BOOLEAN)
+     - foodsafety.temperature_log.data_quality_flag:bool->STRING(want BOOLEAN)
+     - foodsafety.allergen_incident.compliance_flag:bool->STRING(want BOOLEAN)
+     - marketing.local_store_marketing.compliance_flag:bool->STRING(want BOOLEAN)
+     - finance.asset_depreciation.gl_account_depreciation_expense:money->STRING(want DECIMAL)
+     - procurement.po_line.compliance_flag:bool->STRING(want BOOLEAN)
+
+3E.4 UNTAGGED CRITICAL PII (4) — add a sensitivity/PII classification
+     tag (sensitivity=pii / phi where health) to each; mask in non-prod:
+     - franchise.nro_pipeline.last_milestone_name:person_name
+     - foodsafety.sop_document.owner_name:person_name
+     - finance.house_bank.routing_number:card/bank
+     - realestate.tenant.primary_contact_name:person_name
+
+3E.5 GENERIC RULE (industry-agnostic): every monetary attribute -> DECIMAL(18,2);
+     every rate/ratio/percent -> DECIMAL/DOUBLE; every *_flag/is_*/has_* -> BOOLEAN;
+     every *_date/_at/_timestamp -> DATE/TIMESTAMP; every person email/phone/name/dob/
+     ssn/passport/national_id/tax_id/card/address/gender/race/diagnosis -> PII tag.
+=== END SECTION 3E ===

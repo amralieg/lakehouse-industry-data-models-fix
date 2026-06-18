@@ -781,3 +781,102 @@ SECTION 3 — AGENT-DETECTED ISSUES (must address in v2 build)
 ===============================================================================
 END OF VIBE — REBUILD INSTRUCTION
 ===============================================================================
+
+=== SECTION 3E — AUDIT-DETECTED CRITICAL FIXES (v2 MUST fix) ===
+Source: structural audit of v1 ECM model.json (fork). These are SUPREME-AUTHORITY
+directives for the v2 build (CLAUDE.md user-vibe primacy). Apply ALL; do not skip.
+
+3E.1 SKELETON PRODUCTS (40) — have ONLY PK/FK, ZERO data attributes;
+     add the real business attributes that make each a usable entity:
+     - treatment.facility(data=0/2)
+     - treatment.process_unit(data=0/4)
+     - treatment.chemical(data=0/2)
+     - customer.customer_account(data=0/5)
+     - customer.service_agreement(data=0/4)
+     - customer.assistance_program(data=0/1)
+     - customer.customer_assistance_enrollment(data=0/6)
+     - customer.deposit(data=0/5)
+     - distribution.network_reading(data=0/4)
+     - billing.collection_notice(data=0/5)
+     - metering.metering_meter(data=0/5)
+     - metering.installation(data=0/4)
+     - metering.read(data=0/4)
+     - metering.accuracy_test(data=0/3)
+     - metering.replacement_program(data=0/3)
+     - metering.replacement_order(data=0/7)
+     - metering.metering_nrw_water_balance(data=0/6)
+     - metering.tamper_event(data=0/5)
+     - metering.read_route(data=0/1)
+     - metering.metering_complaint(data=0/5)
+     - quality.exceedance(data=0/3)
+     - quality.pfas_monitoring(data=0/2)
+     - quality.quality_public_notification(data=0/3)
+     - quality.quality_instrument_calibration(data=0/1)
+     - quality.quality_corrective_action(data=0/3)
+     - quality.compliance_determination(data=0/4)
+     - quality.qaqc_batch(data=0/4)
+     - laboratory.laboratory_instrument_calibration(data=0/3)
+     - laboratory.laboratory_corrective_action(data=0/4)
+     - laboratory.certificate_of_analysis(data=0/6)
+     - compliance.compliance_permit(data=0/5)
+     - compliance.compliance_violation(data=0/3)
+     - compliance.overflow_event(data=0/3)
+     - workforce.labor_relations_case(data=0/2)
+     - finance.interfund_transfer(data=0/4)
+     - project.request_for_information(data=0/2)
+     - project.punch_list(data=0/9)
+     - project.project_schedule(data=0/5)
+     - service.service_rate_schedule(data=0/6)
+     - service.service_rate_case(data=0/3)
+
+3E.2 STUB PRODUCTS (26, <5 attrs total) — under-populated; enrich:
+     - treatment.facility(2)
+     - treatment.process_unit(4)
+     - treatment.chemical(2)
+     - customer.service_agreement(4)
+     - customer.assistance_program(1)
+     - distribution.network_reading(4)
+     - metering.installation(4)
+     - metering.read(4)
+     - metering.accuracy_test(3)
+     - metering.replacement_program(3)
+     - metering.read_route(1)
+     - quality.exceedance(3)
+     - quality.pfas_monitoring(2)
+     - quality.quality_public_notification(3)
+     - quality.quality_instrument_calibration(1)
+     - quality.quality_corrective_action(3)
+     - quality.compliance_determination(4)
+     - quality.qaqc_batch(4)
+     - laboratory.laboratory_instrument_calibration(3)
+     - laboratory.laboratory_corrective_action(4)
+     - compliance.compliance_violation(3)
+     - compliance.overflow_event(3)
+     - workforce.labor_relations_case(2)
+     - finance.interfund_transfer(4)
+     - project.request_for_information(2)
+     - service.service_rate_case(3)
+
+3E.3 WRONG ATTRIBUTE TYPES (16) — correct the physical type:
+     - treatment.process_reading.quality_flag:bool->STRING(want BOOLEAN)
+     - treatment.finished_water_production.data_quality_flag:bool->STRING(want BOOLEAN)
+     - treatment.source_water_intake.data_quality_flag:bool->STRING(want BOOLEAN)
+     - treatment.uv_disinfection_event.data_quality_flag:bool->STRING(want BOOLEAN)
+     - treatment.scada_tag.data_quality_flag:bool->STRING(want BOOLEAN)
+     - distribution.flow_reading.data_quality_flag:bool->STRING(want BOOLEAN)
+     - distribution.leak_detection_survey.data_quality_flag:bool->STRING(want BOOLEAN)
+     - wastewater.effluent_parameter_result.quality_control_flag:bool->STRING(want BOOLEAN)
+     - wastewater.ii_flow_measurement.data_quality_flag:bool->STRING(want BOOLEAN)
+     - quality.ct_calculation.data_quality_flag:bool->STRING(want BOOLEAN)
+     - quality.residual_chlorine_reading.quality_control_flag:bool->STRING(want BOOLEAN)
+     - quality.monitoring_context.data_quality_flag:bool->STRING(want BOOLEAN)
+     - laboratory.validation_batch.quality_flag:bool->STRING(want BOOLEAN)
+     - compliance.dmr_result.data_quality_flag:bool->STRING(want BOOLEAN)
+     - workforce.shift_schedule.shift_end_time:temporal->STRING(want DATE/TIMESTAMP)
+     - workforce.shift_schedule.shift_start_time:temporal->STRING(want DATE/TIMESTAMP)
+
+3E.5 GENERIC RULE (industry-agnostic): every monetary attribute -> DECIMAL(18,2);
+     every rate/ratio/percent -> DECIMAL/DOUBLE; every *_flag/is_*/has_* -> BOOLEAN;
+     every *_date/_at/_timestamp -> DATE/TIMESTAMP; every person email/phone/name/dob/
+     ssn/passport/national_id/tax_id/card/address/gender/race/diagnosis -> PII tag.
+=== END SECTION 3E ===

@@ -576,3 +576,39 @@ SECTION 3 — AGENT-DETECTED ISSUES (must address in v2 build)
 ===============================================================================
 END OF VIBE — REBUILD INSTRUCTION
 ===============================================================================
+
+=== SECTION 3E — AUDIT-DETECTED CRITICAL FIXES (v2 MUST fix) ===
+Source: structural audit of v1 ECM model.json (fork). These are SUPREME-AUTHORITY
+directives for the v2 build (CLAUDE.md user-vibe primacy). Apply ALL; do not skip.
+
+3E.1 SKELETON PRODUCTS (1) — have ONLY PK/FK, ZERO data attributes;
+     add the real business attributes that make each a usable entity:
+     - service.contract_line(data=0/2)
+
+3E.2 STUB PRODUCTS (1, <5 attrs total) — under-populated; enrich:
+     - service.contract_line(2)
+
+3E.3 WRONG ATTRIBUTE TYPES (8) — correct the physical type:
+     - production.shift_sequence.end_time:temporal->STRING(want DATE/TIMESTAMP)
+     - production.shift_sequence.start_time:temporal->STRING(want DATE/TIMESTAMP)
+     - asset.maintenance_strategy.maintenance_window_end_time:temporal->STRING(want DATE/TIMESTAMP)
+     - asset.maintenance_strategy.maintenance_window_start_time:temporal->STRING(want DATE/TIMESTAMP)
+     - inventory.supply_area.humidity_range_percent:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - product.product_specification.humidity_rating_percent:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - workforce.shift_pattern.shift_end_time:temporal->STRING(want DATE/TIMESTAMP)
+     - workforce.shift_pattern.shift_start_time:temporal->STRING(want DATE/TIMESTAMP)
+
+3E.4 UNTAGGED CRITICAL PII (6) — add a sensitivity/PII classification
+     tag (sensitivity=pii / phi where health) to each; mask in non-prod:
+     - quality.ppap_submission.customer_approver_name:person_name
+     - quality.notification.owner_name:person_name
+     - logistics.carrier_contract.last_modified_by_name:person_name
+     - customer.customer_entitlement.customer_entitlement_name:person_name
+     - product.change_order.change_owner_name:person_name
+     - compliance.facility.primary_contact_name:person_name
+
+3E.5 GENERIC RULE (industry-agnostic): every monetary attribute -> DECIMAL(18,2);
+     every rate/ratio/percent -> DECIMAL/DOUBLE; every *_flag/is_*/has_* -> BOOLEAN;
+     every *_date/_at/_timestamp -> DATE/TIMESTAMP; every person email/phone/name/dob/
+     ssn/passport/national_id/tax_id/card/address/gender/race/diagnosis -> PII tag.
+=== END SECTION 3E ===

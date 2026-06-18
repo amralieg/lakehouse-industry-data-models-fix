@@ -545,3 +545,48 @@ SECTION 3 — AGENT-DETECTED ISSUES (must address in v2 build)
 ===============================================================================
 END OF VIBE — REBUILD INSTRUCTION
 ===============================================================================
+
+=== SECTION 3E — AUDIT-DETECTED CRITICAL FIXES (v2 MUST fix) ===
+Source: structural audit of v1 ECM model.json (fork). These are SUPREME-AUTHORITY
+directives for the v2 build (CLAUDE.md user-vibe primacy). Apply ALL; do not skip.
+
+3E.0 STUB DOMAINS (<5 products) — expand with real entities: shared(3)
+
+3E.1 SKELETON PRODUCTS (1) — have ONLY PK/FK, ZERO data attributes;
+     add the real business attributes that make each a usable entity:
+     - research.program_partner_collaboration(data=1/5)
+
+3E.3 WRONG ATTRIBUTE TYPES (14) — correct the physical type:
+     - process.process_metrology_measurement.data_quality_flag:bool->STRING(want BOOLEAN)
+     - customer.engagement_activity.risk_flag:bool->STRING(want BOOLEAN)
+     - quality.control_plan.sampling_rate:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - test.parametric_measurement.measurement_quality_flag:bool->STRING(want BOOLEAN)
+     - packaging.package_qualification.compliance_flag:bool->STRING(want BOOLEAN)
+     - packaging.packaging_line.operator_in_charge:money->STRING(want DECIMAL)
+     - supply.material_requirement_plan.batch_managed_flag:bool->STRING(want BOOLEAN)
+     - supply.supplier_corrective_action.compliance_flag:bool->STRING(want BOOLEAN)
+     - supply.supplier_quotation.compliance_flag:bool->STRING(want BOOLEAN)
+     - finance.finance_nre_milestone.compliance_flag:bool->STRING(want BOOLEAN)
+     - finance.budget_line.compliance_flag:bool->STRING(want BOOLEAN)
+     - workforce.time_entry.compliance_flag:bool->STRING(want BOOLEAN)
+     - workforce.shift_pattern.end_time:temporal->STRING(want DATE/TIMESTAMP)
+     - workforce.shift_pattern.start_time:temporal->STRING(want DATE/TIMESTAMP)
+
+3E.4 UNTAGGED CRITICAL PII (10) — add a sensitivity/PII classification
+     tag (sensitivity=pii / phi where health) to each; mask in non-prod:
+     - process.opc_rule_set.owner_engineer_name:person_name
+     - process.process_qualification.owner_engineer_name:person_name
+     - process.change_notification.owner_engineer_name:person_name
+     - process.deposition_condition.owner_engineer_name:person_name
+     - process.litho_condition.owner_engineer_name:person_name
+     - process.process_technology_node.owner_engineer_name:person_name
+     - product.pcn.change_owner_name:person_name
+     - order.order_hold.owner_name:person_name
+     - equipment.fab.primary_contact_name:person_name
+     - packaging.assembly_change_notice.change_owner_name:person_name
+
+3E.5 GENERIC RULE (industry-agnostic): every monetary attribute -> DECIMAL(18,2);
+     every rate/ratio/percent -> DECIMAL/DOUBLE; every *_flag/is_*/has_* -> BOOLEAN;
+     every *_date/_at/_timestamp -> DATE/TIMESTAMP; every person email/phone/name/dob/
+     ssn/passport/national_id/tax_id/card/address/gender/race/diagnosis -> PII tag.
+=== END SECTION 3E ===

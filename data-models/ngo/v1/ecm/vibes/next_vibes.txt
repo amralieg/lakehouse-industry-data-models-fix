@@ -489,3 +489,41 @@ SECTION 3 — AGENT-DETECTED ISSUES (must address in v2 build)
 ===============================================================================
 END OF VIBE — REBUILD INSTRUCTION
 ===============================================================================
+
+=== SECTION 3E — AUDIT-DETECTED CRITICAL FIXES (v2 MUST fix) ===
+Source: structural audit of v1 ECM model.json (fork). These are SUPREME-AUTHORITY
+directives for the v2 build (CLAUDE.md user-vibe primacy). Apply ALL; do not skip.
+
+3E.1 SKELETON PRODUCTS (1) — have ONLY PK/FK, ZERO data attributes;
+     add the real business attributes that make each a usable entity:
+     - volunteer.volunteer_deployment2(data=0/2)
+
+3E.2 STUB PRODUCTS (1, <5 attrs total) — under-populated; enrich:
+     - volunteer.volunteer_deployment2(2)
+
+3E.3 WRONG ATTRIBUTE TYPES (8) — correct the physical type:
+     - beneficiary.registration_event.data_quality_flag:bool->STRING(want BOOLEAN)
+     - program.review_event.beneficiary_reach_total:money->BIGINT(want DECIMAL)
+     - grant.donor_report.key_performance_indicators_total:money->INT(want DECIMAL)
+     - donor.fundraising_event.capacity_total:money->INT(want DECIMAL)
+     - field.wash_intervention.sphere_latrine_coverage_ratio:rate/pct->STRING(want DECIMAL/DOUBLE)
+     - mel.dhis2_aggregate_report.data_quality_flag:bool->STRING(want BOOLEAN)
+     - finance.journal_entry.compliance_flag:bool->STRING(want BOOLEAN)
+     - finance.cost_allocation.compliance_flag:bool->STRING(want BOOLEAN)
+
+3E.4 UNTAGGED CRITICAL PII (8) — add a sensitivity/PII classification
+     tag (sensitivity=pii / phi where health) to each; mask in non-prod:
+     - beneficiary.registration_event.registering_staff_name:person_name
+     - supply.inkind_donation.donor_name:person_name
+     - finance.bank_account.donor_name:person_name
+     - communication.advocacy_campaign.campaign_owner_name:person_name
+     - compliance.obligation.donor_funder_name:person_name
+     - technology.it_service.service_owner_name:person_name
+     - technology.software_license.license_owner_name:person_name
+     - technology.backup_schedule.technical_owner_name:person_name
+
+3E.5 GENERIC RULE (industry-agnostic): every monetary attribute -> DECIMAL(18,2);
+     every rate/ratio/percent -> DECIMAL/DOUBLE; every *_flag/is_*/has_* -> BOOLEAN;
+     every *_date/_at/_timestamp -> DATE/TIMESTAMP; every person email/phone/name/dob/
+     ssn/passport/national_id/tax_id/card/address/gender/race/diagnosis -> PII tag.
+=== END SECTION 3E ===
