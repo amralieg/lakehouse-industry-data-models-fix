@@ -1,0 +1,34 @@
+**Model Quality Score: 98.4/100**
+
+**Static Analysis Findings (2 actionable):**
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'channel.channel_rate_plan' and 'reservation.reservation_rate_plan' have the same entity name 'rate_plan' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'channel.channel_booking' and 'reservation.reservation_booking' have the same entity name 'booking' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — connect_table: fnb.inventory_item** — add column property_id (BIGINT) with FK to property.property.property_id — inventory_item is referenced by recipe_line and stock_transaction but has zero outbound FKs and no property scope; F&B inventory must be tied to the owning property.
+**PRIORITY 2 — connect_table: loyalty.tier** — add column property_id (BIGINT) with FK to property.property.property_id — tier is referenced widely but has zero outbound FKs; tiers must be scoped to a property or brand portfolio for multi-brand operation.
+**PRIORITY 3 — connect_table: fnb.menu_item** — add column inventory_item (BIGINT) with FK to fnb.inventory_item.inventory_item_id — menu items should link to their tracked inventory item for food cost calculation, currently only linked transitively via recipe_line.
+**PRIORITY 4 — connect_table: housekeeping.attendant** — add column hk_schedule (BIGINT) with FK to housekeeping.hk_schedule.hk_schedule_id — attendants only reference property; linking to schedule supports staffing/labor planning consistency.
+**PRIORITY 5 — connect_table: loyalty.member** — add column corporate_account (BIGINT) with FK to guest.corporate_account.corporate_account_id — members linked to a corporate account support corporate loyalty and negotiated-rate eligibility tracking.
+**PRIORITY 6 — connect_table: reservation.travel_agent** — add column property_id (BIGINT) with FK to property.property.property_id — travel_agent only self-references and links to channel; agents must be scoped to a property/portfolio for booking attribution.
+**PRIORITY 7 — connect_table: fnb.menu** — add column property_id (BIGINT) with FK to property.property.property_id — menu links to outlet and revenue_center but not directly to property; required for cross-outlet menu reporting.
+**PRIORITY 8 — connect_table: event.event_contract** — add column property_id (BIGINT) with FK to property.property.property_id — event_contract only links to event_booking; direct property scope is needed for contract-level reporting.
+**PRIORITY 9 — connect_table: event.beo_menu_selection** — add column property_id (BIGINT) with FK to property.property.property_id — beo_menu_selection only links to beo and catering_menu; property scope needed for catering revenue attribution.
+**PRIORITY 10 — connect_table: loyalty.promotion_enrollment** — add column property_id (BIGINT) with FK to property.property.property_id — promotion_enrollment only links member and promotion; property scope supports per-property campaign analysis.
+**PRIORITY 11 — connect_table: revenue.restriction_application** — add column property_id (BIGINT) with FK to property.property.property_id — restriction_application only links rate_availability and rate_restriction; property scope needed for restriction reporting.
+**PRIORITY 12 — connect_table: guest.contact_info** — add column property_id (BIGINT) with FK to property.property.property_id — contact_info only links to profile; property association supports multi-property contact governance.
+**PRIORITY 13 — connect_table: reservation.reservation_rate_plan** — add column property_id (BIGINT) with FK to property.property.property_id — rate plan has no direct property link, only seasonal_calendar and revenue links; property scope is required.
+**PRIORITY 14 — connect_table: fnb.recipe_line** — add column revenue_center (BIGINT) with FK to fnb.revenue_center.revenue_center_id — recipe_line only links inventory_item and menu_item; revenue_center linkage supports cost-center allocation consistency with sibling tables.
+**PRIORITY 15 — connect_table: loyalty.tier** — add column currency_id (BIGINT) with FK to property.currency.currency_id — tier benefit economics need a currency basis; currently tier references nothing.
+**PRIORITY 16 — connect_table: guest.communication_consent** — add column member (BIGINT) with FK to loyalty.member.member_id — consent should optionally link to loyalty membership for unified consent management.
+**PRIORITY 17 — connect_table: event.catering_menu** — add column menu (BIGINT) with FK to fnb.menu.menu_id — catering_menu duplicates F&B menu structure; link to the F&B menu master to avoid divergent menu definitions.
+**PRIORITY 18 — connect_table: channel.ota_partner** — add column currency_id (BIGINT) with FK to property.currency.currency_id — ota_partner has zero outbound FKs; commission/connectivity economics require a base currency reference.
+
+Other known issues from static analysis (6):
+  - Table channel.inventory_allocation has 2 FK columns pointing to inventory.room_type (room_type_id, primary_channel_room_type_id) (generic/unlabeled: room_type_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table fnb.stock_transaction has 2 FK columns pointing to fnb.fnb_outlet (fnb_outlet_id, primary_stock_fnb_outlet_id) (generic/unlabeled: fnb_outlet_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Subdomain 'venue_operations' appears in 2 domains: event, property. Consider renaming to qualified form.
+  - Subdomain 'inventory_control' appears in 2 domains: fnb, revenue. Consider renaming to qualified form.
+  - 1 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 32 attribute(s) match person-data patterns but lack pii_ tags
+
+Deterministic score: 98.4/100 (LLM assessment: 87/100)
