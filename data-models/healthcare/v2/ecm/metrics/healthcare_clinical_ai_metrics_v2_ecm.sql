@@ -1,0 +1,2 @@
+-- Metric views for domain: clinical_ai | Business: Healthcare | Version: 2 | Generated on: 2026-06-23 14:47:42
+-- All metric views in this domain failed validation and were removed.

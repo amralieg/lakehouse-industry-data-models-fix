@@ -1,0 +1,34 @@
+**Model Quality Score: 99.4/100**
+
+**PRIORITY 1 — rename_product: member.eligibility_span2** — rename to member_eligibility_span because the "2" suffix is a stub/duplicate naming artifact that conflicts semantically with enrollment.eligibility_span and breaks naming conventions.
+**PRIORITY 2 — rename_product: member.enrollment2** — rename to member_enrollment because the "2" suffix indicates an accidental duplicate/stub naming artifact and is not a business-meaningful name.
+**PRIORITY 3 — move_product: member.eligibility_span2** — move to enrollment because eligibility spans are owned by the enrollment domain (enrollment.eligibility_span already exists), and a member-domain duplicate fragments the eligibility SSOT.
+**PRIORITY 4 — move_product: member.enrollment2** — move to enrollment because enrollment lifecycle records are owned by the enrollment domain, and a member-domain duplicate fragments the enrollment SSOT.
+**PRIORITY 5 — connect_table: care.coordinator** — add column care_program_id (BIGINT) with FK to care.program.program_id — coordinators are assigned to care management programs and the coordinator table currently has zero outbound FKs while being heavily referenced.
+**PRIORITY 6 — connect_table: contract.party** — add column parent_party_id (BIGINT) with FK to contract.party.party_id — party hierarchies (parent organizations, billing entities) are needed and party currently has zero outbound FKs.
+**PRIORITY 7 — connect_table: risk.hcc_mapping** — add column raps_submission_id (BIGINT) with FK to risk.raps_submission.raps_submission_id — HCC mappings feed RAPS/EDPS submissions and hcc_mapping currently has zero outbound FKs.
+**PRIORITY 8 — connect_table: risk.raps_submission** — add column member_policy_id (BIGINT) with FK to member.policy.policy_id — RAPS submissions are scoped to a member policy and raps_submission currently has zero outbound FKs.
+**PRIORITY 9 — connect_table: pharmacy.formulary** — add column health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — formularies are tied to health plans and formulary currently has only a self-ref outbound FK.
+**PRIORITY 10 — connect_table: member.subscriber** — add column policy_id (BIGINT) with FK to member.policy.policy_id — subscribers hold the primary policy and the link is missing while subscriber is referenced widely.
+**PRIORITY 11 — connect_table: member.identity** — add column policy_id (BIGINT) with FK to member.policy.policy_id — member identity should reference its active coverage policy to support eligibility resolution.
+**PRIORITY 12 — connect_table: claim.eob** — add column premium_payment_id (BIGINT) with FK to billing.premium_payment.premium_payment_id — remove if not applicable; otherwise EOB cost-share amounts should reconcile against member payment records.
+**PRIORITY 13 — connect_table: enrollment.open_enrollment_period** — add column health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — open enrollment periods apply to specific plan offerings and the period only links to service_area today.
+**PRIORITY 14 — connect_table: enrollment.qualifying_life_event** — add column eligibility_span_id (BIGINT) with FK to enrollment.eligibility_span.eligibility_span_id — QLEs trigger eligibility span changes and currently only link to member.subscriber.
+**PRIORITY 15 — connect_table: provider.directory_entry** — add column group_practice_id (BIGINT) with FK to provider.group_practice.group_practice_id — directory entries must surface group practice affiliation for directory accuracy mandates.
+**PRIORITY 16 — connect_table: care.hedis_measure** — add column program_id (BIGINT) with FK to care.program.program_id — HEDIS measures are tracked within care programs and hedis_measure only links to hcc_mapping today.
+**PRIORITY 17 — connect_table: plan.sbc_document** — add column benefit_package_id (BIGINT) with FK to plan.benefit_package.benefit_package_id — SBC documents describe a specific benefit package, not only the health_plan.
+**PRIORITY 18 — connect_table: risk.score_hcc_assignment** — add column radv_audit_id (BIGINT) with FK to risk.radv_audit.radv_audit_id — RADV audits validate score-to-HCC assignments and the audit linkage is missing.
+**PRIORITY 19 — connect_table: pharmacy.drug_pricing** — add column pbm_contract_id (BIGINT) with FK to pharmacy.pbm_contract.pbm_contract_id — verify present; MAC/AWP/WAC pricing terms derive from PBM contract terms.
+**PRIORITY 20 — remove_fk: appeal.outcome** — remove FK on column billing_premium_payment relationship to billing.premium_payment because appeal outcomes do not directly reference premium payments; this cross-domain link is not business-justified.
+**PRIORITY 21 — remove_fk: billing.payment_allocation** — remove FK on column appeal_outcome relationship to appeal.outcome because premium payment allocations do not reconcile against appeal outcomes; this is a spurious cross-domain link.
+**PRIORITY 22 — remove_fk: claim.payment** — remove FK on column appeal_outcome relationship to appeal.outcome because claim payments are driven by adjudication, not appeal outcomes directly; route appeal-driven payments through claim.adjustment instead.
+**PRIORITY 23 — connect_table: care.gap** — add column condition_registry_id (BIGINT) with FK to care.condition_registry.registry_id — care gaps are generated against registered chronic conditions and the link is missing.
+**PRIORITY 24 — connect_table: utilization.medical_policy** — add column reimbursement_policy_id (BIGINT) with FK to contract.reimbursement_policy.reimbursement_policy_id — medical policy decisions reference reimbursement policy alignment and the link is absent.
+**PRIORITY 25 — connect_table: provider.privilege** — add column group_practice_id (BIGINT) with FK to provider.group_practice.group_practice_id — clinical privileges are often granted within a group practice context, not only facility and provider.
+
+Other known issues from static analysis (3):
+  - Table claim.procedure has 2 FK columns pointing to provider.practice_location (practice_location_id, procedure_surgeon_provider_provider_provider_practice_location_id) (generic/unlabeled: practice_location_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - 7 attribute(s) match person-data patterns but lack pii_ tags
+  - PK columns use 2 different datatypes: BIGINT, DECIMAL(18,2). Recommend all PKs use BIGINT.
+
+Deterministic score: 99.4/100 (LLM assessment: 78/100)

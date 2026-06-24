@@ -1,0 +1,284 @@
+**Model Quality Score: 65.57/100**
+
+**Static Analysis Findings (79 actionable):**
+  - [SA:unlinked_fk] Column provider.specialty.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column provider.directory_entry.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column provider.provider_outreach.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column provider.participation_status.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column claim.header.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column claim.adjudication_rate.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column pharmacy.drug_pricing.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column pharmacy.pharmacy_claim.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column pharmacy.claim_line.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column pharmacy.dispensing_pharmacy.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column utilization.pa_request.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column utilization.retrospective_review.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column utilization.um_case.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column care.program.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column care.snf_stay.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column care.dme_coordination.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column care.transition.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column care.star_rating_result.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column care.team.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column network.adequacy_assessment.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column network.adequacy_gap.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column network.exception.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column network.change_event.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column network.network_recruitment.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column network.termination.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column network.par_agreement.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column contract.party.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column contract.term.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column contract.amendment.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column contract.fee_schedule.contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column contract.fee_schedule_rate.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column contract.capitation_arrangement.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column contract.capitation_payment.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column contract.vbc_contract.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column contract.bundled_payment_episode.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column contract.reimbursement_policy.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column contract.contract_lifecycle_event.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column contract.service_scope.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column contract.delegation_agreement.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column contract.incentive_arrangement.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column contract.contract_dispute.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column contract.network_participation.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column contract.contract_audit.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column contract.financial_summary.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column contract.obligation.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column appeal.case.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column compliance.regulatory_submission.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column compliance.breach_incident.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:unlinked_fk] Column compliance.policy_document.contract_provider_contract_id looks like an FK but has no foreign_key_to reference
+  - [SA:fk_cycle] Circular FK dependency detected: member.subscriber -> member.member_address -> member.subscriber
+  - [SA:fk_cycle] Circular FK dependency detected: member.subscriber -> member.member_contact -> member.subscriber
+  - [SA:fk_cycle] Circular FK dependency detected: employer.broker -> employer.broker_agreement -> employer.broker
+  - [SA:fk_cycle] Circular FK dependency detected: member.member_grievance -> appeal.appeal_grievance -> member.member_grievance
+  - [SA:fk_cycle] Circular FK dependency detected: member.member_communication -> appeal.appeal_communication -> member.member_communication
+  - [SA:fk_cycle] Circular FK dependency detected: credential.credential_document -> vendor.vendor_document -> credential.credential_document
+  - [SA:duplicate_product_pair] Domain 'care' has both 'coordinator_assignment' and 'care_coordinator_assignment' — SSOT violation. Merge into 'coordinator_assignment'.
+  - [SA:fk_namespace_mismatch] member.pcp_assignment.plan_provider_contract_id: description says 'contract' but FK points to 'plan'
+  - [SA:fk_namespace_mismatch] claim.header.obligation_id: description says 'compliance' but FK points to 'contract'
+  - [SA:fk_namespace_mismatch] pharmacy.formulary.obligation_id: description says 'compliance' but FK points to 'contract'
+  - [SA:fk_namespace_mismatch] billing.premium_invoice.obligation_id: description says 'compliance' but FK points to 'contract'
+  - [SA:fk_namespace_mismatch] billing.premium_payment.obligation_id: description says 'compliance' but FK points to 'contract'
+  - [SA:fk_namespace_mismatch] billing.cms_remittance.obligation_id: description says 'compliance' but FK points to 'contract'
+  - [SA:fk_namespace_mismatch] billing.cobra_billing.obligation_id: description says 'compliance' but FK points to 'contract'
+  - [SA:fk_namespace_mismatch] utilization.tat_compliance_event.obligation_id: description says 'compliance' but FK points to 'contract'
+  - [SA:fk_namespace_mismatch] utilization.um_program.obligation_id: description says 'compliance' but FK points to 'contract'
+  - [SA:fk_namespace_mismatch] utilization.medical_policy.obligation_id: description says 'compliance' but FK points to 'contract'
+  - [SA:fk_namespace_mismatch] contract.contract_audit.obligation_id: description says 'compliance' but FK points to 'contract'
+  - [SA:denormalized_natural_key] Product 'provider.provider_network_participation' has both FK 'contract_id' and natural key 'contract_reference' for entity 'contract'. The natural key is redundant — use the FK join instead.
+  - [SA:denormalized_natural_key] Product 'pharmacy.specialty_drug_program' has both FK 'program_id' and natural key 'program_code' for entity 'program'. The natural key is redundant — use the FK join instead.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'appeal.appeal_document' and 'vendor.vendor_document' have the same entity name 'document' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'billing.billing_dispute' and 'vendor.vendor_dispute' have the same entity name 'dispute' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'credential.credential_lifecycle_event' and 'member.member_lifecycle_event' have the same entity name 'lifecycle_event' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'credential.credential_lifecycle_event' and 'vendor.vendor_lifecycle_event' have the same entity name 'lifecycle_event' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'member.member_lifecycle_event' and 'vendor.vendor_lifecycle_event' have the same entity name 'lifecycle_event' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.contract' and 'employer.employer_contract' have the same entity name 'contract' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.contract' and 'pharmacy.pharmacy_contract' have the same entity name 'contract' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'contract.contract' and 'vendor.vendor_contract' have the same entity name 'contract' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'pharmacy.pharmacy_contract' and 'vendor.vendor_contract' have the same entity name 'contract' in different domains. One should be the SSOT owner, the other should reference via FK.
+  - [SA:cross_domain_duplicate] Potential SSOT violation: 'network.network_provider' and 'provider.provider' have the same entity name 'provider' in different domains. One should be the SSOT owner, the other should reference via FK.
+
+**PRIORITY 1 — connect_table: care.hedis_measure** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.compliance_regulatory_obligation.compliance_regulatory_obligation_id — HEDIS measures are mandated by regulatory obligations and must link to the compliance framework per P11
+**PRIORITY 2 — connect_table: network.adequacy_standard** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.compliance_regulatory_obligation.compliance_regulatory_obligation_id — adequacy standards derive from regulatory requirements per P4
+**PRIORITY 3 — connect_table: care.gap_obligation** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.compliance_regulatory_obligation.compliance_regulatory_obligation_id — gap obligations must trace to regulatory requirements
+**PRIORITY 4 — connect_table: care.measure_obligation_mapping** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.compliance_regulatory_obligation.compliance_regulatory_obligation_id — measure mappings must link to the obligations they fulfill
+**PRIORITY 5 — connect_table: care.program_obligation_mapping** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.compliance_regulatory_obligation.compliance_regulatory_obligation_id — program obligation mappings must reference the regulatory obligations
+**PRIORITY 6 — connect_table: credential.obligation_mapping** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.compliance_regulatory_obligation.compliance_regulatory_obligation_id — credential obligation mappings must link to regulatory requirements
+**PRIORITY 7 — connect_table: provider.obligation_compliance** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.compliance_regulatory_obligation.compliance_regulatory_obligation_id — provider obligation compliance must reference the obligations being tracked
+**PRIORITY 8 — connect_table: employer.regulatory_compliance_record** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.compliance_regulatory_obligation.compliance_regulatory_obligation_id — employer compliance records must link to specific regulatory obligations
+**PRIORITY 9 — connect_table: plan.plan_regulatory_obligation** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.compliance_regulatory_obligation.compliance_regulatory_obligation_id — plan regulatory obligations must reference the master obligation record
+**PRIORITY 10 — connect_table: credential.finding** — add column credential_delegation_audit_id (BIGINT) with FK to credential.delegation_audit.delegation_audit_id — findings typically result from delegation audits
+**PRIORITY 11 — connect_table: credential.contract_link** — add column contract_provider_contract_id (BIGINT) with FK to contract.contract.contract_id — contract links must reference the actual provider contract
+**PRIORITY 12 — connect_table: care.coordinator_assignment** — add column care_team_id (BIGINT) with FK to care.team.team_id — coordinator assignments should link to care teams
+**PRIORITY 13 — connect_table: care.program_accreditation** — add column vendor_vendor_id (BIGINT) with FK to vendor.vendor.vendor_id — accreditation bodies are external vendors
+**PRIORITY 14 — connect_table: provider.audit_assignment** — add column workforce_employee_id (BIGINT) with FK to workforce.employee.employee_id — audit assignments require an assigned auditor
+**PRIORITY 15 — connect_table: utilization.um_program_enrollment** — add column member_subscriber_id (BIGINT) with FK to member.subscriber.subscriber_id — UM program enrollment must link to the enrolled member
+**PRIORITY 16 — connect_table: plan.program_coverage** — add column network_provider_network_id (BIGINT) with FK to network.provider_network.provider_network_id — program coverage must specify which network applies
+**PRIORITY 17 — connect_table: plan.plan_provider_contract** — add column contract_fee_schedule_id (BIGINT) with FK to contract.fee_schedule.fee_schedule_id — plan provider contracts must reference fee schedules
+**PRIORITY 18 — connect_table: contract.party_regulatory_obligation_compliance** — add column compliance_audit_finding_id (BIGINT) with FK to compliance.audit_finding.audit_finding_id — compliance records should link to audit findings when applicable
+**PRIORITY 19 — connect_table: billing.billing_calendar** — add column plan_year_id (BIGINT) with FK to plan.year.year_id — billing calendars must align with plan years
+**PRIORITY 20 — connect_table: network.access_standard** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.compliance_regulatory_obligation.compliance_regulatory_obligation_id — access standards derive from regulatory requirements
+**PRIORITY 21 — connect_table: utilization.clinical_criteria** — add column utilization_medical_policy_id (BIGINT) with FK to utilization.medical_policy.medical_policy_id — clinical criteria are defined within medical policies
+**PRIORITY 22 — connect_table: claim.ibnr** — add column risk_ibnr_reserve_id (BIGINT) with FK to risk.ibnr_reserve.ibnr_reserve_id — claim IBNR estimates must link to actuarial reserve calculations per reviewer comment
+**PRIORITY 23 — connect_table: claim.ibnr** — add column plan_health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — IBNR estimates are calculated per health plan
+**PRIORITY 24 — connect_table: utilization.episode_of_care** — add column claim_header_id (BIGINT) with FK to claim.header.header_id — episodes of care must link to associated claims per reviewer comment on episode groupers
+**PRIORITY 25 — connect_table: billing.retro_adjustment** — add column billing_premium_invoice_id (BIGINT) with FK to billing.premium_invoice.premium_invoice_id — retro adjustments must reference the invoice being adjusted
+**PRIORITY 26 — connect_table: billing.aptc_subsidy** — add column enrollment_transaction_id (BIGINT) with FK to enrollment.transaction.transaction_id — APTC subsidies must link to enrollment transactions
+**PRIORITY 27 — connect_table: billing.aptc_subsidy** — add column plan_health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — APTC subsidies are plan-specific
+**PRIORITY 28 — connect_table: claim.adjudication_rate** — add column plan_health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — adjudication rates are plan-specific
+**PRIORITY 29 — connect_table: claim.adjudication_rate** — add column network_provider_network_id (BIGINT) with FK to network.provider_network.provider_network_id — adjudication rates vary by network
+**PRIORITY 30 — connect_table: provider.provider** — add column finance_legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — providers have legal entity relationships for contracting
+**PRIORITY 31 — connect_table: provider.outreach_campaign** — add column network_provider_network_id (BIGINT) with FK to network.provider_network.provider_network_id — outreach campaigns target specific networks
+**PRIORITY 32 — connect_table: member.assignment_rule** — add column plan_health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — assignment rules are plan-specific
+**PRIORITY 33 — connect_table: member.assignment_rule** — add column network_provider_network_id (BIGINT) with FK to network.provider_network.provider_network_id — assignment rules apply within networks
+**PRIORITY 34 — connect_table: employer.general_agent** — add column vendor_vendor_id (BIGINT) with FK to vendor.vendor.vendor_id — general agents are external business partners tracked in vendor master
+**PRIORITY 35 — connect_table: risk.hcc_mapping** — add column plan_health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — HCC mappings are used for plan-level risk adjustment
+**PRIORITY 36 — connect_table: risk.actuarial_assumption_set** — add column plan_health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — actuarial assumptions are developed per plan
+**PRIORITY 37 — connect_table: risk.rate_development** — add column plan_health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — rate development is plan-specific
+**PRIORITY 38 — connect_table: risk.rbc_calculation** — add column finance_legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — RBC calculations are performed at legal entity level
+**PRIORITY 39 — connect_table: compliance.accreditation_program** — add column vendor_vendor_id (BIGINT) with FK to vendor.vendor.vendor_id — accreditation bodies (NCQA, URAC) are external vendors
+**PRIORITY 40 — connect_table: compliance.training_program** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.compliance_regulatory_obligation.compliance_regulatory_obligation_id — training programs fulfill regulatory requirements
+**PRIORITY 41 — connect_table: compliance.policy_document** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.compliance_regulatory_obligation.compliance_regulatory_obligation_id — policy documents implement regulatory obligations
+**PRIORITY 42 — connect_table: compliance.fwa_case** — add column member_subscriber_id (BIGINT) with FK to member.subscriber.subscriber_id — FWA cases often involve specific members
+**PRIORITY 43 — connect_table: compliance.fwa_case** — add column provider_practice_location_id (BIGINT) with FK to provider.practice_location.practice_location_id — FWA cases often involve specific providers
+**PRIORITY 44 — connect_table: compliance.fwa_case** — add column claim_header_id (BIGINT) with FK to claim.header.header_id — FWA cases are typically triggered by claim patterns
+**PRIORITY 45 — connect_table: finance.actuarial_reserve** — add column risk_ibnr_reserve_id (BIGINT) with FK to risk.ibnr_reserve.ibnr_reserve_id — actuarial reserves incorporate IBNR estimates
+**PRIORITY 46 — connect_table: finance.actuarial_reserve** — add column plan_health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — actuarial reserves are calculated per plan
+**PRIORITY 47 — connect_table: finance.mlr_financial_entry** — add column plan_health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — MLR entries are plan-specific
+**PRIORITY 48 — connect_table: workforce.training_course** — add column compliance_training_program_id (BIGINT) with FK to compliance.training_program.training_program_id — training courses implement compliance training programs
+**PRIORITY 49 — connect_table: workforce.workforce_certification** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.compliance_regulatory_obligation.compliance_regulatory_obligation_id — workforce certifications fulfill regulatory requirements
+**PRIORITY 50 — connect_table: workforce.rbac_role** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.compliance_regulatory_obligation.compliance_regulatory_obligation_id — RBAC roles implement regulatory access requirements
+**PRIORITY 51 — connect_table: vendor.spend_category** — add column finance_cost_center_id (BIGINT) with FK to finance.cost_center.cost_center_id — spend categories map to cost centers for financial reporting
+**PRIORITY 52 — add_fhir_mapping_domain: interoperability** — add new domain interoperability with products fhir_resource_mapping, fhir_endpoint, fhir_subscription, cds_hook, bulk_data_export to address reviewer comment on FHIR interop readiness
+**PRIORITY 53 — add_product: interoperability.fhir_resource_mapping** — add product to map internal data products to FHIR R4 resources (Patient, Coverage, Claim, ExplanationOfBenefit, etc.) per reviewer FHIR interop requirement
+**PRIORITY 54 — add_product: interoperability.fhir_endpoint** — add product to track FHIR API endpoints for CMS interoperability rules (Patient Access API, Provider Directory API, Payer-to-Payer)
+**PRIORITY 55 — add_product: interoperability.carin_bb_mapping** — add product to map claims data to CARIN Blue Button Implementation Guide for patient access compliance
+**PRIORITY 56 — add_product: claim.episode_grouper** — add product to support episode-based payment grouping per reviewer comment that episode groupers need to be in the model
+**PRIORITY 57 — rename_attribute: provider.provider.status_flag** — rename column status_flag to is_active and change type to BOOLEAN per 3E.3
+**PRIORITY 58 — rename_attribute: claim.drg.cc_mcc_flag** — rename column cc_mcc_flag to has_cc_mcc and change type to BOOLEAN per 3E.3
+**PRIORITY 59 — rename_attribute: pharmacy.dispensing_pharmacy.chain_independent_flag** — rename column chain_independent_flag to is_independent and change type to BOOLEAN per 3E.3
+**PRIORITY 60 — rename_attribute: credential.cvo_relationship.compliance_flag** — rename column compliance_flag to is_compliant and change type to BOOLEAN per 3E.3
+**PRIORITY 61 — rename_attribute: network.adequacy_standard.provider_to_member_ratio** — change type from STRING to DECIMAL(10,4) per 3E.3
+**PRIORITY 62 — rename_attribute: network.par_agreement.compliance_status_flag** — rename column compliance_status_flag to is_compliant and change type to BOOLEAN per 3E.3
+**PRIORITY 63 — rename_attribute: contract.service_scope.inclusion_exclusion_flag** — rename column inclusion_exclusion_flag to is_inclusion and change type to BOOLEAN per 3E.3
+**PRIORITY 64 — rename_attribute: appeal.review.compliance_flag** — rename column compliance_flag to is_compliant and change type to BOOLEAN per 3E.3
+**PRIORITY 65 — rename_attribute: appeal.penalty.compliance_flag** — rename column compliance_flag to is_compliant and change type to BOOLEAN per 3E.3
+**PRIORITY 66 — rename_attribute: risk.hcc_mapping.interaction_flag** — rename column interaction_flag to is_interaction and change type to BOOLEAN per 3E.3
+**PRIORITY 67 — rename_attribute: risk.ibnr_reserve.reserve_adequacy_flag** — rename column reserve_adequacy_flag to is_adequate and change type to BOOLEAN per 3E.3
+**PRIORITY 68 — rename_attribute: risk.score_run.data_quality_flag** — rename column data_quality_flag to has_quality_issues and change type to BOOLEAN per 3E.3
+**PRIORITY 69 — rename_attribute: finance.reinsurance_transaction.sap_schedule_f_flag** — rename column sap_schedule_f_flag to is_schedule_f_reportable and change type to BOOLEAN per 3E.3
+**PRIORITY 70 — rename_attribute: vendor.po_line.compliance_flag** — rename column compliance_flag to is_compliant and change type to BOOLEAN per 3E.3
+**PRIORITY 71 — add_pii_tag: member.identity.race** — add sensitivity=special_category tag for GDPR/state privacy law compliance per 3E.4
+**PRIORITY 72 — add_pii_tag: member.authorization_document.member_gender** — add sensitivity=special_category tag per 3E.4
+**PRIORITY 73 — add_pii_tag: provider.outreach_campaign.campaign_target_audience_gender** — add sensitivity=special_category tag per 3E.4
+**PRIORITY 74 — add_pii_tag: pharmacy.pbm_contract.contract_owner_name** — add sensitivity=pii tag for person_name per 3E.4
+**PRIORITY 75 — add_pii_tag: utilization.episode_of_care.primary_diagnosis_code** — add sensitivity=phi tag for health data per 3E.4
+**PRIORITY 76 — add_pii_tag: utilization.episode_of_care.secondary_diagnosis_codes** — add sensitivity=phi tag for health data per 3E.4
+**PRIORITY 77 — add_pii_tag: employer.tpa.tpa_contact_name** — add sensitivity=pii tag for person_name per 3E.4
+**PRIORITY 78 — add_pii_tag: finance.budget.owner_name** — add sensitivity=pii tag for person_name per 3E.4
+**PRIORITY 79 — add_pii_tag: finance.legal_entity.legal_entity_fax** — add sensitivity=pii tag for phone/fax per 3E.4
+**PRIORITY 80 — enrich_stub: plan.program_coverage** — add attributes: coverage_type_code, effective_date, termination_date, coverage_level_code, cost_share_tier, annual_limit_amount, lifetime_limit_amount, waiting_period_days, preexisting_condition_exclusion_flag, coverage_status_code
+**PRIORITY 81 — enrich_stub: plan.plan_regulatory_obligation** — add attributes: obligation_type_code, regulatory_body_code, effective_date, compliance_deadline_date, attestation_required_flag, reporting_frequency_code, penalty_amount, obligation_status_code, last_review_date, next_review_date
+**PRIORITY 82 — enrich_stub: plan.plan_provider_contract** — add attributes: contract_type_code, effective_date, termination_date, reimbursement_method_code, capitation_rate_amount, fee_schedule_version, contract_status_code, auto_renewal_flag, termination_notice_days
+**PRIORITY 83 — enrich_stub: provider.obligation_compliance** — add attributes: obligation_type_code, compliance_status_code, assessment_date, next_assessment_date, compliance_score, deficiency_count, corrective_action_required_flag, last_attestation_date, evidence_document_id
+**PRIORITY 84 — enrich_stub: provider.audit_assignment** — add attributes: audit_type_code, assignment_date, due_date, completion_date, audit_status_code, priority_level_code, scope_description, findings_count, audit_score
+**PRIORITY 85 — enrich_stub: utilization.um_program_enrollment** — add attributes: enrollment_date, disenrollment_date, enrollment_status_code, enrollment_source_code, opt_out_flag, opt_out_reason_code, last_review_date, next_review_date, program_tier_code
+**PRIORITY 86 — enrich_stub: care.coordinator_assignment** — add attributes: assignment_date, end_date, assignment_status_code, assignment_reason_code, primary_coordinator_flag, caseload_count, last_contact_date, next_scheduled_contact_date, assignment_source_code, panel_capacity
+**PRIORITY 87 — enrich_stub: care.program_obligation_mapping** — add attributes: mapping_type_code, effective_date, termination_date, obligation_category_code, compliance_weight, reporting_required_flag, attestation_frequency_code, mapping_status_code
+**PRIORITY 88 — enrich_stub: care.program_accreditation** — add attributes: accreditation_body_code, accreditation_type_code, application_date, survey_date, decision_date, expiration_date, accreditation_status_code, accreditation_level_code, conditions_count, next_survey_date
+**PRIORITY 89 — enrich_stub: care.measure_obligation_mapping** — add attributes: mapping_type_code, effective_date, termination_date, measure_weight, reporting_required_flag, benchmark_threshold, performance_target, mapping_status_code
+**PRIORITY 90 — enrich_stub: care.gap_obligation** — add attributes: obligation_type_code, gap_category_code, priority_level_code, closure_deadline_date, penalty_amount, incentive_amount, gap_status_code, closure_date
+**PRIORITY 91 — enrich_stub: credential.contract_link** — add attributes: link_type_code, effective_date, termination_date, link_status_code, contract_role_code, delegation_scope_code, fee_schedule_applicable_flag, link_reason_code
+**PRIORITY 92 — enrich_stub: credential.obligation_mapping** — add attributes: obligation_type_code, effective_date, termination_date, compliance_requirement_code, verification_frequency_code, mapping_status_code, last_verification_date, next_verification_date
+**PRIORITY 93 — enrich_stub: credential.finding** — add attributes: finding_type_code, finding_date, severity_level_code, finding_description, corrective_action_required_flag, resolution_date, resolution_description, finding_status_code, appeal_eligible_flag
+**PRIORITY 94 — enrich_stub: employer.regulatory_compliance_record** — add attributes: regulation_type_code, compliance_status_code, assessment_date, next_assessment_date, compliance_score, deficiency_count, corrective_action_required_flag, attestation_date, evidence_document_id, reporting_deadline_date
+**PRIORITY 95 — enrich_stub: contract.obligation** — add attributes: obligation_type_code, obligation_category_code, effective_date, termination_date, regulatory_body_code, compliance_deadline_date, penalty_amount, obligation_status_code, attestation_required_flag, reporting_frequency_code, jurisdiction_code
+**PRIORITY 96 — enrich_stub: contract.party_regulatory_obligation_compliance** — add attributes: compliance_status_code, assessment_date, next_assessment_date, compliance_score, deficiency_count, corrective_action_required_flag, last_attestation_date, attestation_expiration_date, evidence_document_id, remediation_deadline_date
+**PRIORITY 97 — enrich_thin: member.member_enrollment** — add attributes: enrollment_source_code, enrollment_channel_code, enrollment_reason_code, prior_coverage_flag, prior_carrier_name, prior_policy_number, waiting_period_waived_flag, late_enrollment_flag, enrollment_tier_code, tobacco_use_flag, wellness_participation_flag, auto_assignment_flag
+**PRIORITY 98 — enrich_thin: provider.provider_network_participation** — add attributes: participation_status_code, effective_date, termination_date, termination_reason_code, accepting_new_patients_flag, panel_status_code, panel_capacity, current_panel_size, credentialing_status_code, last_attestation_date, directory_display_flag, tier_override_code
+**PRIORITY 99 — enrich_thin: care.program_enrollment** — add attributes: enrollment_source_code, enrollment_channel_code, referral_source_code, enrollment_reason_code, risk_stratification_level, engagement_score, last_engagement_date, opt_out_eligible_flag, auto_enrolled_flag, graduation_eligible_flag, graduation_date, disenrollment_reason_code
+**PRIORITY 100 — enrich_thin: employer.employer_contract** — add attributes: contract_type_code, funding_arrangement_code, effective_date, termination_date, renewal_date, auto_renewal_flag, termination_notice_days, contract_status_code, erisa_status_code, cobra_administration_code, premium_payment_frequency_code, commission_rate_percent, performance_guarantee_flag, run_out_period_days
+**PRIORITY 101 — remove_fk: member.member_eligibility_span2** — remove entire duplicate product member_eligibility_span2 as it duplicates member.member_eligibility_span with identical FK signature
+**PRIORITY 102 — remove_fk: member.member_enrollment2** — remove entire duplicate product member_enrollment2 as it duplicates member.member_enrollment with different FK signature but same business purpose
+**PRIORITY 103 — connect_table: appeal.penalty** — add column claim_header_id (BIGINT) with FK to claim.header.header_id — penalties often relate to specific claim denials
+**PRIORITY 104 — connect_table: appeal.penalty** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.compliance_regulatory_obligation.compliance_regulatory_obligation_id — penalties derive from regulatory violations
+**PRIORITY 105 — connect_table: appeal.timeline** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.compliance_regulatory_obligation.compliance_regulatory_obligation_id — appeal timelines are driven by regulatory requirements
+**PRIORITY 106 — connect_table: contract.bundled_payment_episode** — add column claim_header_id (BIGINT) with FK to claim.header.header_id — bundled payment episodes must link to triggering claims
+**PRIORITY 107 — connect_table: contract.bundled_payment_episode** — add column utilization_episode_of_care_id (BIGINT) with FK to utilization.episode_of_care.episode_of_care_id — bundled payments align with clinical episodes
+**PRIORITY 108 — connect_table: contract.vbc_contract** — add column provider_practice_location_id (BIGINT) with FK to provider.practice_location.practice_location_id — VBC contracts are with specific provider entities
+**PRIORITY 109 — connect_table: contract.incentive_arrangement** — add column contract_vbc_contract_id (BIGINT) with FK to contract.vbc_contract.vbc_contract_id — incentive arrangements are part of VBC contracts
+**PRIORITY 110 — connect_table: contract.financial_summary** — add column contract_vbc_contract_id (BIGINT) with FK to contract.vbc_contract.vbc_contract_id — financial summaries track VBC contract performance
+**PRIORITY 111 — connect_table: network.vbc_arrangement** — add column contract_vbc_contract_id (BIGINT) with FK to contract.vbc_contract.vbc_contract_id — VBC arrangements implement VBC contracts
+**PRIORITY 112 — connect_table: pharmacy.specialty_drug_program** — add column provider_practice_location_id (BIGINT) with FK to provider.practice_location.practice_location_id — specialty drug programs involve specialty pharmacies/providers
+**PRIORITY 113 — connect_table: pharmacy.mtm_service** — add column pharmacy_dispensing_pharmacy_id (BIGINT) with FK to pharmacy.dispensing_pharmacy.dispensing_pharmacy_id — MTM services are delivered by pharmacies
+**PRIORITY 114 — connect_table: pharmacy.drug_rebate** — add column plan_health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — drug rebates are negotiated per health plan
+**PRIORITY 115 — connect_table: risk.pool** — add column plan_health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — risk pools are associated with specific health plans
+**PRIORITY 116 — connect_table: risk.pool** — add column finance_legal_entity_id (BIGINT) with FK to finance.legal_entity.legal_entity_id — risk pools are managed at legal entity level
+**PRIORITY 117 — connect_table: compliance.state_fair_hearing** — add column appeal_case_id (BIGINT) with FK to appeal.case.case_id — state fair hearings follow internal appeal exhaustion
+**PRIORITY 118 — connect_table: compliance.breach_incident** — add column member_subscriber_id (BIGINT) with FK to member.subscriber.subscriber_id — breach incidents often affect specific members
+**PRIORITY 119 — connect_table: compliance.hipaa_privacy_request** — add column compliance_policy_document_id (BIGINT) with FK to compliance.policy_document.policy_document_id — privacy requests are governed by privacy policies
+**PRIORITY 120 — connect_table: finance.premium_revenue** — add column billing_premium_payment_id (BIGINT) with FK to billing.premium_payment.premium_payment_id — premium revenue derives from premium payments
+**PRIORITY 121 — connect_table: finance.vbc_settlement** — add column contract_vbc_performance_period_id (BIGINT) with FK to contract.vbc_performance_period.vbc_performance_period_id — VBC settlements are for specific performance periods
+**PRIORITY 122 — connect_table: enrollment.reconciliation** — add column billing_premium_reconciliation_id (BIGINT) with FK to billing.premium_reconciliation.premium_reconciliation_id — enrollment reconciliation aligns with billing reconciliation
+**PRIORITY 123 — connect_table: enrollment.submission_batch** — add column plan_health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — submission batches are plan-specific
+**PRIORITY 124 — connect_table: enrollment.enrollment_batch** — add column employer_group_id (BIGINT) with FK to employer.group.group_id — enrollment batches are often group-specific
+**PRIORITY 125 — connect_table: care.star_rating_result** — add column plan_health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — star ratings are calculated per health plan
+**PRIORITY 126 — connect_table: care.star_rating_result** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.compliance_regulatory_obligation.compliance_regulatory_obligation_id — star ratings fulfill CMS regulatory requirements
+**PRIORITY 127 — connect_table: care.population_segment** — add column plan_health_plan_id (BIGINT) with FK to plan.health_plan.health_plan_id — population segments are defined per health plan
+**PRIORITY 128 — connect_table: care.population_segment** — add column risk_pool_id (BIGINT) with FK to risk.pool.pool_id — population segments align with risk pools
+**PRIORITY 129 — connect_table: care.member_risk_tier** — add column risk_member_risk_score_id (BIGINT) with FK to risk.member_risk_score.member_risk_score_id — risk tiers derive from risk scores
+**PRIORITY 130 — connect_table: care.condition_registry** — add column risk_hcc_mapping_id (BIGINT) with FK to risk.hcc_mapping.hcc_mapping_id — condition registries link to HCC mappings for risk adjustment
+**PRIORITY 131 — connect_table: utilization.um_delegation** — add column vendor_vendor_id (BIGINT) with FK to vendor.vendor.vendor_id — UM delegation is to external vendors
+**PRIORITY 132 — connect_table: utilization.um_delegation** — add column credential_delegated_entity_id (BIGINT) with FK to credential.delegated_entity.delegated_entity_id — delegated UM requires credentialed entities
+**PRIORITY 133 — connect_table: credential.committee_type** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.compliance_regulatory_obligation.compliance_regulatory_obligation_id — committee types fulfill regulatory requirements
+**PRIORITY 134 — connect_table: credential.expedited_credential** — add column network_provider_network_id (BIGINT) with FK to network.provider_network.provider_network_id — expedited credentialing is for specific network participation
+**PRIORITY 135 — connect_table: network.filing** — add column compliance_regulatory_submission_id (BIGINT) with FK to compliance.regulatory_submission.regulatory_submission_id — network filings are regulatory submissions
+**PRIORITY 136 — connect_table: network.termination** — add column contract_contract_lifecycle_event_id (BIGINT) with FK to contract.contract_lifecycle_event.contract_lifecycle_event_id — network terminations are contract lifecycle events
+**PRIORITY 137 — connect_table: employer.stop_loss_policy** — add column risk_reinsurance_arrangement_id (BIGINT) with FK to risk.reinsurance_arrangement.reinsurance_arrangement_id — stop loss policies are reinsurance arrangements
+**PRIORITY 138 — connect_table: employer.erisa_plan_document** — add column compliance_erisa_filing_id (BIGINT) with FK to compliance.erisa_filing.erisa_filing_id — ERISA plan documents support ERISA filings
+**PRIORITY 139 — connect_table: employer.wellness_program** — add column care_program_id (BIGINT) with FK to care.program.program_id — employer wellness programs may link to care management programs
+**PRIORITY 140 — connect_table: employer.group_renewal** — add column risk_risk_underwriting_case_id (BIGINT) with FK to risk.risk_underwriting_case.risk_underwriting_case_id — group renewals involve underwriting
+**PRIORITY 141 — connect_table: employer.rate_quote** — add column risk_actuarial_assumption_set_id (BIGINT) with FK to risk.actuarial_assumption_set.actuarial_assumption_set_id — rate quotes use actuarial assumptions
+**PRIORITY 142 — connect_table: vendor.baa_agreement** — add column compliance_baa_id (BIGINT) with FK to compliance.baa.baa_id — vendor BAA agreements link to compliance BAA tracking
+**PRIORITY 143 — connect_table: vendor.risk_assessment** — add column compliance_regulatory_obligation_id (BIGINT) with FK to compliance.compliance_regulatory_obligation.compliance_regulatory_obligation_id — vendor risk assessments fulfill regulatory requirements
+**PRIORITY 144 — connect_table: vendor.insurance** — add column risk_reinsurance_arrangement_id (BIGINT) with FK to risk.reinsurance_arrangement.reinsurance_arrangement_id — vendor insurance may be reinsurance arrangements
+
+Other known issues from static analysis (38):
+  - Attribute 'finding_severity' in credential.finding has redundant product prefix 'finding_'. Rename to 'severity'
+  - Table member.member_lifecycle_event has 2 FK columns pointing to contract.contract_lifecycle_event (contract_lifecycle_event_id, member_contract_lifecycle_event_id) (generic/unlabeled: contract_lifecycle_event_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table member.consent has 2 FK columns pointing to workforce.employee (employee_id, consent_updated_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table member.member_enrollment has 2 FK columns pointing to member.subscriber (subscriber_id, member_subscriber_id) (generic/unlabeled: subscriber_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table plan.submission has 2 FK columns pointing to workforce.employee (employee_id, reviewer_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table plan.plan_amendment has 2 FK columns pointing to contract.amendment (amendment_id, plan_ssot_amendment_ref_id) (generic/unlabeled: amendment_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table plan.plan_amendment has 3 FK columns pointing to workforce.employee (employee_id, plan_employee_id, plan_updated_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table claim.header has 2 FK columns pointing to employer.group (group_id, header_group_id) (generic/unlabeled: group_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table claim.header has 2 FK columns pointing to provider.practice_location (practice_location_id, rendering_provider_practice_location_id) (generic/unlabeled: practice_location_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table claim.procedure has 2 FK columns pointing to provider.practice_location (practice_location_id, surgeon_provider_provider_provider_practice_location_id) (generic/unlabeled: practice_location_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table billing.premium_statement has 2 FK columns pointing to workforce.employee (employee_id, premium_updated_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table utilization.pa_request has 2 FK columns pointing to provider.practice_location (pa_requesting_provider_practice_location_id, practice_location_id) (generic/unlabeled: practice_location_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table care.questionnaire has 2 FK columns pointing to workforce.employee (employee_id, questionnaire_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table credential.decision_document has 2 FK columns pointing to workforce.employee (employee_id, primary_decision_approver_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table employer.group_division has 2 FK columns pointing to plan.health_plan (health_plan_id, tertiary_group_epo_plan_health_plan_id) (generic/unlabeled: health_plan_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table compliance.cap_milestone has 2 FK columns pointing to workforce.employee (employee_id, reviewer_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table compliance.mlr_calculation has 2 FK columns pointing to plan.health_plan (health_plan_id, mlr_product_health_plan_id) (generic/unlabeled: health_plan_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table compliance.policy_document has 3 FK columns pointing to workforce.employee (employee_id, primary_policy_employee_id, reviewer_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table compliance.policy_review has 2 FK columns pointing to workforce.employee (employee_id, primary_policy_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table compliance.training_completion has 3 FK columns pointing to workforce.employee (employee_id, training_employee_id, training_updated_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.employment_record has 2 FK columns pointing to workforce.employee (employee_id, tertiary_employment_hr_business_partner_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.compensation has 2 FK columns pointing to workforce.employee (employee_id, primary_compensation_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.payroll_cost_allocation has 2 FK columns pointing to workforce.employee (employee_id, tertiary_payroll_updated_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.rbac_assignment has 3 FK columns pointing to workforce.employee (employee_id, rbac_employee_id, rbac_updated_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.headcount_plan has 3 FK columns pointing to workforce.employee (employee_id, headcount_updated_by_user_employee_id, primary_headcount_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.workforce_recruitment has 2 FK columns pointing to workforce.employee (employee_id, tertiary_workforce_created_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.disciplinary_action has 3 FK columns pointing to workforce.employee (employee_id, tertiary_disciplinary_manager_employee_id, tertiary_quinary_disciplinary_updated_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table workforce.background_check has 3 FK columns pointing to workforce.employee (employee_id, background_employee_id, background_updated_by_user_employee_id) (generic/unlabeled: employee_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table provider.provider has only 1 attribute(s) — likely incomplete or should be merged
+  - Table contract.contract has only 1 attribute(s) — likely incomplete or should be merged
+  - Subdomain 'regulatory_compliance' appears in 2 domains: appeal, plan. Consider renaming to qualified form.
+  - Subdomain 'directory_verification' appears in 2 domains: network, provider. Consider renaming to qualified form.
+  - Subdomain 'clinical_review' appears in 2 domains: pharmacy, utilization. Consider renaming to qualified form.
+  - 78 attribute(s) match person-data patterns but lack pii_ tags
+  - 7 non-PK attributes redundantly prefixed with their product name
+  - PK columns use 2 different datatypes: BIGINT, DECIMAL(18,2). Recommend all PKs use BIGINT.
+  - Corporate division holds 5/19 domains (26%) - exceeds the 20% cap (Operations+Business must be >=80%). Relocate or reclassify.
+  - 2 table(s) have no subdomain tag - every table MUST carry a subdomain grouping (e.g., provider.provider, contract.contract)
+**Vibe adherence: 98.3% (231/235 VREQs applied) | Structural quality: 58/100 (reported separately, NOT blended)**
+
+Deterministic score: 65.57/100 (LLM assessment: 52/100)
+
+## MISSED VIBES (carried from the previous run — apply these THIS run; user directives first)
+
+- (USER DIRECTIVE - supreme authority) Rename provider.provider_provider to provider because the redundant domain-name prefix creates a confusing naming pattern. (target: table: provider.provider_provider) [missed: vov_residual_unapplied]
+- (USER DIRECTIVE - supreme authority) Rename contract.contract_provider_contract to provider_contract because the redundant contract prefix creates a confusing naming pattern. (target: table: contract.contract_provider_contract) [missed: vov_residual_unapplied]
+- (USER DIRECTIVE - supreme authority) Rename compliance.compliance_regulatory_obligation (redundant compliance prefix) per the rename_product directive begun in this chunk. (target: table: compliance.compliance_regulatory_obligation) [missed: vov_residual_unapplied]
+- (USER DIRECTIVE - supreme authority) Rename compliance.compliance_regulatory_obligation to regulatory_obligation because the redundant compliance prefix creates a confusing naming pattern. (target: compliance.compliance_regulatory_obligation) [missed: vov_residual_unapplied]
+- Populate full data attributes for 17 stub products (target: plan.program_coverage, plan.plan_regulatory_obligation, plan.plan_provider_contract, provider.obligation_compliance, provider.audit_assignment, utilization.um_program_enrollment, care.coordinator_assignment, care.program_obligation_mapping, care.program_accreditation, care.measure_obligation_mapping, care.gap_obligation, credential.contract_link, credential.obligation_mapping, credential.finding, employer.regulatory_compliance_record, contract.obligation, contract.party_regulatory_obligation_compliance) [missed: orchestrator status=partial]
+- Resolve 36 cross-domain SSOT duplicates (target: appeal.appeal_grievance, member.member_grievance, appeal.appeal_document, credential.credential_document, vendor.vendor_document, appeal.appeal_communication, member.member_communication, appeal.appeal_regulatory_filing, finance.finance_regulatory_filing, billing.billing_dispute, contract.contract_dispute, vendor.vendor_dispute, billing.payer, claim.payer, care.care_enrollment, member.member_enrollment, compliance.compliance_regulatory_obligation, plan.plan_regulatory_obligation, compliance.compliance_attestation, credential.credential_attestation, contract.contract_provider_contract, plan.plan_provider_contract, contract.amendment, plan.plan_amendment, contract.contract_lifecycle_event, credential.credential_lifecycle_event, member.member_lifecycle_event, vendor.vendor_lifecycle_event) [missed: orchestrator status=failed]
+- Rename contract.contract_provider_contract -> provider_contract (target: contract.contract_provider_contract) [missed: orchestrator status=failed]
+- Rename compliance.compliance_regulatory_obligation -> regulatory_obligation (target: compliance.compliance_regulatory_obligation) [missed: orchestrator status=failed]
+- re-add metric view compliance_regulatory_obligation (owner compliance.compliance_regulatory_obligation was renamed/removed; re-point to the current product) (target: compliance.compliance_regulatory_obligation) [missed: mv_orphan_scrubbed]
+- re-add metric view contract_provider_contract (owner contract.contract_provider_contract was renamed/removed; re-point to the current product) (target: contract.contract_provider_contract) [missed: mv_orphan_scrubbed]
+- re-add metric view provider (owner provider.provider_provider was renamed/removed; re-point to the current product) (target: provider.provider_provider) [missed: mv_orphan_scrubbed]

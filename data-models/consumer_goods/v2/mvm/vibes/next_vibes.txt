@@ -1,0 +1,40 @@
+**Model Quality Score: 95.0/100**
+
+**Static Analysis Findings (4 actionable):**
+  - [SA:duplicate_product_pair] Domain 'product' has both 'category' and 'product_category' — SSOT violation. Merge into 'category'.
+  - [SA:denormalized_natural_key] Product 'product.product_category' has both FK 'category_id' and natural key 'category_code' for entity 'category'. The natural key is redundant — use the FK join instead.
+  - [SA:denormalized_natural_key] Product 'manufacturing.production_order' has both FK 'order_id' and natural key 'order_number' for entity 'order'. The natural key is redundant — use the FK join instead.
+  - [SA:denormalized_natural_key] Product 'manufacturing.planned_order' has both FK 'order_id' and natural key 'order_number' for entity 'order'. The natural key is redundant — use the FK join instead.
+
+**PRIORITY 1 — connect_table: finance.company_code** — add column currency_code_id (BIGINT) with FK to finance.gl_account.gl_account_id — only if a currency reference exists; otherwise skip. (Skip — no currency table in scope.)
+**PRIORITY 1 — rename_attribute: product.product_category** — rename column parent_category_product_category_id to parent_product_category_id because the table already has parent_product_category_id and this duplicate self-ref column is redundant and confusingly named; consolidate to a single business-meaningful self-reference.
+**PRIORITY 2 — remove_fk: product.product_category** — remove FK on column parent_category_product_category_id because product_category already has a valid self-ref via parent_product_category_id, making this a duplicate self-referencing FK to the same parent target.
+**PRIORITY 3 — connect_table: sales.invoice** — add column return_order (BIGINT) with FK to sales.return_order.return_order_id — invoices for credit/returns must trace to the originating return_order for revenue reversal and reconciliation.
+**PRIORITY 4 — connect_table: sales.return_order** — add column invoice (BIGINT) with FK to sales.invoice.invoice_id — returns are typically issued against an original sales invoice and need linkage for credit memo processing.
+**PRIORITY 5 — connect_table: distribution.shipment** — add column carrier_id is out of scope; instead add column network_node (BIGINT) with FK to supply.network_node.network_node_id — shipments originate/terminate at supply network nodes and currently only link to network_lane.
+**PRIORITY 6 — connect_table: quality.capa** — add column manufacturing_facility (BIGINT) with FK to manufacturing.manufacturing_facility.manufacturing_facility_id — CAPA records are typically scoped to a facility for root-cause and audit tracking.
+**PRIORITY 7 — connect_table: quality.usage_decision** — add column inspection_result (BIGINT) with FK to quality.inspection_result.inspection_result_id — usage decisions are driven by inspection results, not just the parent lot.
+**PRIORITY 8 — connect_table: sales.account_contact** — add column rep (BIGINT) with FK to sales.rep.rep_id — account contacts are commonly owned by a sales rep for relationship management.
+**PRIORITY 9 — connect_table: sales.account_assignment** — add column territory (BIGINT) with FK to sales.territory.territory_id — account assignments align reps to accounts within territories and should reference territory.
+**PRIORITY 10 — connect_table: product.gtin_registry** — add column packaging_spec (BIGINT) with FK to product.packaging_spec.packaging_spec_id — GTIN/UPC/EAN codes are assigned per packaging configuration, not solely at SKU level.
+**PRIORITY 11 — connect_table: finance.ar_invoice** — add column order (BIGINT) with FK to sales.order.order_id — AR invoices should trace to the originating sales order for revenue recognition, consistent with sales.invoice linkage.
+**PRIORITY 12 — connect_table: manufacturing.equipment** — add column inspection_plan is out of scope; instead add column work_center (BIGINT) with FK to manufacturing.work_center.work_center_id — already present; verify equipment-to-work_center linkage exists (it does). (Skip if present.)
+**PRIORITY 13 — connect_table: quality.specification** — add column manufacturing_facility (BIGINT) with FK to manufacturing.manufacturing_facility.manufacturing_facility_id — specifications often vary by manufacturing site and should be linkable to facility.
+**PRIORITY 14 — connect_table: promotion.funding_allocation** — add column finance_cost_center is needed; add column cost_center (BIGINT) with FK to finance.cost_center.cost_center_id — funding allocations carry financial postings and should map to a cost center for trade spend accounting.
+**PRIORITY 15 — connect_table: sales.price_list_item** — add column trade_account is out of scope per pricing_agreement; instead add column pricing_agreement (BIGINT) with FK to sales.pricing_agreement.pricing_agreement_id — price list items negotiated under agreements should reference the governing pricing_agreement.
+**PRIORITY 16 — connect_table: distribution.inventory_position** — add column outbound_order_line is incorrect; add column atp_record (BIGINT) with FK to supply.atp_record.atp_record_id — inventory positions feed ATP calculations and should be linkable for available-to-promise reconciliation.
+**PRIORITY 17 — connect_table: product.category** — add column hierarchy (BIGINT) with FK to product.hierarchy.hierarchy_id — the standalone category table should connect to the product hierarchy structure for consistent classification.
+
+Other known issues from static analysis (10):
+  - Table supply.replenishment_order has 2 FK columns pointing to supply.network_node (network_node_id, primary_supply_network_node_id) (generic/unlabeled: network_node_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table supply.network_lane has 4 FK columns pointing to supply.network_node (network_node_id, destination_network_node_id, origin_network_node_id, primary_supply_network_node_id) (generic/unlabeled: network_node_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table distribution.outbound_order has 2 FK columns pointing to sales.order (order_id, primary_outbound_sales_order_id) (generic/unlabeled: order_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table distribution.pick_task has 2 FK columns pointing to distribution.storage_location (storage_location_id, primary_pick_distribution_storage_location_id) (generic/unlabeled: storage_location_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.journal_entry_line has 3 FK columns pointing to finance.cost_center (cost_center_id, journal_partner_cost_center_id, primary_cost_center_id) (generic/unlabeled: cost_center_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table finance.journal_entry_line has 2 FK columns pointing to finance.profit_center (profit_center_id, journal_profit_center_id) (generic/unlabeled: profit_center_id) — rename generic columns to describe their business role (e.g., inspector_employee_id, approver_employee_id; origin_plan_id, amendment_plan_id)
+  - Table product.category has only 1 attribute(s) — likely incomplete or should be merged
+  - 8 attribute(s) contain banned boilerplate phrases (Fortune N, multinational, enterprise-wide, cross-company, group reporting). Clean descriptions.
+  - 69 attribute(s) match person-data patterns but lack pii_ tags
+  - PK columns use 2 different datatypes: BIGINT, DECIMAL(18,2). Recommend all PKs use BIGINT.
+
+Deterministic score: 95.0/100 (LLM assessment: 88/100)
