@@ -1,5 +1,5 @@
 -- Schema for Domain: design | Business:  | Version: v2_ecm
--- Generated on: 2026-06-22 15:33:31
+-- Generated on: 2026-06-27 00:09:56
 
 -- ========= DATABASE =========
 CREATE DATABASE IF NOT EXISTS `vibe_construction_v1`.`design` COMMENT 'Engineering and design domain owning BIM models, CAD drawings, technical specifications, design packages, RFIs, submittals, clash detection, document control registers, transmittals, correspondence, workflow approvals, and handover documentation for construction projects';
@@ -42,13 +42,13 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`correspondence` (
     `wbs_code` STRING COMMENT 'Work Breakdown Structure code linking the correspondence to a specific project work package or deliverable.',
     `created_by` STRING COMMENT 'Username or identifier of the system user who created this correspondence record.',
     CONSTRAINT pk_correspondence PRIMARY KEY(`correspondence_id`)
-) COMMENT 'Master register of all formal project correspondence including letters, emails, notices, and official communications managed through Aconex mail register. Tracks sender, recipient, subject, correspondence type (RFI, instruction, notice, claim), priority, response required flag, response due date, current status, response thread history with full response chain (response date, content, method, closure status), and parent-child threading. Serves as the authoritative SSOT for all project correspondence and response chains across contractors, clients, consultants, and authorities, providing the contractual audit trail required under FIDIC and NEC contract forms. Canonical design.correspondence entity (v2 curated).';
+) COMMENT 'Master register of all formal project correspondence including letters, emails, notices, and official communications managed through Aconex mail register. Tracks sender, recipient, subject, correspondence type (RFI, instruction, notice, claim), priority, response required flag, response due date, current status, response thread history with full response chain (response date, content, method, closure status), and parent-child threading. Serves as the authoritative SSOT for all project correspondence and response chains across contractors, clients, consultants, and authorities, providing the contractual audit trail required under FIDIC and NEC contract forms.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`transmittal` (
     `transmittal_id` BIGINT COMMENT 'Unique identifier for the transmittal record. Primary key for the transmittal entity.',
     `agreement_id` BIGINT COMMENT 'Reference to the contract or agreement under which this transmittal is issued. Links document distribution to contractual obligations and scope.',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project for which this transmittal is issued. Links transmittal to the parent project context.',
-    `employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: Transmittal creation is performed by an employee; required for traceability of document distribution.',
+    `hr_employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: Transmittal creation is performed by an employee; required for traceability of document distribution.',
     `phase_id` BIGINT COMMENT 'Reference to the project phase or stage during which this transmittal is issued. Provides temporal context within the project lifecycle.',
     `account_id` BIGINT COMMENT 'Foreign key linking to client.account. Business justification: Transmittal origin must be linked to the client account for contract document tracking and regulatory filing.',
     `acknowledgement_by` STRING COMMENT 'Full name of the individual who provided formal acknowledgement on behalf of the recipient organization. Establishes personal accountability for receipt confirmation.',
@@ -78,21 +78,23 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`transmittal` (
     `transmittal_number` STRING COMMENT 'Unique business identifier for the transmittal as recognized by all project parties. Typically follows project-specific numbering conventions and serves as the externally-known reference for document distribution tracking.. Valid values are `^[A-Z0-9-]+$`',
     `transmittal_status` STRING COMMENT 'Current lifecycle status of the transmittal indicating its position in the document distribution workflow. Tracks progression from draft through issuance to acknowledgement or closure.. Valid values are `draft|issued|acknowledged|rejected|superseded|closed`',
     CONSTRAINT pk_transmittal PRIMARY KEY(`transmittal_id`)
-) COMMENT 'Records the formal dispatch of documents, drawings, and submittals between project parties via Aconex transmittals. Captures transmittal number, issue date, sender organization, recipient organization, purpose of issue (for approval, for information, for construction, for record), document list, and acknowledgement status. Provides a legally defensible audit trail of document distribution throughout the project lifecycle. Canonical design.transmittal entity (v2 curated).';
+) COMMENT 'Records the formal dispatch of documents, drawings, and submittals between project parties via Aconex transmittals. Captures transmittal number, issue date, sender organization, recipient organization, purpose of issue (for approval, for information, for construction, for record), document list, and acknowledgement status. Provides a legally defensible audit trail of document distribution throughout the project lifecycle.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`rfi` (
     `rfi_id` BIGINT COMMENT 'Primary key for rfi',
     `agreement_id` BIGINT COMMENT 'Foreign key linking to contract.agreement. Business justification: Supports RFI‑to‑Agreement traceability required in the RFI Management Process and impact assessment on contract scope.',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project to which this RFI belongs.',
+    `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: RFI is raised by a craft worker on site to request clarification; linking captures who raised it (RFI Management Process).',
     `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: RFIs may result in cost changes; linking each RFI to the relevant cost code enables cost impact analysis.',
-    `employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: RFI originator employee is required for accountability and response tracking.',
+    `firm_profile_id` BIGINT COMMENT 'Foreign key linking to bid.firm_profile. Business justification: RFI response workflow requires tracking which subcontractor firm the RFI is addressed to for accountability and response time metrics.',
+    `hr_employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: RFI originator employee is required for accountability and response tracking.',
     `permit_condition_id` BIGINT COMMENT 'Foreign key linking to compliance.permit_condition. Business justification: RFIs often seek clarification of specific permit conditions; linking RFI to the condition it addresses enables compliance tracking.',
     `wbs_element_id` BIGINT COMMENT 'Reference to the WBS element or work package to which this RFI is associated for cost and schedule tracking.',
     `actual_response_date` DATE COMMENT 'The actual date on which the RFI response was provided and recorded in the system.',
     `closure_date` DATE COMMENT 'The date on which the RFI was formally closed after response acceptance and any required follow-up actions were completed.',
     `closure_notes` STRING COMMENT 'Additional notes or comments recorded at the time of RFI closure, documenting final resolution or outstanding items.',
     `cost_impact_amount` DECIMAL(18,2) COMMENT 'Estimated financial impact (in project currency) resulting from the RFI clarification, if applicable.',
-    `cost_impact_flag` DECIMAL(18,2) COMMENT 'Indicates whether the RFI response has identified a potential cost impact to the project, triggering change order evaluation.',
+    `cost_impact_flag` BOOLEAN COMMENT 'Indicates whether the RFI response has identified a potential cost impact to the project, triggering change order evaluation.',
     `created_timestamp` TIMESTAMP COMMENT 'The timestamp when this RFI record was first created in the data platform.',
     `date_raised` DATE COMMENT 'The date on which the RFI was formally submitted or raised in the project management system.',
     `rfi_description` STRING COMMENT 'Detailed description of the question, issue, or clarification being requested, including context and specific areas of concern.',
@@ -111,15 +113,15 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`rfi` (
     `schedule_impact_flag` BOOLEAN COMMENT 'Indicates whether the RFI response has identified a potential schedule impact, potentially triggering an Extension of Time (EOT) request.',
     `subject` STRING COMMENT 'Brief title or subject line summarizing the nature of the clarification request.',
     CONSTRAINT pk_rfi PRIMARY KEY(`rfi_id`)
-) COMMENT 'Request for Information records capturing formal queries raised by contractors seeking clarification on design intent, specifications, or contract documents. Tracks RFI number, subject, discipline, originator, addressee, date raised, response due date, actual response date, response content, cost/schedule impact assessment, linked drawing or specification reference, and closure status. High-volume transactional entity critical for design coordination and contractual record-keeping. Sourced from Procore RFI module and Aconex. Canonical design.rfi entity (v2 curated).';
+) COMMENT 'Request for Information records capturing formal queries raised by contractors seeking clarification on design intent, specifications, or contract documents. Tracks RFI number, subject, discipline, originator, addressee, date raised, response due date, actual response date, response content, cost/schedule impact assessment, linked drawing or specification reference, and closure status. High-volume transactional entity critical for design coordination and contractual record-keeping. Sourced from Procore RFI module and Aconex.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`document_register` (
     `document_register_id` BIGINT COMMENT 'Unique identifier for the document register entry. Primary key for the document register product.',
     `agreement_id` BIGINT COMMENT 'Reference to the contract under which this document was produced or to which it is a deliverable.',
-    `employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: Document author employee is required for document control and audit trails.',
-    `compliance_permit_id` BIGINT COMMENT 'Foreign key linking to compliance.permit. Business justification: Permit Application requires linking each design document to the specific permit it satisfies for regulatory approval.',
+    `hr_employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: Document author employee is required for document control and audit trails.',
+    `regulatory_permit_id` BIGINT COMMENT 'Foreign key linking to compliance.permit. Business justification: Permit Application requires linking each design document to the specific permit it satisfies for regulatory approval.',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project this document belongs to.',
-    `contract_agreement_id` BIGINT COMMENT 'Foreign key linking to subcontractor.contract_agreement. Business justification: Documents often belong to a subcontractor contract; FK supports contract‑based document control, retention, and regulatory reporting.',
+    `bid_contract_agreement_id` BIGINT COMMENT 'Foreign key linking to bid.contract_agreement. Business justification: Documents often belong to a subcontractor contract; FK supports contract‑based document control, retention, and regulatory reporting.',
     `rfi_id` BIGINT COMMENT 'Foreign key linking to design.rfi. Business justification: RFI is currently siloed; adding a foreign key from document_register to rfi creates an inbound link and removes the redundant string reference column.',
     `wbs_element_id` BIGINT COMMENT 'Reference to the WBS element or work package this document supports or relates to.',
     `approval_date` DATE COMMENT 'Date when the document received formal approval from the designated approver.',
@@ -154,11 +156,11 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`document_register` (
     `supersedes_document_number` STRING COMMENT 'Document number of the older document that this document supersedes or replaces.',
     `transmittal_number` STRING COMMENT 'Reference number of the transmittal through which this document was formally issued or exchanged between parties.',
     CONSTRAINT pk_document_register PRIMARY KEY(`document_register_id`)
-) COMMENT 'Central master register of all project documents beyond drawings — including specifications, reports, procedures, method statements, O&M manuals, certificates, and correspondence — managed in Aconex CDE (Common Data Environment). Captures document number, title, document type, discipline, revision, status, originator, issue date, confidentiality classification, retention period, and numbering convention. Provides the authoritative catalog of all project documentation per ISO 19650 information container requirements. Canonical design.document_register entity (v2 curated).';
+) COMMENT 'Central master register of all project documents beyond drawings — including specifications, reports, procedures, method statements, O&M manuals, certificates, and correspondence — managed in Aconex CDE (Common Data Environment). Captures document number, title, document type, discipline, revision, status, originator, issue date, confidentiality classification, retention period, and numbering convention. Provides the authoritative catalog of all project documentation per ISO 19650 information container requirements.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`revision` (
     `revision_id` BIGINT COMMENT 'Primary key for revision',
-    `employee_id` BIGINT COMMENT 'System identifier for the approver. Links to the workforce or user management system.',
+    `hr_employee_id` BIGINT COMMENT 'System identifier for the approver. Links to the workforce or user management system.',
     `document_register_id` BIGINT COMMENT 'Reference to the parent document in the document register. Links this revision to its master document record.',
     `primary_revision_employee_id` BIGINT COMMENT 'System identifier for the author. Links to the workforce or user management system.',
     `reviewer_employee_id` BIGINT COMMENT 'System identifier for the reviewer. Links to the workforce or user management system.',
@@ -189,14 +191,14 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`revision` (
     `sheet_count` STRING COMMENT 'Total number of sheets or drawings in this revision (applicable for CAD and BIM documents). Used for drawing set completeness checks.',
     `transmittal_number` STRING COMMENT 'Reference number of the transmittal document used to formally issue this revision to stakeholders. Links to the correspondence register.',
     CONSTRAINT pk_revision PRIMARY KEY(`revision_id`)
-) COMMENT 'Version control record for each document in the document register, capturing revision identifier, revision date, revision description, author, reviewer, approver, change summary, superseded revision reference, and file storage path. Maintains a complete and auditable version history for all project documents to support regulatory compliance, handover, and DLP (Defects Liability Period) obligations. Canonical design.revision entity (v2 curated).';
+) COMMENT 'Version control record for each document in the document register, capturing revision identifier, revision date, revision description, author, reviewer, approver, change summary, superseded revision reference, and file storage path. Maintains a complete and auditable version history for all project documents to support regulatory compliance, handover, and DLP (Defects Liability Period) obligations.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`workflow_approval` (
     `workflow_approval_id` BIGINT COMMENT 'Unique identifier for the workflow approval instance. Primary key for the workflow approval entity.',
     `agreement_id` BIGINT COMMENT 'Foreign key linking to contract.agreement. Business justification: Enables linking workflow approvals to the specific contract for regulatory compliance and audit trails.',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project to which this workflow approval belongs. Enables project-level reporting and audit trails.',
     `document_register_id` BIGINT COMMENT 'Reference to the document or deliverable under review in this workflow. Links to the document management system record.',
-    `employee_id` BIGINT COMMENT 'Reference to the individual person currently assigned to review and approve this workflow step. Links to workforce or user management system.',
+    `hr_employee_id` BIGINT COMMENT 'Reference to the individual person currently assigned to review and approve this workflow step. Links to workforce or user management system.',
     `tertiary_workflow_escalated_to_employee_id` BIGINT COMMENT 'Reference to the individual or role to whom the workflow was escalated for expedited review or higher-level decision authority.',
     `workflow_template_id` BIGINT COMMENT 'Reference to the workflow template that defines the approval chain structure, step sequence, and routing rules for this approval process.',
     `action_date` TIMESTAMP COMMENT 'Date and time when the reviewer recorded their approval decision or action. Used for SLA compliance tracking and audit trail.',
@@ -231,7 +233,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`workflow_approval` (
     `workflow_status` STRING COMMENT 'Current lifecycle state of the workflow approval. Tracks progression through the approval chain from initiation to final outcome. [ENUM-REF-CANDIDATE: initiated|in_progress|pending_review|approved|rejected|on_hold|cancelled|completed — 8 candidates stripped; promote to reference product]',
     `workflow_type` STRING COMMENT 'Classification of the workflow approval by business purpose. Determines routing rules, SLA targets, and approval authority requirements. [ENUM-REF-CANDIDATE: design_review|submittal_approval|rfi_response|change_order_approval|drawing_approval|specification_review|technical_query|document_transmittal|noncompliance_review|method_statement_approval — 10 candidates stripped; promote to reference product]',
     CONSTRAINT pk_workflow_approval PRIMARY KEY(`workflow_approval_id`)
-) COMMENT 'Formal document review and approval workflow instances tracking multi-step approval chains in Aconex and BIM 360 CDE. Captures workflow template, document under review, step sequence, assigned reviewer (role and individual), action taken (approved, rejected, commented, delegated, no objection), action date, reviewer comments, SLA target vs actual duration, and overall workflow outcome. Provides the legally required audit trail of all document approval decisions for ISO 9001 quality management, ISO 19650 information management, and contractual compliance under FIDIC/NEC. Canonical design.workflow_approval entity (v2 curated).';
+) COMMENT 'Formal document review and approval workflow instances tracking multi-step approval chains in Aconex and BIM 360 CDE. Captures workflow template, document under review, step sequence, assigned reviewer (role and individual), action taken (approved, rejected, commented, delegated, no objection), action date, reviewer comments, SLA target vs actual duration, and overall workflow outcome. Provides the legally required audit trail of all document approval decisions for ISO 9001 quality management, ISO 19650 information management, and contractual compliance under FIDIC/NEC.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`handover_package` (
     `handover_package_id` BIGINT COMMENT 'Unique identifier for the handover package record. Primary key. Role: MASTER_RESOURCE.',
@@ -239,7 +241,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`handover_package` (
     `contact_id` BIGINT COMMENT 'Foreign key linking to client.contact. Business justification: Handover packages require a sign‑off by a specific client contact; linking enables handover acceptance reports.',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project for which this handover package is compiled.',
     `firm_profile_id` BIGINT COMMENT 'Foreign key linking to bid.firm_profile. Business justification: Handover packages are delivered by a specific subcontractor; linking clarifies responsibility and client acceptance tracking.',
-    `employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: Handover Package preparation requires tracking the responsible employee for audit and liability.',
+    `hr_employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: Handover Package preparation requires tracking the responsible employee for audit and liability.',
     `wbs_element_id` BIGINT COMMENT 'Reference to the WBS element that this handover package is associated with, enabling alignment with project planning and cost control structures.',
     `aconex_document_reference` STRING COMMENT 'Unique document identifier in the Aconex document management system for this handover package, enabling traceability to source system.',
     `approved_by` STRING COMMENT 'Name of the individual or role who approved the handover package for submission to the client.',
@@ -249,7 +251,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`handover_package` (
     `comments` STRING COMMENT 'Free-text comments or notes regarding the handover package, including client feedback, revision requests, or special instructions.',
     `completeness_percentage` DECIMAL(18,2) COMMENT 'Percentage of required documents and deliverables that have been compiled and included in the handover package (0.00 to 100.00).',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this handover package record was first created in the system.',
-    `dlp_duration_days` DECIMAL(18,2) COMMENT 'Duration of the Defects Liability Period in days as specified in the contract for this handover package scope (commonly 365 days).',
+    `dlp_duration_days` STRING COMMENT 'Duration of the Defects Liability Period in days as specified in the contract for this handover package scope (commonly 365 days).',
     `dlp_end_date` DATE COMMENT 'Date on which the Defects Liability Period expires for the scope covered by this handover package, after which final release of retention may occur.',
     `dlp_start_date` DATE COMMENT 'Date on which the Defects Liability Period commences for the scope covered by this handover package, typically aligned with client acceptance or practical completion.',
     `handover_milestone` STRING COMMENT 'The contractual milestone at which this package is required for handover: practical completion, substantial completion, final completion, sectional handover, or early access.. Valid values are `practical_completion|substantial_completion|final_completion|sectional_handover|early_access`',
@@ -271,15 +273,17 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`handover_package` (
     `submission_date` DATE COMMENT 'Date on which the handover package was submitted to the client or owner for review and acceptance.',
     `submitted_document_count` STRING COMMENT 'Number of documents that have been submitted and included in the handover package to date.',
     CONSTRAINT pk_handover_package PRIMARY KEY(`handover_package_id`)
-) COMMENT 'Master record for project handover and commissioning documentation packages compiled for client/owner delivery at practical completion per ISO 19650-3 operational phase requirements. Captures package number, title, scope of works covered, handover milestone, package type (O&M manuals, as-built drawings, certificates, warranties, test records), completeness percentage, client acceptance status, DLP (Defects Liability Period) start date, and legal hold flag for litigation support. Sourced from Aconex handover module. Canonical design.handover_package entity (v2 curated).';
+) COMMENT 'Master record for project handover and commissioning documentation packages compiled for client/owner delivery at practical completion per ISO 19650-3 operational phase requirements. Captures package number, title, scope of works covered, handover milestone, package type (O&M manuals, as-built drawings, certificates, warranties, test records), completeness percentage, client acceptance status, DLP (Defects Liability Period) start date, and legal hold flag for litigation support. Sourced from Aconex handover module.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`handover_item` (
     `handover_item_id` BIGINT COMMENT 'Unique identifier for the handover item within the handover package tracking system.',
     `agreement_id` BIGINT COMMENT 'Foreign key linking to contract.agreement. Business justification: Provides item‑level contract linkage for punch‑list tracking and final acceptance verification.',
     `asset_id` BIGINT COMMENT 'Foreign key linking to equipment.asset. Business justification: Required for Handover Package Acceptance Checklist linking each handover item to the specific equipment asset being transferred to client.',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project for which this handover item is being delivered.',
+    `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: Handover items are assigned to a craft worker who ensures client review and acceptance (Handover Management Process).',
     `document_register_id` BIGINT COMMENT 'Foreign key linking to design.document_register. Business justification: Handover item references a master document; replace free‑text reference with FK to document_register for consistency.',
     `handover_package_id` BIGINT COMMENT 'Reference to the parent handover package that contains this item.',
+    `master_id` BIGINT COMMENT 'Foreign key linking to material.material_master. Business justification: Handover items may be physical materials; linking ensures client receives correct material records.',
     `contact_id` BIGINT COMMENT 'Foreign key linking to client.contact. Business justification: Assigns each handover item to a client contact for issue tracking and responsibility matrix.',
     `actual_submission_date` DATE COMMENT 'Actual date on which the handover item was submitted to the client or project team, used to track schedule performance.',
     `approval_date` DATE COMMENT 'Date on which the handover item received final approval and was accepted as complete and compliant.',
@@ -314,12 +318,12 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`handover_item` (
     `warranty_period_months` STRING COMMENT 'Duration of the warranty or defects liability period in months applicable to the system or equipment documented in this handover item.',
     `wbs_code` STRING COMMENT 'Work Breakdown Structure code linking this handover item to the project WBS hierarchy for cost and schedule integration.',
     CONSTRAINT pk_handover_item PRIMARY KEY(`handover_item_id`)
-) COMMENT 'Individual document or deliverable item within a handover package, tracking item type (O&M manual, as-built drawing, FAT certificate, SAT record, warranty certificate, commissioning record, spare parts list), item status, responsible party, planned submission date, actual submission date, client review status, and outstanding action notes. Enables granular tracking of handover completeness at item level. Canonical design.handover_item entity (v2 curated).';
+) COMMENT 'Individual document or deliverable item within a handover package, tracking item type (O&M manual, as-built drawing, FAT certificate, SAT record, warranty certificate, commissioning record, spare parts list), item status, responsible party, planned submission date, actual submission date, client review status, and outstanding action notes. Enables granular tracking of handover completeness at item level.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`correspondence_response` (
     `correspondence_response_id` BIGINT COMMENT 'Unique identifier for the correspondence response record. Primary key.',
     `agreement_id` BIGINT COMMENT 'Identifier of the specific contract under which this correspondence response is issued. Links to contract master data.',
-    `employee_id` BIGINT COMMENT 'Identifier of the individual who approved the response for issuance. Links to workforce or user management system.',
+    `hr_employee_id` BIGINT COMMENT 'Identifier of the individual who approved the response for issuance. Links to workforce or user management system.',
     `construction_project_id` BIGINT COMMENT 'Identifier of the construction project to which this correspondence response belongs. Links to the project master data.',
     `correspondence_id` BIGINT COMMENT 'Reference to the originating correspondence item that this response addresses. Links to the parent correspondence record.',
     `primary_correspondence_employee_id` BIGINT COMMENT 'Identifier of the individual who authored or prepared the response. Links to workforce or user management system.',
@@ -360,11 +364,10 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`correspondence_response
     `revision_number` STRING COMMENT 'The revision or version number of the response. Increments when the response is updated or reissued.',
     `subject` STRING COMMENT 'The subject line or title of the response. Provides a concise summary of the response topic for indexing and retrieval.',
     CONSTRAINT pk_correspondence_response PRIMARY KEY(`correspondence_response_id`)
-) COMMENT 'Tracks formal responses to incoming correspondence items, capturing the originating correspondence reference, response author, response date, response content summary, response method (letter, email, formal notice), attachments, and whether the response closes the correspondence item or requires further action. Maintains the full correspondence thread for contractual and legal purposes. Canonical design.correspondence_response entity (v2 curated).';
+) COMMENT 'Tracks formal responses to incoming correspondence items, capturing the originating correspondence reference, response author, response date, response content summary, response method (letter, email, formal notice), attachments, and whether the response closes the correspondence item or requires further action. Maintains the full correspondence thread for contractual and legal purposes.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`transmittal_item` (
     `transmittal_item_id` BIGINT COMMENT 'Unique identifier for the transmittal item line. Primary key for the transmittal item entity.',
-    `agreement_id` BIGINT COMMENT 'Foreign key linking to contract.agreement. Business justification: Ensures each transmittal item can be traced back to the contract for billing and compliance reporting.',
     `document_register_id` BIGINT COMMENT 'Reference to the document master record being transmitted. Links to the document control register.',
     `transmittal_id` BIGINT COMMENT 'Reference to the parent transmittal header that contains this item. Links the line item to its transmittal package.',
     `bim_model_reference` STRING COMMENT 'Reference to the BIM model or model element associated with this document. Used for linking documents to 3D models and coordinating design information.',
@@ -398,13 +401,14 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`transmittal_item` (
     `work_package_code` STRING COMMENT 'The work breakdown structure code or work package identifier that this document relates to. Used for organizing documents by project scope and phase.',
     `created_by` STRING COMMENT 'The user or system identifier of the person who created this transmittal item record. Used for accountability and audit trail.',
     CONSTRAINT pk_transmittal_item PRIMARY KEY(`transmittal_item_id`)
-) COMMENT 'Line-item detail of each document included within a transmittal, capturing document number, document title, revision, number of copies, file format, and any item-specific notes or instructions. Enables granular tracking of exactly which document revisions were dispatched in each transmittal, supporting audit trail and document receipt confirmation at the individual document level. Canonical design.transmittal_item entity (v2 curated).';
+) COMMENT 'Line-item detail of each document included within a transmittal, capturing document number, document title, revision, number of copies, file format, and any item-specific notes or instructions. Enables granular tracking of exactly which document revisions were dispatched in each transmittal, supporting audit trail and document receipt confirmation at the individual document level.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`distribution_matrix` (
     `distribution_matrix_id` BIGINT COMMENT 'Primary key for distribution_matrix',
     `agreement_id` BIGINT COMMENT 'Foreign key linking to contract.agreement. Business justification: Links document distribution rules to the contract that defines distribution obligations and confidentiality requirements.',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project this distribution matrix applies to.',
     `superseded_by_matrix_distribution_matrix_id` BIGINT COMMENT 'Reference to the distribution matrix entry that replaces this rule when it is superseded or revised.',
+    `workflow_template_id` BIGINT COMMENT 'add column workflow_template_id (BIGINT) with FK to design.workflow_template.workflow_template_id - distribution matrices configure workflow routing',
     `acknowledgement_deadline_days` STRING COMMENT 'Number of calendar days within which the recipient must acknowledge receipt of the document, measured from distribution date.',
     `acknowledgement_required_flag` BOOLEAN COMMENT 'Indicates whether the recipient must formally acknowledge receipt of documents distributed under this rule.',
     `approval_authority` STRING COMMENT 'Name or role of the individual or body authorized to approve and activate this distribution rule (e.g., Project Manager, Document Controller, Contract Administrator).',
@@ -434,7 +438,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`distribution_matrix` (
     `security_classification` STRING COMMENT 'Security or confidentiality classification level of documents distributed under this rule, governing handling and access restrictions.. Valid values are `public|internal|confidential|restricted|proprietary`',
     `wbs_code` STRING COMMENT 'Work Breakdown Structure code identifying the project component or work package to which this distribution rule applies.. Valid values are `^[A-Z0-9.-]{1,30}$`',
     CONSTRAINT pk_distribution_matrix PRIMARY KEY(`distribution_matrix_id`)
-) COMMENT 'Planned distribution rules defining which organizations, roles, or individuals receive specific document types during the project lifecycle. Specifies copy type (controlled, uncontrolled, for information), distribution method (Aconex, email, hard copy), acknowledgement requirements, and contractual basis for distribution. Governs systematic and auditable document distribution per FIDIC and NEC contract requirements, ensuring all parties receive required documentation at each project milestone. Canonical design.distribution_matrix entity (v2 curated).';
+) COMMENT 'Planned distribution rules defining which organizations, roles, or individuals receive specific document types during the project lifecycle. Specifies copy type (controlled, uncontrolled, for information), distribution method (Aconex, email, hard copy), acknowledgement requirements, and contractual basis for distribution. Governs systematic and auditable document distribution per FIDIC and NEC contract requirements, ensuring all parties receive required documentation at each project milestone.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`access_permission` (
     `access_permission_id` BIGINT COMMENT 'Primary key for access_permission',
@@ -443,7 +447,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`access_permission` (
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project to which this access permission applies. Links to project master data in Primavera P6 or SAP Project Systems. Enables project-level access control reporting and audit.',
     `document_register_id` BIGINT COMMENT 'Reference to the document or folder in Aconex or BIM 360 CDE (Common Data Environment) to which this access permission applies. Links to the document management systems document register.',
     `parent_permission_access_permission_id` BIGINT COMMENT 'Reference to the parent access permission from which this permission is inherited. Applicable when inherit_from_parent_flag is true. Enables traceability of permission inheritance chains.',
-    `employee_id` BIGINT COMMENT 'Reference to the individual user granted access when grantee_type is user. Links to workforce or contact master data in SAP SuccessFactors or project team member registry.',
+    `hr_employee_id` BIGINT COMMENT 'Reference to the individual user granted access when grantee_type is user. Links to workforce or contact master data in SAP SuccessFactors or project team member registry.',
     `quaternary_quinary_access_created_by_user_employee_id` BIGINT COMMENT 'Reference to the user who created this access permission record in the system. Links to workforce master data. Required for audit trail and accountability.',
     `team_member_id` BIGINT COMMENT 'Reference to the project team granted access when grantee_type is team. Links to project team structure in Procore or Primavera P6.',
     `tertiary_access_approved_by_user_employee_id` BIGINT COMMENT 'Reference to the user who approved this access permission request. Applicable when approval_required_flag is true. Links to workforce master data. Required for segregation of duties and audit trail.',
@@ -478,11 +482,11 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`access_permission` (
     `watermark_required_flag` BOOLEAN COMMENT 'Indicates whether documents accessed under this permission must be watermarked with user identity and access timestamp. True for confidential, commercially sensitive, or legally privileged documents. Supports document leakage prevention and forensic audit.',
     `wbs_code` STRING COMMENT 'WBS (Work Breakdown Structure) code identifying the project phase, deliverable, or work package to which this access permission applies. Enables phase-based and deliverable-based access control in CPM (Critical Path Method) scheduled projects.. Valid values are `^[A-Z0-9.-]{1,30}$`',
     CONSTRAINT pk_access_permission PRIMARY KEY(`access_permission_id`)
-) COMMENT 'Access control rules governing who can view, edit, upload, or approve documents within Aconex and BIM 360 CDE. Captures document or folder reference, organization or role granted access, permission level (view, download, upload, approve), effective dates, granting authority, and business justification. Enforces confidentiality requirements for commercially sensitive, legally privileged, and security-classified project documents per contractual, ISO 27001, and regulatory obligations. Canonical design.access_permission entity (v2 curated).';
+) COMMENT 'Access control rules governing who can view, edit, upload, or approve documents within Aconex and BIM 360 CDE. Captures document or folder reference, organization or role granted access, permission level (view, download, upload, approve), effective dates, granting authority, and business justification. Enforces confidentiality requirements for commercially sensitive, legally privileged, and security-classified project documents per contractual, ISO 27001, and regulatory obligations.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`bim_model` (
     `bim_model_id` BIGINT COMMENT 'Unique identifier for the BIM model record. Primary key for the BIM model entity.',
-    `employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: BIM model author employee is required for model provenance and liability.',
+    `hr_employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: BIM model author employee is required for model provenance and liability.',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project this BIM model belongs to. Links the model to its parent project context.',
     `master_id` BIGINT COMMENT 'Foreign key linking to material.material_master. Business justification: BIM model material library requires linking each model to its material master for quantity take‑off and clash detection.',
     `superseded_by_model_bim_model_id` BIGINT COMMENT 'Reference to the newer BIM model version that replaces this one. Null if this is the current version.',
@@ -498,7 +502,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`bim_model` (
     `discipline` STRING COMMENT 'Engineering or design discipline that owns this BIM model. Determines the technical domain and responsible team. [ENUM-REF-CANDIDATE: architectural|structural|mechanical|electrical|plumbing|civil|geotechnical|landscape|interior_design|fire_protection|telecommunications|environmental — 12 candidates stripped; promote to reference product]',
     `element_count` STRING COMMENT 'Total number of BIM elements (objects) contained in the model. Indicator of model complexity.',
     `external_reference_code` STRING COMMENT 'Identifier from the source system (Autodesk BIM 360, Bentley ProjectWise) for integration and synchronization.',
-    `federation_role` DECIMAL(18,2) COMMENT 'Role of this model in federated model assembly. Determines how it integrates with other discipline models.',
+    `federation_role` STRING COMMENT 'Role of this model in federated model assembly. Determines how it integrates with other discipline models.. Valid values are `host|linked|standalone|reference`',
     `file_format` STRING COMMENT 'Native or exchange file format of the BIM model. Determines interoperability and viewing requirements. [ENUM-REF-CANDIDATE: RVT|NWD|NWC|IFC|DWG|DGN|SKP|RFA|DXF — 9 candidates stripped; promote to reference product]',
     `file_size_mb` DECIMAL(18,2) COMMENT 'Size of the BIM model file in megabytes. Used for storage planning and performance optimization.',
     `iso_19650_compliance_flag` BOOLEAN COMMENT 'Indicates whether the BIM model meets ISO 19650 information management requirements and standards.',
@@ -521,16 +525,14 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`bim_model` (
     `storage_location` STRING COMMENT 'File path or cloud storage location where the BIM model file is stored (e.g., BIM 360 project folder, SharePoint path).',
     `wbs_code` STRING COMMENT 'Work Breakdown Structure code linking the BIM model to specific project scope and cost accounts.',
     CONSTRAINT pk_bim_model PRIMARY KEY(`bim_model_id`)
-) COMMENT 'Master record for each Building Information Model (BIM) asset managed in Autodesk BIM 360, Bentley ProjectWise, or equivalent platform. Captures model identity, discipline (architectural, structural, MEP, civil), authoring software and version, file format (RVT, IFC, NWD), project coordinate system, geolocation reference point, LOD (Level of Development) classification per AIA E202/BIMForum LOD Specification, model status (WIP, shared, published, archived), lifecycle stage, federation role (host/linked), and file size. SSOT for all 3D model metadata across the project portfolio, enabling federated model assembly, clash detection workflows, 4D/5D BIM integration, and ISO 19650 information management compliance. Canonical design.bim_model entity (v2 curated).';
+) COMMENT 'Master record for each Building Information Model (BIM) asset managed in Autodesk BIM 360, Bentley ProjectWise, or equivalent platform. Captures model identity, discipline (architectural, structural, MEP, civil), authoring software and version, file format (RVT, IFC, NWD), project coordinate system, geolocation reference point, LOD (Level of Development) classification per AIA E202/BIMForum LOD Specification, model status (WIP, shared, published, archived), lifecycle stage, federation role (host/linked), and file size. SSOT for all 3D model metadata across the project portfolio, enabling federated model assembly, clash detection workflows, 4D/5D BIM integration, and ISO 19650 information management compliance.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`drawing` (
     `drawing_id` BIGINT COMMENT 'Unique identifier for the engineering or construction drawing record. Primary key.',
     `agreement_id` BIGINT COMMENT 'Foreign key linking to contract.agreement. Business justification: Critical for Drawing Register to associate each drawing with its contract for scope control and change management.',
-    `employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: Drawing author is an employee; required for design accountability and traceability.',
+    `hr_employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: Drawing author is an employee; required for design accountability and traceability.',
     `bim_model_id` BIGINT COMMENT 'Foreign key linking to design.bim_model. Business justification: Drawing belongs to a BIM model; replace string reference with proper FK to BIM model for traceability.',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project to which this drawing belongs.',
-    `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: Installation coordination assigns a lead craft worker to each drawing for field installation oversight (Installation Coordination Process).',
-    `master_id` BIGINT COMMENT 'Foreign key linking to material.material_master. Business justification: Drawings contain material call‑outs; linking to material_master enables procurement and verification of specified materials.',
     `approval_date` DATE COMMENT 'Date when the drawing was formally approved for issue.',
     `approver_name` STRING COMMENT 'Name of the individual who approved the drawing for issue.',
     `cad_file_name` STRING COMMENT 'Name of the CAD source file from which the drawing was generated.',
@@ -568,12 +570,11 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`drawing` (
     `zone_location` STRING COMMENT 'Physical zone, building, or location within the project site that the drawing depicts.',
     `created_by` STRING COMMENT 'Username or identifier of the user who created the drawing record in the system.',
     CONSTRAINT pk_drawing PRIMARY KEY(`drawing_id`)
-) COMMENT 'Master record for each engineering and construction drawing (CAD/BIM-derived) managed across the project. Tracks drawing number, title, discipline, sheet size, scale, revision number, current status (issued for construction, issued for review, superseded), originator, and approval state. Serves as the SSOT for the drawing register aligned with Autodesk BIM 360 document control. Canonical design.drawing entity (v2 curated).';
+) COMMENT 'Master record for each engineering and construction drawing (CAD/BIM-derived) managed across the project. Tracks drawing number, title, discipline, sheet size, scale, revision number, current status (issued for construction, issued for review, superseded), originator, and approval state. Serves as the SSOT for the drawing register aligned with Autodesk BIM 360 document control.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`drawing_revision` (
     `drawing_revision_id` BIGINT COMMENT 'Unique identifier for each drawing revision event. Primary key for the drawing revision record.',
-    `agreement_id` BIGINT COMMENT 'Foreign key linking to contract.agreement. Business justification: Supports revision history linking to contract for audit of design changes against contractual scope.',
-    `employee_id` BIGINT COMMENT 'Reference to the individual with authority who approved this revision for issuance. Final checkpoint in the quality control process.',
+    `hr_employee_id` BIGINT COMMENT 'Reference to the individual with authority who approved this revision for issuance. Final checkpoint in the quality control process.',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project this drawing revision is associated with. Enables project-level filtering and reporting.',
     `drawing_id` BIGINT COMMENT 'Reference to the parent drawing document that this revision belongs to. Links to the master drawing record in the document management system.',
     `primary_drawing_employee_id` BIGINT COMMENT 'Reference to the engineer or designer who prepared and issued this revision. Establishes accountability for the technical content.',
@@ -613,7 +614,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`drawing_revision` (
     `transmittal_number` STRING COMMENT 'Reference number of the transmittal package through which this revision was formally issued. Links the revision to its distribution record.',
     `wbs_code` STRING COMMENT 'The WBS element or work package code that this drawing revision is associated with. Enables project structure-based reporting and cost allocation.',
     CONSTRAINT pk_drawing_revision PRIMARY KEY(`drawing_revision_id`)
-) COMMENT 'Transactional record capturing each revision event for a drawing. Stores revision code, revision date, description of changes, reason for revision (RFI-driven, design change, client instruction), issuing engineer, reviewer, approver, and distribution status. Enables full version-control audit trail for IFC/CAD drawing lifecycle. Canonical design.drawing_revision entity (v2 curated).';
+) COMMENT 'Transactional record capturing each revision event for a drawing. Stores revision code, revision date, description of changes, reason for revision (RFI-driven, design change, client instruction), issuing engineer, reviewer, approver, and distribution status. Enables full version-control audit trail for IFC/CAD drawing lifecycle.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`technical_specification` (
     `technical_specification_id` BIGINT COMMENT 'Unique identifier for the technical specification document. Primary key for this entity.',
@@ -661,13 +662,13 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`technical_specification
     `wbs_code` STRING COMMENT 'WBS element code linking this specification to specific project deliverables, work packages, or cost accounts for scope and budget management.',
     `workmanship_standards` STRING COMMENT 'Standards and requirements for execution, installation, fabrication, and construction methods to ensure quality workmanship.',
     CONSTRAINT pk_technical_specification PRIMARY KEY(`technical_specification_id`)
-) COMMENT 'Master record for each technical specification document governing materials, workmanship, and construction methods. Captures spec number, title, discipline, applicable standards (ACI, AISC, NFPA), revision status, approval state, and scope of work section reference. Linked to WBS elements and BOQ line items for design-build scope management. Canonical design.technical_specification entity (v2 curated).';
+) COMMENT 'Master record for each technical specification document governing materials, workmanship, and construction methods. Captures spec number, title, discipline, applicable standards (ACI, AISC, NFPA), revision status, approval state, and scope of work section reference. Linked to WBS elements and BOQ line items for design-build scope management.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`package` (
     `package_id` BIGINT COMMENT 'Unique identifier for the design deliverable package. Primary key.',
     `agreement_id` BIGINT COMMENT 'Reference to the contract under which this deliverable package is required.',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project this package belongs to.',
-    `employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: Package creation is assigned to a specific employee; required for responsibility tracking in project reports.',
+    `hr_employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: Package creation is assigned to a specific employee; required for responsibility tracking in project reports.',
     `actual_submission_date` DATE COMMENT 'Actual date when the package was submitted to the client or reviewing authority.',
     `approval_date` DATE COMMENT 'Date when the package received final internal approval for issuance.',
     `approval_workflow_state` STRING COMMENT 'Current state of the internal approval workflow for this package before external submission. [ENUM-REF-CANDIDATE: not_started|in_progress|pending_review|pending_approval|approved|rejected|on_hold — 7 candidates stripped; promote to reference product]',
@@ -704,66 +705,14 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`package` (
     `transmittal_number` STRING COMMENT 'Reference number of the transmittal document used to formally issue this package.',
     `wbs_code` STRING COMMENT 'Work Breakdown Structure code linking this package to the project cost and schedule hierarchy.',
     CONSTRAINT pk_package PRIMARY KEY(`package_id`)
-) COMMENT 'Master record representing a formal design deliverable package issued at a project milestone (30%, 60%, 90%, IFC, As-Built). Groups related drawings, specifications, calculations, and BIM models into a contractual issuance unit. Tracks package number, milestone stage, discipline, issue date, contractual due date, recipient distribution list, submission status, client acceptance status, and approval workflow state. Also serves as the contractual deliverable register (DDR), tracking each required deliverable item with its type (drawing, specification, report, model, calculation), responsible discipline, milestone linkage, planned vs. actual submission dates, and client acceptance status. SSOT for design deliverable scheduling, contractual compliance monitoring, and milestone gate readiness assessment. Canonical design.package entity (v2 curated).';
-
-CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`design_submittal` (
-    `design_submittal_id` BIGINT COMMENT 'Unique identifier for the design submittal record. Primary key for the design submittal entity.',
-    `agreement_id` BIGINT COMMENT 'Foreign key linking to contract.agreement. Business justification: Links each submittal to its contract for tracking submission deadlines and contractual obligations.',
-    `asset_id` BIGINT COMMENT 'Foreign key linking to equipment.asset. Business justification: Equipment Submittal Review requires associating each design submittal with the specific equipment asset it documents.',
-    `compliance_permit_id` BIGINT COMMENT 'Foreign key linking to compliance.permit. Business justification: Design submittals are submitted for permit approval; associating each submittal with its permit tracks compliance status.',
-    `construction_project_id` BIGINT COMMENT 'Reference to the construction project to which this submittal belongs.',
-    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Design submittal is generated from a specific drawing, may be triggered by an RFI and sent via a transmittal; replace free‑text references with FKs.',
-    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Submittals are associated with cost items; linking to cost code supports cost allocation and audit of submitted items.',
-    `master_id` BIGINT COMMENT 'Foreign key linking to material.material_master. Business justification: Material submittals reference specific material master records for approval and traceability.',
-    `rfi_id` BIGINT COMMENT 'Foreign key linking to design.rfi. Business justification: Link submittal to the originating RFI for clear traceability of query‑response flow.',
-    `employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: Submittal submitter employee is recorded for responsibility and traceability.',
-    `trade_package_id` BIGINT COMMENT 'Foreign key linking to bid.trade_package. Business justification: Submittal process is tied to a specific trade package; linking enables verification of subcontractor responsibility and audit of submission compliance.',
-    `transmittal_id` BIGINT COMMENT 'Foreign key linking to design.transmittal. Business justification: Link submittal to the transmittal that delivered it, enabling end‑to‑end document flow tracking.',
-    `quality_submittal_id` BIGINT COMMENT 'Reference to single source of truth quality.quality_submittal (SSOT dedup).',
-    `actual_review_date` DATE COMMENT 'Actual date on which the review was completed and the submittal disposition was communicated back to the submitting party.',
-    `actual_submission_date` DATE COMMENT 'Actual date on which the submittal was formally submitted to the reviewing authority, used for schedule performance tracking and SLA compliance.',
-    `approval_authority_level` STRING COMMENT 'Classification of the approval authority indicating the organizational level or role responsible for final disposition: contractor for internal review, design_consultant for technical design review, client for owner acceptance, regulatory_authority for statutory compliance, independent_verifier for third-party certification.. Valid values are `contractor|design_consultant|client|regulatory_authority|independent_verifier`',
-    `approval_disposition` STRING COMMENT 'Final disposition code assigned by the reviewing authority indicating the outcome of the review: approved for full acceptance without changes, approved_as_noted for conditional acceptance with minor comments that do not require resubmission, revise_and_resubmit for rework and formal resubmission required, rejected for non-compliance requiring major revision, no_exception_taken for acknowledgment without formal approval, reviewed_for_information for informational submittals not requiring approval.. Valid values are `approved|approved_as_noted|revise_and_resubmit|rejected|no_exception_taken|reviewed_for_information`',
-    `approver_name` STRING COMMENT 'Full name of the individual with approval authority who formally authorized the submittal disposition, may be the same as reviewer or a senior authority depending on approval matrix.',
-    `attachment_count` STRING COMMENT 'Number of supporting documents, drawings, data sheets, or files attached to this submittal, used for completeness verification and document control.',
-    `bim_model_reference` STRING COMMENT 'Reference to the BIM model element, object identifier, or model file that this submittal relates to, enabling integration between physical submittals and digital BIM coordination.',
-    `closure_date` DATE COMMENT 'Date on which the submittal was formally closed, indicating that all review cycles are complete, all comments are addressed, and the item is approved for construction or procurement.',
-    `confidentiality_level` STRING COMMENT 'Data classification level indicating the sensitivity and access restrictions for this submittal: public for unrestricted information, internal for company-internal use, confidential for business-sensitive information, restricted for highly sensitive or proprietary data.. Valid values are `public|internal|confidential|restricted`',
-    `cost_impact_flag` DECIMAL(18,2) COMMENT 'Boolean indicator (True/False) denoting whether this submittal has potential cost implications, such as value engineering proposals, material substitutions, or design changes affecting project budget.',
-    `created_timestamp` TIMESTAMP COMMENT 'System timestamp recording when this submittal record was first created in the document management system, used for audit trail and record lifecycle tracking.',
-    `discipline` STRING COMMENT 'Engineering or design discipline responsible for this submittal, used for routing and review assignment. [ENUM-REF-CANDIDATE: architectural|structural|mechanical|electrical|plumbing|civil|geotechnical|environmental — 8 candidates stripped; promote to reference product]',
-    `estimated_cost_impact_amount` DECIMAL(18,2) COMMENT 'Estimated financial impact (positive or negative) associated with this submittal, expressed in the project base currency. Positive values indicate cost increases, negative values indicate savings.',
-    `file_format` STRING COMMENT 'Primary file format of the submittal package, indicating the digital format used for submission (PDF for documents, DWG/DXF for CAD drawings, RVT for Revit models, IFC for BIM exchange, XLSX for spreadsheets, DOCX for text documents, ZIP for compressed packages). [ENUM-REF-CANDIDATE: PDF|DWG|DXF|RVT|IFC|XLSX|DOCX|ZIP — 8 candidates stripped; promote to reference product]',
-    `modified_timestamp` TIMESTAMP COMMENT 'System timestamp recording the most recent update to this submittal record, used for change tracking and audit trail purposes.',
-    `priority` STRING COMMENT 'Priority classification indicating the urgency and schedule impact of this submittal: critical for items on the critical path requiring immediate review, high for near-term procurement or construction activities, medium for standard schedule items, low for long-lead or informational items.. Valid values are `critical|high|medium|low`',
-    `regulatory_authority` STRING COMMENT 'Name of the regulatory body or statutory authority whose approval or compliance verification is required for this submittal (e.g., local building department, fire marshal, environmental agency).',
-    `regulatory_compliance_flag` BOOLEAN COMMENT 'Boolean indicator (True/False) denoting whether this submittal requires verification of compliance with statutory regulations, building codes, or regulatory authority approvals (e.g., OSHA, EPA, local building department).',
-    `required_submission_date` DATE COMMENT 'Contractually mandated or schedule-driven date by which the submittal must be submitted to the design team or client for review, typically derived from the project schedule and procurement lead times.',
-    `response_notes` STRING COMMENT 'Response notes provided by the submitting party addressing reviewer comments, documenting how comments were incorporated or providing justification for alternative approaches.',
-    `review_comments` STRING COMMENT 'Detailed technical comments, observations, and instructions provided by the reviewing authority during the review process, documenting required corrections, clarifications, or conditions of approval.',
-    `review_due_date` DATE COMMENT 'Target date by which the reviewing authority (design consultant, client representative) is expected to complete their review and return the submittal with disposition, typically governed by contract SLA terms.',
-    `reviewer_name` STRING COMMENT 'Full name of the individual who performed the technical review and assigned the disposition for this submittal.',
-    `reviewing_organization` STRING COMMENT 'Name of the organization responsible for reviewing and approving this submittal, typically the design consultant, architect, or client representative.',
-    `revision_number` STRING COMMENT 'Revision identifier for this submittal, incremented with each resubmission following review comments or rejection, typically using alphanumeric convention (e.g., A, B, C or 01, 02, 03).',
-    `schedule_impact_days` STRING COMMENT 'Number of calendar days by which the project schedule would be delayed if this submittal is not approved by the review due date, used for schedule risk analysis.',
-    `schedule_impact_flag` BOOLEAN COMMENT 'Boolean indicator (True/False) denoting whether delays in reviewing or approving this submittal will impact the project critical path or key milestone dates.',
-    `specification_section` STRING COMMENT 'Reference to the technical specification section that governs this submittal, typically using CSI MasterFormat division and section numbering (e.g., 03 30 00 for Cast-in-Place Concrete, 23 05 00 for HVAC).',
-    `submittal_number` STRING COMMENT 'Unique business identifier for the submittal within the project, typically following a project-specific numbering convention (e.g., S-001, SUB-MEP-001).',
-    `submittal_status` STRING COMMENT 'Current lifecycle status of the submittal in the review and approval workflow. Draft indicates preparation phase, submitted indicates formal lodgment, under_review indicates active evaluation, approved indicates full acceptance, approved_as_noted indicates conditional acceptance with minor comments, revise_and_resubmit indicates rework required, rejected indicates non-compliance, withdrawn indicates contractor cancellation, superseded indicates replacement by newer revision. [ENUM-REF-CANDIDATE: draft|submitted|under_review|approved|approved_as_noted|revise_and_resubmit|rejected|withdrawn|superseded — 9 candidates stripped; promote to reference product]',
-    `submittal_type` STRING COMMENT 'Classification of the submittal item indicating the nature of the submission: shop drawings for fabrication details, product data sheets for material specifications, physical samples for approval, method statements for construction procedures, mix designs for concrete/asphalt, calculations for structural/MEP systems, or test reports for quality verification. [ENUM-REF-CANDIDATE: shop_drawing|product_data|sample|method_statement|mix_design|calculation|test_report — 7 candidates stripped; promote to reference product]',
-    `submitting_organization` STRING COMMENT 'Name of the contractor, subcontractor, or supplier organization responsible for preparing and submitting this submittal.',
-    `supersedes_submittal_number` STRING COMMENT 'Reference to the previous submittal number that this revision supersedes, establishing the revision chain and audit trail.',
-    `title` STRING COMMENT 'Descriptive title of the submittal item identifying the material, product, or system being submitted for review.',
-    `wbs_code` STRING COMMENT 'Work Breakdown Structure code linking this submittal to a specific work package or deliverable within the project hierarchy, enabling cost and schedule integration.',
-    CONSTRAINT pk_design_submittal PRIMARY KEY(`design_submittal_id`)
-) COMMENT 'Transactional record for each design-phase submittal item tracking contractor-submitted shop drawings, material data sheets, product samples, and method statements through the review and approval lifecycle. Includes register-level metadata (specification section, required submission date, contractual obligation) and item-level tracking (submission date, review status, approval authority, disposition). Canonical design.design_submittal entity (v2 curated). SSOT: authoritative source is quality.quality_submittal.';
+) COMMENT 'Master record representing a formal design deliverable package issued at a project milestone (30%, 60%, 90%, IFC, As-Built). Groups related drawings, specifications, calculations, and BIM models into a contractual issuance unit. Tracks package number, milestone stage, discipline, issue date, contractual due date, recipient distribution list, submission status, client acceptance status, and approval workflow state. Also serves as the contractual deliverable register (DDR), tracking each required deliverable item with its type (drawing, specification, report, model, calculation), responsible discipline, milestone linkage, planned vs. actual submission dates, and client acceptance status. SSOT for design deliverable scheduling, contractual compliance monitoring, and milestone gate readiness assessment.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`clash_detection_run` (
     `clash_detection_run_id` BIGINT COMMENT 'Unique identifier for the clash detection run. Primary key for the clash detection run entity.',
     `agreement_id` BIGINT COMMENT 'Foreign key linking to contract.agreement. Business justification: Associates clash detection results with the contract to assess compliance with design coordination clauses.',
     `comparison_run_id` BIGINT COMMENT 'Reference to a previous clash detection run against which this run is being compared to track resolution progress.',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project for which this clash detection run was executed.',
-    `employee_id` BIGINT COMMENT 'Identifier of the BIM analyst or coordinator who executed the clash detection run.',
+    `hr_employee_id` BIGINT COMMENT 'Identifier of the BIM analyst or coordinator who executed the clash detection run.',
     `accepted_clashes_count` STRING COMMENT 'Number of clashes that have been reviewed and accepted as permissible by the project team.',
     `baseline_run_flag` BOOLEAN COMMENT 'Indicates whether this clash detection run serves as a baseline for future comparison and tracking of clash resolution progress.',
     `building_zone` STRING COMMENT 'Specific building zone, level, or area covered by this clash detection run (e.g., Level 3, Tower A, Basement).',
@@ -789,7 +738,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`clash_detection_run` (
     `report_format` STRING COMMENT 'File format of the generated clash detection report.. Valid values are `pdf|html|xml|excel|csv`',
     `resolved_clashes_count` STRING COMMENT 'Number of clashes that have been resolved through design coordination and model updates.',
     `run_date` DATE COMMENT 'Date when the clash detection analysis was executed.',
-    `run_duration_minutes` DECIMAL(18,2) COMMENT 'Total time in minutes required to complete the clash detection analysis processing.',
+    `run_duration_minutes` STRING COMMENT 'Total time in minutes required to complete the clash detection analysis processing.',
     `run_name` STRING COMMENT 'Descriptive name for the clash detection run, typically indicating the scope or purpose (e.g., MEP vs Structural - Level 3, Full Model Coordination Check).',
     `run_number` STRING COMMENT 'Business identifier for the clash detection run, typically following project-specific numbering conventions (e.g., CD-001, CD-2024-01-15).',
     `run_status` STRING COMMENT 'Current execution status of the clash detection run in its processing lifecycle.. Valid values are `queued|in_progress|completed|failed|cancelled`',
@@ -802,12 +751,13 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`clash_detection_run` (
     `wbs_code` STRING COMMENT 'Work Breakdown Structure code identifying the project phase or work package scope for this clash detection run.',
     `workflow_clashes_count` STRING COMMENT 'Number of workflow clashes representing time-based conflicts in 4D construction sequencing.',
     CONSTRAINT pk_clash_detection_run PRIMARY KEY(`clash_detection_run_id`)
-) COMMENT 'Transactional record for each clash detection analysis run executed via Navisworks, BIM 360 Coordination, or Solibri. Captures run date, federated model set, discipline pairs compared (e.g., structural vs. MEP piping), clash tolerance settings, total clashes found by severity (critical/major/minor), software version, analyst identity, and run status. Contains individual clash items as child records with clash type (hard/soft/workflow/clearance), element GUIDs, spatial coordinates, severity classification, assigned resolution owner, resolution status (open, in-review, resolved, accepted), resolution description, and closure date. SSOT for all BIM coordination clash data, enabling MEP coordination tracking, interdisciplinary design conflict resolution, and clash-free construction readiness certification. Canonical design.clash_detection_run entity (v2 curated).';
+) COMMENT 'Transactional record for each clash detection analysis run executed via Navisworks, BIM 360 Coordination, or Solibri. Captures run date, federated model set, discipline pairs compared (e.g., structural vs. MEP piping), clash tolerance settings, total clashes found by severity (critical/major/minor), software version, analyst identity, and run status. Contains individual clash items as child records with clash type (hard/soft/workflow/clearance), element GUIDs, spatial coordinates, severity classification, assigned resolution owner, resolution status (open, in-review, resolved, accepted), resolution description, and closure date. SSOT for all BIM coordination clash data, enabling MEP coordination tracking, interdisciplinary design conflict resolution, and clash-free construction readiness certification.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`review` (
     `review_id` BIGINT COMMENT 'Unique identifier for the design review event. Primary key for the review product.',
     `agreement_id` BIGINT COMMENT 'Foreign key linking to contract.agreement. Business justification: Needed for Review Minutes linking to the contract that defines review scope and client approval requirements.',
     `construction_project_id` BIGINT COMMENT 'Identifier of the construction project to which this design review belongs.',
+    `hr_employee_id` BIGINT COMMENT 'add column hr_employee_id (BIGINT) with FK to hr.hr.employee_id - design reviews need a reviewer of record',
     `action_items_count` STRING COMMENT 'Number of action items or follow-up tasks assigned as a result of this design review.',
     `attendee_count` STRING COMMENT 'Total number of participants who attended the design review event.',
     `attendee_list` STRING COMMENT 'Comma-separated or structured list of names and roles of all participants in the design review event.',
@@ -848,20 +798,18 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`review` (
     `total_comments_raised` STRING COMMENT 'Total number of review comments or issues raised during this design review event.',
     `wbs_code` STRING COMMENT 'Work Breakdown Structure code identifying the project work package or deliverable associated with this design review.',
     CONSTRAINT pk_review PRIMARY KEY(`review_id`)
-) COMMENT 'Transactional record for each formal design review event including internal peer reviews, interdisciplinary checks (IDC), client milestone reviews, and third-party/authority reviews. Captures review type, review date, attendees, design package under review, review stage (30%/60%/90%/IFC), disposition (accepted, conditionally accepted, rejected), and sign-off authority. Contains individual review comments as child records with sequential comment number, category (major/minor/informational), comment text, marked-up reference location, design team response, disposition (accepted, rejected, partially accepted), action owner, and closure status. SSOT for all design review and comment resolution data, supporting design approval workflows, client milestone gate management, and regulatory submission readiness. Canonical design.review entity (v2 curated).';
+) COMMENT 'Transactional record for each formal design review event including internal peer reviews, interdisciplinary checks (IDC), client milestone reviews, and third-party/authority reviews. Captures review type, review date, attendees, design package under review, review stage (30%/60%/90%/IFC), disposition (accepted, conditionally accepted, rejected), and sign-off authority. Contains individual review comments as child records with sequential comment number, category (major/minor/informational), comment text, marked-up reference location, design team response, disposition (accepted, rejected, partially accepted), action owner, and closure status. SSOT for all design review and comment resolution data, supporting design approval workflows, client milestone gate management, and regulatory submission readiness.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`change_notice` (
     `change_notice_id` BIGINT COMMENT 'Unique identifier for the engineering change notice (ECN) or design change notice. Primary key for the change_notice product.',
     `agreement_id` BIGINT COMMENT 'Foreign key linking to contract.agreement. Business justification: Ensures each change notice is tied to the governing agreement for impact analysis and contractual approval workflow.',
-    `carbon_target_id` BIGINT COMMENT 'Foreign key linking to sustainability.carbon_target. Business justification: Change notices may modify project carbon reduction targets; linking ensures target updates are tracked in the change management process.',
-    `compliance_permit_id` BIGINT COMMENT 'Foreign key linking to compliance.permit. Business justification: Change notices may require amendment of a permit; linking ensures the impacted permit is identified for regulatory follow‑up.',
+    `regulatory_permit_id` BIGINT COMMENT 'Foreign key linking to compliance.permit. Business justification: Change notices may require amendment of a permit; linking ensures the impacted permit is identified for regulatory follow‑up.',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project to which this change notice applies.',
-    `contract_agreement_id` BIGINT COMMENT 'Foreign key linking to subcontractor.contract_agreement. Business justification: Change notices often affect subcontractor contracts; FK enables impact analysis, cost tracking, and schedule adjustments per subcontractor.',
-    `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: Change notice originator is typically a site foreman (craft worker) who identifies the need for a design change (Change Management Process).',
+    `bid_contract_agreement_id` BIGINT COMMENT 'Foreign key linking to bid.contract_agreement. Business justification: Change notices often affect subcontractor contracts; FK enables impact analysis, cost tracking, and schedule adjustments per subcontractor.',
     `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Change Notice Cost Impact Report requires linking each notice to the specific cost code impacted for budgeting and variance analysis.',
     `master_id` BIGINT COMMENT 'Foreign key linking to material.material_master. Business justification: Change notices often affect material selections; linking to material_master records the impacted material.',
     `contact_id` BIGINT COMMENT 'Foreign key linking to client.contact. Business justification: Change notices are originated by a client contact; linking enables change log reporting and responsibility tracking.',
-    `employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: Change Notice originator must be linked to an employee for responsibility and impact analysis.',
+    `hr_employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: Change Notice originator must be linked to an employee for responsibility and impact analysis.',
     `actual_cost_impact_amount` DECIMAL(18,2) COMMENT 'Actual realized financial impact of the change notice after implementation, expressed in the project base currency.',
     `actual_schedule_impact_days` STRING COMMENT 'Actual realized schedule impact in calendar days after implementation of the change notice.',
     `affected_disciplines` STRING COMMENT 'Comma-separated list of all engineering disciplines impacted by this change notice, enabling cross-functional coordination.',
@@ -878,7 +826,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`change_notice` (
     `client_approval_date` DATE COMMENT 'Date on which the client formally approved this change notice, if client approval was required.',
     `client_approval_required_flag` BOOLEAN COMMENT 'Boolean indicator of whether formal client approval is contractually required for this change notice before implementation.',
     `comments` STRING COMMENT 'Additional notes, remarks, or commentary related to the change notice, including review feedback and coordination notes.',
-    `cost_impact_flag` DECIMAL(18,2) COMMENT 'Boolean indicator of whether this change notice has a financial cost impact on the project budget.',
+    `cost_impact_flag` BOOLEAN COMMENT 'Boolean indicator of whether this change notice has a financial cost impact on the project budget.',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this change notice record was first created in the system.',
     `currency_code` STRING COMMENT 'Three-letter ISO 4217 currency code for cost impact amounts (e.g., USD, EUR, GBP).',
     `date_raised` DATE COMMENT 'Date on which the change notice was formally raised or submitted into the change management system.',
@@ -901,13 +849,13 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`change_notice` (
     `title` STRING COMMENT 'Brief descriptive title summarizing the nature of the design or engineering change.',
     `wbs_code` STRING COMMENT 'Work Breakdown Structure code identifying the project work package or deliverable affected by this change notice.',
     CONSTRAINT pk_change_notice PRIMARY KEY(`change_notice_id`)
-) COMMENT 'Transactional record capturing each formal design change or engineering change notice (ECN) issued during the project. Tracks change number, originating cause (client instruction, site condition, regulatory requirement, value engineering), affected drawings and specifications, design disciplines impacted, cost and schedule impact assessment, approval authority, and implementation status. Feeds into the CO (Change Order) process. Canonical design.change_notice entity (v2 curated).';
+) COMMENT 'Transactional record capturing each formal design change or engineering change notice (ECN) issued during the project. Tracks change number, originating cause (client instruction, site condition, regulatory requirement, value engineering), affected drawings and specifications, design disciplines impacted, cost and schedule impact assessment, approval authority, and implementation status. Feeds into the CO (Change Order) process.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` (
     `mep_coordination_zone_id` BIGINT COMMENT 'Unique identifier for the MEP coordination zone record. Primary key for spatial coordination zone management.',
     `agreement_id` BIGINT COMMENT 'Foreign key linking to contract.agreement. Business justification: Links MEP coordination zones to the contract to enforce scope, schedule, and liability clauses.',
     `construction_project_id` BIGINT COMMENT 'Reference to the parent construction project to which this MEP coordination zone belongs.',
-    `employee_id` BIGINT COMMENT 'Reference to the MEP coordinator or engineer responsible for managing coordination activities in this zone.',
+    `hr_employee_id` BIGINT COMMENT 'Reference to the MEP coordinator or engineer responsible for managing coordination activities in this zone.',
     `access_constraints` STRING COMMENT 'Description of physical access limitations or restrictions affecting MEP installation in this zone (e.g., occupied areas, limited crane access, working hours restrictions).',
     `actual_completion_date` DATE COMMENT 'Actual date when MEP installation work was completed in this coordination zone.',
     `actual_start_date` DATE COMMENT 'Actual date when MEP installation work commenced in this coordination zone.',
@@ -946,7 +894,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` 
     `zone_number` STRING COMMENT 'Business identifier for the coordination zone, typically following project-specific numbering conventions (e.g., Z-01, ZONE-A-L3).',
     `created_by` STRING COMMENT 'User identifier or name of the person who created this coordination zone record.',
     CONSTRAINT pk_mep_coordination_zone PRIMARY KEY(`mep_coordination_zone_id`)
-) COMMENT 'Master record defining spatial coordination zones used for MEP (Mechanical, Electrical, Plumbing) and fire protection systems coordination on large building and infrastructure projects. Captures zone identifier, building/structure reference, level, grid reference extents, ceiling/soffit height constraints, primary MEP discipline, coordination priority ranking, assigned MEP coordinator, coordination status (pending, in-progress, signed-off), and linked BIM model reference. Enables structured spatial allocation, routing priority resolution, and clash-free MEP installation sequencing. Canonical design.mep_coordination_zone entity (v2 curated).';
+) COMMENT 'Master record defining spatial coordination zones used for MEP (Mechanical, Electrical, Plumbing) and fire protection systems coordination on large building and infrastructure projects. Captures zone identifier, building/structure reference, level, grid reference extents, ceiling/soffit height constraints, primary MEP discipline, coordination priority ranking, assigned MEP coordinator, coordination status (pending, in-progress, signed-off), and linked BIM model reference. Enables structured spatial allocation, routing priority resolution, and clash-free MEP installation sequencing.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` (
     `value_engineering_proposal_id` BIGINT COMMENT 'Unique identifier for the value engineering proposal record. Primary key.',
@@ -954,7 +902,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`value_engineering_propo
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project for which this value engineering proposal was raised.',
     `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: VE proposals are evaluated against particular cost codes to quantify savings; linking enables tracking savings per cost code.',
     `master_id` BIGINT COMMENT 'Foreign key linking to material.material_master. Business justification: VE proposals evaluate alternative materials; FK captures the material being proposed for substitution.',
-    `employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: VE proposal originator employee is required for cost‑saving accountability.',
+    `hr_employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: VE proposal originator employee is required for cost‑saving accountability.',
     `affected_design_elements` STRING COMMENT 'Comma-separated list or description of design elements, systems, or components impacted by the proposed change (e.g., foundation system, HVAC layout, structural framing).',
     `approval_authority` STRING COMMENT 'Name or role of the individual or committee with authority to approve the value engineering proposal on behalf of the project.',
     `change_order_reference` STRING COMMENT 'Reference to the formal change order document issued to implement the accepted value engineering proposal.',
@@ -995,15 +943,13 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`value_engineering_propo
     `wbs_code` STRING COMMENT 'Work Breakdown Structure code identifying the project phase, area, or work package to which this value engineering proposal applies.',
     `created_by` STRING COMMENT 'User ID or name of the individual who created the value engineering proposal record in the system.',
     CONSTRAINT pk_value_engineering_proposal PRIMARY KEY(`value_engineering_proposal_id`)
-) COMMENT 'Transactional record for each Value Engineering (VE) proposal raised during design development. Captures proposal number, originator, description of proposed change, affected design elements, estimated cost saving, schedule impact, quality impact, risk assessment, client submission date, client decision (accepted, rejected, deferred), and implemented saving value. Supports commercial optimization and design-build scope management. Canonical design.value_engineering_proposal entity (v2 curated).';
+) COMMENT 'Transactional record for each Value Engineering (VE) proposal raised during design development. Captures proposal number, originator, description of proposed change, affected design elements, estimated cost saving, schedule impact, quality impact, risk assessment, client submission date, client decision (accepted, rejected, deferred), and implemented saving value. Supports commercial optimization and design-build scope management.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`design_scope` (
     `design_scope_id` BIGINT COMMENT 'Unique identifier for the design scope record. Primary key for the design scope entity.',
     `agreement_id` BIGINT COMMENT 'Reference to the contract under which this design scope is executed. Links scope to contractual terms and conditions.',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project to which this design scope applies. Links scope definition to the parent project.',
-    `contract_scope_id` BIGINT COMMENT 'Reference to single source of truth contract.contract_scope (SSOT dedup).',
-    `design_contract_scope_ref_contract_scope_id` BIGINT COMMENT 'Reference to single source of truth contract.contract_scope (SSOT duplicate resolution).',
-    `employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: Scope owner employee is tracked for responsibility and change control.',
+    `hr_employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: Scope owner employee is tracked for responsibility and change control.',
     `superseded_by_scope_design_scope_id` BIGINT COMMENT 'Reference to the design scope record that supersedes this one. Used to track scope evolution and replacement.',
     `applicable_codes_standards` STRING COMMENT 'List of engineering codes, standards, and regulations applicable to this design scope by jurisdiction. Includes building codes, safety standards, environmental regulations, and industry-specific technical standards.',
     `approval_authority` STRING COMMENT 'Name or role of the authority responsible for approving this design scope definition and any subsequent changes.',
@@ -1036,6 +982,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`design_scope` (
     `package_title` STRING COMMENT 'Descriptive title of the design scope package providing human-readable identification of the scope boundary.',
     `retention_period_years` STRING COMMENT 'Number of years this design scope record must be retained per regulatory and contractual requirements.',
     `revision_number` STRING COMMENT 'Current revision number of the design scope document. Tracks version history and change iterations.',
+    `scope_of_work_id` BIGINT COMMENT 'SSOT reference to canonical contract.contract_scope (single source of truth).',
     `scope_status` STRING COMMENT 'Current lifecycle status of the design scope package. Tracks progression from initial definition through freeze and closure. [ENUM-REF-CANDIDATE: Draft|Under Review|Approved|Frozen|Active|Closed|Superseded — 7 candidates stripped; promote to reference product]',
     `seismic_zone_classification` STRING COMMENT 'Seismic design category or zone classification for the project location. Governs structural design requirements for earthquake resistance.',
     `snow_loading_criteria` STRING COMMENT 'Design snow load parameters and ground snow load values used for structural design in applicable climates.',
@@ -1045,13 +992,14 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`design_scope` (
     `wind_loading_criteria` STRING COMMENT 'Design wind speed, exposure category, and wind loading parameters used for structural calculations. Fundamental environmental design condition.',
     `created_by` STRING COMMENT 'User identifier or name of the person who created this design scope record. Audit trail for accountability.',
     CONSTRAINT pk_design_scope PRIMARY KEY(`design_scope_id`)
-) COMMENT 'Master record defining design scope boundaries and design basis parameters for each project or work package, particularly for Design-Build (DB), EPC, and EPCM contracts. Captures scope package identifier, scope narrative description, design responsibility matrix (owner vs. contractor vs. third-party), applicable codes and standards by jurisdiction, exclusions and limitations, interface points with adjacent scope packages, scope freeze date, and change control baseline. Includes Design Basis Memorandum (DBM) content: fundamental design parameters such as design life, seismic zone classification, wind/snow loading criteria, temperature ranges, corrosion allowances, fire rating requirements, and environmental design conditions that govern all downstream engineering calculations. SSOT for DB scope management, design basis definition, design responsibility allocation, and scope change impact assessment. Canonical design.design_scope entity (v2 curated). SSOT: authoritative source is contract.contract_scope.';
+) COMMENT 'Master record defining design scope boundaries and design basis parameters for each project or work package, particularly for Design-Build (DB), EPC, and EPCM contracts. Captures scope package identifier, scope narrative description, design responsibility matrix (owner vs. contractor vs. third-party), applicable codes and standards by jurisdiction, exclusions and limitations, interface points with adjacent scope packages, scope freeze date, and change control baseline. Includes Design Basis Memorandum (DBM) content: fundamental design parameters such as design life, seismic zone classification, wind/snow loading criteria, temperature ranges, corrosion allowances, fire rating requirements, and environmental design conditions that govern all downstream engineering calculations. SSOT for DB scope management, design basis definition, design responsibility allocation, and scope change impact assessment. [SSOT: distinct source of truth for design domain]';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`interface_point` (
     `interface_point_id` BIGINT COMMENT 'Unique identifier for the interface point record. Primary key for the interface point entity.',
     `agreement_id` BIGINT COMMENT 'Foreign key linking to contract.agreement. Business justification: Provides contract linkage for interface point registers to manage handover responsibilities and liability.',
-    `employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: Interface Point approval authority is an employee; required for interface management records.',
+    `hr_employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: Interface Point approval authority is an employee; required for interface management records.',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project to which this interface point belongs.',
+    `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: Each interface point is coordinated by a designated craft worker responsible for trade coordination (Interface Coordination Procedure).',
     `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Interface points can generate cost impacts; mapping to cost code allows impact tracking in cost reports.',
     `firm_profile_id` BIGINT COMMENT 'Foreign key linking to bid.firm_profile. Business justification: Interface points coordinate work between design and a subcontractor; linking records the responsible subcontractor for coordination meetings and clash resolution.',
     `actual_handover_date` DATE COMMENT 'Actual date when the interface was handed over from the originating party to the receiving party. Used for schedule performance tracking.',
@@ -1061,7 +1009,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`interface_point` (
     `comments` STRING COMMENT 'Additional comments, notes, or observations regarding the interface point. Used for capturing context, lessons learned, or special instructions.',
     `coordination_meeting_frequency` STRING COMMENT 'Agreed frequency of coordination meetings between the originating and receiving parties to manage this interface point.. Valid values are `daily|weekly|bi-weekly|monthly|as-needed|none`',
     `cost_impact_amount` DECIMAL(18,2) COMMENT 'Estimated or actual cost impact associated with this interface point in the project base currency. Includes additional costs, variations, or claims resulting from interface coordination issues.',
-    `cost_impact_flag` DECIMAL(18,2) COMMENT 'Boolean flag indicating whether this interface point has resulted in cost impacts, variations, or claims. True if cost impact exists, false otherwise.',
+    `cost_impact_flag` BOOLEAN COMMENT 'Boolean flag indicating whether this interface point has resulted in cost impacts, variations, or claims. True if cost impact exists, false otherwise.',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this interface point record was first created in the system. Used for audit trail and data lineage.',
     `discipline` STRING COMMENT 'Primary engineering discipline associated with this interface point (e.g., civil, structural, MEP). For cross-discipline interfaces, indicates the lead or primary discipline. [ENUM-REF-CANDIDATE: civil|structural|architectural|mechanical|electrical|plumbing|instrumentation|multi-discipline — 8 candidates stripped; promote to reference product]',
     `interface_agreement_date` DATE COMMENT 'Date on which the interface requirements and responsibilities were formally agreed between the originating and receiving parties.',
@@ -1093,12 +1041,12 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`interface_point` (
     `wbs_code` STRING COMMENT 'Work Breakdown Structure code linking this interface point to the project WBS hierarchy for cost and schedule tracking.',
     `created_by` STRING COMMENT 'Username or identifier of the user who created this interface point record. Used for audit trail and accountability.',
     CONSTRAINT pk_interface_point PRIMARY KEY(`interface_point_id`)
-) COMMENT 'Master record managing design interface points between different project scopes, disciplines, or contractor packages. Captures interface identifier, interface type (physical, functional, data), originating scope package, receiving scope package, interface description, responsible parties, agreed interface freeze date, interface status (open, agreed, frozen, closed), and outstanding actions. Critical for EPC and multi-package infrastructure projects. Canonical design.interface_point entity (v2 curated).';
+) COMMENT 'Master record managing design interface points between different project scopes, disciplines, or contractor packages. Captures interface identifier, interface type (physical, functional, data), originating scope package, receiving scope package, interface description, responsible parties, agreed interface freeze date, interface status (open, agreed, frozen, closed), and outstanding actions. Critical for EPC and multi-package infrastructure projects.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`calculation_register` (
     `calculation_register_id` BIGINT COMMENT 'System generated unique identifier for each calculation register record.',
     `agreement_id` BIGINT COMMENT 'Foreign key linking to contract.agreement. Business justification: Associates engineering calculations with the contract for verification of design assumptions and compliance.',
-    `employee_id` BIGINT COMMENT 'Identifier of the engineer who approved the calculation.',
+    `hr_employee_id` BIGINT COMMENT 'Identifier of the engineer who approved the calculation.',
     `construction_project_id` BIGINT COMMENT 'Identifier of the construction project to which the calculation belongs.',
     `emission_factor_id` BIGINT COMMENT 'Foreign key linking to sustainability.emission_factor. Business justification: Calculations for carbon impact require an emission factor; the calculation register records which factor is used for regulatory carbon reporting.',
     `master_id` BIGINT COMMENT 'Foreign key linking to material.material_master. Business justification: Calculations (e.g., load, thermal) depend on material properties; FK ties each calculation to its material master.',
@@ -1115,7 +1063,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`calculation_register` (
     `discipline` STRING COMMENT 'Engineering discipline to which the calculation belongs.. Valid values are `structural|hydraulic|electrical|hvac|fire_protection|civil`',
     `document_reference` STRING COMMENT 'Reference identifier linking to the associated design document in the document register.',
     `effective_date` DATE COMMENT 'Date when the calculation results become effective for design decisions.',
-    `expiration_date` DECIMAL(18,2) COMMENT 'Date after which the calculation is considered superseded or obsolete.',
+    `expiration_date` DATE COMMENT 'Date after which the calculation is considered superseded or obsolete.',
     `input_assumptions` STRING COMMENT 'Key assumptions and input data used in the calculation.',
     `is_confidential` BOOLEAN COMMENT 'Indicates whether the calculation contains confidential information.',
     `last_modified_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent update to the record.',
@@ -1127,180 +1075,222 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`calculation_register` (
     `title` STRING COMMENT 'Descriptive title of the calculation document.',
     `wbs_code` STRING COMMENT 'Work Breakdown Structure element code associated with the calculation.',
     CONSTRAINT pk_calculation_register PRIMARY KEY(`calculation_register_id`)
-) COMMENT 'Master record for each engineering calculation document produced during design phases. Captures calculation number, title, discipline, calculation purpose (structural member sizing, hydraulic analysis, electrical load study, HVAC heat load, fire protection hydraulics), applicable design codes and standards, analysis software used, input assumptions, author, independent checker (per four-eyes principle), approver, revision status, approval date, and calculation status (draft, checked, approved, superseded). Provides full traceability between design decisions and their supporting engineering calculations as required for professional engineer (PE/CEng) sign-off, regulatory submissions, and ISO 9001 design verification evidence. Canonical design.calculation_register entity (v2 curated).';
+) COMMENT 'Master record for each engineering calculation document produced during design phases. Captures calculation number, title, discipline, calculation purpose (structural member sizing, hydraulic analysis, electrical load study, HVAC heat load, fire protection hydraulics), applicable design codes and standards, analysis software used, input assumptions, author, independent checker (per four-eyes principle), approver, revision status, approval date, and calculation status (draft, checked, approved, superseded). Provides full traceability between design decisions and their supporting engineering calculations as required for professional engineer (PE/CEng) sign-off, regulatory submissions, and ISO 9001 design verification evidence.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`equipment_installation` (
     `equipment_installation_id` BIGINT COMMENT 'Primary key for the equipment_installation association',
     `asset_id` BIGINT COMMENT 'Reference to the equipment asset being installed',
+    `construction_project_id` BIGINT COMMENT '',
     `drawing_id` BIGINT COMMENT 'Reference to the drawing containing the installation',
+    `hr_employee_id` BIGINT COMMENT 'add column hr_employee_id (BIGINT) with FK to hr.hr.employee_id - installations require a responsible engineer',
+    `technical_specification_id` BIGINT COMMENT 'add column technical_specification_id (BIGINT) with FK to design.technical_specification.technical_specification_id - installations are governed by technical specifications',
+    `wbs_element_id` BIGINT COMMENT 'add column wbs_element_id (BIGINT) with FK to project.wbs_element.wbs_element_id - equipment installations roll up to WBS for cost/progress tracking',
+    `actual_date` DATE COMMENT '',
     `actual_install_date` DATE COMMENT '',
-    `actual_installation_date` DATE COMMENT '',
+    `actual_installation_date` DATE COMMENT 'Actual installation date.',
+    `as_built_ref` STRING COMMENT '',
     `commissioning_date` DATE COMMENT '',
+    `commissioning_required` BOOLEAN COMMENT 'Whether commissioning is required.',
     `commissioning_status` STRING COMMENT '',
-    `created_timestamp` TIMESTAMP COMMENT 'Record creation timestamp.',
+    `created_timestamp` TIMESTAMP COMMENT '',
+    `elevation` DECIMAL(18,2) COMMENT '',
+    `elevation_level` STRING COMMENT '',
+    `inspection_status` STRING COMMENT '',
     `installation_date` DATE COMMENT '',
     `installation_location` STRING COMMENT 'Coordinate or area on the drawing where the asset is placed',
-    `installation_notes` STRING COMMENT 'Notes about the installation.',
+    `installation_method` STRING COMMENT '',
     `installation_status` STRING COMMENT '',
-    `is_commissioned` BOOLEAN COMMENT '',
+    `installed_by` STRING COMMENT '',
+    `last_modified_timestamp` TIMESTAMP COMMENT '',
+    `location_ref` STRING COMMENT '',
+    `location_reference` STRING COMMENT '',
+    `mounting_type` STRING COMMENT '',
     `notes` STRING COMMENT '',
+    `orientation` STRING COMMENT '',
+    `planned_date` DATE COMMENT '',
     `planned_install_date` DATE COMMENT '',
-    `planned_installation_date` DATE COMMENT '',
+    `planned_installation_date` DATE COMMENT 'Planned installation date.',
     `quantity` STRING COMMENT 'Number of units of the asset installed as shown on the drawing',
     `remarks` STRING COMMENT '',
     `tag_number` STRING COMMENT '',
-    `updated_timestamp` TIMESTAMP COMMENT 'Record last update timestamp.',
+    `test_status` STRING COMMENT '',
+    `unit_of_measure` STRING COMMENT '',
+    `updated_timestamp` TIMESTAMP COMMENT 'Record update timestamp.',
+    `verification_date` DATE COMMENT '',
+    `verification_status` STRING COMMENT '',
     `verified_by` STRING COMMENT '',
-    `verified_by_name` STRING COMMENT '',
     CONSTRAINT pk_equipment_installation PRIMARY KEY(`equipment_installation_id`)
-) COMMENT 'Associative entity capturing the installation of equipment assets as referenced in engineering drawings. Each record links one drawing to one asset and stores the location on the drawing and quantity installed.. Existence Justification: A drawing defines the layout of a construction site and can reference many equipment assets that need to be installed. Conversely, a single equipment asset (e.g., a crane) can appear on multiple drawings for different phases or locations. The installation relationship is actively managed by design and field teams and includes attributes such as installation location on the drawing and quantity installed. Canonical design.equipment_installation entity (v2 curated).';
+) COMMENT 'Associative entity capturing the installation of equipment assets as referenced in engineering drawings. Each record links one drawing to one asset and stores the location on the drawing and quantity installed.. Existence Justification: A drawing defines the layout of a construction site and can reference many equipment assets that need to be installed. Conversely, a single equipment asset (e.g., a crane) can appear on multiple drawings for different phases or locations. The installation relationship is actively managed by design and field teams and includes attributes such as installation location on the drawing and quantity installed.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` (
     `interface_equipment_assignment_id` BIGINT COMMENT 'Primary key for the interface_equipment_assignment association',
     `asset_id` BIGINT COMMENT 'Foreign key linking to the equipment asset',
+    `construction_project_id` BIGINT COMMENT 'add column construction_project_id (BIGINT) with FK to project.construction_project.construction_project_id - interface assignments are project-scoped',
     `interface_point_id` BIGINT COMMENT 'Foreign key linking to the interface point',
-    `agreed_date` DATE COMMENT '',
+    `assigned_date` DATE COMMENT '',
     `assignment_date` DATE COMMENT '',
-    `assignment_status` STRING COMMENT 'Status of the assignment.',
-    `coordination_notes` STRING COMMENT 'Coordination notes for the interface.',
-    `created_timestamp` TIMESTAMP COMMENT 'Record creation timestamp.',
+    `assignment_role` STRING COMMENT '',
+    `assignment_status` STRING COMMENT '',
+    `assignment_type` STRING COMMENT '',
+    `connection_type` STRING COMMENT '',
+    `coordination_notes` STRING COMMENT '',
+    `coordination_status` STRING COMMENT '',
+    `created_timestamp` TIMESTAMP COMMENT '',
     `installation_date` DATE COMMENT 'Date the asset was installed or became operational at the interface point',
-    `interface_reference` STRING COMMENT '',
+    `interface_equipment_assignment_status` STRING COMMENT '',
+    `interface_notes` STRING COMMENT 'Notes on the interface assignment.',
+    `interface_role` STRING COMMENT '',
     `interface_status` STRING COMMENT '',
     `interface_type` STRING COMMENT '',
-    `is_verified` BOOLEAN COMMENT '',
+    `last_modified_timestamp` TIMESTAMP COMMENT '',
     `notes` STRING COMMENT '',
     `remarks` STRING COMMENT '',
+    `resolution_date` DATE COMMENT '',
+    `resolved_date` DATE COMMENT '',
+    `responsibility_party` STRING COMMENT '',
     `responsible_discipline` STRING COMMENT '',
     `responsible_party` STRING COMMENT '',
     `role_in_interface` STRING COMMENT 'The functional role of the asset within the interface (e.g., installer, temporary support)',
-    `updated_timestamp` TIMESTAMP COMMENT 'Record last update timestamp.',
+    `updated_timestamp` TIMESTAMP COMMENT 'Record update timestamp.',
+    `verified_flag` BOOLEAN COMMENT '',
     CONSTRAINT pk_interface_equipment_assignment PRIMARY KEY(`interface_equipment_assignment_id`)
-) COMMENT 'Represents the assignment of equipment assets to design interface points. Each record captures which asset is linked to which interface point, the role the asset plays in the interface (e.g., installer, temporary support), and the date the asset was installed at the interface.. Existence Justification: An interface point can involve multiple pieces of equipment (e.g., cranes, pumps) and a single equipment item can be used at multiple interface points across projects. The business actively records which assets are assigned to each interface point, the role each asset plays, and the installation date, making the relationship a managed many‑to‑many entity. Canonical design.interface_equipment_assignment entity (v2 curated).';
+) COMMENT 'Represents the assignment of equipment assets to design interface points. Each record captures which asset is linked to which interface point, the role the asset plays in the interface (e.g., installer, temporary support), and the date the asset was installed at the interface.. Existence Justification: An interface point can involve multiple pieces of equipment (e.g., cranes, pumps) and a single equipment item can be used at multiple interface points across projects. The business actively records which assets are assigned to each interface point, the role each asset plays, and the installation date, making the relationship a managed many‑to‑many entity.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`change_impact` (
     `change_impact_id` BIGINT COMMENT 'Primary key for the change_impact association',
     `asset_id` BIGINT COMMENT 'FK to the equipment asset impacted by the change',
     `change_notice_id` BIGINT COMMENT 'FK to the change notice that creates the impact',
     `construction_project_id` BIGINT COMMENT '',
+    `affected_discipline` STRING COMMENT '',
     `assessed_by` STRING COMMENT '',
-    `assessed_by_name` STRING COMMENT '',
+    `assessed_date` DATE COMMENT 'Date impact was assessed.',
     `assessment_date` DATE COMMENT '',
+    `change_impact_status` STRING COMMENT '',
+    `cost_impact` DECIMAL(18,2) COMMENT '',
     `cost_impact_amount` DECIMAL(18,2) COMMENT 'Monetary cost impact of the change on the specific asset',
-    `created_timestamp` TIMESTAMP COMMENT 'Record creation timestamp.',
+    `created_timestamp` TIMESTAMP COMMENT '',
+    `currency_code` STRING COMMENT '',
     `disposition` STRING COMMENT '',
     `impact_category` STRING COMMENT '',
     `impact_description` STRING COMMENT 'Narrative describing how the change affects the specific asset',
     `impact_severity` STRING COMMENT '',
-    `impact_status` STRING COMMENT 'Status of the impact assessment.',
+    `impact_status` STRING COMMENT '',
     `impact_type` STRING COMMENT '',
-    `is_approved` BOOLEAN COMMENT '',
+    `last_modified_timestamp` TIMESTAMP COMMENT '',
+    `mitigation_action` STRING COMMENT '',
+    `mutator_note` STRING COMMENT 'Added by mutator',
+    `remarks` STRING COMMENT 'Additional remarks.',
     `schedule_impact_days` STRING COMMENT '',
-    `updated_timestamp` TIMESTAMP COMMENT 'Record last update timestamp.',
+    `scope_impact` STRING COMMENT '',
+    `scope_impact_desc` STRING COMMENT '',
+    `severity` STRING COMMENT '',
+    `updated_timestamp` TIMESTAMP COMMENT 'Record update timestamp.',
     CONSTRAINT pk_change_impact PRIMARY KEY(`change_impact_id`)
-) COMMENT 'Represents the operational link between a design change notice and an equipment asset, capturing the specific impact description and cost associated with that asset for the given change.. Existence Justification: A design change notice can affect many pieces of equipment, and a single piece of equipment can be impacted by many change notices over its lifecycle. The business records the impact details (description, cost) for each notice‑asset pair, and users actively create, update, and delete these records as part of change management. Canonical design.change_impact entity (v2 curated).';
+) COMMENT 'Represents the operational link between a design change notice and an equipment asset, capturing the specific impact description and cost associated with that asset for the given change.. Existence Justification: A design change notice can affect many pieces of equipment, and a single piece of equipment can be impacted by many change notices over its lifecycle. The business records the impact details (description, cost) for each notice‑asset pair, and users actively create, update, and delete these records as part of change management.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` (
     `zone_equipment_allocation_id` BIGINT COMMENT 'Primary key for the zone_equipment_allocation association',
     `asset_id` BIGINT COMMENT 'Foreign key linking to the equipment asset',
+    `construction_project_id` BIGINT COMMENT 'add column construction_project_id (BIGINT) with FK to project.construction_project.construction_project_id - zone allocations are project-scoped',
     `mep_coordination_zone_id` BIGINT COMMENT 'Foreign key linking to the MEP coordination zone',
+    `access_requirement` STRING COMMENT '',
+    `allocated_by` STRING COMMENT '',
+    `allocated_date` DATE COMMENT '',
     `allocated_quantity` DECIMAL(18,2) COMMENT '',
     `allocation_date` DATE COMMENT '',
     `allocation_status` STRING COMMENT '',
     `asset_position` STRING COMMENT 'Describes the spatial position or location of the asset within the coordination zone (e.g., grid reference, floor level)',
-    `clash_checked` BOOLEAN COMMENT 'Whether clash detection has been performed for this allocation.',
+    `clash_count` STRING COMMENT 'Number of clashes detected.',
+    `clash_status` STRING COMMENT '',
     `clearance_requirement` DECIMAL(18,2) COMMENT 'Minimum clearance height or space required for the asset to operate safely within the zone',
-    `coordination_notes` STRING COMMENT '',
-    `coordination_priority` STRING COMMENT 'Coordination priority within the zone.',
+    `clearance_verified` BOOLEAN COMMENT '',
+    `coordination_notes` STRING COMMENT 'Notes from MEP coordination.',
+    `coordination_priority` STRING COMMENT '',
     `coordination_status` STRING COMMENT '',
-    `created_timestamp` TIMESTAMP COMMENT 'Record creation timestamp.',
+    `created_timestamp` TIMESTAMP COMMENT '',
     `elevation` DECIMAL(18,2) COMMENT '',
-    `is_clash_free` BOOLEAN COMMENT '',
-    `is_fixed` BOOLEAN COMMENT 'Whether the asset position is fixed.',
-    `remarks` STRING COMMENT '',
-    `updated_timestamp` TIMESTAMP COMMENT 'Record last update timestamp.',
+    `is_clash_resolved` BOOLEAN COMMENT 'Whether clashes for this allocation are resolved.',
+    `last_modified_timestamp` TIMESTAMP COMMENT '',
+    `notes` STRING COMMENT '',
+    `orientation` STRING COMMENT '',
+    `quantity` DECIMAL(18,2) COMMENT '',
+    `quantity_allocated` DECIMAL(18,2) COMMENT '',
+    `remarks` STRING COMMENT 'Additional remarks.',
+    `responsible_discipline` STRING COMMENT '',
+    `responsible_party` STRING COMMENT '',
+    `spatial_coordination_notes` STRING COMMENT '',
+    `unit_of_measure` STRING COMMENT '',
+    `updated_timestamp` TIMESTAMP COMMENT 'Record update timestamp.',
+    `zone_capacity_used` DECIMAL(18,2) COMMENT '',
+    `zone_ref` STRING COMMENT '',
     `zone_reference` STRING COMMENT '',
     CONSTRAINT pk_zone_equipment_allocation PRIMARY KEY(`zone_equipment_allocation_id`)
-) COMMENT 'Represents the assignment of construction equipment assets to MEP coordination zones. Each record captures the specific position of the asset within the zone and any clearance requirements, enabling planners to manage equipment usage across zones over time.. Existence Justification: A MEP coordination zone defines a spatial area where mechanical, electrical, and plumbing work is planned. Equipment assets such as cranes, lifts, and generators are scheduled to operate in multiple zones over the project timeline, and a single asset can be assigned to different zones at different times. The assignment, including asset position within the zone and clearance requirements, is actively managed by coordinators as a distinct business process. Canonical design.zone_equipment_allocation entity (v2 curated).';
+) COMMENT 'Represents the assignment of construction equipment assets to MEP coordination zones. Each record captures the specific position of the asset within the zone and any clearance requirements, enabling planners to manage equipment usage across zones over time.. Existence Justification: A MEP coordination zone defines a spatial area where mechanical, electrical, and plumbing work is planned. Equipment assets such as cranes, lifts, and generators are scheduled to operate in multiple zones over the project timeline, and a single asset can be assigned to different zones at different times. The assignment, including asset position within the zone and clearance requirements, is actively managed by coordinators as a distinct business process.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`drawing_requirement` (
     `drawing_requirement_id` BIGINT COMMENT 'Primary key for the drawing_requirement association',
     `activity_id` BIGINT COMMENT 'Foreign key linking to the activity',
+    `construction_project_id` BIGINT COMMENT 'add column construction_project_id (BIGINT) with FK to project.construction_project.construction_project_id - drawing requirements are project-scoped',
     `drawing_id` BIGINT COMMENT 'Foreign key linking to the drawing',
-    `created_timestamp` TIMESTAMP COMMENT 'Record creation timestamp.',
+    `technical_specification_id` BIGINT COMMENT 'add column technical_specification_id (BIGINT) with FK to design.technical_specification.technical_specification_id - requirements typically reference specifications',
+    `created_timestamp` TIMESTAMP COMMENT '',
     `dependency_type` STRING COMMENT 'Type of schedule dependency between drawing and activity (FS, SS, FF, SF)',
+    `drawing_requirement_description` STRING COMMENT '',
+    `drawing_requirement_status` STRING COMMENT '',
     `due_date` DATE COMMENT '',
-    `fulfilled_date` DATE COMMENT '',
-    `fulfilled_flag` BOOLEAN COMMENT '',
     `is_critical` BOOLEAN COMMENT '',
     `lag_days` STRING COMMENT 'Lag time in days associated with the dependency',
+    `last_modified_timestamp` TIMESTAMP COMMENT '',
     `mandatory_flag` BOOLEAN COMMENT '',
     `notes` STRING COMMENT '',
     `priority` STRING COMMENT '',
-    `remarks` STRING COMMENT '',
+    `remarks` STRING COMMENT 'Additional remarks.',
     `required_by_date` DATE COMMENT '',
+    `required_date` DATE COMMENT '',
     `requirement_description` STRING COMMENT '',
     `requirement_status` STRING COMMENT '',
     `requirement_type` STRING COMMENT '',
-    `source_reference` STRING COMMENT '',
-    `updated_timestamp` TIMESTAMP COMMENT 'Record last update timestamp.',
+    `responsible_party` STRING COMMENT '',
+    `updated_timestamp` TIMESTAMP COMMENT 'Record update timestamp.',
+    `verification_date` DATE COMMENT '',
+    `verification_status` STRING COMMENT '',
+    `verified_by` STRING COMMENT '',
     CONSTRAINT pk_drawing_requirement PRIMARY KEY(`drawing_requirement_id`)
-) COMMENT 'Represents the link between a design drawing and a schedule activity, capturing how the drawing supports the activity and the scheduling dependency details.. Existence Justification: In construction projects a single drawing (e.g., structural or architectural) is referenced by many schedule activities, and each activity may require multiple drawings. Planners actively create, update, and delete these links as part of schedule development, and the link carries attributes such as dependency type and lag days. Canonical design.drawing_requirement entity (v2 curated).';
+) COMMENT 'Represents the link between a design drawing and a schedule activity, capturing how the drawing supports the activity and the scheduling dependency details.. Existence Justification: In construction projects a single drawing (e.g., structural or architectural) is referenced by many schedule activities, and each activity may require multiple drawings. Planners actively create, update, and delete these links as part of schedule development, and the link carries attributes such as dependency type and lag days.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` (
     `drawing_incident_link_id` BIGINT COMMENT 'Primary key for the drawing_incident_link association',
+    `construction_project_id` BIGINT COMMENT 'add column construction_project_id (BIGINT) with FK to project.construction_project.construction_project_id - drawing incident links are project-scoped',
     `drawing_id` BIGINT COMMENT 'Foreign key linking to the drawing',
     `incident_id` BIGINT COMMENT 'Foreign key linking to the incident',
-    `employee_id` BIGINT COMMENT 'Employee who created the drawing-incident link.',
-    `affected_area` STRING COMMENT 'Drawing area, zone or grid reference associated with the incident.',
-    `affected_area_description` STRING COMMENT 'Description of the area on the drawing relevant to the incident.',
-    `corrective_action_reference` STRING COMMENT 'Reference to any corrective action or NCR raised from this link.',
-    `corrective_action_required` BOOLEAN COMMENT 'Whether a corrective design action is required as a result of this link.',
-    `created_timestamp` TIMESTAMP COMMENT 'Record creation timestamp.',
-    `drawing_revision_reference` STRING COMMENT 'Revision identifier of the drawing implicated in the incident.',
-    `identified_by` STRING COMMENT 'Person or role that identified the drawing-incident relationship.',
-    `identified_date` DATE COMMENT 'Date the linkage was identified.',
-    `impact_description` STRING COMMENT 'Description of how the drawing relates to or impacts the incident.',
-    `is_active` BOOLEAN COMMENT 'Whether the link is currently active.',
-    `is_design_defect` BOOLEAN COMMENT 'True when the incident is attributed to a design defect in the linked drawing.',
-    `is_design_related` BOOLEAN COMMENT 'Whether the incident is attributable to a design issue on the drawing.',
-    `is_primary_link` BOOLEAN COMMENT 'True when this drawing is the primary drawing associated with the incident.',
-    `is_root_cause` BOOLEAN COMMENT '',
-    `is_root_cause_related` BOOLEAN COMMENT 'Whether the drawing is related to the incident root cause.',
+    `created_timestamp` TIMESTAMP COMMENT '',
+    `drawing_incident_link_status` STRING COMMENT '',
+    `impact_description` STRING COMMENT '',
+    `is_root_cause` BOOLEAN COMMENT 'Whether the drawing is a root cause of the incident.',
+    `last_modified_timestamp` TIMESTAMP COMMENT '',
+    `link_date` DATE COMMENT '',
     `link_description` STRING COMMENT '',
-    `link_status` STRING COMMENT 'Current status of the linkage (e.g. open, verified, closed).',
+    `link_reason` STRING COMMENT '',
+    `link_status` STRING COMMENT 'Status of link.',
     `link_type` STRING COMMENT '',
-    `linked_at` TIMESTAMP COMMENT 'Timestamp the drawing-incident link was established.',
     `linked_by` STRING COMMENT '',
-    `linked_by_name` STRING COMMENT '',
-    `linked_date` DATE COMMENT '',
-    `notes` STRING COMMENT 'Free-text notes on the drawing-incident linkage.',
+    `linked_date` DATE COMMENT 'Date linked.',
+    `notes` STRING COMMENT '',
     `reference_notes` STRING COMMENT 'Free‑form notes describing why the drawing was referenced for the incident',
+    `relevance` STRING COMMENT '',
     `relevance_description` STRING COMMENT '',
-    `relevance_rating` STRING COMMENT 'How strongly the drawing relates to the incident (e.g. high, medium, low).',
-    `remarks` STRING COMMENT '',
-    `requires_design_change` BOOLEAN COMMENT 'Whether the link triggered a design change or revision.',
-    `requires_drawing_revision` BOOLEAN COMMENT 'True when the incident necessitates a revision to the linked drawing.',
-    `resolution_action` STRING COMMENT 'Action taken on the drawing to address the incident.',
-    `resolution_status` STRING COMMENT 'Current resolution status of the linked incident.',
-    `resolved_date` DATE COMMENT 'Date the drawing-related issue was resolved.',
-    `review_status` STRING COMMENT 'Status of the review of this drawing-incident link (e.g. OPEN, UNDER_REVIEW, CLOSED).',
-    `reviewed_by` STRING COMMENT 'User who reviewed and validated the link.',
-    `reviewed_date` DATE COMMENT 'Date on which the link was reviewed.',
-    `severity` STRING COMMENT 'Assessed severity of the linked incident relative to the drawing.',
-    `severity_contribution` STRING COMMENT 'Assessed degree to which the drawing contributed to incident severity.',
-    `severity_level` STRING COMMENT 'Assessed severity of the incident in relation to the drawing.',
-    `updated_timestamp` TIMESTAMP COMMENT 'Record last update timestamp.',
-    `relevance_score` BIGINT COMMENT 'Numeric score indicating the relevance of the drawing to the incident',
-    `drawing_incident_link_status` STRING COMMENT 'Current status of the drawing-incident link',
+    `relevance_note` STRING COMMENT '',
+    `remarks` STRING COMMENT 'Additional remarks.',
+    `updated_timestamp` TIMESTAMP COMMENT 'Record update timestamp.',
     CONSTRAINT pk_drawing_incident_link PRIMARY KEY(`drawing_incident_link_id`)
-) COMMENT 'Represents the operational link between an engineering drawing and a safety incident. Each record captures which drawing was referenced for a given incident and includes notes specific to that reference.. Existence Justification: A safety incident can reference multiple engineering drawings to pinpoint hazard locations, and a single drawing can be cited by many incidents over the life of a project. The safety team creates and maintains explicit links between drawings and incidents, adding notes per link. Canonical design.drawing_incident_link entity (v2 curated).';
+) COMMENT 'Represents the operational link between an engineering drawing and a safety incident. Each record captures which drawing was referenced for a given incident and includes notes specific to that reference.. Existence Justification: A safety incident can reference multiple engineering drawings to pinpoint hazard locations, and a single drawing can be cited by many incidents over the life of a project. The safety team creates and maintains explicit links between drawings and incidents, adding notes per link.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`workflow_template` (
     `workflow_template_id` BIGINT COMMENT 'Primary key for workflow_template',
+    `construction_project_id` BIGINT COMMENT 'add column construction_project_id (BIGINT) with FK to project.construction_project.construction_project_id - workflow templates are typically project-scoped configurations',
     `parent_workflow_template_id` BIGINT COMMENT 'Self-referencing FK on workflow_template (parent_workflow_template_id)',
     `approval_required` BOOLEAN COMMENT 'True if the workflow must pass an approval step before execution.',
-    `average_step_duration_minutes` DECIMAL(18,2) COMMENT 'Typical duration of a single step, used for planning and scheduling.',
+    `average_step_duration_minutes` STRING COMMENT 'Typical duration of a single step, used for planning and scheduling.',
     `workflow_template_code` STRING COMMENT 'External code or short identifier used to reference the template in project documentation.',
     `compliance_requirements` STRING COMMENT 'Comma‑separated list of regulatory or internal compliance standards the workflow must satisfy (e.g., ISO 9001, OSHA).',
     `created_timestamp` TIMESTAMP COMMENT 'Date and time when the template record was first created.',
@@ -1318,13 +1308,64 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`workflow_template` (
     `retention_period_days` STRING COMMENT 'Number of days the workflow execution history is retained for audit purposes.',
     `reviewed_by` STRING COMMENT 'Name or identifier of the person who performed the most recent review.',
     `risk_level` STRING COMMENT 'Assessed risk associated with executing the workflow.',
-    `workflow_template_status` STRING COMMENT 'Current lifecycle state of the template.',
     `step_count` STRING COMMENT 'Total number of discrete steps defined in the workflow.',
-    `workflow_template_type` STRING COMMENT 'Category of the workflow (e.g., design, approval, construction).',
     `updated_timestamp` TIMESTAMP COMMENT 'Date and time of the most recent modification to the template record.',
     `version_number` STRING COMMENT 'Incremental version of the template for change management.',
+    `workflow_template_status` STRING COMMENT 'Current lifecycle state of the template.',
+    `workflow_template_type` STRING COMMENT 'Category of the workflow (e.g., design, approval, construction).',
     CONSTRAINT pk_workflow_template PRIMARY KEY(`workflow_template_id`)
-) COMMENT 'Master reference table for workflow_template. Referenced by workflow_template_id. Canonical design.workflow_template entity (v2 curated).';
+) COMMENT 'Master reference table for workflow_template. Referenced by workflow_template_id.';
+
+CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`engineering_submittal` (
+    `engineering_submittal_id` BIGINT COMMENT 'Unique identifier for the design submittal record. Primary key for the design submittal entity.',
+    `agreement_id` BIGINT COMMENT 'Foreign key linking to contract.agreement. Business justification: Links each submittal to its contract for tracking submission deadlines and contractual obligations.',
+    `asset_id` BIGINT COMMENT 'Foreign key linking to equipment.asset. Business justification: Equipment Submittal Review requires associating each design submittal with the specific equipment asset it documents.',
+    `regulatory_permit_id` BIGINT COMMENT 'Foreign key linking to compliance.permit. Business justification: Design submittals are submitted for permit approval; associating each submittal with its permit tracks compliance status.',
+    `construction_project_id` BIGINT COMMENT 'Reference to the construction project to which this submittal belongs.',
+    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Design submittal is generated from a specific drawing, may be triggered by an RFI and sent via a transmittal; replace free‑text references with FKs.',
+    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Submittals are associated with cost items; linking to cost code supports cost allocation and audit of submitted items.',
+    `master_id` BIGINT COMMENT 'Foreign key linking to material.material_master. Business justification: Material submittals reference specific material master records for approval and traceability.',
+    `rfi_id` BIGINT COMMENT 'Foreign key linking to design.rfi. Business justification: Link submittal to the originating RFI for clear traceability of query‑response flow.',
+    `hr_employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: Submittal submitter employee is recorded for responsibility and traceability.',
+    `trade_package_id` BIGINT COMMENT 'Foreign key linking to bid.trade_package. Business justification: Submittal process is tied to a specific trade package; linking enables verification of subcontractor responsibility and audit of submission compliance.',
+    `transmittal_id` BIGINT COMMENT 'Foreign key linking to design.transmittal. Business justification: Link submittal to the transmittal that delivered it, enabling end‑to‑end document flow tracking.',
+    `actual_review_date` DATE COMMENT 'Actual date on which the review was completed and the submittal disposition was communicated back to the submitting party.',
+    `actual_submission_date` DATE COMMENT 'Actual date on which the submittal was formally submitted to the reviewing authority, used for schedule performance tracking and SLA compliance.',
+    `approval_authority_level` STRING COMMENT 'Classification of the approval authority indicating the organizational level or role responsible for final disposition: contractor for internal review, design_consultant for technical design review, client for owner acceptance, regulatory_authority for statutory compliance, independent_verifier for third-party certification.. Valid values are `contractor|design_consultant|client|regulatory_authority|independent_verifier`',
+    `approval_disposition` STRING COMMENT 'Final disposition code assigned by the reviewing authority indicating the outcome of the review: approved for full acceptance without changes, approved_as_noted for conditional acceptance with minor comments that do not require resubmission, revise_and_resubmit for rework and formal resubmission required, rejected for non-compliance requiring major revision, no_exception_taken for acknowledgment without formal approval, reviewed_for_information for informational submittals not requiring approval.. Valid values are `approved|approved_as_noted|revise_and_resubmit|rejected|no_exception_taken|reviewed_for_information`',
+    `approver_name` STRING COMMENT 'Full name of the individual with approval authority who formally authorized the submittal disposition, may be the same as reviewer or a senior authority depending on approval matrix.',
+    `attachment_count` STRING COMMENT 'Number of supporting documents, drawings, data sheets, or files attached to this submittal, used for completeness verification and document control.',
+    `bim_model_reference` STRING COMMENT 'Reference to the BIM model element, object identifier, or model file that this submittal relates to, enabling integration between physical submittals and digital BIM coordination.',
+    `closure_date` DATE COMMENT 'Date on which the submittal was formally closed, indicating that all review cycles are complete, all comments are addressed, and the item is approved for construction or procurement.',
+    `confidentiality_level` STRING COMMENT 'Data classification level indicating the sensitivity and access restrictions for this submittal: public for unrestricted information, internal for company-internal use, confidential for business-sensitive information, restricted for highly sensitive or proprietary data.. Valid values are `public|internal|confidential|restricted`',
+    `cost_impact_flag` BOOLEAN COMMENT 'Boolean indicator (True/False) denoting whether this submittal has potential cost implications, such as value engineering proposals, material substitutions, or design changes affecting project budget.',
+    `created_timestamp` TIMESTAMP COMMENT 'System timestamp recording when this submittal record was first created in the document management system, used for audit trail and record lifecycle tracking.',
+    `discipline` STRING COMMENT 'Engineering or design discipline responsible for this submittal, used for routing and review assignment. [ENUM-REF-CANDIDATE: architectural|structural|mechanical|electrical|plumbing|civil|geotechnical|environmental — 8 candidates stripped; promote to reference product]',
+    `estimated_cost_impact_amount` DECIMAL(18,2) COMMENT 'Estimated financial impact (positive or negative) associated with this submittal, expressed in the project base currency. Positive values indicate cost increases, negative values indicate savings.',
+    `file_format` STRING COMMENT 'Primary file format of the submittal package, indicating the digital format used for submission (PDF for documents, DWG/DXF for CAD drawings, RVT for Revit models, IFC for BIM exchange, XLSX for spreadsheets, DOCX for text documents, ZIP for compressed packages). [ENUM-REF-CANDIDATE: PDF|DWG|DXF|RVT|IFC|XLSX|DOCX|ZIP — 8 candidates stripped; promote to reference product]',
+    `modified_timestamp` TIMESTAMP COMMENT 'System timestamp recording the most recent update to this submittal record, used for change tracking and audit trail purposes.',
+    `priority` STRING COMMENT 'Priority classification indicating the urgency and schedule impact of this submittal: critical for items on the critical path requiring immediate review, high for near-term procurement or construction activities, medium for standard schedule items, low for long-lead or informational items.. Valid values are `critical|high|medium|low`',
+    `regulatory_authority` STRING COMMENT 'Name of the regulatory body or statutory authority whose approval or compliance verification is required for this submittal (e.g., local building department, fire marshal, environmental agency).',
+    `regulatory_compliance_flag` BOOLEAN COMMENT 'Boolean indicator (True/False) denoting whether this submittal requires verification of compliance with statutory regulations, building codes, or regulatory authority approvals (e.g., OSHA, EPA, local building department).',
+    `required_submission_date` DATE COMMENT 'Contractually mandated or schedule-driven date by which the submittal must be submitted to the design team or client for review, typically derived from the project schedule and procurement lead times.',
+    `response_notes` STRING COMMENT 'Response notes provided by the submitting party addressing reviewer comments, documenting how comments were incorporated or providing justification for alternative approaches.',
+    `review_comments` STRING COMMENT 'Detailed technical comments, observations, and instructions provided by the reviewing authority during the review process, documenting required corrections, clarifications, or conditions of approval.',
+    `review_due_date` DATE COMMENT 'Target date by which the reviewing authority (design consultant, client representative) is expected to complete their review and return the submittal with disposition, typically governed by contract SLA terms.',
+    `reviewer_name` STRING COMMENT 'Full name of the individual who performed the technical review and assigned the disposition for this submittal.',
+    `reviewing_organization` STRING COMMENT 'Name of the organization responsible for reviewing and approving this submittal, typically the design consultant, architect, or client representative.',
+    `revision_number` STRING COMMENT 'Revision identifier for this submittal, incremented with each resubmission following review comments or rejection, typically using alphanumeric convention (e.g., A, B, C or 01, 02, 03).',
+    `schedule_impact_days` STRING COMMENT 'Number of calendar days by which the project schedule would be delayed if this submittal is not approved by the review due date, used for schedule risk analysis.',
+    `schedule_impact_flag` BOOLEAN COMMENT 'Boolean indicator (True/False) denoting whether delays in reviewing or approving this submittal will impact the project critical path or key milestone dates.',
+    `specification_section` STRING COMMENT 'Reference to the technical specification section that governs this submittal, typically using CSI MasterFormat division and section numbering (e.g., 03 30 00 for Cast-in-Place Concrete, 23 05 00 for HVAC).',
+    `submittal_number` STRING COMMENT 'Unique business identifier for the submittal within the project, typically following a project-specific numbering convention (e.g., S-001, SUB-MEP-001).',
+    `submittal_status` STRING COMMENT 'Current lifecycle status of the submittal in the review and approval workflow. Draft indicates preparation phase, submitted indicates formal lodgment, under_review indicates active evaluation, approved indicates full acceptance, approved_as_noted indicates conditional acceptance with minor comments, revise_and_resubmit indicates rework required, rejected indicates non-compliance, withdrawn indicates contractor cancellation, superseded indicates replacement by newer revision. [ENUM-REF-CANDIDATE: draft|submitted|under_review|approved|approved_as_noted|revise_and_resubmit|rejected|withdrawn|superseded — 9 candidates stripped; promote to reference product]',
+    `submittal_type` STRING COMMENT 'Classification of the submittal item indicating the nature of the submission: shop drawings for fabrication details, product data sheets for material specifications, physical samples for approval, method statements for construction procedures, mix designs for concrete/asphalt, calculations for structural/MEP systems, or test reports for quality verification. [ENUM-REF-CANDIDATE: shop_drawing|product_data|sample|method_statement|mix_design|calculation|test_report — 7 candidates stripped; promote to reference product]',
+    `submitting_organization` STRING COMMENT 'Name of the contractor, subcontractor, or supplier organization responsible for preparing and submitting this submittal.',
+    `supersedes_submittal_number` STRING COMMENT 'Reference to the previous submittal number that this revision supersedes, establishing the revision chain and audit trail.',
+    `title` STRING COMMENT 'Descriptive title of the submittal item identifying the material, product, or system being submitted for review.',
+    `wbs_code` STRING COMMENT 'Work Breakdown Structure code linking this submittal to a specific work package or deliverable within the project hierarchy, enabling cost and schedule integration.',
+    CONSTRAINT pk_engineering_submittal PRIMARY KEY(`engineering_submittal_id`)
+) COMMENT 'Transactional record for each design-phase submittal item tracking contractor-submitted shop drawings, material data sheets, product samples, and method statements through the review and approval lifecycle. Includes register-level metadata (specification section, required submission date, contractual obligation) and item-level tracking (submission date, review status, approval authority, disposition). [SSOT: distinct source of truth for design domain]';
 
 -- ========= FOREIGN KEYS =========
 ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ADD CONSTRAINT `fk_design_correspondence_parent_correspondence_id` FOREIGN KEY (`parent_correspondence_id`) REFERENCES `vibe_construction_v1`.`design`.`correspondence`(`correspondence_id`);
@@ -1340,6 +1381,7 @@ ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ADD CONSTR
 ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ADD CONSTRAINT `fk_design_transmittal_item_document_register_id` FOREIGN KEY (`document_register_id`) REFERENCES `vibe_construction_v1`.`design`.`document_register`(`document_register_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ADD CONSTRAINT `fk_design_transmittal_item_transmittal_id` FOREIGN KEY (`transmittal_id`) REFERENCES `vibe_construction_v1`.`design`.`transmittal`(`transmittal_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ADD CONSTRAINT `fk_design_distribution_matrix_superseded_by_matrix_distribution_matrix_id` FOREIGN KEY (`superseded_by_matrix_distribution_matrix_id`) REFERENCES `vibe_construction_v1`.`design`.`distribution_matrix`(`distribution_matrix_id`);
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ADD CONSTRAINT `fk_design_distribution_matrix_workflow_template_id` FOREIGN KEY (`workflow_template_id`) REFERENCES `vibe_construction_v1`.`design`.`workflow_template`(`workflow_template_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ADD CONSTRAINT `fk_design_access_permission_document_register_id` FOREIGN KEY (`document_register_id`) REFERENCES `vibe_construction_v1`.`design`.`document_register`(`document_register_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ADD CONSTRAINT `fk_design_access_permission_parent_permission_access_permission_id` FOREIGN KEY (`parent_permission_access_permission_id`) REFERENCES `vibe_construction_v1`.`design`.`access_permission`(`access_permission_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ADD CONSTRAINT `fk_design_bim_model_superseded_by_model_bim_model_id` FOREIGN KEY (`superseded_by_model_bim_model_id`) REFERENCES `vibe_construction_v1`.`design`.`bim_model`(`bim_model_id`);
@@ -1347,1545 +1389,1782 @@ ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ADD CONSTRAINT `fk_design_
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ADD CONSTRAINT `fk_design_drawing_revision_drawing_id` FOREIGN KEY (`drawing_id`) REFERENCES `vibe_construction_v1`.`design`.`drawing`(`drawing_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ADD CONSTRAINT `fk_design_drawing_revision_rfi_id` FOREIGN KEY (`rfi_id`) REFERENCES `vibe_construction_v1`.`design`.`rfi`(`rfi_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ADD CONSTRAINT `fk_design_drawing_revision_superseded_revision_drawing_revision_id` FOREIGN KEY (`superseded_revision_drawing_revision_id`) REFERENCES `vibe_construction_v1`.`design`.`drawing_revision`(`drawing_revision_id`);
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ADD CONSTRAINT `fk_design_design_submittal_drawing_id` FOREIGN KEY (`drawing_id`) REFERENCES `vibe_construction_v1`.`design`.`drawing`(`drawing_id`);
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ADD CONSTRAINT `fk_design_design_submittal_rfi_id` FOREIGN KEY (`rfi_id`) REFERENCES `vibe_construction_v1`.`design`.`rfi`(`rfi_id`);
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ADD CONSTRAINT `fk_design_design_submittal_transmittal_id` FOREIGN KEY (`transmittal_id`) REFERENCES `vibe_construction_v1`.`design`.`transmittal`(`transmittal_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ADD CONSTRAINT `fk_design_clash_detection_run_comparison_run_id` FOREIGN KEY (`comparison_run_id`) REFERENCES `vibe_construction_v1`.`design`.`clash_detection_run`(`clash_detection_run_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ADD CONSTRAINT `fk_design_design_scope_superseded_by_scope_design_scope_id` FOREIGN KEY (`superseded_by_scope_design_scope_id`) REFERENCES `vibe_construction_v1`.`design`.`design_scope`(`design_scope_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ADD CONSTRAINT `fk_design_equipment_installation_drawing_id` FOREIGN KEY (`drawing_id`) REFERENCES `vibe_construction_v1`.`design`.`drawing`(`drawing_id`);
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ADD CONSTRAINT `fk_design_equipment_installation_technical_specification_id` FOREIGN KEY (`technical_specification_id`) REFERENCES `vibe_construction_v1`.`design`.`technical_specification`(`technical_specification_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ADD CONSTRAINT `fk_design_interface_equipment_assignment_interface_point_id` FOREIGN KEY (`interface_point_id`) REFERENCES `vibe_construction_v1`.`design`.`interface_point`(`interface_point_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ADD CONSTRAINT `fk_design_change_impact_change_notice_id` FOREIGN KEY (`change_notice_id`) REFERENCES `vibe_construction_v1`.`design`.`change_notice`(`change_notice_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ADD CONSTRAINT `fk_design_zone_equipment_allocation_mep_coordination_zone_id` FOREIGN KEY (`mep_coordination_zone_id`) REFERENCES `vibe_construction_v1`.`design`.`mep_coordination_zone`(`mep_coordination_zone_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ADD CONSTRAINT `fk_design_drawing_requirement_drawing_id` FOREIGN KEY (`drawing_id`) REFERENCES `vibe_construction_v1`.`design`.`drawing`(`drawing_id`);
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ADD CONSTRAINT `fk_design_drawing_requirement_technical_specification_id` FOREIGN KEY (`technical_specification_id`) REFERENCES `vibe_construction_v1`.`design`.`technical_specification`(`technical_specification_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ADD CONSTRAINT `fk_design_drawing_incident_link_drawing_id` FOREIGN KEY (`drawing_id`) REFERENCES `vibe_construction_v1`.`design`.`drawing`(`drawing_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ADD CONSTRAINT `fk_design_workflow_template_parent_workflow_template_id` FOREIGN KEY (`parent_workflow_template_id`) REFERENCES `vibe_construction_v1`.`design`.`workflow_template`(`workflow_template_id`);
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ADD CONSTRAINT `fk_design_engineering_submittal_drawing_id` FOREIGN KEY (`drawing_id`) REFERENCES `vibe_construction_v1`.`design`.`drawing`(`drawing_id`);
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ADD CONSTRAINT `fk_design_engineering_submittal_rfi_id` FOREIGN KEY (`rfi_id`) REFERENCES `vibe_construction_v1`.`design`.`rfi`(`rfi_id`);
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ADD CONSTRAINT `fk_design_engineering_submittal_transmittal_id` FOREIGN KEY (`transmittal_id`) REFERENCES `vibe_construction_v1`.`design`.`transmittal`(`transmittal_id`);
 
 -- ========= TAGS =========
-ALTER SCHEMA `vibe_construction_v1`.`design` SET TAGS ('dbx_division' = 'operations');
-ALTER SCHEMA `vibe_construction_v1`.`design` SET TAGS ('dbx_domain' = 'design');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` SET TAGS ('dbx_subdomain' = 'document_control');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `correspondence_id` SET TAGS ('dbx_business_glossary_term' = 'Correspondence Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `correspondence_id` SET TAGS ('dbx_key_role' = 'primary');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `parent_correspondence_id` SET TAGS ('dbx_business_glossary_term' = 'Parent Correspondence Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Sender Account Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `attachment_count` SET TAGS ('dbx_business_glossary_term' = 'Attachment Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `body_text` SET TAGS ('dbx_business_glossary_term' = 'Correspondence Body Text');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `closure_date` SET TAGS ('dbx_business_glossary_term' = 'Closure Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `closure_status` SET TAGS ('dbx_business_glossary_term' = 'Closure Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `closure_status` SET TAGS ('dbx_value_regex' = 'open|closed_accepted|closed_rejected|closed_superseded');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `confidential_flag` SET TAGS ('dbx_business_glossary_term' = 'Confidential Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `correspondence_date` SET TAGS ('dbx_business_glossary_term' = 'Correspondence Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `correspondence_number` SET TAGS ('dbx_business_glossary_term' = 'Correspondence Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `correspondence_number` SET TAGS ('dbx_value_regex' = '^[A-Z0-9-]+$');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `correspondence_status` SET TAGS ('dbx_business_glossary_term' = 'Correspondence Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `correspondence_status` SET TAGS ('dbx_value_regex' = 'draft|issued|acknowledged|responded|closed|cancelled');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `correspondence_type` SET TAGS ('dbx_business_glossary_term' = 'Correspondence Type');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `correspondence_type` SET TAGS ('dbx_value_regex' = 'rfi|instruction|notice|claim|letter|memo');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `discipline` SET TAGS ('dbx_business_glossary_term' = 'Engineering Discipline');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `distribution_list` SET TAGS ('dbx_business_glossary_term' = 'Distribution List');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `modified_by` SET TAGS ('dbx_business_glossary_term' = 'Record Modified By User');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `priority` SET TAGS ('dbx_business_glossary_term' = 'Correspondence Priority');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `priority` SET TAGS ('dbx_value_regex' = 'urgent|high|normal|low');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `received_date` SET TAGS ('dbx_business_glossary_term' = 'Received Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `recipient_email` SET TAGS ('dbx_business_glossary_term' = 'Recipient Email Address');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `recipient_email` SET TAGS ('dbx_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `recipient_email` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `recipient_email` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `recipient_name` SET TAGS ('dbx_business_glossary_term' = 'Recipient Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `recipient_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `recipient_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `recipient_organization` SET TAGS ('dbx_business_glossary_term' = 'Recipient Organization');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `response_date` SET TAGS ('dbx_business_glossary_term' = 'Response Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `response_due_date` SET TAGS ('dbx_business_glossary_term' = 'Response Due Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `response_method` SET TAGS ('dbx_business_glossary_term' = 'Response Method');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `response_method` SET TAGS ('dbx_value_regex' = 'email|letter|transmittal|meeting|phone');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `response_required_flag` SET TAGS ('dbx_business_glossary_term' = 'Response Required Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `response_text` SET TAGS ('dbx_business_glossary_term' = 'Response Text');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `sender_email` SET TAGS ('dbx_business_glossary_term' = 'Sender Email Address');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `sender_email` SET TAGS ('dbx_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `sender_email` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `sender_email` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `sender_name` SET TAGS ('dbx_business_glossary_term' = 'Sender Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `sender_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `sender_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `subject` SET TAGS ('dbx_business_glossary_term' = 'Correspondence Subject');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `transmittal_number` SET TAGS ('dbx_business_glossary_term' = 'Transmittal Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `created_by` SET TAGS ('dbx_business_glossary_term' = 'Record Created By User');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` SET TAGS ('dbx_subdomain' = 'document_control');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `transmittal_id` SET TAGS ('dbx_business_glossary_term' = 'Transmittal Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `transmittal_id` SET TAGS ('dbx_key_role' = 'primary');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Contract Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Created By Employee Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `phase_id` SET TAGS ('dbx_business_glossary_term' = 'Phase Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Sender Account Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `acknowledgement_by` SET TAGS ('dbx_business_glossary_term' = 'Acknowledged By');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `acknowledgement_by` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `acknowledgement_by` SET TAGS ('dbx_pii_name' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `acknowledgement_date` SET TAGS ('dbx_business_glossary_term' = 'Acknowledgement Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `acknowledgement_required_flag` SET TAGS ('dbx_business_glossary_term' = 'Acknowledgement Required Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `acknowledgement_status` SET TAGS ('dbx_business_glossary_term' = 'Acknowledgement Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `acknowledgement_status` SET TAGS ('dbx_value_regex' = 'pending|acknowledged|overdue|not_required');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `confidentiality_level` SET TAGS ('dbx_business_glossary_term' = 'Confidentiality Level');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `confidentiality_level` SET TAGS ('dbx_value_regex' = 'public|internal|confidential|restricted');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `delivery_method` SET TAGS ('dbx_business_glossary_term' = 'Delivery Method');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `delivery_method` SET TAGS ('dbx_value_regex' = 'electronic|courier|hand_delivery|postal_mail|ftp|portal');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `transmittal_description` SET TAGS ('dbx_business_glossary_term' = 'Transmittal Description');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `discipline` SET TAGS ('dbx_business_glossary_term' = 'Engineering Discipline');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `document_count` SET TAGS ('dbx_business_glossary_term' = 'Document Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `due_date` SET TAGS ('dbx_business_glossary_term' = 'Response Due Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `issue_date` SET TAGS ('dbx_business_glossary_term' = 'Issue Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `priority` SET TAGS ('dbx_business_glossary_term' = 'Transmittal Priority');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `priority` SET TAGS ('dbx_value_regex' = 'urgent|high|normal|low');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `purpose_of_issue` SET TAGS ('dbx_business_glossary_term' = 'Purpose of Issue');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `purpose_of_issue` SET TAGS ('dbx_value_regex' = 'for_approval|for_information|for_construction|for_record|for_review|for_comment');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `recipient_contact_name` SET TAGS ('dbx_business_glossary_term' = 'Recipient Contact Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `recipient_contact_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `recipient_contact_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `recipient_email` SET TAGS ('dbx_business_glossary_term' = 'Recipient Email Address');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `recipient_email` SET TAGS ('dbx_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `recipient_email` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `recipient_email` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `recipient_organization` SET TAGS ('dbx_business_glossary_term' = 'Recipient Organization');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `reference_transmittal_number` SET TAGS ('dbx_business_glossary_term' = 'Reference Transmittal Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `remarks` SET TAGS ('dbx_business_glossary_term' = 'Transmittal Remarks');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Revision Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `revision_number` SET TAGS ('dbx_value_regex' = '^[A-Z0-9.]+$');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `sender_contact_name` SET TAGS ('dbx_business_glossary_term' = 'Sender Contact Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `sender_contact_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `sender_contact_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `sender_email` SET TAGS ('dbx_business_glossary_term' = 'Sender Email Address');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `sender_email` SET TAGS ('dbx_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `sender_email` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `sender_email` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `subject` SET TAGS ('dbx_business_glossary_term' = 'Transmittal Subject');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `transmittal_number` SET TAGS ('dbx_business_glossary_term' = 'Transmittal Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `transmittal_number` SET TAGS ('dbx_value_regex' = '^[A-Z0-9-]+$');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `transmittal_status` SET TAGS ('dbx_business_glossary_term' = 'Transmittal Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `transmittal_status` SET TAGS ('dbx_value_regex' = 'draft|issued|acknowledged|rejected|superseded|closed');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` SET TAGS ('dbx_subdomain' = 'document_control');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `rfi_id` SET TAGS ('dbx_business_glossary_term' = 'Rfi Identifier');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `rfi_id` SET TAGS ('dbx_key_role' = 'primary');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Originator Employee Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `permit_condition_id` SET TAGS ('dbx_business_glossary_term' = 'Permit Condition Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Element ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `actual_response_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Response Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `closure_date` SET TAGS ('dbx_business_glossary_term' = 'Closure Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `closure_notes` SET TAGS ('dbx_business_glossary_term' = 'Closure Notes');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `cost_impact_amount` SET TAGS ('dbx_business_glossary_term' = 'Cost Impact Amount');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `cost_impact_flag` SET TAGS ('dbx_business_glossary_term' = 'Cost Impact Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `date_raised` SET TAGS ('dbx_business_glossary_term' = 'Date Raised');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `rfi_description` SET TAGS ('dbx_business_glossary_term' = 'Request for Information (RFI) Description');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `discipline` SET TAGS ('dbx_business_glossary_term' = 'Engineering Discipline');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `external_reference_code` SET TAGS ('dbx_business_glossary_term' = 'External Reference ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `linked_drawing_reference` SET TAGS ('dbx_business_glossary_term' = 'Linked Drawing Reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `linked_specification_reference` SET TAGS ('dbx_business_glossary_term' = 'Linked Specification Reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `priority` SET TAGS ('dbx_business_glossary_term' = 'Request for Information (RFI) Priority');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `priority` SET TAGS ('dbx_value_regex' = 'low|medium|high|critical');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `response_content` SET TAGS ('dbx_business_glossary_term' = 'Response Content');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `response_due_date` SET TAGS ('dbx_business_glossary_term' = 'Response Due Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `response_time_days` SET TAGS ('dbx_business_glossary_term' = 'Response Time Days');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `rfi_number` SET TAGS ('dbx_business_glossary_term' = 'Request for Information (RFI) Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `rfi_status` SET TAGS ('dbx_business_glossary_term' = 'Request for Information (RFI) Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `rfi_status` SET TAGS ('dbx_value_regex' = 'draft|open|pending_response|responded|closed|cancelled');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `schedule_impact_days` SET TAGS ('dbx_business_glossary_term' = 'Schedule Impact Days');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `schedule_impact_flag` SET TAGS ('dbx_business_glossary_term' = 'Schedule Impact Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `subject` SET TAGS ('dbx_business_glossary_term' = 'Request for Information (RFI) Subject');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` SET TAGS ('dbx_subdomain' = 'document_control');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `document_register_id` SET TAGS ('dbx_business_glossary_term' = 'Document Register ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `document_register_id` SET TAGS ('dbx_key_role' = 'primary');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Contract ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Author Employee Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `compliance_permit_id` SET TAGS ('dbx_business_glossary_term' = 'Permit Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `contract_agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Sub Contract Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `rfi_id` SET TAGS ('dbx_business_glossary_term' = 'Rfi Document Rfi Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Element ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `approver_name` SET TAGS ('dbx_business_glossary_term' = 'Approver Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `approver_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `approver_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `confidentiality_classification` SET TAGS ('dbx_business_glossary_term' = 'Confidentiality Classification');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `confidentiality_classification` SET TAGS ('dbx_value_regex' = 'public|internal|confidential|restricted');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `discipline` SET TAGS ('dbx_business_glossary_term' = 'Discipline');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `distribution_list` SET TAGS ('dbx_business_glossary_term' = 'Distribution List');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `document_number` SET TAGS ('dbx_business_glossary_term' = 'Document Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `document_purpose` SET TAGS ('dbx_business_glossary_term' = 'Document Purpose');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `document_register_status` SET TAGS ('dbx_business_glossary_term' = 'Document Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `document_title` SET TAGS ('dbx_business_glossary_term' = 'Document Title');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `document_type` SET TAGS ('dbx_business_glossary_term' = 'Document Type');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `file_format` SET TAGS ('dbx_business_glossary_term' = 'File Format');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `file_size_mb` SET TAGS ('dbx_business_glossary_term' = 'File Size (Megabytes)');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `is_client_deliverable` SET TAGS ('dbx_business_glossary_term' = 'Is Client Deliverable');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `is_controlled_document` SET TAGS ('dbx_business_glossary_term' = 'Is Controlled Document');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `issue_date` SET TAGS ('dbx_business_glossary_term' = 'Issue Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `keywords` SET TAGS ('dbx_business_glossary_term' = 'Keywords');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `language_code` SET TAGS ('dbx_business_glossary_term' = 'Language Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `originator` SET TAGS ('dbx_business_glossary_term' = 'Document Originator');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `page_count` SET TAGS ('dbx_business_glossary_term' = 'Page Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `related_submittal_number` SET TAGS ('dbx_business_glossary_term' = 'Related Submittal Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `retention_period_years` SET TAGS ('dbx_business_glossary_term' = 'Retention Period (Years)');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `review_due_date` SET TAGS ('dbx_business_glossary_term' = 'Review Due Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_business_glossary_term' = 'Reviewer Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `revision_description` SET TAGS ('dbx_business_glossary_term' = 'Revision Description');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Revision Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `storage_location` SET TAGS ('dbx_business_glossary_term' = 'Storage Location');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `superseded_by_document_number` SET TAGS ('dbx_business_glossary_term' = 'Superseded By Document Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `supersedes_document_number` SET TAGS ('dbx_business_glossary_term' = 'Supersedes Document Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `transmittal_number` SET TAGS ('dbx_business_glossary_term' = 'Transmittal Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` SET TAGS ('dbx_subdomain' = 'document_control');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `revision_id` SET TAGS ('dbx_business_glossary_term' = 'Revision Identifier');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `revision_id` SET TAGS ('dbx_key_role' = 'primary');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Approver ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `document_register_id` SET TAGS ('dbx_business_glossary_term' = 'Document ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `primary_revision_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Author ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `primary_revision_employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `primary_revision_employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `reviewer_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Reviewer ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `reviewer_employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `reviewer_employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `superseded_revision_id` SET TAGS ('dbx_business_glossary_term' = 'Superseded Revision ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `approver_name` SET TAGS ('dbx_business_glossary_term' = 'Approver Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `approver_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `approver_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `author_name` SET TAGS ('dbx_business_glossary_term' = 'Author Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `author_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `author_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `change_reason` SET TAGS ('dbx_business_glossary_term' = 'Change Reason');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `change_reason` SET TAGS ('dbx_value_regex' = 'design_change|client_request|rfi_response|regulatory_update|error_correction|clarification');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `change_summary` SET TAGS ('dbx_business_glossary_term' = 'Change Summary');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `checksum_hash` SET TAGS ('dbx_business_glossary_term' = 'Checksum Hash');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `comments` SET TAGS ('dbx_business_glossary_term' = 'Comments');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `revision_description` SET TAGS ('dbx_business_glossary_term' = 'Revision Description');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `distribution_list` SET TAGS ('dbx_business_glossary_term' = 'Distribution List');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `file_format` SET TAGS ('dbx_business_glossary_term' = 'File Format');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `file_name` SET TAGS ('dbx_business_glossary_term' = 'File Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `file_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `file_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `file_size_bytes` SET TAGS ('dbx_business_glossary_term' = 'File Size (Bytes)');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `file_storage_path` SET TAGS ('dbx_business_glossary_term' = 'File Storage Path');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `is_controlled_copy` SET TAGS ('dbx_business_glossary_term' = 'Is Controlled Copy');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `page_count` SET TAGS ('dbx_business_glossary_term' = 'Page Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `review_date` SET TAGS ('dbx_business_glossary_term' = 'Review Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_business_glossary_term' = 'Reviewer Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `revision_date` SET TAGS ('dbx_business_glossary_term' = 'Revision Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Revision Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `revision_status` SET TAGS ('dbx_business_glossary_term' = 'Revision Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `revision_status` SET TAGS ('dbx_value_regex' = 'draft|in_review|approved|issued|superseded|obsolete');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `revision_type` SET TAGS ('dbx_business_glossary_term' = 'Revision Type');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `revision_type` SET TAGS ('dbx_value_regex' = 'initial|minor|major|emergency|regulatory');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `sheet_count` SET TAGS ('dbx_business_glossary_term' = 'Sheet Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `transmittal_number` SET TAGS ('dbx_business_glossary_term' = 'Transmittal Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` SET TAGS ('dbx_subdomain' = 'document_control');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `workflow_approval_id` SET TAGS ('dbx_business_glossary_term' = 'Workflow Approval ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `document_register_id` SET TAGS ('dbx_business_glossary_term' = 'Document ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Assigned Reviewer ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `tertiary_workflow_escalated_to_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Escalated To ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `tertiary_workflow_escalated_to_employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `tertiary_workflow_escalated_to_employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `workflow_template_id` SET TAGS ('dbx_business_glossary_term' = 'Workflow Template ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `action_date` SET TAGS ('dbx_business_glossary_term' = 'Action Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `action_taken` SET TAGS ('dbx_business_glossary_term' = 'Action Taken');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `approval_authority_level` SET TAGS ('dbx_business_glossary_term' = 'Approval Authority Level');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `assigned_reviewer_role` SET TAGS ('dbx_business_glossary_term' = 'Assigned Reviewer Role');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `audit_trail_reference` SET TAGS ('dbx_business_glossary_term' = 'Audit Trail Reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `current_step_sequence` SET TAGS ('dbx_business_glossary_term' = 'Current Step Sequence');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `delegation_reason` SET TAGS ('dbx_business_glossary_term' = 'Delegation Reason');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `due_date` SET TAGS ('dbx_business_glossary_term' = 'Due Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `escalation_date` SET TAGS ('dbx_business_glossary_term' = 'Escalation Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `escalation_flag` SET TAGS ('dbx_business_glossary_term' = 'Escalation Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `external_reference_code` SET TAGS ('dbx_business_glossary_term' = 'External Reference ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `initiated_date` SET TAGS ('dbx_business_glossary_term' = 'Initiated Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `last_reminder_date` SET TAGS ('dbx_business_glossary_term' = 'Last Reminder Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `notification_sent_flag` SET TAGS ('dbx_business_glossary_term' = 'Notification Sent Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `outcome_date` SET TAGS ('dbx_business_glossary_term' = 'Outcome Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `overall_outcome` SET TAGS ('dbx_business_glossary_term' = 'Overall Outcome');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `overall_outcome` SET TAGS ('dbx_value_regex' = 'approved|rejected|withdrawn|superseded|closed');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `priority` SET TAGS ('dbx_business_glossary_term' = 'Priority');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `priority` SET TAGS ('dbx_value_regex' = 'critical|high|medium|low');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `regulatory_requirement_flag` SET TAGS ('dbx_business_glossary_term' = 'Regulatory Requirement Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `reminder_count` SET TAGS ('dbx_business_glossary_term' = 'Reminder Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `reviewer_comments` SET TAGS ('dbx_business_glossary_term' = 'Reviewer Comments');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Revision Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `sla_actual_hours` SET TAGS ('dbx_business_glossary_term' = 'Service Level Agreement (SLA) Actual Hours');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `sla_compliance_flag` SET TAGS ('dbx_business_glossary_term' = 'Service Level Agreement (SLA) Compliance Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `sla_target_hours` SET TAGS ('dbx_business_glossary_term' = 'Service Level Agreement (SLA) Target Hours');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `total_steps` SET TAGS ('dbx_business_glossary_term' = 'Total Steps');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `workflow_name` SET TAGS ('dbx_business_glossary_term' = 'Workflow Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `workflow_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `workflow_number` SET TAGS ('dbx_business_glossary_term' = 'Workflow Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `workflow_status` SET TAGS ('dbx_business_glossary_term' = 'Workflow Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `workflow_type` SET TAGS ('dbx_business_glossary_term' = 'Workflow Type');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` SET TAGS ('dbx_subdomain' = 'handover_commissioning');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `handover_package_id` SET TAGS ('dbx_business_glossary_term' = 'Handover Package ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `contact_id` SET TAGS ('dbx_business_glossary_term' = 'Client Representative Contact Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `firm_profile_id` SET TAGS ('dbx_business_glossary_term' = 'Sub Firm Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Prepared By Employee Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Element ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `aconex_document_reference` SET TAGS ('dbx_business_glossary_term' = 'Aconex Document ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Approved By');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `bim_model_reference` SET TAGS ('dbx_business_glossary_term' = 'Building Information Modeling (BIM) Model Reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `client_acceptance_date` SET TAGS ('dbx_business_glossary_term' = 'Client Acceptance Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `client_acceptance_status` SET TAGS ('dbx_business_glossary_term' = 'Client Acceptance Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `client_acceptance_status` SET TAGS ('dbx_value_regex' = 'pending|accepted|conditionally_accepted|rejected|under_review');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `comments` SET TAGS ('dbx_business_glossary_term' = 'Comments');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `completeness_percentage` SET TAGS ('dbx_business_glossary_term' = 'Completeness Percentage');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `dlp_duration_days` SET TAGS ('dbx_business_glossary_term' = 'Defects Liability Period (DLP) Duration Days');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `dlp_end_date` SET TAGS ('dbx_business_glossary_term' = 'Defects Liability Period (DLP) End Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `dlp_start_date` SET TAGS ('dbx_business_glossary_term' = 'Defects Liability Period (DLP) Start Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `handover_milestone` SET TAGS ('dbx_business_glossary_term' = 'Handover Milestone');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `handover_milestone` SET TAGS ('dbx_value_regex' = 'practical_completion|substantial_completion|final_completion|sectional_handover|early_access');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `iso_19650_compliance_flag` SET TAGS ('dbx_business_glossary_term' = 'ISO 19650 Compliance Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `legal_hold_flag` SET TAGS ('dbx_business_glossary_term' = 'Legal Hold Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `legal_hold_reason` SET TAGS ('dbx_business_glossary_term' = 'Legal Hold Reason');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `legal_hold_reason` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `legal_hold_start_date` SET TAGS ('dbx_business_glossary_term' = 'Legal Hold Start Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `package_number` SET TAGS ('dbx_business_glossary_term' = 'Handover Package Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `package_number` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{2,4}-HP-[0-9]{4,6}$');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `package_status` SET TAGS ('dbx_business_glossary_term' = 'Package Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `package_title` SET TAGS ('dbx_business_glossary_term' = 'Handover Package Title');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `package_type` SET TAGS ('dbx_business_glossary_term' = 'Handover Package Type');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `package_type` SET TAGS ('dbx_value_regex' = 'operations_and_maintenance_manual|as_built_drawings|test_and_commissioning_records|warranties_and_guarantees|certificates_and_approvals|training_materials');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `planned_submission_date` SET TAGS ('dbx_business_glossary_term' = 'Planned Submission Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `required_document_count` SET TAGS ('dbx_business_glossary_term' = 'Required Document Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `retention_period_years` SET TAGS ('dbx_business_glossary_term' = 'Retention Period Years');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `reviewed_by` SET TAGS ('dbx_business_glossary_term' = 'Reviewed By');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `scope_of_works` SET TAGS ('dbx_business_glossary_term' = 'Scope of Works');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `storage_location` SET TAGS ('dbx_business_glossary_term' = 'Storage Location');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `submission_date` SET TAGS ('dbx_business_glossary_term' = 'Submission Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `submitted_document_count` SET TAGS ('dbx_business_glossary_term' = 'Submitted Document Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` SET TAGS ('dbx_subdomain' = 'handover_commissioning');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `handover_item_id` SET TAGS ('dbx_business_glossary_term' = 'Handover Item ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Asset Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `document_register_id` SET TAGS ('dbx_business_glossary_term' = 'Document Register Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `handover_package_id` SET TAGS ('dbx_business_glossary_term' = 'Handover Package ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `contact_id` SET TAGS ('dbx_business_glossary_term' = 'Responsible Contact Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `actual_submission_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Submission Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `certification_date` SET TAGS ('dbx_business_glossary_term' = 'Certification Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `certification_required` SET TAGS ('dbx_business_glossary_term' = 'Certification Required');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `certifying_authority` SET TAGS ('dbx_business_glossary_term' = 'Certifying Authority');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `client_review_date` SET TAGS ('dbx_business_glossary_term' = 'Client Review Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `client_review_status` SET TAGS ('dbx_business_glossary_term' = 'Client Review Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `client_reviewer_name` SET TAGS ('dbx_business_glossary_term' = 'Client Reviewer Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `client_reviewer_name` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `client_reviewer_name` SET TAGS ('dbx_pii_name' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `client_reviewer_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `comments` SET TAGS ('dbx_business_glossary_term' = 'Comments');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `completed_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Completed Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `contractual_requirement` SET TAGS ('dbx_business_glossary_term' = 'Contractual Requirement');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `discipline` SET TAGS ('dbx_business_glossary_term' = 'Engineering Discipline');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `file_location` SET TAGS ('dbx_business_glossary_term' = 'File Location');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `format_type` SET TAGS ('dbx_business_glossary_term' = 'Format Type');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `format_type` SET TAGS ('dbx_value_regex' = 'hard_copy|electronic|both');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `item_description` SET TAGS ('dbx_business_glossary_term' = 'Item Description');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `item_number` SET TAGS ('dbx_business_glossary_term' = 'Item Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `item_status` SET TAGS ('dbx_business_glossary_term' = 'Item Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `item_title` SET TAGS ('dbx_business_glossary_term' = 'Item Title');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `item_type` SET TAGS ('dbx_business_glossary_term' = 'Item Type');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `language` SET TAGS ('dbx_business_glossary_term' = 'Language');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `outstanding_action_notes` SET TAGS ('dbx_business_glossary_term' = 'Outstanding Action Notes');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `page_count` SET TAGS ('dbx_business_glossary_term' = 'Page Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `planned_submission_date` SET TAGS ('dbx_business_glossary_term' = 'Planned Submission Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `priority` SET TAGS ('dbx_business_glossary_term' = 'Priority');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `priority` SET TAGS ('dbx_value_regex' = 'critical|high|medium|low');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `rejection_reason` SET TAGS ('dbx_business_glossary_term' = 'Rejection Reason');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `responsible_party` SET TAGS ('dbx_business_glossary_term' = 'Responsible Party');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Revision Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `system_reference` SET TAGS ('dbx_business_glossary_term' = 'System Reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `warranty_period_months` SET TAGS ('dbx_business_glossary_term' = 'Warranty Period Months');
-ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` SET TAGS ('dbx_subdomain' = 'document_control');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `correspondence_response_id` SET TAGS ('dbx_business_glossary_term' = 'Correspondence Response ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Contract ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Approver ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `correspondence_id` SET TAGS ('dbx_business_glossary_term' = 'Correspondence ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `primary_correspondence_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Author ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `primary_correspondence_employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `primary_correspondence_employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `supersedes_response_correspondence_response_id` SET TAGS ('dbx_business_glossary_term' = 'Supersedes Response ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `acknowledgment_received_date` SET TAGS ('dbx_business_glossary_term' = 'Acknowledgment Received Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `acknowledgment_required` SET TAGS ('dbx_business_glossary_term' = 'Acknowledgment Required Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `action_required_by_date` SET TAGS ('dbx_business_glossary_term' = 'Action Required By Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `approver_name` SET TAGS ('dbx_business_glossary_term' = 'Approver Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `approver_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `attachment_count` SET TAGS ('dbx_business_glossary_term' = 'Attachment Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `attachment_file_names` SET TAGS ('dbx_business_glossary_term' = 'Attachment File Names');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `author_name` SET TAGS ('dbx_business_glossary_term' = 'Author Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `author_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `author_role` SET TAGS ('dbx_business_glossary_term' = 'Author Role');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `closes_correspondence` SET TAGS ('dbx_business_glossary_term' = 'Closes Correspondence Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `contractual_impact` SET TAGS ('dbx_business_glossary_term' = 'Contractual Impact');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `contractual_impact` SET TAGS ('dbx_value_regex' = 'none|time|cost|scope|quality|risk');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `discipline` SET TAGS ('dbx_business_glossary_term' = 'Engineering Discipline');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `distribution_list` SET TAGS ('dbx_business_glossary_term' = 'Distribution List');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `legal_review_required` SET TAGS ('dbx_business_glossary_term' = 'Legal Review Required Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `legal_reviewer_name` SET TAGS ('dbx_business_glossary_term' = 'Legal Reviewer Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `legal_reviewer_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Internal Notes');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `priority` SET TAGS ('dbx_business_glossary_term' = 'Response Priority');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `priority` SET TAGS ('dbx_value_regex' = 'low|medium|high|urgent|critical');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `recipient_contact_name` SET TAGS ('dbx_business_glossary_term' = 'Recipient Contact Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `recipient_contact_name` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `recipient_contact_name` SET TAGS ('dbx_pii_identifier' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `recipient_contact_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `recipient_email` SET TAGS ('dbx_business_glossary_term' = 'Recipient Email Address');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `recipient_email` SET TAGS ('dbx_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `recipient_email` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `recipient_email` SET TAGS ('dbx_pii_email' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `recipient_email` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `recipient_organization` SET TAGS ('dbx_business_glossary_term' = 'Recipient Organization');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `reference_documents` SET TAGS ('dbx_business_glossary_term' = 'Reference Documents');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `requires_further_action` SET TAGS ('dbx_business_glossary_term' = 'Requires Further Action Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `response_content` SET TAGS ('dbx_business_glossary_term' = 'Response Content');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `response_date` SET TAGS ('dbx_business_glossary_term' = 'Response Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `response_language` SET TAGS ('dbx_business_glossary_term' = 'Response Language');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `response_language` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `response_method` SET TAGS ('dbx_business_glossary_term' = 'Response Method');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `response_method` SET TAGS ('dbx_value_regex' = 'letter|email|formal_notice|transmittal|system_notification|verbal_confirmed');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `response_number` SET TAGS ('dbx_business_glossary_term' = 'Response Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `response_number` SET TAGS ('dbx_value_regex' = '^[A-Z0-9-]+$');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `response_status` SET TAGS ('dbx_business_glossary_term' = 'Response Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `response_status` SET TAGS ('dbx_value_regex' = 'draft|submitted|acknowledged|superseded|withdrawn|closed');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `response_summary` SET TAGS ('dbx_business_glossary_term' = 'Response Summary');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `response_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Response Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `response_type` SET TAGS ('dbx_business_glossary_term' = 'Response Type');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Revision Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `subject` SET TAGS ('dbx_business_glossary_term' = 'Response Subject');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` SET TAGS ('dbx_subdomain' = 'document_control');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `transmittal_item_id` SET TAGS ('dbx_business_glossary_term' = 'Transmittal Item Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `document_register_id` SET TAGS ('dbx_business_glossary_term' = 'Document Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `transmittal_id` SET TAGS ('dbx_business_glossary_term' = 'Transmittal Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `bim_model_reference` SET TAGS ('dbx_business_glossary_term' = 'Building Information Modeling (BIM) Model Reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `confidentiality_level` SET TAGS ('dbx_business_glossary_term' = 'Confidentiality Level');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `confidentiality_level` SET TAGS ('dbx_value_regex' = 'public|internal|confidential|restricted');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `discipline` SET TAGS ('dbx_business_glossary_term' = 'Engineering Discipline');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `distribution_method` SET TAGS ('dbx_business_glossary_term' = 'Distribution Method');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `distribution_method` SET TAGS ('dbx_value_regex' = 'electronic|hard_copy|both|courier|registered_mail');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `document_number` SET TAGS ('dbx_business_glossary_term' = 'Document Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `document_revision` SET TAGS ('dbx_business_glossary_term' = 'Document Revision');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `document_title` SET TAGS ('dbx_business_glossary_term' = 'Document Title');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `document_type` SET TAGS ('dbx_business_glossary_term' = 'Document Type');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `file_format` SET TAGS ('dbx_business_glossary_term' = 'File Format');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `file_size_mb` SET TAGS ('dbx_business_glossary_term' = 'File Size (Megabytes)');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `item_notes` SET TAGS ('dbx_business_glossary_term' = 'Item Notes');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `item_status` SET TAGS ('dbx_business_glossary_term' = 'Item Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `item_status` SET TAGS ('dbx_value_regex' = 'pending|transmitted|received|acknowledged|rejected|superseded');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `line_number` SET TAGS ('dbx_business_glossary_term' = 'Line Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `modified_by` SET TAGS ('dbx_business_glossary_term' = 'Modified By');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `number_of_copies` SET TAGS ('dbx_business_glossary_term' = 'Number of Copies');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `number_of_sheets` SET TAGS ('dbx_business_glossary_term' = 'Number of Sheets');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `purpose_of_issue` SET TAGS ('dbx_business_glossary_term' = 'Purpose of Issue');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `received_by` SET TAGS ('dbx_business_glossary_term' = 'Received By');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `received_date` SET TAGS ('dbx_business_glossary_term' = 'Received Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `rejection_reason` SET TAGS ('dbx_business_glossary_term' = 'Rejection Reason');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `response_due_date` SET TAGS ('dbx_business_glossary_term' = 'Response Due Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `response_required` SET TAGS ('dbx_business_glossary_term' = 'Response Required Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `sheet_size` SET TAGS ('dbx_business_glossary_term' = 'Sheet Size');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `status_code` SET TAGS ('dbx_business_glossary_term' = 'Document Status Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `supersedes_document_number` SET TAGS ('dbx_business_glossary_term' = 'Supersedes Document Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `supersedes_revision` SET TAGS ('dbx_business_glossary_term' = 'Supersedes Revision');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `work_package_code` SET TAGS ('dbx_business_glossary_term' = 'Work Package Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `created_by` SET TAGS ('dbx_business_glossary_term' = 'Created By');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` SET TAGS ('dbx_subdomain' = 'document_control');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `distribution_matrix_id` SET TAGS ('dbx_business_glossary_term' = 'Distribution Matrix Identifier');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `superseded_by_matrix_distribution_matrix_id` SET TAGS ('dbx_business_glossary_term' = 'Superseded By Matrix ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `acknowledgement_deadline_days` SET TAGS ('dbx_business_glossary_term' = 'Acknowledgement Deadline Days');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `acknowledgement_required_flag` SET TAGS ('dbx_business_glossary_term' = 'Acknowledgement Required Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `approval_authority` SET TAGS ('dbx_business_glossary_term' = 'Approval Authority');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `copy_type` SET TAGS ('dbx_business_glossary_term' = 'Copy Type');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `copy_type` SET TAGS ('dbx_value_regex' = 'controlled|uncontrolled|for_information|for_approval|for_review|for_comment');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `discipline_code` SET TAGS ('dbx_business_glossary_term' = 'Discipline Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `discipline_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{2,5}$');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `distribution_format` SET TAGS ('dbx_business_glossary_term' = 'Distribution Format');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `distribution_format` SET TAGS ('dbx_value_regex' = 'pdf|dwg|ifc|native|paper|both');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `distribution_frequency` SET TAGS ('dbx_business_glossary_term' = 'Distribution Frequency');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `distribution_method` SET TAGS ('dbx_business_glossary_term' = 'Distribution Method');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `distribution_priority` SET TAGS ('dbx_business_glossary_term' = 'Distribution Priority');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `distribution_priority` SET TAGS ('dbx_value_regex' = 'critical|high|normal|low');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `distribution_status` SET TAGS ('dbx_business_glossary_term' = 'Distribution Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `distribution_status` SET TAGS ('dbx_value_regex' = 'active|suspended|superseded|cancelled|pending_approval');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `document_type_code` SET TAGS ('dbx_business_glossary_term' = 'Document Type Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `document_type_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{2,10}$');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `document_type_description` SET TAGS ('dbx_business_glossary_term' = 'Document Type Description');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `effective_from_date` SET TAGS ('dbx_business_glossary_term' = 'Effective From Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `effective_to_date` SET TAGS ('dbx_business_glossary_term' = 'Effective To Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Notes');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `project_phase_applicability` SET TAGS ('dbx_business_glossary_term' = 'Project Phase Applicability');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `recipient_contact_name` SET TAGS ('dbx_business_glossary_term' = 'Recipient Contact Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `recipient_contact_name` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `recipient_contact_name` SET TAGS ('dbx_pii_name' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `recipient_contact_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `recipient_email_address` SET TAGS ('dbx_business_glossary_term' = 'Recipient Email Address');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `recipient_email_address` SET TAGS ('dbx_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `recipient_email_address` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `recipient_email_address` SET TAGS ('dbx_pii_email' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `recipient_email_address` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `recipient_organization_name` SET TAGS ('dbx_business_glossary_term' = 'Recipient Organization Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `recipient_organization_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `recipient_role` SET TAGS ('dbx_business_glossary_term' = 'Recipient Role');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `response_deadline_days` SET TAGS ('dbx_business_glossary_term' = 'Response Deadline Days');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `response_required_flag` SET TAGS ('dbx_business_glossary_term' = 'Response Required Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Revision Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `revision_number` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{1,10}$');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `security_classification` SET TAGS ('dbx_business_glossary_term' = 'Security Classification');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `security_classification` SET TAGS ('dbx_value_regex' = 'public|internal|confidential|restricted|proprietary');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `wbs_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9.-]{1,30}$');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` SET TAGS ('dbx_subdomain' = 'document_control');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `access_permission_id` SET TAGS ('dbx_business_glossary_term' = 'Access Permission Identifier');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Grantee Organization ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `document_register_id` SET TAGS ('dbx_business_glossary_term' = 'Document ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `parent_permission_access_permission_id` SET TAGS ('dbx_business_glossary_term' = 'Parent Permission ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Grantee User ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `quaternary_quinary_access_created_by_user_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Created By User ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `quaternary_quinary_access_created_by_user_employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `quaternary_quinary_access_created_by_user_employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `team_member_id` SET TAGS ('dbx_business_glossary_term' = 'Grantee Team ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `team_member_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `team_member_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `tertiary_access_approved_by_user_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Approved By User ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `tertiary_access_approved_by_user_employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `tertiary_access_approved_by_user_employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `tertiary_quaternary_access_revoked_by_user_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Revoked By User ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `tertiary_quaternary_access_revoked_by_user_employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `tertiary_quaternary_access_revoked_by_user_employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `access_count` SET TAGS ('dbx_business_glossary_term' = 'Access Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `access_log_retention_days` SET TAGS ('dbx_business_glossary_term' = 'Access Log Retention Days');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `approval_required_flag` SET TAGS ('dbx_business_glossary_term' = 'Approval Required Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `approved_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Approved Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `business_justification` SET TAGS ('dbx_business_glossary_term' = 'Business Justification');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `confidentiality_level` SET TAGS ('dbx_business_glossary_term' = 'Confidentiality Level');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `confidentiality_level` SET TAGS ('dbx_value_regex' = 'public|internal|confidential|restricted|commercially_sensitive|legally_privileged');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `discipline` SET TAGS ('dbx_business_glossary_term' = 'Discipline');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `effective_from_date` SET TAGS ('dbx_business_glossary_term' = 'Effective From Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `effective_to_date` SET TAGS ('dbx_business_glossary_term' = 'Effective To Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `granted_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Granted Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `grantee_role_code` SET TAGS ('dbx_business_glossary_term' = 'Grantee Role Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `grantee_role_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{2,10}$');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `grantee_type` SET TAGS ('dbx_business_glossary_term' = 'Grantee Type');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `grantee_type` SET TAGS ('dbx_value_regex' = 'organization|role|user|team');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `inherit_from_parent_flag` SET TAGS ('dbx_business_glossary_term' = 'Inherit From Parent Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `last_accessed_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Accessed Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Notes');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `notification_sent_flag` SET TAGS ('dbx_business_glossary_term' = 'Notification Sent Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `notification_sent_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Notification Sent Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `offline_access_allowed_flag` SET TAGS ('dbx_business_glossary_term' = 'Offline Access Allowed Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `permission_level` SET TAGS ('dbx_business_glossary_term' = 'Permission Level');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `permission_number` SET TAGS ('dbx_business_glossary_term' = 'Permission Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `permission_number` SET TAGS ('dbx_value_regex' = '^ACL-[0-9]{8}$');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `permission_status` SET TAGS ('dbx_business_glossary_term' = 'Permission Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `permission_status` SET TAGS ('dbx_value_regex' = 'active|suspended|revoked|expired|pending');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `permission_type` SET TAGS ('dbx_business_glossary_term' = 'Permission Type');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `permission_type` SET TAGS ('dbx_value_regex' = 'document|folder|workspace|project');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `print_allowed_flag` SET TAGS ('dbx_business_glossary_term' = 'Print Allowed Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `revocation_reason` SET TAGS ('dbx_business_glossary_term' = 'Revocation Reason');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `revoked_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Revoked Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `watermark_required_flag` SET TAGS ('dbx_business_glossary_term' = 'Watermark Required Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `wbs_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9.-]{1,30}$');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` SET TAGS ('dbx_subdomain' = 'engineering_deliverables');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `bim_model_id` SET TAGS ('dbx_business_glossary_term' = 'Building Information Model (BIM) Model ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `bim_model_id` SET TAGS ('dbx_key_role' = 'primary');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Author Employee Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Material Material Master Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `superseded_by_model_bim_model_id` SET TAGS ('dbx_business_glossary_term' = 'Superseded By Model ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `author_organization` SET TAGS ('dbx_business_glossary_term' = 'Author Organization');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `authoring_software` SET TAGS ('dbx_business_glossary_term' = 'Authoring Software');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `building_zone` SET TAGS ('dbx_business_glossary_term' = 'Building Zone');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `clash_count` SET TAGS ('dbx_business_glossary_term' = 'Clash Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `clash_detection_status` SET TAGS ('dbx_business_glossary_term' = 'Clash Detection Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `clash_detection_status` SET TAGS ('dbx_value_regex' = 'not_started|in_progress|completed|issues_identified|resolved');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `comments` SET TAGS ('dbx_business_glossary_term' = 'Comments');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `confidentiality_classification` SET TAGS ('dbx_business_glossary_term' = 'Confidentiality Classification');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `confidentiality_classification` SET TAGS ('dbx_value_regex' = 'public|internal|confidential|restricted');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `coordinate_system` SET TAGS ('dbx_business_glossary_term' = 'Project Coordinate System');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `discipline` SET TAGS ('dbx_business_glossary_term' = 'BIM Discipline');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `element_count` SET TAGS ('dbx_business_glossary_term' = 'Element Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `external_reference_code` SET TAGS ('dbx_business_glossary_term' = 'External Reference ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `federation_role` SET TAGS ('dbx_business_glossary_term' = 'Federation Role');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `file_format` SET TAGS ('dbx_business_glossary_term' = 'File Format');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `file_size_mb` SET TAGS ('dbx_business_glossary_term' = 'File Size (MB)');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `iso_19650_compliance_flag` SET TAGS ('dbx_business_glossary_term' = 'ISO 19650 Compliance Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `issue_date` SET TAGS ('dbx_business_glossary_term' = 'Issue Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `lifecycle_stage` SET TAGS ('dbx_business_glossary_term' = 'Project Lifecycle Stage');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `lod_classification` SET TAGS ('dbx_business_glossary_term' = 'Level of Development (LOD) Classification');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `lod_classification` SET TAGS ('dbx_value_regex' = 'LOD_100|LOD_200|LOD_300|LOD_350|LOD_400|LOD_500');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `model_name` SET TAGS ('dbx_business_glossary_term' = 'BIM Model Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `model_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `model_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `model_number` SET TAGS ('dbx_business_glossary_term' = 'BIM Model Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `model_status` SET TAGS ('dbx_business_glossary_term' = 'BIM Model Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `model_status` SET TAGS ('dbx_value_regex' = 'wip|shared|published|archived|superseded');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `model_type` SET TAGS ('dbx_business_glossary_term' = 'BIM Model Type');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `model_type` SET TAGS ('dbx_value_regex' = 'design|coordination|construction|as_built|facility_management');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `model_version` SET TAGS ('dbx_business_glossary_term' = 'Model Version');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `origin_elevation_m` SET TAGS ('dbx_business_glossary_term' = 'Origin Elevation (Meters)');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `origin_latitude` SET TAGS ('dbx_business_glossary_term' = 'Origin Latitude');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `origin_latitude` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `origin_latitude` SET TAGS ('dbx_pii_address' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `origin_longitude` SET TAGS ('dbx_business_glossary_term' = 'Origin Longitude');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `origin_longitude` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `origin_longitude` SET TAGS ('dbx_pii_address' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `review_date` SET TAGS ('dbx_business_glossary_term' = 'Review Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_business_glossary_term' = 'Reviewer Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Revision Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `software_version` SET TAGS ('dbx_business_glossary_term' = 'Software Version');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `storage_location` SET TAGS ('dbx_business_glossary_term' = 'Storage Location');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` SET TAGS ('dbx_subdomain' = 'engineering_deliverables');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Identifier');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `drawing_id` SET TAGS ('dbx_key_role' = 'primary');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Author Employee Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `bim_model_id` SET TAGS ('dbx_business_glossary_term' = 'Bim Model Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project Identifier');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `craft_worker_id` SET TAGS ('dbx_business_glossary_term' = 'Responsible Worker Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Material Material Master Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `approver_name` SET TAGS ('dbx_business_glossary_term' = 'Approver Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `approver_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `approver_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `cad_file_name` SET TAGS ('dbx_business_glossary_term' = 'Computer-Aided Design (CAD) File Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `cad_file_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `cad_file_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `checker_name` SET TAGS ('dbx_business_glossary_term' = 'Checker Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `checker_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `checker_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `clash_detection_status` SET TAGS ('dbx_business_glossary_term' = 'Clash Detection Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `clash_detection_status` SET TAGS ('dbx_value_regex' = 'not_checked|passed|clashes_detected|resolved');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `comments` SET TAGS ('dbx_business_glossary_term' = 'Comments');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `confidentiality_classification` SET TAGS ('dbx_business_glossary_term' = 'Confidentiality Classification');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `confidentiality_classification` SET TAGS ('dbx_value_regex' = 'public|internal|confidential|restricted');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `discipline` SET TAGS ('dbx_business_glossary_term' = 'Engineering Discipline');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `distribution_list` SET TAGS ('dbx_business_glossary_term' = 'Distribution List');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `drawing_number` SET TAGS ('dbx_business_glossary_term' = 'Drawing Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `drawing_status` SET TAGS ('dbx_business_glossary_term' = 'Drawing Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `drawing_type` SET TAGS ('dbx_business_glossary_term' = 'Drawing Type');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `drawing_type` SET TAGS ('dbx_value_regex' = 'plan|elevation|section|detail|schedule|isometric');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `file_format` SET TAGS ('dbx_business_glossary_term' = 'File Format');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `file_format` SET TAGS ('dbx_value_regex' = 'PDF|DWG|DXF|RVT|IFC|DGN');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `file_size_mb` SET TAGS ('dbx_business_glossary_term' = 'File Size in Megabytes (MB)');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `is_client_deliverable` SET TAGS ('dbx_business_glossary_term' = 'Is Client Deliverable Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `is_controlled_document` SET TAGS ('dbx_business_glossary_term' = 'Is Controlled Document Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `issue_purpose` SET TAGS ('dbx_business_glossary_term' = 'Issue Purpose');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `issue_purpose` SET TAGS ('dbx_value_regex' = 'information|review|approval|construction|tender|as_built');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `language_code` SET TAGS ('dbx_business_glossary_term' = 'Language Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `modified_by` SET TAGS ('dbx_business_glossary_term' = 'Modified By User');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `originator` SET TAGS ('dbx_business_glossary_term' = 'Originator Organization');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `page_count` SET TAGS ('dbx_business_glossary_term' = 'Page Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `related_specification_reference` SET TAGS ('dbx_business_glossary_term' = 'Related Specification Reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `retention_period_years` SET TAGS ('dbx_business_glossary_term' = 'Retention Period in Years');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `revision_date` SET TAGS ('dbx_business_glossary_term' = 'Revision Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Revision Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `scale` SET TAGS ('dbx_business_glossary_term' = 'Drawing Scale');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `sheet_size` SET TAGS ('dbx_business_glossary_term' = 'Sheet Size');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `storage_location` SET TAGS ('dbx_business_glossary_term' = 'Storage Location');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `superseded_by_drawing_number` SET TAGS ('dbx_business_glossary_term' = 'Superseded By Drawing Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `supersedes_drawing_number` SET TAGS ('dbx_business_glossary_term' = 'Supersedes Drawing Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `title` SET TAGS ('dbx_business_glossary_term' = 'Drawing Title');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `zone_location` SET TAGS ('dbx_business_glossary_term' = 'Zone or Location');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `created_by` SET TAGS ('dbx_business_glossary_term' = 'Created By User');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` SET TAGS ('dbx_subdomain' = 'engineering_deliverables');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `drawing_revision_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Revision Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Approver Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `primary_drawing_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Issuing Engineer Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `primary_drawing_employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `primary_drawing_employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `reviewer_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Reviewer Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `reviewer_employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `reviewer_employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `rfi_id` SET TAGS ('dbx_business_glossary_term' = 'Rfi Document Rfi Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `superseded_revision_drawing_revision_id` SET TAGS ('dbx_business_glossary_term' = 'Superseded Revision Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `acknowledgment_required_flag` SET TAGS ('dbx_business_glossary_term' = 'Acknowledgment Required Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `acknowledgment_status` SET TAGS ('dbx_business_glossary_term' = 'Acknowledgment Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `acknowledgment_status` SET TAGS ('dbx_value_regex' = 'not_required|pending|acknowledged|overdue');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `approver_name` SET TAGS ('dbx_business_glossary_term' = 'Approver Full Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `approver_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `bim_model_reference` SET TAGS ('dbx_business_glossary_term' = 'Building Information Modeling (BIM) Model Reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `change_summary` SET TAGS ('dbx_business_glossary_term' = 'Revision Change Summary');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `clash_detection_status` SET TAGS ('dbx_business_glossary_term' = 'Clash Detection Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `clash_detection_status` SET TAGS ('dbx_value_regex' = 'not_required|pending|in_progress|passed|failed|resolved');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `comments` SET TAGS ('dbx_business_glossary_term' = 'Revision Comments');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `confidentiality_level` SET TAGS ('dbx_business_glossary_term' = 'Confidentiality Classification Level');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `confidentiality_level` SET TAGS ('dbx_value_regex' = 'public|internal|confidential|restricted');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Creation Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `discipline` SET TAGS ('dbx_business_glossary_term' = 'Engineering Discipline');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `distribution_date` SET TAGS ('dbx_business_glossary_term' = 'Distribution Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `distribution_method` SET TAGS ('dbx_business_glossary_term' = 'Distribution Method');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `distribution_method` SET TAGS ('dbx_value_regex' = 'electronic|hard_copy|both|portal|email');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `distribution_status` SET TAGS ('dbx_business_glossary_term' = 'Distribution Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `distribution_status` SET TAGS ('dbx_value_regex' = 'pending|distributed|acknowledged|rejected|superseded');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `file_format` SET TAGS ('dbx_business_glossary_term' = 'File Format Type');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `file_size_mb` SET TAGS ('dbx_business_glossary_term' = 'File Size in Megabytes (MB)');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `issuing_engineer_name` SET TAGS ('dbx_business_glossary_term' = 'Issuing Engineer Full Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `issuing_engineer_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `linked_change_order_number` SET TAGS ('dbx_business_glossary_term' = 'Linked Change Order (CO) Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `linked_submittal_number` SET TAGS ('dbx_business_glossary_term' = 'Linked Submittal Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Last Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `review_date` SET TAGS ('dbx_business_glossary_term' = 'Review Completion Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_business_glossary_term' = 'Reviewer Full Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `revision_code` SET TAGS ('dbx_business_glossary_term' = 'Revision Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `revision_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{1,10}$');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `revision_date` SET TAGS ('dbx_business_glossary_term' = 'Revision Issue Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `revision_description` SET TAGS ('dbx_business_glossary_term' = 'Revision Change Description');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Revision Sequence Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `revision_reason` SET TAGS ('dbx_business_glossary_term' = 'Reason for Revision');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `revision_status` SET TAGS ('dbx_business_glossary_term' = 'Revision Lifecycle Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `revision_type` SET TAGS ('dbx_business_glossary_term' = 'Revision Purpose Type');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `sheet_count` SET TAGS ('dbx_business_glossary_term' = 'Sheet Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `transmittal_number` SET TAGS ('dbx_business_glossary_term' = 'Transmittal Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` SET TAGS ('dbx_subdomain' = 'engineering_deliverables');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `technical_specification_id` SET TAGS ('dbx_business_glossary_term' = 'Technical Specification ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Material Material Master Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `applicable_standards` SET TAGS ('dbx_business_glossary_term' = 'Applicable Standards');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `approval_status` SET TAGS ('dbx_business_glossary_term' = 'Approval Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `approval_status` SET TAGS ('dbx_value_regex' = 'pending|approved|rejected|conditional|not_required');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `approver_name` SET TAGS ('dbx_business_glossary_term' = 'Approver Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `approver_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `approver_role` SET TAGS ('dbx_business_glossary_term' = 'Approver Role');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `author_name` SET TAGS ('dbx_business_glossary_term' = 'Author Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `author_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `author_organization` SET TAGS ('dbx_business_glossary_term' = 'Author Organization');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `boq_reference` SET TAGS ('dbx_business_glossary_term' = 'Bill of Quantities (BOQ) Reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `comments` SET TAGS ('dbx_business_glossary_term' = 'Comments');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `confidentiality_classification` SET TAGS ('dbx_business_glossary_term' = 'Confidentiality Classification');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `confidentiality_classification` SET TAGS ('dbx_value_regex' = 'public|internal|confidential|restricted');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `csi_division` SET TAGS ('dbx_business_glossary_term' = 'Construction Specifications Institute (CSI) Division');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `discipline` SET TAGS ('dbx_business_glossary_term' = 'Engineering Discipline');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `effective_date` SET TAGS ('dbx_business_glossary_term' = 'Effective Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `environmental_requirements` SET TAGS ('dbx_business_glossary_term' = 'Environmental Requirements');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `file_format` SET TAGS ('dbx_business_glossary_term' = 'File Format');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `file_storage_path` SET TAGS ('dbx_business_glossary_term' = 'File Storage Path');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `hse_requirements` SET TAGS ('dbx_business_glossary_term' = 'Health Safety and Environment (HSE) Requirements');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `is_client_deliverable` SET TAGS ('dbx_business_glossary_term' = 'Is Client Deliverable');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `issue_date` SET TAGS ('dbx_business_glossary_term' = 'Issue Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `language_code` SET TAGS ('dbx_business_glossary_term' = 'Language Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `material_requirements` SET TAGS ('dbx_business_glossary_term' = 'Material Requirements');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `page_count` SET TAGS ('dbx_business_glossary_term' = 'Page Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `related_drawing_references` SET TAGS ('dbx_business_glossary_term' = 'Related Drawing References');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_business_glossary_term' = 'Reviewer Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Revision Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `scope_of_work` SET TAGS ('dbx_business_glossary_term' = 'Scope of Work (SOW)');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `section_number` SET TAGS ('dbx_business_glossary_term' = 'Section Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `specification_number` SET TAGS ('dbx_business_glossary_term' = 'Specification Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `specification_title` SET TAGS ('dbx_business_glossary_term' = 'Specification Title');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `specification_type` SET TAGS ('dbx_business_glossary_term' = 'Specification Type');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `specification_type` SET TAGS ('dbx_value_regex' = 'performance|prescriptive|proprietary|reference|master');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `submittal_requirements` SET TAGS ('dbx_business_glossary_term' = 'Submittal Requirements');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `superseded_date` SET TAGS ('dbx_business_glossary_term' = 'Superseded Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `supersedes_specification_number` SET TAGS ('dbx_business_glossary_term' = 'Supersedes Specification Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `technical_specification_status` SET TAGS ('dbx_business_glossary_term' = 'Specification Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `testing_requirements` SET TAGS ('dbx_business_glossary_term' = 'Testing Requirements');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `warranty_period_months` SET TAGS ('dbx_business_glossary_term' = 'Warranty Period (Months)');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `workmanship_standards` SET TAGS ('dbx_business_glossary_term' = 'Workmanship Standards');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` SET TAGS ('dbx_subdomain' = 'engineering_deliverables');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `package_id` SET TAGS ('dbx_business_glossary_term' = 'Package ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Contract ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Prepared By Employee Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `actual_submission_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Submission Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `approval_workflow_state` SET TAGS ('dbx_business_glossary_term' = 'Approval Workflow State');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Approved By');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `bim_model_reference` SET TAGS ('dbx_business_glossary_term' = 'Building Information Modeling (BIM) Model Reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `client_acceptance_date` SET TAGS ('dbx_business_glossary_term' = 'Client Acceptance Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `client_acceptance_status` SET TAGS ('dbx_business_glossary_term' = 'Client Acceptance Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `client_acceptance_status` SET TAGS ('dbx_value_regex' = 'pending|accepted|accepted_with_comments|rejected|conditionally_accepted|superseded');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `comments` SET TAGS ('dbx_business_glossary_term' = 'Comments');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `completeness_percentage` SET TAGS ('dbx_business_glossary_term' = 'Completeness Percentage');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `confidentiality_classification` SET TAGS ('dbx_business_glossary_term' = 'Confidentiality Classification');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `confidentiality_classification` SET TAGS ('dbx_value_regex' = 'public|internal|confidential|restricted');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `contractual_due_date` SET TAGS ('dbx_business_glossary_term' = 'Contractual Due Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `discipline` SET TAGS ('dbx_business_glossary_term' = 'Discipline');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `document_count` SET TAGS ('dbx_business_glossary_term' = 'Document Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `drawing_count` SET TAGS ('dbx_business_glossary_term' = 'Drawing Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `iso_19650_compliance_flag` SET TAGS ('dbx_business_glossary_term' = 'ISO 19650 Compliance Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `issue_date` SET TAGS ('dbx_business_glossary_term' = 'Issue Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `milestone_stage` SET TAGS ('dbx_business_glossary_term' = 'Milestone Stage');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `package_number` SET TAGS ('dbx_business_glossary_term' = 'Package Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `package_status` SET TAGS ('dbx_business_glossary_term' = 'Package Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `package_type` SET TAGS ('dbx_business_glossary_term' = 'Package Type');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `package_type` SET TAGS ('dbx_value_regex' = 'design_package|deliverable_package|submittal_package|handover_package|as_built_package|coordination_package');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `planned_issue_date` SET TAGS ('dbx_business_glossary_term' = 'Planned Issue Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `recipient_distribution_list` SET TAGS ('dbx_business_glossary_term' = 'Recipient Distribution List');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `rejection_reason` SET TAGS ('dbx_business_glossary_term' = 'Rejection Reason');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `responsible_organization` SET TAGS ('dbx_business_glossary_term' = 'Responsible Organization');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `reviewed_by` SET TAGS ('dbx_business_glossary_term' = 'Reviewed By');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Revision Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `specification_count` SET TAGS ('dbx_business_glossary_term' = 'Specification Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `storage_location` SET TAGS ('dbx_business_glossary_term' = 'Storage Location');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `submission_status` SET TAGS ('dbx_business_glossary_term' = 'Submission Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `submission_status` SET TAGS ('dbx_value_regex' = 'not_submitted|submitted|under_review|resubmission_required|accepted|rejected');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `supersedes_package_number` SET TAGS ('dbx_business_glossary_term' = 'Supersedes Package Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `title` SET TAGS ('dbx_business_glossary_term' = 'Package Title');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `transmittal_number` SET TAGS ('dbx_business_glossary_term' = 'Transmittal Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` SET TAGS ('dbx_subdomain' = 'review_approval');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` SET TAGS ('dbx_ssot' = 'canonical');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` SET TAGS ('dbx_ssot_ref' = 'quality.quality_submittal');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` SET TAGS ('dbx_ssot_pair' = 'design.design_submittal');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` SET TAGS ('dbx_ssot_status' = 'canonical');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` SET TAGS ('dbx_ssot_pair_resolved' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` SET TAGS ('dbx_ssot_canonical' = 'design.design_submittal');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` SET TAGS ('dbx_ssot_for' = 'quality.quality_submittal');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` SET TAGS ('dbx_ssot_role' = 'owner');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `design_submittal_id` SET TAGS ('dbx_business_glossary_term' = 'Design Submittal Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Asset Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `compliance_permit_id` SET TAGS ('dbx_business_glossary_term' = 'Permit Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Material Material Master Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `rfi_id` SET TAGS ('dbx_business_glossary_term' = 'Rfi Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Submitting Employee Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `trade_package_id` SET TAGS ('dbx_business_glossary_term' = 'Trade Package Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `transmittal_id` SET TAGS ('dbx_business_glossary_term' = 'Transmittal Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `quality_submittal_id` SET TAGS ('dbx_ssot_reference' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `actual_review_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Review Completion Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `actual_submission_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Submission Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `approval_authority_level` SET TAGS ('dbx_business_glossary_term' = 'Approval Authority Level');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `approval_authority_level` SET TAGS ('dbx_value_regex' = 'contractor|design_consultant|client|regulatory_authority|independent_verifier');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `approval_disposition` SET TAGS ('dbx_business_glossary_term' = 'Approval Disposition Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `approval_disposition` SET TAGS ('dbx_value_regex' = 'approved|approved_as_noted|revise_and_resubmit|rejected|no_exception_taken|reviewed_for_information');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `approver_name` SET TAGS ('dbx_business_glossary_term' = 'Approver Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `approver_name` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `approver_name` SET TAGS ('dbx_pii_name' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `approver_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `attachment_count` SET TAGS ('dbx_business_glossary_term' = 'Attachment File Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `bim_model_reference` SET TAGS ('dbx_business_glossary_term' = 'Building Information Modeling (BIM) Model Reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `closure_date` SET TAGS ('dbx_business_glossary_term' = 'Submittal Closure Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `confidentiality_level` SET TAGS ('dbx_business_glossary_term' = 'Confidentiality Classification Level');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `confidentiality_level` SET TAGS ('dbx_value_regex' = 'public|internal|confidential|restricted');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `cost_impact_flag` SET TAGS ('dbx_business_glossary_term' = 'Cost Impact Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Creation Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `discipline` SET TAGS ('dbx_business_glossary_term' = 'Engineering Discipline');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `estimated_cost_impact_amount` SET TAGS ('dbx_business_glossary_term' = 'Estimated Cost Impact Amount');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `estimated_cost_impact_amount` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `file_format` SET TAGS ('dbx_business_glossary_term' = 'Primary File Format');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Last Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `priority` SET TAGS ('dbx_business_glossary_term' = 'Submittal Priority Level');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `priority` SET TAGS ('dbx_value_regex' = 'critical|high|medium|low');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `regulatory_authority` SET TAGS ('dbx_business_glossary_term' = 'Regulatory Authority Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `regulatory_compliance_flag` SET TAGS ('dbx_business_glossary_term' = 'Regulatory Compliance Required Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `required_submission_date` SET TAGS ('dbx_business_glossary_term' = 'Required Submission Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `response_notes` SET TAGS ('dbx_business_glossary_term' = 'Submitter Response Notes');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `review_comments` SET TAGS ('dbx_business_glossary_term' = 'Reviewer Comments');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `review_due_date` SET TAGS ('dbx_business_glossary_term' = 'Review Due Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_business_glossary_term' = 'Reviewer Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_pii_name' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `reviewing_organization` SET TAGS ('dbx_business_glossary_term' = 'Reviewing Organization Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Submittal Revision Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `schedule_impact_days` SET TAGS ('dbx_business_glossary_term' = 'Schedule Impact Days');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `schedule_impact_flag` SET TAGS ('dbx_business_glossary_term' = 'Schedule Impact Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `specification_section` SET TAGS ('dbx_business_glossary_term' = 'Specification Section Reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `submittal_number` SET TAGS ('dbx_business_glossary_term' = 'Submittal Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `submittal_status` SET TAGS ('dbx_business_glossary_term' = 'Submittal Review Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `submittal_type` SET TAGS ('dbx_business_glossary_term' = 'Submittal Type');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `submitting_organization` SET TAGS ('dbx_business_glossary_term' = 'Submitting Organization Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `supersedes_submittal_number` SET TAGS ('dbx_business_glossary_term' = 'Supersedes Submittal Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `title` SET TAGS ('dbx_business_glossary_term' = 'Submittal Title');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_submittal` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` SET TAGS ('dbx_subdomain' = 'review_approval');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `clash_detection_run_id` SET TAGS ('dbx_business_glossary_term' = 'Clash Detection Run Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `comparison_run_id` SET TAGS ('dbx_business_glossary_term' = 'Comparison Clash Detection Run Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'BIM (Building Information Modeling) Analyst Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `accepted_clashes_count` SET TAGS ('dbx_business_glossary_term' = 'Accepted Clashes Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `baseline_run_flag` SET TAGS ('dbx_business_glossary_term' = 'Baseline Run Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `building_zone` SET TAGS ('dbx_business_glossary_term' = 'Building Zone');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `certification_date` SET TAGS ('dbx_business_glossary_term' = 'Clash-Free Certification Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `clash_free_certification_flag` SET TAGS ('dbx_business_glossary_term' = 'Clash-Free Certification Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `clash_tolerance_mm` SET TAGS ('dbx_business_glossary_term' = 'Clash Tolerance in Millimeters (mm)');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `clearance_clashes_count` SET TAGS ('dbx_business_glossary_term' = 'Clearance Clashes Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `coordination_milestone` SET TAGS ('dbx_business_glossary_term' = 'Coordination Milestone');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `critical_clashes_count` SET TAGS ('dbx_business_glossary_term' = 'Critical Clashes Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `discipline_pair` SET TAGS ('dbx_business_glossary_term' = 'Discipline Pair Comparison');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `federated_model_name` SET TAGS ('dbx_business_glossary_term' = 'Federated Building Information Modeling (BIM) Model Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `federated_model_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `hard_clashes_count` SET TAGS ('dbx_business_glossary_term' = 'Hard Clashes Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `major_clashes_count` SET TAGS ('dbx_business_glossary_term' = 'Major Clashes Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `minor_clashes_count` SET TAGS ('dbx_business_glossary_term' = 'Minor Clashes Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `model_version` SET TAGS ('dbx_business_glossary_term' = 'Building Information Modeling (BIM) Model Version');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `new_clashes_count` SET TAGS ('dbx_business_glossary_term' = 'New Clashes Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Clash Detection Run Notes');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `open_clashes_count` SET TAGS ('dbx_business_glossary_term' = 'Open Clashes Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `primary_discipline` SET TAGS ('dbx_business_glossary_term' = 'Primary Discipline');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `report_file_path` SET TAGS ('dbx_business_glossary_term' = 'Clash Detection Report File Path');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `report_format` SET TAGS ('dbx_business_glossary_term' = 'Report Format');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `report_format` SET TAGS ('dbx_value_regex' = 'pdf|html|xml|excel|csv');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `resolved_clashes_count` SET TAGS ('dbx_business_glossary_term' = 'Resolved Clashes Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `run_date` SET TAGS ('dbx_business_glossary_term' = 'Clash Detection Run Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `run_duration_minutes` SET TAGS ('dbx_business_glossary_term' = 'Run Duration in Minutes');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `run_name` SET TAGS ('dbx_business_glossary_term' = 'Clash Detection Run Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `run_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `run_number` SET TAGS ('dbx_business_glossary_term' = 'Clash Detection Run Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `run_status` SET TAGS ('dbx_business_glossary_term' = 'Clash Detection Run Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `run_status` SET TAGS ('dbx_value_regex' = 'queued|in_progress|completed|failed|cancelled');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `run_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Clash Detection Run Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `secondary_discipline` SET TAGS ('dbx_business_glossary_term' = 'Secondary Discipline');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `soft_clashes_count` SET TAGS ('dbx_business_glossary_term' = 'Soft Clashes Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `software_platform` SET TAGS ('dbx_business_glossary_term' = 'Building Information Modeling (BIM) Software Platform');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `software_platform` SET TAGS ('dbx_value_regex' = 'navisworks|bim_360_coordination|solibri|tekla_bimsight|synchro|other');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `software_version` SET TAGS ('dbx_business_glossary_term' = 'Software Version');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `total_clashes_found` SET TAGS ('dbx_business_glossary_term' = 'Total Clashes Found Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `workflow_clashes_count` SET TAGS ('dbx_business_glossary_term' = 'Workflow Clashes Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` SET TAGS ('dbx_subdomain' = 'review_approval');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `review_id` SET TAGS ('dbx_business_glossary_term' = 'Review ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `action_items_count` SET TAGS ('dbx_business_glossary_term' = 'Action Items Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `attendee_count` SET TAGS ('dbx_business_glossary_term' = 'Attendee Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `attendee_list` SET TAGS ('dbx_business_glossary_term' = 'Attendee List');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `bim_model_reference` SET TAGS ('dbx_business_glossary_term' = 'Building Information Modeling (BIM) Model Reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `chairperson_name` SET TAGS ('dbx_business_glossary_term' = 'Chairperson Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `chairperson_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `chairperson_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `clash_detection_performed` SET TAGS ('dbx_business_glossary_term' = 'Clash Detection Performed Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `clashes_identified_count` SET TAGS ('dbx_business_glossary_term' = 'Clashes Identified Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `client_approval_date` SET TAGS ('dbx_business_glossary_term' = 'Client Approval Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `client_approval_required` SET TAGS ('dbx_business_glossary_term' = 'Client Approval Required Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `client_representative_name` SET TAGS ('dbx_business_glossary_term' = 'Client Representative Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `client_representative_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `client_representative_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `client_representative_name` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `client_representative_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `client_representative_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `comments_closed_count` SET TAGS ('dbx_business_glossary_term' = 'Comments Closed Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `comments_open_count` SET TAGS ('dbx_business_glossary_term' = 'Comments Open Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `confidentiality_level` SET TAGS ('dbx_business_glossary_term' = 'Confidentiality Level');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `confidentiality_level` SET TAGS ('dbx_value_regex' = 'public|internal|confidential|restricted');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `design_package_reference` SET TAGS ('dbx_business_glossary_term' = 'Design Package Reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `discipline` SET TAGS ('dbx_business_glossary_term' = 'Discipline');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `disposition` SET TAGS ('dbx_business_glossary_term' = 'Review Disposition');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `disposition` SET TAGS ('dbx_value_regex' = 'accepted|conditionally_accepted|rejected|revise_and_resubmit');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `duration_hours` SET TAGS ('dbx_business_glossary_term' = 'Review Duration Hours');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `external_reference_code` SET TAGS ('dbx_business_glossary_term' = 'External Reference ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `major_comments_count` SET TAGS ('dbx_business_glossary_term' = 'Major Comments Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `meeting_location` SET TAGS ('dbx_business_glossary_term' = 'Meeting Location');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `minor_comments_count` SET TAGS ('dbx_business_glossary_term' = 'Minor Comments Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `minutes_document_reference` SET TAGS ('dbx_business_glossary_term' = 'Minutes Document Reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `next_review_scheduled_date` SET TAGS ('dbx_business_glossary_term' = 'Next Review Scheduled Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `recommendations` SET TAGS ('dbx_business_glossary_term' = 'Recommendations');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `regulatory_authority` SET TAGS ('dbx_business_glossary_term' = 'Regulatory Authority');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `regulatory_compliance_flag` SET TAGS ('dbx_business_glossary_term' = 'Regulatory Compliance Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `review_date` SET TAGS ('dbx_business_glossary_term' = 'Review Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `review_number` SET TAGS ('dbx_business_glossary_term' = 'Review Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `review_status` SET TAGS ('dbx_business_glossary_term' = 'Review Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `review_status` SET TAGS ('dbx_value_regex' = 'scheduled|in_progress|completed|cancelled|deferred');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `review_type` SET TAGS ('dbx_business_glossary_term' = 'Review Type');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `review_type` SET TAGS ('dbx_value_regex' = 'internal_peer_review|interdisciplinary_check|client_milestone_review|third_party_review|authority_review|constructability_review');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `scheduled_date` SET TAGS ('dbx_business_glossary_term' = 'Scheduled Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `sign_off_authority` SET TAGS ('dbx_business_glossary_term' = 'Sign-Off Authority');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `sign_off_date` SET TAGS ('dbx_business_glossary_term' = 'Sign-Off Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `stage` SET TAGS ('dbx_business_glossary_term' = 'Review Stage');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `summary` SET TAGS ('dbx_business_glossary_term' = 'Review Summary');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `total_comments_raised` SET TAGS ('dbx_business_glossary_term' = 'Total Comments Raised');
-ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` SET TAGS ('dbx_subdomain' = 'review_approval');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `change_notice_id` SET TAGS ('dbx_business_glossary_term' = 'Change Notice ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `carbon_target_id` SET TAGS ('dbx_business_glossary_term' = 'Carbon Target Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `compliance_permit_id` SET TAGS ('dbx_business_glossary_term' = 'Permit Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `contract_agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Sub Contract Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `craft_worker_id` SET TAGS ('dbx_business_glossary_term' = 'Originator Worker Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Material Material Master Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `contact_id` SET TAGS ('dbx_business_glossary_term' = 'Originator Contact Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Originator Employee Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `actual_cost_impact_amount` SET TAGS ('dbx_business_glossary_term' = 'Actual Cost Impact Amount');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `actual_schedule_impact_days` SET TAGS ('dbx_business_glossary_term' = 'Actual Schedule Impact Days');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `affected_disciplines` SET TAGS ('dbx_business_glossary_term' = 'Affected Disciplines');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `affected_drawing_references` SET TAGS ('dbx_business_glossary_term' = 'Affected Drawing References');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `affected_specification_references` SET TAGS ('dbx_business_glossary_term' = 'Affected Specification References');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `approval_authority` SET TAGS ('dbx_business_glossary_term' = 'Approval Authority');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `bim_model_reference` SET TAGS ('dbx_business_glossary_term' = 'Building Information Modeling (BIM) Model Reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `change_notice_number` SET TAGS ('dbx_business_glossary_term' = 'Engineering Change Notice (ECN) Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `change_notice_status` SET TAGS ('dbx_business_glossary_term' = 'Change Notice Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `change_notice_type` SET TAGS ('dbx_business_glossary_term' = 'Change Notice Type');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `change_notice_type` SET TAGS ('dbx_value_regex' = 'design_change|engineering_change|specification_change|material_substitution|scope_change|regulatory_change');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `change_order_reference` SET TAGS ('dbx_business_glossary_term' = 'Change Order (CO) Reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `clash_detection_impact` SET TAGS ('dbx_business_glossary_term' = 'Clash Detection Impact');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `client_approval_date` SET TAGS ('dbx_business_glossary_term' = 'Client Approval Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `client_approval_required_flag` SET TAGS ('dbx_business_glossary_term' = 'Client Approval Required Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `comments` SET TAGS ('dbx_business_glossary_term' = 'Comments');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `cost_impact_flag` SET TAGS ('dbx_business_glossary_term' = 'Cost Impact Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `date_raised` SET TAGS ('dbx_business_glossary_term' = 'Date Raised');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `change_notice_description` SET TAGS ('dbx_business_glossary_term' = 'Change Notice Description');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `discipline` SET TAGS ('dbx_business_glossary_term' = 'Engineering Discipline');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `estimated_cost_impact_amount` SET TAGS ('dbx_business_glossary_term' = 'Estimated Cost Impact Amount');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `estimated_schedule_impact_days` SET TAGS ('dbx_business_glossary_term' = 'Estimated Schedule Impact Days');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `implementation_completion_date` SET TAGS ('dbx_business_glossary_term' = 'Implementation Completion Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `implementation_start_date` SET TAGS ('dbx_business_glossary_term' = 'Implementation Start Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `implementation_status` SET TAGS ('dbx_business_glossary_term' = 'Implementation Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `implementation_status` SET TAGS ('dbx_value_regex' = 'not_started|in_progress|completed|on_hold|cancelled');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `originating_cause` SET TAGS ('dbx_business_glossary_term' = 'Originating Cause');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `originating_cause` SET TAGS ('dbx_value_regex' = 'client_instruction|site_condition|design_error|regulatory_requirement|value_engineering|constructability_improvement');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `originator_organization` SET TAGS ('dbx_business_glossary_term' = 'Originator Organization');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `priority` SET TAGS ('dbx_business_glossary_term' = 'Change Notice Priority');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `priority` SET TAGS ('dbx_value_regex' = 'critical|high|medium|low');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `regulatory_compliance_flag` SET TAGS ('dbx_business_glossary_term' = 'Regulatory Compliance Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `regulatory_reference` SET TAGS ('dbx_business_glossary_term' = 'Regulatory Reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `rejection_date` SET TAGS ('dbx_business_glossary_term' = 'Rejection Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `rejection_reason` SET TAGS ('dbx_business_glossary_term' = 'Rejection Reason');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `schedule_impact_flag` SET TAGS ('dbx_business_glossary_term' = 'Schedule Impact Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `title` SET TAGS ('dbx_business_glossary_term' = 'Change Notice Title');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` SET TAGS ('dbx_subdomain' = 'interface_coordination');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `mep_coordination_zone_id` SET TAGS ('dbx_business_glossary_term' = 'Mechanical Electrical Plumbing (MEP) Coordination Zone ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Assigned MEP Coordinator ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `access_constraints` SET TAGS ('dbx_business_glossary_term' = 'Access Constraints');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `actual_completion_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Completion Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `actual_start_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Start Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `available_clearance_m` SET TAGS ('dbx_business_glossary_term' = 'Available Clearance in Meters');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `bim_model_reference` SET TAGS ('dbx_business_glossary_term' = 'Building Information Modeling (BIM) Model Reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `bim_model_version` SET TAGS ('dbx_business_glossary_term' = 'BIM Model Version');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `building_reference` SET TAGS ('dbx_business_glossary_term' = 'Building Reference Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `ceiling_height_m` SET TAGS ('dbx_business_glossary_term' = 'Ceiling Height in Meters');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `clash_detection_status` SET TAGS ('dbx_business_glossary_term' = 'Clash Detection Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `clash_detection_status` SET TAGS ('dbx_value_regex' = 'not_started|in_progress|completed|clashes_detected|clashes_resolved');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `contractor_organization` SET TAGS ('dbx_business_glossary_term' = 'Contractor Organization');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `coordination_meeting_date` SET TAGS ('dbx_business_glossary_term' = 'Coordination Meeting Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `coordination_notes` SET TAGS ('dbx_business_glossary_term' = 'Coordination Notes');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `coordination_priority_rank` SET TAGS ('dbx_business_glossary_term' = 'Coordination Priority Rank');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `coordination_status` SET TAGS ('dbx_business_glossary_term' = 'Coordination Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `coordination_status` SET TAGS ('dbx_value_regex' = 'pending|in_progress|under_review|signed_off|on_hold|rejected');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `document_reference` SET TAGS ('dbx_business_glossary_term' = 'Document Reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `grid_reference_end` SET TAGS ('dbx_business_glossary_term' = 'Grid Reference End');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `grid_reference_start` SET TAGS ('dbx_business_glossary_term' = 'Grid Reference Start');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `installation_sequence_number` SET TAGS ('dbx_business_glossary_term' = 'Installation Sequence Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `level_reference` SET TAGS ('dbx_business_glossary_term' = 'Level Reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `modified_by` SET TAGS ('dbx_business_glossary_term' = 'Modified By');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `open_clash_count` SET TAGS ('dbx_business_glossary_term' = 'Open Clash Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `planned_completion_date` SET TAGS ('dbx_business_glossary_term' = 'Planned Completion Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `planned_start_date` SET TAGS ('dbx_business_glossary_term' = 'Planned Start Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `primary_discipline` SET TAGS ('dbx_business_glossary_term' = 'Primary MEP Discipline');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `sign_off_authority` SET TAGS ('dbx_business_glossary_term' = 'Sign-Off Authority');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `sign_off_date` SET TAGS ('dbx_business_glossary_term' = 'Sign-Off Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `soffit_height_m` SET TAGS ('dbx_business_glossary_term' = 'Soffit Height in Meters');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `special_requirements` SET TAGS ('dbx_business_glossary_term' = 'Special Requirements');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `total_clash_count` SET TAGS ('dbx_business_glossary_term' = 'Total Clash Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `zone_area_sqm` SET TAGS ('dbx_business_glossary_term' = 'Zone Area in Square Meters');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `zone_complexity_rating` SET TAGS ('dbx_business_glossary_term' = 'Zone Complexity Rating');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `zone_complexity_rating` SET TAGS ('dbx_value_regex' = 'low|medium|high|critical');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `zone_name` SET TAGS ('dbx_business_glossary_term' = 'MEP Zone Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `zone_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `zone_number` SET TAGS ('dbx_business_glossary_term' = 'MEP Zone Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `created_by` SET TAGS ('dbx_business_glossary_term' = 'Created By');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` SET TAGS ('dbx_subdomain' = 'review_approval');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `value_engineering_proposal_id` SET TAGS ('dbx_business_glossary_term' = 'Value Engineering (VE) Proposal ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Material Material Master Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Originator Employee Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `affected_design_elements` SET TAGS ('dbx_business_glossary_term' = 'Affected Design Elements');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `approval_authority` SET TAGS ('dbx_business_glossary_term' = 'Approval Authority');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `change_order_reference` SET TAGS ('dbx_business_glossary_term' = 'Change Order (CO) Reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `client_decision` SET TAGS ('dbx_business_glossary_term' = 'Client Decision');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `client_decision` SET TAGS ('dbx_value_regex' = 'accepted|rejected|deferred|conditional_acceptance|pending');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `client_decision_date` SET TAGS ('dbx_business_glossary_term' = 'Client Decision Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `client_decision_notes` SET TAGS ('dbx_business_glossary_term' = 'Client Decision Notes');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `client_review_due_date` SET TAGS ('dbx_business_glossary_term' = 'Client Review Due Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `client_submission_date` SET TAGS ('dbx_business_glossary_term' = 'Client Submission Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `comments` SET TAGS ('dbx_business_glossary_term' = 'Comments');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `environmental_impact_flag` SET TAGS ('dbx_business_glossary_term' = 'Environmental Impact Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `estimated_cost_saving` SET TAGS ('dbx_business_glossary_term' = 'Estimated Cost Saving');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `implementation_completion_date` SET TAGS ('dbx_business_glossary_term' = 'Implementation Completion Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `implementation_start_date` SET TAGS ('dbx_business_glossary_term' = 'Implementation Start Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `implementation_status` SET TAGS ('dbx_business_glossary_term' = 'Implementation Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `implementation_status` SET TAGS ('dbx_value_regex' = 'not_started|in_progress|completed|cancelled|on_hold');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `implemented_saving_value` SET TAGS ('dbx_business_glossary_term' = 'Implemented Saving Value');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `originator_discipline` SET TAGS ('dbx_business_glossary_term' = 'Originator Discipline');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `originator_organization` SET TAGS ('dbx_business_glossary_term' = 'Originator Organization');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `priority` SET TAGS ('dbx_business_glossary_term' = 'Priority');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `priority` SET TAGS ('dbx_value_regex' = 'low|medium|high|critical');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `proposal_description` SET TAGS ('dbx_business_glossary_term' = 'Value Engineering (VE) Proposal Description');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `proposal_number` SET TAGS ('dbx_business_glossary_term' = 'Value Engineering (VE) Proposal Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `proposal_number` SET TAGS ('dbx_value_regex' = '^VE-[A-Z0-9]{4,12}$');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `proposal_status` SET TAGS ('dbx_business_glossary_term' = 'Value Engineering (VE) Proposal Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `proposal_title` SET TAGS ('dbx_business_glossary_term' = 'Value Engineering (VE) Proposal Title');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `quality_impact_assessment` SET TAGS ('dbx_business_glossary_term' = 'Quality Impact Assessment');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `quality_impact_assessment` SET TAGS ('dbx_value_regex' = 'positive|neutral|negative|requires_further_study');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `quality_impact_notes` SET TAGS ('dbx_business_glossary_term' = 'Quality Impact Notes');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `related_drawing_references` SET TAGS ('dbx_business_glossary_term' = 'Related Drawing References');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `related_specification_references` SET TAGS ('dbx_business_glossary_term' = 'Related Specification References');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `review_date` SET TAGS ('dbx_business_glossary_term' = 'Review Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `reviewed_by` SET TAGS ('dbx_business_glossary_term' = 'Reviewed By');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `risk_assessment` SET TAGS ('dbx_business_glossary_term' = 'Risk Assessment');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `risk_assessment` SET TAGS ('dbx_value_regex' = 'low|medium|high|critical');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `risk_description` SET TAGS ('dbx_business_glossary_term' = 'Risk Description');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `safety_impact_flag` SET TAGS ('dbx_business_glossary_term' = 'Safety Impact Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `safety_review_notes` SET TAGS ('dbx_business_glossary_term' = 'Safety Review Notes');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `schedule_impact_days` SET TAGS ('dbx_business_glossary_term' = 'Schedule Impact Days');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `sustainability_rating` SET TAGS ('dbx_business_glossary_term' = 'Sustainability Rating');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `sustainability_rating` SET TAGS ('dbx_value_regex' = 'improved|neutral|reduced|not_applicable');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `created_by` SET TAGS ('dbx_business_glossary_term' = 'Created By');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` SET TAGS ('dbx_subdomain' = 'engineering_deliverables');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` SET TAGS ('dbx_ssot_ref' = 'contract.contract_scope');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` SET TAGS ('dbx_ssot' = 'reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` SET TAGS ('dbx_ssot_canonical' = 'contract.contract_scope');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` SET TAGS ('dbx_ssot_status' = 'duplicate');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` SET TAGS ('dbx_ssot_pair_resolved' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` SET TAGS ('dbx_ssot_role' = 'duplicate');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` SET TAGS ('dbx_ssot_pair' = 'contract.contract_scope');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `design_scope_id` SET TAGS ('dbx_business_glossary_term' = 'Design Scope Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Contract Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `contract_scope_id` SET TAGS ('dbx_ssot_reference' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `contract_scope_id` SET TAGS ('dbx_ssot_reference_fk' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `contract_scope_id` SET TAGS ('dbx_ssot_owner' = 'contract.contract_scope');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `design_contract_scope_ref_contract_scope_id` SET TAGS ('dbx_ssot_reference' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Design Responsibility Owner Employee Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `superseded_by_scope_design_scope_id` SET TAGS ('dbx_business_glossary_term' = 'Superseded By Scope Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `applicable_codes_standards` SET TAGS ('dbx_business_glossary_term' = 'Applicable Codes and Standards');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `approval_authority` SET TAGS ('dbx_business_glossary_term' = 'Approval Authority');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `bim_model_reference` SET TAGS ('dbx_business_glossary_term' = 'Building Information Modeling (BIM) Model Reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `change_control_baseline` SET TAGS ('dbx_business_glossary_term' = 'Change Control Baseline');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `comments` SET TAGS ('dbx_business_glossary_term' = 'Comments');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `confidentiality_classification` SET TAGS ('dbx_business_glossary_term' = 'Confidentiality Classification');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `confidentiality_classification` SET TAGS ('dbx_value_regex' = 'Public|Internal|Confidential|Restricted');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `contract_type` SET TAGS ('dbx_business_glossary_term' = 'Contract Type');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `corrosion_allowance_mm` SET TAGS ('dbx_business_glossary_term' = 'Corrosion Allowance Millimeters (mm)');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `design_basis_memorandum_reference` SET TAGS ('dbx_business_glossary_term' = 'Design Basis Memorandum (DBM) Reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `design_life_years` SET TAGS ('dbx_business_glossary_term' = 'Design Life Years');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `design_responsibility_matrix` SET TAGS ('dbx_business_glossary_term' = 'Design Responsibility Matrix');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `discipline` SET TAGS ('dbx_business_glossary_term' = 'Discipline');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `environmental_design_conditions` SET TAGS ('dbx_business_glossary_term' = 'Environmental Design Conditions');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `exclusions_limitations` SET TAGS ('dbx_business_glossary_term' = 'Exclusions and Limitations');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `fire_rating_requirements` SET TAGS ('dbx_business_glossary_term' = 'Fire Rating Requirements');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `freeze_date` SET TAGS ('dbx_business_glossary_term' = 'Scope Freeze Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `interface_points` SET TAGS ('dbx_business_glossary_term' = 'Interface Points');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `iso_19650_compliance_flag` SET TAGS ('dbx_business_glossary_term' = 'ISO 19650 Compliance Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `jurisdiction` SET TAGS ('dbx_business_glossary_term' = 'Jurisdiction');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `last_modified_by` SET TAGS ('dbx_business_glossary_term' = 'Last Modified By');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `leed_certification_target` SET TAGS ('dbx_business_glossary_term' = 'Leadership in Energy and Environmental Design (LEED) Certification Target');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `leed_certification_target` SET TAGS ('dbx_value_regex' = 'Not Applicable|Certified|Silver|Gold|Platinum');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `manager_name` SET TAGS ('dbx_business_glossary_term' = 'Scope Manager Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `manager_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `narrative_description` SET TAGS ('dbx_business_glossary_term' = 'Scope Narrative Description');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `owner_organization` SET TAGS ('dbx_business_glossary_term' = 'Scope Owner Organization');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `package_number` SET TAGS ('dbx_business_glossary_term' = 'Scope Package Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `package_title` SET TAGS ('dbx_business_glossary_term' = 'Scope Package Title');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `retention_period_years` SET TAGS ('dbx_business_glossary_term' = 'Retention Period Years');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Revision Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `scope_status` SET TAGS ('dbx_business_glossary_term' = 'Scope Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `seismic_zone_classification` SET TAGS ('dbx_business_glossary_term' = 'Seismic Zone Classification');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `snow_loading_criteria` SET TAGS ('dbx_business_glossary_term' = 'Snow Loading Criteria');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `temperature_range_max_c` SET TAGS ('dbx_business_glossary_term' = 'Temperature Range Maximum Celsius (C)');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `temperature_range_min_c` SET TAGS ('dbx_business_glossary_term' = 'Temperature Range Minimum Celsius (C)');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `wind_loading_criteria` SET TAGS ('dbx_business_glossary_term' = 'Wind Loading Criteria');
-ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `created_by` SET TAGS ('dbx_business_glossary_term' = 'Created By');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` SET TAGS ('dbx_subdomain' = 'interface_coordination');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `interface_point_id` SET TAGS ('dbx_business_glossary_term' = 'Interface Point Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Approval Authority Employee Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `firm_profile_id` SET TAGS ('dbx_business_glossary_term' = 'Sub Firm Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `actual_handover_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Interface Handover Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `bim_model_reference` SET TAGS ('dbx_business_glossary_term' = 'Building Information Modeling (BIM) Model Reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `clash_detection_status` SET TAGS ('dbx_business_glossary_term' = 'Clash Detection Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `clash_detection_status` SET TAGS ('dbx_value_regex' = 'not-applicable|pending|in-progress|resolved|unresolved');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `closure_date` SET TAGS ('dbx_business_glossary_term' = 'Interface Closure Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `comments` SET TAGS ('dbx_business_glossary_term' = 'Interface Comments');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `coordination_meeting_frequency` SET TAGS ('dbx_business_glossary_term' = 'Coordination Meeting Frequency');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `coordination_meeting_frequency` SET TAGS ('dbx_value_regex' = 'daily|weekly|bi-weekly|monthly|as-needed|none');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `cost_impact_amount` SET TAGS ('dbx_business_glossary_term' = 'Cost Impact Amount');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `cost_impact_amount` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `cost_impact_flag` SET TAGS ('dbx_business_glossary_term' = 'Cost Impact Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `discipline` SET TAGS ('dbx_business_glossary_term' = 'Engineering Discipline');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `interface_agreement_date` SET TAGS ('dbx_business_glossary_term' = 'Interface Agreement Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `interface_category` SET TAGS ('dbx_business_glossary_term' = 'Interface Category');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `interface_category` SET TAGS ('dbx_value_regex' = 'design-design|design-construction|construction-construction|construction-commissioning|internal|external');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `interface_description` SET TAGS ('dbx_business_glossary_term' = 'Interface Point Description');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `interface_freeze_date` SET TAGS ('dbx_business_glossary_term' = 'Interface Freeze Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `interface_number` SET TAGS ('dbx_business_glossary_term' = 'Interface Point Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `interface_status` SET TAGS ('dbx_business_glossary_term' = 'Interface Point Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `interface_status` SET TAGS ('dbx_value_regex' = 'open|under-review|agreed|frozen|closed|disputed');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `interface_title` SET TAGS ('dbx_business_glossary_term' = 'Interface Point Title');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `interface_type` SET TAGS ('dbx_business_glossary_term' = 'Interface Type');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `interface_type` SET TAGS ('dbx_value_regex' = 'physical|functional|data|contractual|organizational');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `location_description` SET TAGS ('dbx_business_glossary_term' = 'Interface Location Description');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `modified_by` SET TAGS ('dbx_business_glossary_term' = 'Record Last Modified By User');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Last Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `originating_party_contact_email` SET TAGS ('dbx_business_glossary_term' = 'Originating Party Contact Email');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `originating_party_contact_email` SET TAGS ('dbx_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `originating_party_contact_email` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `originating_party_contact_email` SET TAGS ('dbx_pii_email' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `originating_party_contact_email` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `originating_party_contact_name` SET TAGS ('dbx_business_glossary_term' = 'Originating Party Contact Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `originating_party_contact_name` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `originating_party_contact_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `originating_party_contact_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `originating_party_organization` SET TAGS ('dbx_business_glossary_term' = 'Originating Party Organization');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `originating_scope_package` SET TAGS ('dbx_business_glossary_term' = 'Originating Scope Package');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `outstanding_actions` SET TAGS ('dbx_business_glossary_term' = 'Outstanding Interface Actions');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `planned_handover_date` SET TAGS ('dbx_business_glossary_term' = 'Planned Interface Handover Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `priority` SET TAGS ('dbx_business_glossary_term' = 'Interface Priority');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `priority` SET TAGS ('dbx_value_regex' = 'critical|high|medium|low');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `receiving_party_contact_email` SET TAGS ('dbx_business_glossary_term' = 'Receiving Party Contact Email');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `receiving_party_contact_email` SET TAGS ('dbx_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `receiving_party_contact_email` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `receiving_party_contact_email` SET TAGS ('dbx_pii_email' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `receiving_party_contact_email` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `receiving_party_contact_name` SET TAGS ('dbx_business_glossary_term' = 'Receiving Party Contact Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `receiving_party_contact_name` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `receiving_party_contact_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `receiving_party_contact_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `receiving_party_organization` SET TAGS ('dbx_business_glossary_term' = 'Receiving Party Organization');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `receiving_scope_package` SET TAGS ('dbx_business_glossary_term' = 'Receiving Scope Package');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `related_drawing_references` SET TAGS ('dbx_business_glossary_term' = 'Related Drawing References');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `related_rfi_numbers` SET TAGS ('dbx_business_glossary_term' = 'Related Request for Information (RFI) Numbers');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `risk_level` SET TAGS ('dbx_business_glossary_term' = 'Interface Risk Level');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `risk_level` SET TAGS ('dbx_value_regex' = 'very-high|high|medium|low|very-low');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `schedule_impact_days` SET TAGS ('dbx_business_glossary_term' = 'Schedule Impact Days');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `created_by` SET TAGS ('dbx_business_glossary_term' = 'Record Created By User');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` SET TAGS ('dbx_subdomain' = 'engineering_deliverables');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `calculation_register_id` SET TAGS ('dbx_business_glossary_term' = 'Calculation Register ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Approver ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `emission_factor_id` SET TAGS ('dbx_business_glossary_term' = 'Emission Factor Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Material Material Master Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `primary_calculation_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Author ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `primary_calculation_employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `primary_calculation_employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `analysis_software` SET TAGS ('dbx_business_glossary_term' = 'Analysis Software');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `approver_name` SET TAGS ('dbx_business_glossary_term' = 'Approver Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `approver_name` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `approver_name` SET TAGS ('dbx_pii_name' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `approver_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `author_name` SET TAGS ('dbx_business_glossary_term' = 'Author Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `author_name` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `author_name` SET TAGS ('dbx_pii_name' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `author_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `calculation_number` SET TAGS ('dbx_business_glossary_term' = 'Calculation Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `calculation_purpose` SET TAGS ('dbx_business_glossary_term' = 'Calculation Purpose');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `calculation_purpose` SET TAGS ('dbx_value_regex' = 'member_sizing|hydraulic_analysis|load_study|heat_load|fire_hydraulics|other');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `checker_name` SET TAGS ('dbx_business_glossary_term' = 'Checker Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `checker_name` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `checker_name` SET TAGS ('dbx_pii_name' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `checker_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `creation_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Creation Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `design_code` SET TAGS ('dbx_business_glossary_term' = 'Design Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `discipline` SET TAGS ('dbx_business_glossary_term' = 'Discipline');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `discipline` SET TAGS ('dbx_value_regex' = 'structural|hydraulic|electrical|hvac|fire_protection|civil');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `document_reference` SET TAGS ('dbx_business_glossary_term' = 'Document Reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `effective_date` SET TAGS ('dbx_business_glossary_term' = 'Effective Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `expiration_date` SET TAGS ('dbx_business_glossary_term' = 'Expiration Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `input_assumptions` SET TAGS ('dbx_business_glossary_term' = 'Input Assumptions');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `is_confidential` SET TAGS ('dbx_business_glossary_term' = 'Confidential Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Notes');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `result_units` SET TAGS ('dbx_business_glossary_term' = 'Result Units');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `result_value` SET TAGS ('dbx_business_glossary_term' = 'Result Value');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Revision Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `revision_status` SET TAGS ('dbx_business_glossary_term' = 'Revision Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `revision_status` SET TAGS ('dbx_value_regex' = 'draft|checked|approved|superseded');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `title` SET TAGS ('dbx_business_glossary_term' = 'Calculation Title');
-ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'WBS Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` SET TAGS ('dbx_data_type' = 'association_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` SET TAGS ('dbx_subdomain' = 'interface_coordination');
-ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` SET TAGS ('dbx_association_edges' = 'design.drawing,equipment.asset');
-ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `equipment_installation_id` SET TAGS ('dbx_business_glossary_term' = 'Equipment Installation - Installation Id');
-ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Equipment Installation - Asset Id');
-ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Equipment Installation - Drawing Id');
-ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `installation_location` SET TAGS ('dbx_business_glossary_term' = 'Installation Location');
-ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `quantity` SET TAGS ('dbx_business_glossary_term' = 'Quantity Installed');
-ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `verified_by` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `verified_by` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `verified_by_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `verified_by_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` SET TAGS ('dbx_data_type' = 'association_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` SET TAGS ('dbx_subdomain' = 'interface_coordination');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` SET TAGS ('dbx_association_edges' = 'design.interface_point,equipment.asset');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `interface_equipment_assignment_id` SET TAGS ('dbx_business_glossary_term' = 'Interface Equipment Assignment - Interface Equipment Assignment Id');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Interface Equipment Assignment - Asset Id');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `interface_point_id` SET TAGS ('dbx_business_glossary_term' = 'Interface Equipment Assignment - Interface Point Id');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `installation_date` SET TAGS ('dbx_business_glossary_term' = 'Asset Installation Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `responsible_party` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `responsible_party` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `role_in_interface` SET TAGS ('dbx_business_glossary_term' = 'Asset Role in Interface');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` SET TAGS ('dbx_data_type' = 'association_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` SET TAGS ('dbx_subdomain' = 'interface_coordination');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` SET TAGS ('dbx_association_edges' = 'design.change_notice,equipment.asset');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` SET TAGS ('dbx_fk_added' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `change_impact_id` SET TAGS ('dbx_business_glossary_term' = 'Change Impact - Change Impact Id');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Change Impact - Asset Id');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `change_notice_id` SET TAGS ('dbx_business_glossary_term' = 'Change Impact - Change Notice Id');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `assessed_by` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `assessed_by` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `assessed_by_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `assessed_by_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `cost_impact_amount` SET TAGS ('dbx_business_glossary_term' = 'Asset Cost Impact');
-ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `impact_description` SET TAGS ('dbx_business_glossary_term' = 'Impact Description');
-ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` SET TAGS ('dbx_data_type' = 'association_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` SET TAGS ('dbx_subdomain' = 'interface_coordination');
-ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` SET TAGS ('dbx_association_edges' = 'design.mep_coordination_zone,equipment.asset');
-ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `zone_equipment_allocation_id` SET TAGS ('dbx_business_glossary_term' = 'Zone Equipment Allocation - Zone Equipment Allocation Id');
-ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Zone Equipment Allocation - Asset Id');
-ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `mep_coordination_zone_id` SET TAGS ('dbx_business_glossary_term' = 'Zone Equipment Allocation - Mep Coordination Zone Id');
-ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `asset_position` SET TAGS ('dbx_business_glossary_term' = 'Asset Position');
-ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `clearance_requirement` SET TAGS ('dbx_business_glossary_term' = 'Clearance Requirement');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` SET TAGS ('dbx_data_type' = 'association_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` SET TAGS ('dbx_subdomain' = 'engineering_deliverables');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` SET TAGS ('dbx_association_edges' = 'design.drawing,schedule.activity');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `drawing_requirement_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Requirement - Drawing Requirement Id');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `activity_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Requirement - Activity Id');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Requirement - Drawing Id');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `dependency_type` SET TAGS ('dbx_business_glossary_term' = 'Dependency Type');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `dependency_type` SET TAGS ('dbx_schedule' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `lag_days` SET TAGS ('dbx_business_glossary_term' = 'Lag Days');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `lag_days` SET TAGS ('dbx_schedule' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` SET TAGS ('dbx_data_type' = 'association_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` SET TAGS ('dbx_subdomain' = 'interface_coordination');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` SET TAGS ('dbx_association_edges' = 'design.drawing,safety.incident');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `drawing_incident_link_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Incident Link - Drawing Incident Link Id');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Incident Link - Drawing Id');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `incident_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Incident Link - Incident Id');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `employee_id` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `corrective_action_reference` SET TAGS ('dbx_business_glossary_term' = 'Corrective Action Reference');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `is_design_defect` SET TAGS ('dbx_business_glossary_term' = 'Design Defect Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `is_primary_link` SET TAGS ('dbx_business_glossary_term' = 'Primary Link Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `linked_by` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `linked_by` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `linked_by_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `linked_by_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `reference_notes` SET TAGS ('dbx_business_glossary_term' = 'Reference Notes');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `relevance_rating` SET TAGS ('dbx_business_glossary_term' = 'Relevance Rating');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `requires_drawing_revision` SET TAGS ('dbx_business_glossary_term' = 'Requires Drawing Revision Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `reviewed_by` SET TAGS ('dbx_business_glossary_term' = 'Reviewed By');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `reviewed_date` SET TAGS ('dbx_business_glossary_term' = 'Reviewed Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` SET TAGS ('dbx_subdomain' = 'document_control');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` SET TAGS ('dbx_curated' = 'v2');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `workflow_template_id` SET TAGS ('dbx_business_glossary_term' = 'Workflow Template Identifier');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `parent_workflow_template_id` SET TAGS ('dbx_business_glossary_term' = 'Parent Workflow Template Id');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `parent_workflow_template_id` SET TAGS ('dbx_self_ref_fk' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `approval_required` SET TAGS ('dbx_business_glossary_term' = 'Approval Required');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `average_step_duration_minutes` SET TAGS ('dbx_business_glossary_term' = 'Average Step Duration Minutes');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `workflow_template_code` SET TAGS ('dbx_business_glossary_term' = 'Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `compliance_requirements` SET TAGS ('dbx_business_glossary_term' = 'Compliance Requirements');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `default_assignee_role` SET TAGS ('dbx_business_glossary_term' = 'Default Assignee Role');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `workflow_template_description` SET TAGS ('dbx_business_glossary_term' = 'Description');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `documentation_url` SET TAGS ('dbx_business_glossary_term' = 'Documentation Url');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `effective_from` SET TAGS ('dbx_business_glossary_term' = 'Effective From');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `effective_until` SET TAGS ('dbx_business_glossary_term' = 'Effective Until');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `escalation_policy` SET TAGS ('dbx_business_glossary_term' = 'Escalation Policy');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `is_default` SET TAGS ('dbx_business_glossary_term' = 'Is Default');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `last_reviewed_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Reviewed Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `max_concurrent_instances` SET TAGS ('dbx_business_glossary_term' = 'Max Concurrent Instances');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `workflow_template_name` SET TAGS ('dbx_business_glossary_term' = 'Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `workflow_template_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `notification_enabled` SET TAGS ('dbx_business_glossary_term' = 'Notification Enabled');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `retention_period_days` SET TAGS ('dbx_business_glossary_term' = 'Retention Period Days');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `reviewed_by` SET TAGS ('dbx_business_glossary_term' = 'Reviewed By');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `risk_level` SET TAGS ('dbx_business_glossary_term' = 'Risk Level');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `workflow_template_status` SET TAGS ('dbx_business_glossary_term' = 'Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `step_count` SET TAGS ('dbx_business_glossary_term' = 'Step Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `workflow_template_type` SET TAGS ('dbx_business_glossary_term' = 'Type');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Updated Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `version_number` SET TAGS ('dbx_business_glossary_term' = 'Version Number');
+ALTER SCHEMA `vibe_construction_v1`.`design` SET TAGS ('pii_division' = 'operations');
+ALTER SCHEMA `vibe_construction_v1`.`design` SET TAGS ('pii_domain' = 'design');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` SET TAGS ('pii_data_type' = 'master_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` SET TAGS ('pii_subdomain' = 'document_control');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `correspondence_id` SET TAGS ('pii_business_glossary_term' = 'Correspondence Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Project Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `parent_correspondence_id` SET TAGS ('pii_business_glossary_term' = 'Parent Correspondence Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `account_id` SET TAGS ('pii_business_glossary_term' = 'Sender Account Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `attachment_count` SET TAGS ('pii_business_glossary_term' = 'Attachment Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `body_text` SET TAGS ('pii_business_glossary_term' = 'Correspondence Body Text');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `closure_date` SET TAGS ('pii_business_glossary_term' = 'Closure Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `closure_status` SET TAGS ('pii_business_glossary_term' = 'Closure Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `closure_status` SET TAGS ('pii_value_regex' = 'open|closed_accepted|closed_rejected|closed_superseded');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `confidential_flag` SET TAGS ('pii_business_glossary_term' = 'Confidential Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `correspondence_date` SET TAGS ('pii_business_glossary_term' = 'Correspondence Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `correspondence_number` SET TAGS ('pii_business_glossary_term' = 'Correspondence Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `correspondence_number` SET TAGS ('pii_value_regex' = '^[A-Z0-9-]+$');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `correspondence_status` SET TAGS ('pii_business_glossary_term' = 'Correspondence Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `correspondence_status` SET TAGS ('pii_value_regex' = 'draft|issued|acknowledged|responded|closed|cancelled');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `correspondence_type` SET TAGS ('pii_business_glossary_term' = 'Correspondence Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `correspondence_type` SET TAGS ('pii_value_regex' = 'rfi|instruction|notice|claim|letter|memo');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `discipline` SET TAGS ('pii_business_glossary_term' = 'Engineering Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `distribution_list` SET TAGS ('pii_business_glossary_term' = 'Distribution List');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `modified_by` SET TAGS ('pii_business_glossary_term' = 'Record Modified By User');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Record Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `priority` SET TAGS ('pii_business_glossary_term' = 'Correspondence Priority');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `priority` SET TAGS ('pii_value_regex' = 'urgent|high|normal|low');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `received_date` SET TAGS ('pii_business_glossary_term' = 'Received Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `recipient_email` SET TAGS ('pii_business_glossary_term' = 'Recipient Email Address');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `recipient_email` SET TAGS ('pii_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `recipient_email` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `recipient_email` SET TAGS ('pii_email' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `recipient_name` SET TAGS ('pii_business_glossary_term' = 'Recipient Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `recipient_name` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `recipient_name` SET TAGS ('pii_name' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `recipient_organization` SET TAGS ('pii_business_glossary_term' = 'Recipient Organization');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `response_date` SET TAGS ('pii_business_glossary_term' = 'Response Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `response_due_date` SET TAGS ('pii_business_glossary_term' = 'Response Due Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `response_method` SET TAGS ('pii_business_glossary_term' = 'Response Method');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `response_method` SET TAGS ('pii_value_regex' = 'email|letter|transmittal|meeting|phone');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `response_required_flag` SET TAGS ('pii_business_glossary_term' = 'Response Required Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `response_text` SET TAGS ('pii_business_glossary_term' = 'Response Text');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `sender_email` SET TAGS ('pii_business_glossary_term' = 'Sender Email Address');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `sender_email` SET TAGS ('pii_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `sender_email` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `sender_email` SET TAGS ('pii_email' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `sender_name` SET TAGS ('pii_business_glossary_term' = 'Sender Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `sender_name` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `sender_name` SET TAGS ('pii_name' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `subject` SET TAGS ('pii_business_glossary_term' = 'Correspondence Subject');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `transmittal_number` SET TAGS ('pii_business_glossary_term' = 'Transmittal Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `wbs_code` SET TAGS ('pii_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence` ALTER COLUMN `created_by` SET TAGS ('pii_business_glossary_term' = 'Record Created By User');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` SET TAGS ('pii_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` SET TAGS ('pii_subdomain' = 'document_control');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `transmittal_id` SET TAGS ('pii_business_glossary_term' = 'Transmittal Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Contract Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Project Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'Created By Employee Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `phase_id` SET TAGS ('pii_business_glossary_term' = 'Phase Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `account_id` SET TAGS ('pii_business_glossary_term' = 'Sender Account Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `acknowledgement_by` SET TAGS ('pii_business_glossary_term' = 'Acknowledged By');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `acknowledgement_by` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `acknowledgement_by` SET TAGS ('pii_name' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `acknowledgement_date` SET TAGS ('pii_business_glossary_term' = 'Acknowledgement Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `acknowledgement_required_flag` SET TAGS ('pii_business_glossary_term' = 'Acknowledgement Required Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `acknowledgement_status` SET TAGS ('pii_business_glossary_term' = 'Acknowledgement Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `acknowledgement_status` SET TAGS ('pii_value_regex' = 'pending|acknowledged|overdue|not_required');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `confidentiality_level` SET TAGS ('pii_business_glossary_term' = 'Confidentiality Level');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `confidentiality_level` SET TAGS ('pii_value_regex' = 'public|internal|confidential|restricted');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `delivery_method` SET TAGS ('pii_business_glossary_term' = 'Delivery Method');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `delivery_method` SET TAGS ('pii_value_regex' = 'electronic|courier|hand_delivery|postal_mail|ftp|portal');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `transmittal_description` SET TAGS ('pii_business_glossary_term' = 'Transmittal Description');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `discipline` SET TAGS ('pii_business_glossary_term' = 'Engineering Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `document_count` SET TAGS ('pii_business_glossary_term' = 'Document Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `due_date` SET TAGS ('pii_business_glossary_term' = 'Response Due Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `issue_date` SET TAGS ('pii_business_glossary_term' = 'Issue Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `priority` SET TAGS ('pii_business_glossary_term' = 'Transmittal Priority');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `priority` SET TAGS ('pii_value_regex' = 'urgent|high|normal|low');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `purpose_of_issue` SET TAGS ('pii_business_glossary_term' = 'Purpose of Issue');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `purpose_of_issue` SET TAGS ('pii_value_regex' = 'for_approval|for_information|for_construction|for_record|for_review|for_comment');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `recipient_contact_name` SET TAGS ('pii_business_glossary_term' = 'Recipient Contact Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `recipient_contact_name` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `recipient_contact_name` SET TAGS ('pii_name' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `recipient_email` SET TAGS ('pii_business_glossary_term' = 'Recipient Email Address');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `recipient_email` SET TAGS ('pii_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `recipient_email` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `recipient_email` SET TAGS ('pii_email' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `recipient_organization` SET TAGS ('pii_business_glossary_term' = 'Recipient Organization');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `reference_transmittal_number` SET TAGS ('pii_business_glossary_term' = 'Reference Transmittal Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `remarks` SET TAGS ('pii_business_glossary_term' = 'Transmittal Remarks');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `revision_number` SET TAGS ('pii_business_glossary_term' = 'Revision Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `revision_number` SET TAGS ('pii_value_regex' = '^[A-Z0-9.]+$');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `sender_contact_name` SET TAGS ('pii_business_glossary_term' = 'Sender Contact Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `sender_contact_name` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `sender_contact_name` SET TAGS ('pii_name' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `sender_email` SET TAGS ('pii_business_glossary_term' = 'Sender Email Address');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `sender_email` SET TAGS ('pii_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `sender_email` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `sender_email` SET TAGS ('pii_email' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `subject` SET TAGS ('pii_business_glossary_term' = 'Transmittal Subject');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `transmittal_number` SET TAGS ('pii_business_glossary_term' = 'Transmittal Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `transmittal_number` SET TAGS ('pii_value_regex' = '^[A-Z0-9-]+$');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `transmittal_status` SET TAGS ('pii_business_glossary_term' = 'Transmittal Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `transmittal_status` SET TAGS ('pii_value_regex' = 'draft|issued|acknowledged|rejected|superseded|closed');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` SET TAGS ('pii_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` SET TAGS ('pii_subdomain' = 'document_control');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `rfi_id` SET TAGS ('pii_business_glossary_term' = 'Rfi Identifier');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `craft_worker_id` SET TAGS ('pii_business_glossary_term' = 'Originator Worker Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `cost_code_id` SET TAGS ('pii_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `firm_profile_id` SET TAGS ('pii_business_glossary_term' = 'Sub Firm Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'Originator Employee Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `permit_condition_id` SET TAGS ('pii_business_glossary_term' = 'Permit Condition Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `wbs_element_id` SET TAGS ('pii_business_glossary_term' = 'Work Breakdown Structure (WBS) Element ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `actual_response_date` SET TAGS ('pii_business_glossary_term' = 'Actual Response Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `closure_date` SET TAGS ('pii_business_glossary_term' = 'Closure Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `closure_notes` SET TAGS ('pii_business_glossary_term' = 'Closure Notes');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `cost_impact_amount` SET TAGS ('pii_business_glossary_term' = 'Cost Impact Amount');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `cost_impact_flag` SET TAGS ('pii_business_glossary_term' = 'Cost Impact Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `date_raised` SET TAGS ('pii_business_glossary_term' = 'Date Raised');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `rfi_description` SET TAGS ('pii_business_glossary_term' = 'Request for Information (RFI) Description');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `discipline` SET TAGS ('pii_business_glossary_term' = 'Engineering Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `external_reference_code` SET TAGS ('pii_business_glossary_term' = 'External Reference ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `last_modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `linked_drawing_reference` SET TAGS ('pii_business_glossary_term' = 'Linked Drawing Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `linked_specification_reference` SET TAGS ('pii_business_glossary_term' = 'Linked Specification Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `priority` SET TAGS ('pii_business_glossary_term' = 'Request for Information (RFI) Priority');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `priority` SET TAGS ('pii_value_regex' = 'low|medium|high|critical');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `response_content` SET TAGS ('pii_business_glossary_term' = 'Response Content');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `response_due_date` SET TAGS ('pii_business_glossary_term' = 'Response Due Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `response_time_days` SET TAGS ('pii_business_glossary_term' = 'Response Time Days');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `rfi_number` SET TAGS ('pii_business_glossary_term' = 'Request for Information (RFI) Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `rfi_status` SET TAGS ('pii_business_glossary_term' = 'Request for Information (RFI) Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `rfi_status` SET TAGS ('pii_value_regex' = 'draft|open|pending_response|responded|closed|cancelled');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `schedule_impact_days` SET TAGS ('pii_business_glossary_term' = 'Schedule Impact Days');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `schedule_impact_flag` SET TAGS ('pii_business_glossary_term' = 'Schedule Impact Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `subject` SET TAGS ('pii_business_glossary_term' = 'Request for Information (RFI) Subject');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` SET TAGS ('pii_data_type' = 'master_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` SET TAGS ('pii_subdomain' = 'document_control');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `document_register_id` SET TAGS ('pii_business_glossary_term' = 'Document Register ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Contract ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'Author Employee Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `regulatory_permit_id` SET TAGS ('pii_business_glossary_term' = 'Permit Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `bid_contract_agreement_id` SET TAGS ('pii_business_glossary_term' = 'Sub Contract Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `rfi_id` SET TAGS ('pii_business_glossary_term' = 'Rfi Document Rfi Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `wbs_element_id` SET TAGS ('pii_business_glossary_term' = 'Work Breakdown Structure (WBS) Element ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `approval_date` SET TAGS ('pii_business_glossary_term' = 'Approval Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `approver_name` SET TAGS ('pii_business_glossary_term' = 'Approver Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `confidentiality_classification` SET TAGS ('pii_business_glossary_term' = 'Confidentiality Classification');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `confidentiality_classification` SET TAGS ('pii_value_regex' = 'public|internal|confidential|restricted');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `discipline` SET TAGS ('pii_business_glossary_term' = 'Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `distribution_list` SET TAGS ('pii_business_glossary_term' = 'Distribution List');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `document_number` SET TAGS ('pii_business_glossary_term' = 'Document Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `document_purpose` SET TAGS ('pii_business_glossary_term' = 'Document Purpose');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `document_register_status` SET TAGS ('pii_business_glossary_term' = 'Document Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `document_title` SET TAGS ('pii_business_glossary_term' = 'Document Title');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `document_type` SET TAGS ('pii_business_glossary_term' = 'Document Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `file_format` SET TAGS ('pii_business_glossary_term' = 'File Format');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `file_size_mb` SET TAGS ('pii_business_glossary_term' = 'File Size (Megabytes)');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `is_client_deliverable` SET TAGS ('pii_business_glossary_term' = 'Is Client Deliverable');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `is_controlled_document` SET TAGS ('pii_business_glossary_term' = 'Is Controlled Document');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `issue_date` SET TAGS ('pii_business_glossary_term' = 'Issue Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `keywords` SET TAGS ('pii_business_glossary_term' = 'Keywords');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `language_code` SET TAGS ('pii_business_glossary_term' = 'Language Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `last_modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `originator` SET TAGS ('pii_business_glossary_term' = 'Document Originator');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `page_count` SET TAGS ('pii_business_glossary_term' = 'Page Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `related_submittal_number` SET TAGS ('pii_business_glossary_term' = 'Related Submittal Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `retention_period_years` SET TAGS ('pii_business_glossary_term' = 'Retention Period (Years)');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `review_due_date` SET TAGS ('pii_business_glossary_term' = 'Review Due Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `reviewer_name` SET TAGS ('pii_business_glossary_term' = 'Reviewer Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `revision_description` SET TAGS ('pii_business_glossary_term' = 'Revision Description');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `revision_number` SET TAGS ('pii_business_glossary_term' = 'Revision Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `storage_location` SET TAGS ('pii_business_glossary_term' = 'Storage Location');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `superseded_by_document_number` SET TAGS ('pii_business_glossary_term' = 'Superseded By Document Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `supersedes_document_number` SET TAGS ('pii_business_glossary_term' = 'Supersedes Document Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `transmittal_number` SET TAGS ('pii_business_glossary_term' = 'Transmittal Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` SET TAGS ('pii_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` SET TAGS ('pii_subdomain' = 'document_control');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `revision_id` SET TAGS ('pii_business_glossary_term' = 'Revision Identifier');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'Approver ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `document_register_id` SET TAGS ('pii_business_glossary_term' = 'Document ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `primary_revision_employee_id` SET TAGS ('pii_business_glossary_term' = 'Author ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `primary_revision_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `primary_revision_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `reviewer_employee_id` SET TAGS ('pii_business_glossary_term' = 'Reviewer ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `reviewer_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `reviewer_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `superseded_revision_id` SET TAGS ('pii_business_glossary_term' = 'Superseded Revision ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `approval_date` SET TAGS ('pii_business_glossary_term' = 'Approval Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `approver_name` SET TAGS ('pii_business_glossary_term' = 'Approver Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `approver_name` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `author_name` SET TAGS ('pii_business_glossary_term' = 'Author Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `author_name` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `change_reason` SET TAGS ('pii_business_glossary_term' = 'Change Reason');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `change_reason` SET TAGS ('pii_value_regex' = 'design_change|client_request|rfi_response|regulatory_update|error_correction|clarification');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `change_summary` SET TAGS ('pii_business_glossary_term' = 'Change Summary');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `checksum_hash` SET TAGS ('pii_business_glossary_term' = 'Checksum Hash');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `comments` SET TAGS ('pii_business_glossary_term' = 'Comments');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `revision_description` SET TAGS ('pii_business_glossary_term' = 'Revision Description');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `distribution_list` SET TAGS ('pii_business_glossary_term' = 'Distribution List');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `file_format` SET TAGS ('pii_business_glossary_term' = 'File Format');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `file_name` SET TAGS ('pii_business_glossary_term' = 'File Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `file_size_bytes` SET TAGS ('pii_business_glossary_term' = 'File Size (Bytes)');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `file_storage_path` SET TAGS ('pii_business_glossary_term' = 'File Storage Path');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `is_controlled_copy` SET TAGS ('pii_business_glossary_term' = 'Is Controlled Copy');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `page_count` SET TAGS ('pii_business_glossary_term' = 'Page Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `review_date` SET TAGS ('pii_business_glossary_term' = 'Review Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `reviewer_name` SET TAGS ('pii_business_glossary_term' = 'Reviewer Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `reviewer_name` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `revision_date` SET TAGS ('pii_business_glossary_term' = 'Revision Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `revision_number` SET TAGS ('pii_business_glossary_term' = 'Revision Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `revision_status` SET TAGS ('pii_business_glossary_term' = 'Revision Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `revision_status` SET TAGS ('pii_value_regex' = 'draft|in_review|approved|issued|superseded|obsolete');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `revision_type` SET TAGS ('pii_business_glossary_term' = 'Revision Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `revision_type` SET TAGS ('pii_value_regex' = 'initial|minor|major|emergency|regulatory');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `sheet_count` SET TAGS ('pii_business_glossary_term' = 'Sheet Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `transmittal_number` SET TAGS ('pii_business_glossary_term' = 'Transmittal Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` SET TAGS ('pii_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` SET TAGS ('pii_subdomain' = 'document_control');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `workflow_approval_id` SET TAGS ('pii_business_glossary_term' = 'Workflow Approval ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `document_register_id` SET TAGS ('pii_business_glossary_term' = 'Document ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'Assigned Reviewer ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `tertiary_workflow_escalated_to_employee_id` SET TAGS ('pii_business_glossary_term' = 'Escalated To ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `tertiary_workflow_escalated_to_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `tertiary_workflow_escalated_to_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `workflow_template_id` SET TAGS ('pii_business_glossary_term' = 'Workflow Template ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `action_date` SET TAGS ('pii_business_glossary_term' = 'Action Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `action_taken` SET TAGS ('pii_business_glossary_term' = 'Action Taken');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `approval_authority_level` SET TAGS ('pii_business_glossary_term' = 'Approval Authority Level');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `assigned_reviewer_role` SET TAGS ('pii_business_glossary_term' = 'Assigned Reviewer Role');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `audit_trail_reference` SET TAGS ('pii_business_glossary_term' = 'Audit Trail Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `current_step_sequence` SET TAGS ('pii_business_glossary_term' = 'Current Step Sequence');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `delegation_reason` SET TAGS ('pii_business_glossary_term' = 'Delegation Reason');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `due_date` SET TAGS ('pii_business_glossary_term' = 'Due Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `escalation_date` SET TAGS ('pii_business_glossary_term' = 'Escalation Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `escalation_flag` SET TAGS ('pii_business_glossary_term' = 'Escalation Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `external_reference_code` SET TAGS ('pii_business_glossary_term' = 'External Reference ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `initiated_date` SET TAGS ('pii_business_glossary_term' = 'Initiated Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `last_modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `last_reminder_date` SET TAGS ('pii_business_glossary_term' = 'Last Reminder Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `notification_sent_flag` SET TAGS ('pii_business_glossary_term' = 'Notification Sent Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `outcome_date` SET TAGS ('pii_business_glossary_term' = 'Outcome Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `overall_outcome` SET TAGS ('pii_business_glossary_term' = 'Overall Outcome');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `overall_outcome` SET TAGS ('pii_value_regex' = 'approved|rejected|withdrawn|superseded|closed');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `priority` SET TAGS ('pii_business_glossary_term' = 'Priority');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `priority` SET TAGS ('pii_value_regex' = 'critical|high|medium|low');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `regulatory_requirement_flag` SET TAGS ('pii_business_glossary_term' = 'Regulatory Requirement Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `reminder_count` SET TAGS ('pii_business_glossary_term' = 'Reminder Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `reviewer_comments` SET TAGS ('pii_business_glossary_term' = 'Reviewer Comments');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `revision_number` SET TAGS ('pii_business_glossary_term' = 'Revision Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `sla_actual_hours` SET TAGS ('pii_business_glossary_term' = 'Service Level Agreement (SLA) Actual Hours');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `sla_compliance_flag` SET TAGS ('pii_business_glossary_term' = 'Service Level Agreement (SLA) Compliance Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `sla_target_hours` SET TAGS ('pii_business_glossary_term' = 'Service Level Agreement (SLA) Target Hours');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `total_steps` SET TAGS ('pii_business_glossary_term' = 'Total Steps');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `workflow_name` SET TAGS ('pii_business_glossary_term' = 'Workflow Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `workflow_number` SET TAGS ('pii_business_glossary_term' = 'Workflow Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `workflow_status` SET TAGS ('pii_business_glossary_term' = 'Workflow Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `workflow_type` SET TAGS ('pii_business_glossary_term' = 'Workflow Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` SET TAGS ('pii_data_type' = 'master_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` SET TAGS ('pii_subdomain' = 'handover_commissioning');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `handover_package_id` SET TAGS ('pii_business_glossary_term' = 'Handover Package ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `contact_id` SET TAGS ('pii_business_glossary_term' = 'Client Representative Contact Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Project ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `firm_profile_id` SET TAGS ('pii_business_glossary_term' = 'Sub Firm Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'Prepared By Employee Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `wbs_element_id` SET TAGS ('pii_business_glossary_term' = 'Work Breakdown Structure (WBS) Element ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `aconex_document_reference` SET TAGS ('pii_business_glossary_term' = 'Aconex Document ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `approved_by` SET TAGS ('pii_business_glossary_term' = 'Approved By');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `bim_model_reference` SET TAGS ('pii_business_glossary_term' = 'Building Information Modeling (BIM) Model Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `client_acceptance_date` SET TAGS ('pii_business_glossary_term' = 'Client Acceptance Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `client_acceptance_status` SET TAGS ('pii_business_glossary_term' = 'Client Acceptance Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `client_acceptance_status` SET TAGS ('pii_value_regex' = 'pending|accepted|conditionally_accepted|rejected|under_review');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `comments` SET TAGS ('pii_business_glossary_term' = 'Comments');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `completeness_percentage` SET TAGS ('pii_business_glossary_term' = 'Completeness Percentage');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `dlp_duration_days` SET TAGS ('pii_business_glossary_term' = 'Defects Liability Period (DLP) Duration Days');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `dlp_end_date` SET TAGS ('pii_business_glossary_term' = 'Defects Liability Period (DLP) End Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `dlp_start_date` SET TAGS ('pii_business_glossary_term' = 'Defects Liability Period (DLP) Start Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `handover_milestone` SET TAGS ('pii_business_glossary_term' = 'Handover Milestone');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `handover_milestone` SET TAGS ('pii_value_regex' = 'practical_completion|substantial_completion|final_completion|sectional_handover|early_access');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `iso_19650_compliance_flag` SET TAGS ('pii_business_glossary_term' = 'ISO 19650 Compliance Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `last_modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `legal_hold_flag` SET TAGS ('pii_business_glossary_term' = 'Legal Hold Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `legal_hold_reason` SET TAGS ('pii_business_glossary_term' = 'Legal Hold Reason');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `legal_hold_reason` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `legal_hold_start_date` SET TAGS ('pii_business_glossary_term' = 'Legal Hold Start Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `package_number` SET TAGS ('pii_business_glossary_term' = 'Handover Package Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `package_number` SET TAGS ('pii_value_regex' = '^[A-Z0-9]{2,4}-HP-[0-9]{4,6}$');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `package_status` SET TAGS ('pii_business_glossary_term' = 'Package Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `package_title` SET TAGS ('pii_business_glossary_term' = 'Handover Package Title');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `package_type` SET TAGS ('pii_business_glossary_term' = 'Handover Package Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `package_type` SET TAGS ('pii_value_regex' = 'operations_and_maintenance_manual|as_built_drawings|test_and_commissioning_records|warranties_and_guarantees|certificates_and_approvals|training_materials');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `planned_submission_date` SET TAGS ('pii_business_glossary_term' = 'Planned Submission Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `required_document_count` SET TAGS ('pii_business_glossary_term' = 'Required Document Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `retention_period_years` SET TAGS ('pii_business_glossary_term' = 'Retention Period Years');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `reviewed_by` SET TAGS ('pii_business_glossary_term' = 'Reviewed By');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `scope_of_works` SET TAGS ('pii_business_glossary_term' = 'Scope of Works');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `storage_location` SET TAGS ('pii_business_glossary_term' = 'Storage Location');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `submission_date` SET TAGS ('pii_business_glossary_term' = 'Submission Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_package` ALTER COLUMN `submitted_document_count` SET TAGS ('pii_business_glossary_term' = 'Submitted Document Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` SET TAGS ('pii_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` SET TAGS ('pii_subdomain' = 'handover_commissioning');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `handover_item_id` SET TAGS ('pii_business_glossary_term' = 'Handover Item ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `asset_id` SET TAGS ('pii_business_glossary_term' = 'Asset Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `craft_worker_id` SET TAGS ('pii_business_glossary_term' = 'Responsible Worker Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `document_register_id` SET TAGS ('pii_business_glossary_term' = 'Document Register Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `handover_package_id` SET TAGS ('pii_business_glossary_term' = 'Handover Package ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `master_id` SET TAGS ('pii_business_glossary_term' = 'Material Material Master Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `contact_id` SET TAGS ('pii_business_glossary_term' = 'Responsible Contact Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `actual_submission_date` SET TAGS ('pii_business_glossary_term' = 'Actual Submission Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `approval_date` SET TAGS ('pii_business_glossary_term' = 'Approval Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `certification_date` SET TAGS ('pii_business_glossary_term' = 'Certification Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `certification_required` SET TAGS ('pii_business_glossary_term' = 'Certification Required');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `certifying_authority` SET TAGS ('pii_business_glossary_term' = 'Certifying Authority');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `client_review_date` SET TAGS ('pii_business_glossary_term' = 'Client Review Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `client_review_status` SET TAGS ('pii_business_glossary_term' = 'Client Review Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `client_reviewer_name` SET TAGS ('pii_business_glossary_term' = 'Client Reviewer Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `client_reviewer_name` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `client_reviewer_name` SET TAGS ('pii_name' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `comments` SET TAGS ('pii_business_glossary_term' = 'Comments');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `completed_timestamp` SET TAGS ('pii_business_glossary_term' = 'Completed Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `contractual_requirement` SET TAGS ('pii_business_glossary_term' = 'Contractual Requirement');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `discipline` SET TAGS ('pii_business_glossary_term' = 'Engineering Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `file_location` SET TAGS ('pii_business_glossary_term' = 'File Location');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `format_type` SET TAGS ('pii_business_glossary_term' = 'Format Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `format_type` SET TAGS ('pii_value_regex' = 'hard_copy|electronic|both');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `item_description` SET TAGS ('pii_business_glossary_term' = 'Item Description');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `item_number` SET TAGS ('pii_business_glossary_term' = 'Item Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `item_status` SET TAGS ('pii_business_glossary_term' = 'Item Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `item_title` SET TAGS ('pii_business_glossary_term' = 'Item Title');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `item_type` SET TAGS ('pii_business_glossary_term' = 'Item Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `language` SET TAGS ('pii_business_glossary_term' = 'Language');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `last_modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `outstanding_action_notes` SET TAGS ('pii_business_glossary_term' = 'Outstanding Action Notes');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `page_count` SET TAGS ('pii_business_glossary_term' = 'Page Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `planned_submission_date` SET TAGS ('pii_business_glossary_term' = 'Planned Submission Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `priority` SET TAGS ('pii_business_glossary_term' = 'Priority');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `priority` SET TAGS ('pii_value_regex' = 'critical|high|medium|low');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `rejection_reason` SET TAGS ('pii_business_glossary_term' = 'Rejection Reason');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `responsible_party` SET TAGS ('pii_business_glossary_term' = 'Responsible Party');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `revision_number` SET TAGS ('pii_business_glossary_term' = 'Revision Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `system_reference` SET TAGS ('pii_business_glossary_term' = 'System Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `warranty_period_months` SET TAGS ('pii_business_glossary_term' = 'Warranty Period Months');
+ALTER TABLE `vibe_construction_v1`.`design`.`handover_item` ALTER COLUMN `wbs_code` SET TAGS ('pii_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` SET TAGS ('pii_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` SET TAGS ('pii_subdomain' = 'document_control');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `correspondence_response_id` SET TAGS ('pii_business_glossary_term' = 'Correspondence Response ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Contract ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'Approver ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Project ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `correspondence_id` SET TAGS ('pii_business_glossary_term' = 'Correspondence ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `primary_correspondence_employee_id` SET TAGS ('pii_business_glossary_term' = 'Author ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `primary_correspondence_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `primary_correspondence_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `supersedes_response_correspondence_response_id` SET TAGS ('pii_business_glossary_term' = 'Supersedes Response ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `acknowledgment_received_date` SET TAGS ('pii_business_glossary_term' = 'Acknowledgment Received Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `acknowledgment_required` SET TAGS ('pii_business_glossary_term' = 'Acknowledgment Required Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `action_required_by_date` SET TAGS ('pii_business_glossary_term' = 'Action Required By Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `approval_date` SET TAGS ('pii_business_glossary_term' = 'Approval Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `approver_name` SET TAGS ('pii_business_glossary_term' = 'Approver Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `attachment_count` SET TAGS ('pii_business_glossary_term' = 'Attachment Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `attachment_file_names` SET TAGS ('pii_business_glossary_term' = 'Attachment File Names');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `author_name` SET TAGS ('pii_business_glossary_term' = 'Author Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `author_role` SET TAGS ('pii_business_glossary_term' = 'Author Role');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `closes_correspondence` SET TAGS ('pii_business_glossary_term' = 'Closes Correspondence Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `contractual_impact` SET TAGS ('pii_business_glossary_term' = 'Contractual Impact');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `contractual_impact` SET TAGS ('pii_value_regex' = 'none|time|cost|scope|quality|risk');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `discipline` SET TAGS ('pii_business_glossary_term' = 'Engineering Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `distribution_list` SET TAGS ('pii_business_glossary_term' = 'Distribution List');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `last_modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `legal_review_required` SET TAGS ('pii_business_glossary_term' = 'Legal Review Required Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `legal_reviewer_name` SET TAGS ('pii_business_glossary_term' = 'Legal Reviewer Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `notes` SET TAGS ('pii_business_glossary_term' = 'Internal Notes');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `priority` SET TAGS ('pii_business_glossary_term' = 'Response Priority');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `priority` SET TAGS ('pii_value_regex' = 'low|medium|high|urgent|critical');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `recipient_contact_name` SET TAGS ('pii_business_glossary_term' = 'Recipient Contact Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `recipient_contact_name` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `recipient_contact_name` SET TAGS ('pii_identifier' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `recipient_email` SET TAGS ('pii_business_glossary_term' = 'Recipient Email Address');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `recipient_email` SET TAGS ('pii_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `recipient_email` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `recipient_email` SET TAGS ('pii_email' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `recipient_organization` SET TAGS ('pii_business_glossary_term' = 'Recipient Organization');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `reference_documents` SET TAGS ('pii_business_glossary_term' = 'Reference Documents');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `requires_further_action` SET TAGS ('pii_business_glossary_term' = 'Requires Further Action Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `response_content` SET TAGS ('pii_business_glossary_term' = 'Response Content');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `response_date` SET TAGS ('pii_business_glossary_term' = 'Response Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `response_language` SET TAGS ('pii_business_glossary_term' = 'Response Language');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `response_language` SET TAGS ('pii_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `response_method` SET TAGS ('pii_business_glossary_term' = 'Response Method');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `response_method` SET TAGS ('pii_value_regex' = 'letter|email|formal_notice|transmittal|system_notification|verbal_confirmed');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `response_number` SET TAGS ('pii_business_glossary_term' = 'Response Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `response_number` SET TAGS ('pii_value_regex' = '^[A-Z0-9-]+$');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `response_status` SET TAGS ('pii_business_glossary_term' = 'Response Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `response_status` SET TAGS ('pii_value_regex' = 'draft|submitted|acknowledged|superseded|withdrawn|closed');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `response_summary` SET TAGS ('pii_business_glossary_term' = 'Response Summary');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `response_timestamp` SET TAGS ('pii_business_glossary_term' = 'Response Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `response_type` SET TAGS ('pii_business_glossary_term' = 'Response Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `revision_number` SET TAGS ('pii_business_glossary_term' = 'Revision Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`correspondence_response` ALTER COLUMN `subject` SET TAGS ('pii_business_glossary_term' = 'Response Subject');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` SET TAGS ('pii_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` SET TAGS ('pii_subdomain' = 'document_control');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `transmittal_item_id` SET TAGS ('pii_business_glossary_term' = 'Transmittal Item Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `document_register_id` SET TAGS ('pii_business_glossary_term' = 'Document Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `transmittal_id` SET TAGS ('pii_business_glossary_term' = 'Transmittal Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `bim_model_reference` SET TAGS ('pii_business_glossary_term' = 'Building Information Modeling (BIM) Model Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `confidentiality_level` SET TAGS ('pii_business_glossary_term' = 'Confidentiality Level');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `confidentiality_level` SET TAGS ('pii_value_regex' = 'public|internal|confidential|restricted');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `discipline` SET TAGS ('pii_business_glossary_term' = 'Engineering Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `distribution_method` SET TAGS ('pii_business_glossary_term' = 'Distribution Method');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `distribution_method` SET TAGS ('pii_value_regex' = 'electronic|hard_copy|both|courier|registered_mail');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `document_number` SET TAGS ('pii_business_glossary_term' = 'Document Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `document_revision` SET TAGS ('pii_business_glossary_term' = 'Document Revision');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `document_title` SET TAGS ('pii_business_glossary_term' = 'Document Title');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `document_type` SET TAGS ('pii_business_glossary_term' = 'Document Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `file_format` SET TAGS ('pii_business_glossary_term' = 'File Format');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `file_size_mb` SET TAGS ('pii_business_glossary_term' = 'File Size (Megabytes)');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `item_notes` SET TAGS ('pii_business_glossary_term' = 'Item Notes');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `item_status` SET TAGS ('pii_business_glossary_term' = 'Item Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `item_status` SET TAGS ('pii_value_regex' = 'pending|transmitted|received|acknowledged|rejected|superseded');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `line_number` SET TAGS ('pii_business_glossary_term' = 'Line Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `modified_by` SET TAGS ('pii_business_glossary_term' = 'Modified By');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `number_of_copies` SET TAGS ('pii_business_glossary_term' = 'Number of Copies');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `number_of_sheets` SET TAGS ('pii_business_glossary_term' = 'Number of Sheets');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `purpose_of_issue` SET TAGS ('pii_business_glossary_term' = 'Purpose of Issue');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `received_by` SET TAGS ('pii_business_glossary_term' = 'Received By');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `received_date` SET TAGS ('pii_business_glossary_term' = 'Received Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `rejection_reason` SET TAGS ('pii_business_glossary_term' = 'Rejection Reason');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `response_due_date` SET TAGS ('pii_business_glossary_term' = 'Response Due Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `response_required` SET TAGS ('pii_business_glossary_term' = 'Response Required Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `sheet_size` SET TAGS ('pii_business_glossary_term' = 'Sheet Size');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `status_code` SET TAGS ('pii_business_glossary_term' = 'Document Status Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `supersedes_document_number` SET TAGS ('pii_business_glossary_term' = 'Supersedes Document Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `supersedes_revision` SET TAGS ('pii_business_glossary_term' = 'Supersedes Revision');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `work_package_code` SET TAGS ('pii_business_glossary_term' = 'Work Package Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal_item` ALTER COLUMN `created_by` SET TAGS ('pii_business_glossary_term' = 'Created By');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` SET TAGS ('pii_data_type' = 'master_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` SET TAGS ('pii_subdomain' = 'document_control');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `distribution_matrix_id` SET TAGS ('pii_business_glossary_term' = 'Distribution Matrix Identifier');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `superseded_by_matrix_distribution_matrix_id` SET TAGS ('pii_business_glossary_term' = 'Superseded By Matrix ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `acknowledgement_deadline_days` SET TAGS ('pii_business_glossary_term' = 'Acknowledgement Deadline Days');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `acknowledgement_required_flag` SET TAGS ('pii_business_glossary_term' = 'Acknowledgement Required Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `approval_authority` SET TAGS ('pii_business_glossary_term' = 'Approval Authority');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `approval_date` SET TAGS ('pii_business_glossary_term' = 'Approval Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `copy_type` SET TAGS ('pii_business_glossary_term' = 'Copy Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `copy_type` SET TAGS ('pii_value_regex' = 'controlled|uncontrolled|for_information|for_approval|for_review|for_comment');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `discipline_code` SET TAGS ('pii_business_glossary_term' = 'Discipline Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `discipline_code` SET TAGS ('pii_value_regex' = '^[A-Z]{2,5}$');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `distribution_format` SET TAGS ('pii_business_glossary_term' = 'Distribution Format');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `distribution_format` SET TAGS ('pii_value_regex' = 'pdf|dwg|ifc|native|paper|both');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `distribution_frequency` SET TAGS ('pii_business_glossary_term' = 'Distribution Frequency');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `distribution_method` SET TAGS ('pii_business_glossary_term' = 'Distribution Method');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `distribution_priority` SET TAGS ('pii_business_glossary_term' = 'Distribution Priority');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `distribution_priority` SET TAGS ('pii_value_regex' = 'critical|high|normal|low');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `distribution_status` SET TAGS ('pii_business_glossary_term' = 'Distribution Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `distribution_status` SET TAGS ('pii_value_regex' = 'active|suspended|superseded|cancelled|pending_approval');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `document_type_code` SET TAGS ('pii_business_glossary_term' = 'Document Type Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `document_type_code` SET TAGS ('pii_value_regex' = '^[A-Z0-9]{2,10}$');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `document_type_description` SET TAGS ('pii_business_glossary_term' = 'Document Type Description');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `effective_from_date` SET TAGS ('pii_business_glossary_term' = 'Effective From Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `effective_to_date` SET TAGS ('pii_business_glossary_term' = 'Effective To Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `last_modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `notes` SET TAGS ('pii_business_glossary_term' = 'Notes');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `project_phase_applicability` SET TAGS ('pii_business_glossary_term' = 'Project Phase Applicability');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `recipient_contact_name` SET TAGS ('pii_business_glossary_term' = 'Recipient Contact Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `recipient_contact_name` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `recipient_contact_name` SET TAGS ('pii_name' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `recipient_email_address` SET TAGS ('pii_business_glossary_term' = 'Recipient Email Address');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `recipient_email_address` SET TAGS ('pii_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `recipient_email_address` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `recipient_email_address` SET TAGS ('pii_email' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `recipient_organization_name` SET TAGS ('pii_business_glossary_term' = 'Recipient Organization Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `recipient_role` SET TAGS ('pii_business_glossary_term' = 'Recipient Role');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `response_deadline_days` SET TAGS ('pii_business_glossary_term' = 'Response Deadline Days');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `response_required_flag` SET TAGS ('pii_business_glossary_term' = 'Response Required Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `revision_number` SET TAGS ('pii_business_glossary_term' = 'Revision Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `revision_number` SET TAGS ('pii_value_regex' = '^[A-Z0-9]{1,10}$');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `security_classification` SET TAGS ('pii_business_glossary_term' = 'Security Classification');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `security_classification` SET TAGS ('pii_value_regex' = 'public|internal|confidential|restricted|proprietary');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `wbs_code` SET TAGS ('pii_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`distribution_matrix` ALTER COLUMN `wbs_code` SET TAGS ('pii_value_regex' = '^[A-Z0-9.-]{1,30}$');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` SET TAGS ('pii_data_type' = 'master_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` SET TAGS ('pii_subdomain' = 'document_control');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `access_permission_id` SET TAGS ('pii_business_glossary_term' = 'Access Permission Identifier');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `account_id` SET TAGS ('pii_business_glossary_term' = 'Grantee Organization ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Project ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `document_register_id` SET TAGS ('pii_business_glossary_term' = 'Document ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `parent_permission_access_permission_id` SET TAGS ('pii_business_glossary_term' = 'Parent Permission ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'Grantee User ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `quaternary_quinary_access_created_by_user_employee_id` SET TAGS ('pii_business_glossary_term' = 'Created By User ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `quaternary_quinary_access_created_by_user_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `quaternary_quinary_access_created_by_user_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `team_member_id` SET TAGS ('pii_business_glossary_term' = 'Grantee Team ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `team_member_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `team_member_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `tertiary_access_approved_by_user_employee_id` SET TAGS ('pii_business_glossary_term' = 'Approved By User ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `tertiary_access_approved_by_user_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `tertiary_access_approved_by_user_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `tertiary_quaternary_access_revoked_by_user_employee_id` SET TAGS ('pii_business_glossary_term' = 'Revoked By User ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `tertiary_quaternary_access_revoked_by_user_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `tertiary_quaternary_access_revoked_by_user_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `access_count` SET TAGS ('pii_business_glossary_term' = 'Access Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `access_log_retention_days` SET TAGS ('pii_business_glossary_term' = 'Access Log Retention Days');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `approval_required_flag` SET TAGS ('pii_business_glossary_term' = 'Approval Required Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `approved_timestamp` SET TAGS ('pii_business_glossary_term' = 'Approved Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `business_justification` SET TAGS ('pii_business_glossary_term' = 'Business Justification');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `confidentiality_level` SET TAGS ('pii_business_glossary_term' = 'Confidentiality Level');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `confidentiality_level` SET TAGS ('pii_value_regex' = 'public|internal|confidential|restricted|commercially_sensitive|legally_privileged');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `discipline` SET TAGS ('pii_business_glossary_term' = 'Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `effective_from_date` SET TAGS ('pii_business_glossary_term' = 'Effective From Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `effective_to_date` SET TAGS ('pii_business_glossary_term' = 'Effective To Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `granted_timestamp` SET TAGS ('pii_business_glossary_term' = 'Granted Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `grantee_role_code` SET TAGS ('pii_business_glossary_term' = 'Grantee Role Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `grantee_role_code` SET TAGS ('pii_value_regex' = '^[A-Z]{2,10}$');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `grantee_type` SET TAGS ('pii_business_glossary_term' = 'Grantee Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `grantee_type` SET TAGS ('pii_value_regex' = 'organization|role|user|team');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `inherit_from_parent_flag` SET TAGS ('pii_business_glossary_term' = 'Inherit From Parent Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `last_accessed_timestamp` SET TAGS ('pii_business_glossary_term' = 'Last Accessed Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `notes` SET TAGS ('pii_business_glossary_term' = 'Notes');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `notification_sent_flag` SET TAGS ('pii_business_glossary_term' = 'Notification Sent Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `notification_sent_timestamp` SET TAGS ('pii_business_glossary_term' = 'Notification Sent Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `offline_access_allowed_flag` SET TAGS ('pii_business_glossary_term' = 'Offline Access Allowed Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `permission_level` SET TAGS ('pii_business_glossary_term' = 'Permission Level');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `permission_number` SET TAGS ('pii_business_glossary_term' = 'Permission Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `permission_number` SET TAGS ('pii_value_regex' = '^ACL-[0-9]{8}$');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `permission_status` SET TAGS ('pii_business_glossary_term' = 'Permission Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `permission_status` SET TAGS ('pii_value_regex' = 'active|suspended|revoked|expired|pending');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `permission_type` SET TAGS ('pii_business_glossary_term' = 'Permission Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `permission_type` SET TAGS ('pii_value_regex' = 'document|folder|workspace|project');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `print_allowed_flag` SET TAGS ('pii_business_glossary_term' = 'Print Allowed Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `revocation_reason` SET TAGS ('pii_business_glossary_term' = 'Revocation Reason');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `revoked_timestamp` SET TAGS ('pii_business_glossary_term' = 'Revoked Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `watermark_required_flag` SET TAGS ('pii_business_glossary_term' = 'Watermark Required Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `wbs_code` SET TAGS ('pii_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`access_permission` ALTER COLUMN `wbs_code` SET TAGS ('pii_value_regex' = '^[A-Z0-9.-]{1,30}$');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` SET TAGS ('pii_data_type' = 'master_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` SET TAGS ('pii_subdomain' = 'engineering_drawings');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `bim_model_id` SET TAGS ('pii_business_glossary_term' = 'Building Information Model (BIM) Model ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'Author Employee Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `master_id` SET TAGS ('pii_business_glossary_term' = 'Material Material Master Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `superseded_by_model_bim_model_id` SET TAGS ('pii_business_glossary_term' = 'Superseded By Model ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `author_organization` SET TAGS ('pii_business_glossary_term' = 'Author Organization');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `authoring_software` SET TAGS ('pii_business_glossary_term' = 'Authoring Software');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `building_zone` SET TAGS ('pii_business_glossary_term' = 'Building Zone');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `clash_count` SET TAGS ('pii_business_glossary_term' = 'Clash Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `clash_detection_status` SET TAGS ('pii_business_glossary_term' = 'Clash Detection Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `clash_detection_status` SET TAGS ('pii_value_regex' = 'not_started|in_progress|completed|issues_identified|resolved');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `comments` SET TAGS ('pii_business_glossary_term' = 'Comments');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `confidentiality_classification` SET TAGS ('pii_business_glossary_term' = 'Confidentiality Classification');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `confidentiality_classification` SET TAGS ('pii_value_regex' = 'public|internal|confidential|restricted');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `coordinate_system` SET TAGS ('pii_business_glossary_term' = 'Project Coordinate System');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `discipline` SET TAGS ('pii_business_glossary_term' = 'BIM Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `element_count` SET TAGS ('pii_business_glossary_term' = 'Element Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `external_reference_code` SET TAGS ('pii_business_glossary_term' = 'External Reference ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `federation_role` SET TAGS ('pii_business_glossary_term' = 'Federation Role');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `federation_role` SET TAGS ('pii_value_regex' = 'host|linked|standalone|reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `file_format` SET TAGS ('pii_business_glossary_term' = 'File Format');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `file_size_mb` SET TAGS ('pii_business_glossary_term' = 'File Size (MB)');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `iso_19650_compliance_flag` SET TAGS ('pii_business_glossary_term' = 'ISO 19650 Compliance Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `issue_date` SET TAGS ('pii_business_glossary_term' = 'Issue Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `last_modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `lifecycle_stage` SET TAGS ('pii_business_glossary_term' = 'Project Lifecycle Stage');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `lod_classification` SET TAGS ('pii_business_glossary_term' = 'Level of Development (LOD) Classification');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `lod_classification` SET TAGS ('pii_value_regex' = 'LOD_100|LOD_200|LOD_300|LOD_350|LOD_400|LOD_500');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `model_name` SET TAGS ('pii_business_glossary_term' = 'BIM Model Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `model_number` SET TAGS ('pii_business_glossary_term' = 'BIM Model Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `model_status` SET TAGS ('pii_business_glossary_term' = 'BIM Model Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `model_status` SET TAGS ('pii_value_regex' = 'wip|shared|published|archived|superseded');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `model_type` SET TAGS ('pii_business_glossary_term' = 'BIM Model Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `model_type` SET TAGS ('pii_value_regex' = 'design|coordination|construction|as_built|facility_management');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `model_version` SET TAGS ('pii_business_glossary_term' = 'Model Version');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `origin_elevation_m` SET TAGS ('pii_business_glossary_term' = 'Origin Elevation (Meters)');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `origin_latitude` SET TAGS ('pii_business_glossary_term' = 'Origin Latitude');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `origin_latitude` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `origin_latitude` SET TAGS ('pii_address' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `origin_longitude` SET TAGS ('pii_business_glossary_term' = 'Origin Longitude');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `origin_longitude` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `origin_longitude` SET TAGS ('pii_address' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `review_date` SET TAGS ('pii_business_glossary_term' = 'Review Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `reviewer_name` SET TAGS ('pii_business_glossary_term' = 'Reviewer Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `revision_number` SET TAGS ('pii_business_glossary_term' = 'Revision Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `software_version` SET TAGS ('pii_business_glossary_term' = 'Software Version');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `storage_location` SET TAGS ('pii_business_glossary_term' = 'Storage Location');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `wbs_code` SET TAGS ('pii_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` SET TAGS ('pii_data_type' = 'master_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` SET TAGS ('pii_subdomain' = 'engineering_drawings');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `drawing_id` SET TAGS ('pii_business_glossary_term' = 'Drawing Identifier');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'Author Employee Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `bim_model_id` SET TAGS ('pii_business_glossary_term' = 'Bim Model Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Project Identifier');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `approval_date` SET TAGS ('pii_business_glossary_term' = 'Approval Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `approver_name` SET TAGS ('pii_business_glossary_term' = 'Approver Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `cad_file_name` SET TAGS ('pii_business_glossary_term' = 'Computer-Aided Design (CAD) File Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `checker_name` SET TAGS ('pii_business_glossary_term' = 'Checker Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `clash_detection_status` SET TAGS ('pii_business_glossary_term' = 'Clash Detection Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `clash_detection_status` SET TAGS ('pii_value_regex' = 'not_checked|passed|clashes_detected|resolved');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `comments` SET TAGS ('pii_business_glossary_term' = 'Comments');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `confidentiality_classification` SET TAGS ('pii_business_glossary_term' = 'Confidentiality Classification');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `confidentiality_classification` SET TAGS ('pii_value_regex' = 'public|internal|confidential|restricted');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `discipline` SET TAGS ('pii_business_glossary_term' = 'Engineering Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `distribution_list` SET TAGS ('pii_business_glossary_term' = 'Distribution List');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `drawing_number` SET TAGS ('pii_business_glossary_term' = 'Drawing Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `drawing_status` SET TAGS ('pii_business_glossary_term' = 'Drawing Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `drawing_type` SET TAGS ('pii_business_glossary_term' = 'Drawing Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `drawing_type` SET TAGS ('pii_value_regex' = 'plan|elevation|section|detail|schedule|isometric');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `file_format` SET TAGS ('pii_business_glossary_term' = 'File Format');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `file_format` SET TAGS ('pii_value_regex' = 'PDF|DWG|DXF|RVT|IFC|DGN');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `file_size_mb` SET TAGS ('pii_business_glossary_term' = 'File Size in Megabytes (MB)');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `is_client_deliverable` SET TAGS ('pii_business_glossary_term' = 'Is Client Deliverable Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `is_controlled_document` SET TAGS ('pii_business_glossary_term' = 'Is Controlled Document Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `issue_purpose` SET TAGS ('pii_business_glossary_term' = 'Issue Purpose');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `issue_purpose` SET TAGS ('pii_value_regex' = 'information|review|approval|construction|tender|as_built');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `language_code` SET TAGS ('pii_business_glossary_term' = 'Language Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `modified_by` SET TAGS ('pii_business_glossary_term' = 'Modified By User');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `originator` SET TAGS ('pii_business_glossary_term' = 'Originator Organization');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `page_count` SET TAGS ('pii_business_glossary_term' = 'Page Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `related_specification_reference` SET TAGS ('pii_business_glossary_term' = 'Related Specification Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `retention_period_years` SET TAGS ('pii_business_glossary_term' = 'Retention Period in Years');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `revision_date` SET TAGS ('pii_business_glossary_term' = 'Revision Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `revision_number` SET TAGS ('pii_business_glossary_term' = 'Revision Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `scale` SET TAGS ('pii_business_glossary_term' = 'Drawing Scale');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `sheet_size` SET TAGS ('pii_business_glossary_term' = 'Sheet Size');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `storage_location` SET TAGS ('pii_business_glossary_term' = 'Storage Location');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `superseded_by_drawing_number` SET TAGS ('pii_business_glossary_term' = 'Superseded By Drawing Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `supersedes_drawing_number` SET TAGS ('pii_business_glossary_term' = 'Supersedes Drawing Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `title` SET TAGS ('pii_business_glossary_term' = 'Drawing Title');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `wbs_code` SET TAGS ('pii_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `zone_location` SET TAGS ('pii_business_glossary_term' = 'Zone or Location');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `created_by` SET TAGS ('pii_business_glossary_term' = 'Created By User');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` SET TAGS ('pii_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` SET TAGS ('pii_subdomain' = 'engineering_drawings');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `drawing_revision_id` SET TAGS ('pii_business_glossary_term' = 'Drawing Revision Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'Approver Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `drawing_id` SET TAGS ('pii_business_glossary_term' = 'Drawing Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `primary_drawing_employee_id` SET TAGS ('pii_business_glossary_term' = 'Issuing Engineer Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `primary_drawing_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `primary_drawing_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `reviewer_employee_id` SET TAGS ('pii_business_glossary_term' = 'Reviewer Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `reviewer_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `reviewer_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `rfi_id` SET TAGS ('pii_business_glossary_term' = 'Rfi Document Rfi Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `superseded_revision_drawing_revision_id` SET TAGS ('pii_business_glossary_term' = 'Superseded Revision Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `acknowledgment_required_flag` SET TAGS ('pii_business_glossary_term' = 'Acknowledgment Required Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `acknowledgment_status` SET TAGS ('pii_business_glossary_term' = 'Acknowledgment Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `acknowledgment_status` SET TAGS ('pii_value_regex' = 'not_required|pending|acknowledged|overdue');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `approval_date` SET TAGS ('pii_business_glossary_term' = 'Approval Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `approver_name` SET TAGS ('pii_business_glossary_term' = 'Approver Full Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `bim_model_reference` SET TAGS ('pii_business_glossary_term' = 'Building Information Modeling (BIM) Model Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `change_summary` SET TAGS ('pii_business_glossary_term' = 'Revision Change Summary');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `clash_detection_status` SET TAGS ('pii_business_glossary_term' = 'Clash Detection Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `clash_detection_status` SET TAGS ('pii_value_regex' = 'not_required|pending|in_progress|passed|failed|resolved');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `comments` SET TAGS ('pii_business_glossary_term' = 'Revision Comments');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `confidentiality_level` SET TAGS ('pii_business_glossary_term' = 'Confidentiality Classification Level');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `confidentiality_level` SET TAGS ('pii_value_regex' = 'public|internal|confidential|restricted');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Record Creation Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `discipline` SET TAGS ('pii_business_glossary_term' = 'Engineering Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `distribution_date` SET TAGS ('pii_business_glossary_term' = 'Distribution Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `distribution_method` SET TAGS ('pii_business_glossary_term' = 'Distribution Method');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `distribution_method` SET TAGS ('pii_value_regex' = 'electronic|hard_copy|both|portal|email');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `distribution_status` SET TAGS ('pii_business_glossary_term' = 'Distribution Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `distribution_status` SET TAGS ('pii_value_regex' = 'pending|distributed|acknowledged|rejected|superseded');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `file_format` SET TAGS ('pii_business_glossary_term' = 'File Format Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `file_size_mb` SET TAGS ('pii_business_glossary_term' = 'File Size in Megabytes (MB)');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `issuing_engineer_name` SET TAGS ('pii_business_glossary_term' = 'Issuing Engineer Full Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `linked_change_order_number` SET TAGS ('pii_business_glossary_term' = 'Linked Change Order (CO) Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `linked_submittal_number` SET TAGS ('pii_business_glossary_term' = 'Linked Submittal Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Record Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `review_date` SET TAGS ('pii_business_glossary_term' = 'Review Completion Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `reviewer_name` SET TAGS ('pii_business_glossary_term' = 'Reviewer Full Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `revision_code` SET TAGS ('pii_business_glossary_term' = 'Revision Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `revision_code` SET TAGS ('pii_value_regex' = '^[A-Z0-9]{1,10}$');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `revision_date` SET TAGS ('pii_business_glossary_term' = 'Revision Issue Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `revision_description` SET TAGS ('pii_business_glossary_term' = 'Revision Change Description');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `revision_number` SET TAGS ('pii_business_glossary_term' = 'Revision Sequence Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `revision_reason` SET TAGS ('pii_business_glossary_term' = 'Reason for Revision');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `revision_status` SET TAGS ('pii_business_glossary_term' = 'Revision Lifecycle Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `revision_type` SET TAGS ('pii_business_glossary_term' = 'Revision Purpose Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `sheet_count` SET TAGS ('pii_business_glossary_term' = 'Sheet Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `transmittal_number` SET TAGS ('pii_business_glossary_term' = 'Transmittal Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `wbs_code` SET TAGS ('pii_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` SET TAGS ('pii_data_type' = 'master_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` SET TAGS ('pii_subdomain' = 'engineering_drawings');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `technical_specification_id` SET TAGS ('pii_business_glossary_term' = 'Technical Specification ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `master_id` SET TAGS ('pii_business_glossary_term' = 'Material Material Master Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `applicable_standards` SET TAGS ('pii_business_glossary_term' = 'Applicable Standards');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `approval_date` SET TAGS ('pii_business_glossary_term' = 'Approval Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `approval_status` SET TAGS ('pii_business_glossary_term' = 'Approval Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `approval_status` SET TAGS ('pii_value_regex' = 'pending|approved|rejected|conditional|not_required');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `approver_name` SET TAGS ('pii_business_glossary_term' = 'Approver Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `approver_role` SET TAGS ('pii_business_glossary_term' = 'Approver Role');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `author_name` SET TAGS ('pii_business_glossary_term' = 'Author Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `author_organization` SET TAGS ('pii_business_glossary_term' = 'Author Organization');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `boq_reference` SET TAGS ('pii_business_glossary_term' = 'Bill of Quantities (BOQ) Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `comments` SET TAGS ('pii_business_glossary_term' = 'Comments');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `confidentiality_classification` SET TAGS ('pii_business_glossary_term' = 'Confidentiality Classification');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `confidentiality_classification` SET TAGS ('pii_value_regex' = 'public|internal|confidential|restricted');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `csi_division` SET TAGS ('pii_business_glossary_term' = 'Construction Specifications Institute (CSI) Division');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `discipline` SET TAGS ('pii_business_glossary_term' = 'Engineering Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `effective_date` SET TAGS ('pii_business_glossary_term' = 'Effective Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `environmental_requirements` SET TAGS ('pii_business_glossary_term' = 'Environmental Requirements');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `file_format` SET TAGS ('pii_business_glossary_term' = 'File Format');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `file_storage_path` SET TAGS ('pii_business_glossary_term' = 'File Storage Path');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `hse_requirements` SET TAGS ('pii_business_glossary_term' = 'Health Safety and Environment (HSE) Requirements');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `is_client_deliverable` SET TAGS ('pii_business_glossary_term' = 'Is Client Deliverable');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `issue_date` SET TAGS ('pii_business_glossary_term' = 'Issue Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `language_code` SET TAGS ('pii_business_glossary_term' = 'Language Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `material_requirements` SET TAGS ('pii_business_glossary_term' = 'Material Requirements');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `page_count` SET TAGS ('pii_business_glossary_term' = 'Page Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `related_drawing_references` SET TAGS ('pii_business_glossary_term' = 'Related Drawing References');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `reviewer_name` SET TAGS ('pii_business_glossary_term' = 'Reviewer Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `revision_number` SET TAGS ('pii_business_glossary_term' = 'Revision Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `scope_of_work` SET TAGS ('pii_business_glossary_term' = 'Scope of Work (SOW)');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `section_number` SET TAGS ('pii_business_glossary_term' = 'Section Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `specification_number` SET TAGS ('pii_business_glossary_term' = 'Specification Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `specification_title` SET TAGS ('pii_business_glossary_term' = 'Specification Title');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `specification_type` SET TAGS ('pii_business_glossary_term' = 'Specification Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `specification_type` SET TAGS ('pii_value_regex' = 'performance|prescriptive|proprietary|reference|master');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `submittal_requirements` SET TAGS ('pii_business_glossary_term' = 'Submittal Requirements');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `superseded_date` SET TAGS ('pii_business_glossary_term' = 'Superseded Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `supersedes_specification_number` SET TAGS ('pii_business_glossary_term' = 'Supersedes Specification Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `technical_specification_status` SET TAGS ('pii_business_glossary_term' = 'Specification Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `testing_requirements` SET TAGS ('pii_business_glossary_term' = 'Testing Requirements');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `warranty_period_months` SET TAGS ('pii_business_glossary_term' = 'Warranty Period (Months)');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `wbs_code` SET TAGS ('pii_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `workmanship_standards` SET TAGS ('pii_business_glossary_term' = 'Workmanship Standards');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` SET TAGS ('pii_data_type' = 'master_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` SET TAGS ('pii_subdomain' = 'engineering_drawings');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `package_id` SET TAGS ('pii_business_glossary_term' = 'Package ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Contract ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Project ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'Prepared By Employee Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `actual_submission_date` SET TAGS ('pii_business_glossary_term' = 'Actual Submission Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `approval_date` SET TAGS ('pii_business_glossary_term' = 'Approval Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `approval_workflow_state` SET TAGS ('pii_business_glossary_term' = 'Approval Workflow State');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `approved_by` SET TAGS ('pii_business_glossary_term' = 'Approved By');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `bim_model_reference` SET TAGS ('pii_business_glossary_term' = 'Building Information Modeling (BIM) Model Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `client_acceptance_date` SET TAGS ('pii_business_glossary_term' = 'Client Acceptance Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `client_acceptance_status` SET TAGS ('pii_business_glossary_term' = 'Client Acceptance Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `client_acceptance_status` SET TAGS ('pii_value_regex' = 'pending|accepted|accepted_with_comments|rejected|conditionally_accepted|superseded');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `comments` SET TAGS ('pii_business_glossary_term' = 'Comments');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `completeness_percentage` SET TAGS ('pii_business_glossary_term' = 'Completeness Percentage');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `confidentiality_classification` SET TAGS ('pii_business_glossary_term' = 'Confidentiality Classification');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `confidentiality_classification` SET TAGS ('pii_value_regex' = 'public|internal|confidential|restricted');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `contractual_due_date` SET TAGS ('pii_business_glossary_term' = 'Contractual Due Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `discipline` SET TAGS ('pii_business_glossary_term' = 'Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `document_count` SET TAGS ('pii_business_glossary_term' = 'Document Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `drawing_count` SET TAGS ('pii_business_glossary_term' = 'Drawing Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `iso_19650_compliance_flag` SET TAGS ('pii_business_glossary_term' = 'ISO 19650 Compliance Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `issue_date` SET TAGS ('pii_business_glossary_term' = 'Issue Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `last_modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `milestone_stage` SET TAGS ('pii_business_glossary_term' = 'Milestone Stage');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `package_number` SET TAGS ('pii_business_glossary_term' = 'Package Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `package_status` SET TAGS ('pii_business_glossary_term' = 'Package Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `package_type` SET TAGS ('pii_business_glossary_term' = 'Package Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `package_type` SET TAGS ('pii_value_regex' = 'design_package|deliverable_package|submittal_package|handover_package|as_built_package|coordination_package');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `planned_issue_date` SET TAGS ('pii_business_glossary_term' = 'Planned Issue Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `recipient_distribution_list` SET TAGS ('pii_business_glossary_term' = 'Recipient Distribution List');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `rejection_reason` SET TAGS ('pii_business_glossary_term' = 'Rejection Reason');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `responsible_organization` SET TAGS ('pii_business_glossary_term' = 'Responsible Organization');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `reviewed_by` SET TAGS ('pii_business_glossary_term' = 'Reviewed By');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `revision_number` SET TAGS ('pii_business_glossary_term' = 'Revision Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `specification_count` SET TAGS ('pii_business_glossary_term' = 'Specification Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `storage_location` SET TAGS ('pii_business_glossary_term' = 'Storage Location');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `submission_status` SET TAGS ('pii_business_glossary_term' = 'Submission Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `submission_status` SET TAGS ('pii_value_regex' = 'not_submitted|submitted|under_review|resubmission_required|accepted|rejected');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `supersedes_package_number` SET TAGS ('pii_business_glossary_term' = 'Supersedes Package Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `title` SET TAGS ('pii_business_glossary_term' = 'Package Title');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `transmittal_number` SET TAGS ('pii_business_glossary_term' = 'Transmittal Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `wbs_code` SET TAGS ('pii_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` SET TAGS ('pii_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` SET TAGS ('pii_subdomain' = 'engineering_drawings');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `clash_detection_run_id` SET TAGS ('pii_business_glossary_term' = 'Clash Detection Run Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `comparison_run_id` SET TAGS ('pii_business_glossary_term' = 'Comparison Clash Detection Run Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'BIM (Building Information Modeling) Analyst Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `accepted_clashes_count` SET TAGS ('pii_business_glossary_term' = 'Accepted Clashes Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `baseline_run_flag` SET TAGS ('pii_business_glossary_term' = 'Baseline Run Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `building_zone` SET TAGS ('pii_business_glossary_term' = 'Building Zone');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `certification_date` SET TAGS ('pii_business_glossary_term' = 'Clash-Free Certification Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `clash_free_certification_flag` SET TAGS ('pii_business_glossary_term' = 'Clash-Free Certification Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `clash_tolerance_mm` SET TAGS ('pii_business_glossary_term' = 'Clash Tolerance in Millimeters (mm)');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `clearance_clashes_count` SET TAGS ('pii_business_glossary_term' = 'Clearance Clashes Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `coordination_milestone` SET TAGS ('pii_business_glossary_term' = 'Coordination Milestone');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `critical_clashes_count` SET TAGS ('pii_business_glossary_term' = 'Critical Clashes Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `discipline_pair` SET TAGS ('pii_business_glossary_term' = 'Discipline Pair Comparison');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `federated_model_name` SET TAGS ('pii_business_glossary_term' = 'Federated Building Information Modeling (BIM) Model Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `hard_clashes_count` SET TAGS ('pii_business_glossary_term' = 'Hard Clashes Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `major_clashes_count` SET TAGS ('pii_business_glossary_term' = 'Major Clashes Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `minor_clashes_count` SET TAGS ('pii_business_glossary_term' = 'Minor Clashes Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `model_version` SET TAGS ('pii_business_glossary_term' = 'Building Information Modeling (BIM) Model Version');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Record Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `new_clashes_count` SET TAGS ('pii_business_glossary_term' = 'New Clashes Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `notes` SET TAGS ('pii_business_glossary_term' = 'Clash Detection Run Notes');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `open_clashes_count` SET TAGS ('pii_business_glossary_term' = 'Open Clashes Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `primary_discipline` SET TAGS ('pii_business_glossary_term' = 'Primary Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `report_file_path` SET TAGS ('pii_business_glossary_term' = 'Clash Detection Report File Path');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `report_format` SET TAGS ('pii_business_glossary_term' = 'Report Format');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `report_format` SET TAGS ('pii_value_regex' = 'pdf|html|xml|excel|csv');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `resolved_clashes_count` SET TAGS ('pii_business_glossary_term' = 'Resolved Clashes Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `run_date` SET TAGS ('pii_business_glossary_term' = 'Clash Detection Run Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `run_duration_minutes` SET TAGS ('pii_business_glossary_term' = 'Run Duration in Minutes');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `run_name` SET TAGS ('pii_business_glossary_term' = 'Clash Detection Run Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `run_number` SET TAGS ('pii_business_glossary_term' = 'Clash Detection Run Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `run_status` SET TAGS ('pii_business_glossary_term' = 'Clash Detection Run Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `run_status` SET TAGS ('pii_value_regex' = 'queued|in_progress|completed|failed|cancelled');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `run_timestamp` SET TAGS ('pii_business_glossary_term' = 'Clash Detection Run Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `secondary_discipline` SET TAGS ('pii_business_glossary_term' = 'Secondary Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `soft_clashes_count` SET TAGS ('pii_business_glossary_term' = 'Soft Clashes Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `software_platform` SET TAGS ('pii_business_glossary_term' = 'Building Information Modeling (BIM) Software Platform');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `software_platform` SET TAGS ('pii_value_regex' = 'navisworks|bim_360_coordination|solibri|tekla_bimsight|synchro|other');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `software_version` SET TAGS ('pii_business_glossary_term' = 'Software Version');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `total_clashes_found` SET TAGS ('pii_business_glossary_term' = 'Total Clashes Found Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `wbs_code` SET TAGS ('pii_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`clash_detection_run` ALTER COLUMN `workflow_clashes_count` SET TAGS ('pii_business_glossary_term' = 'Workflow Clashes Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` SET TAGS ('pii_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` SET TAGS ('pii_subdomain' = 'engineering_drawings');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `review_id` SET TAGS ('pii_business_glossary_term' = 'Review ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Project ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `action_items_count` SET TAGS ('pii_business_glossary_term' = 'Action Items Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `attendee_count` SET TAGS ('pii_business_glossary_term' = 'Attendee Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `attendee_list` SET TAGS ('pii_business_glossary_term' = 'Attendee List');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `bim_model_reference` SET TAGS ('pii_business_glossary_term' = 'Building Information Modeling (BIM) Model Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `chairperson_name` SET TAGS ('pii_business_glossary_term' = 'Chairperson Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `clash_detection_performed` SET TAGS ('pii_business_glossary_term' = 'Clash Detection Performed Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `clashes_identified_count` SET TAGS ('pii_business_glossary_term' = 'Clashes Identified Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `client_approval_date` SET TAGS ('pii_business_glossary_term' = 'Client Approval Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `client_approval_required` SET TAGS ('pii_business_glossary_term' = 'Client Approval Required Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `client_representative_name` SET TAGS ('pii_business_glossary_term' = 'Client Representative Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `comments_closed_count` SET TAGS ('pii_business_glossary_term' = 'Comments Closed Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `comments_open_count` SET TAGS ('pii_business_glossary_term' = 'Comments Open Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `confidentiality_level` SET TAGS ('pii_business_glossary_term' = 'Confidentiality Level');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `confidentiality_level` SET TAGS ('pii_value_regex' = 'public|internal|confidential|restricted');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `design_package_reference` SET TAGS ('pii_business_glossary_term' = 'Design Package Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `discipline` SET TAGS ('pii_business_glossary_term' = 'Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `disposition` SET TAGS ('pii_business_glossary_term' = 'Review Disposition');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `disposition` SET TAGS ('pii_value_regex' = 'accepted|conditionally_accepted|rejected|revise_and_resubmit');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `duration_hours` SET TAGS ('pii_business_glossary_term' = 'Review Duration Hours');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `external_reference_code` SET TAGS ('pii_business_glossary_term' = 'External Reference ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `last_modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `major_comments_count` SET TAGS ('pii_business_glossary_term' = 'Major Comments Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `meeting_location` SET TAGS ('pii_business_glossary_term' = 'Meeting Location');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `minor_comments_count` SET TAGS ('pii_business_glossary_term' = 'Minor Comments Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `minutes_document_reference` SET TAGS ('pii_business_glossary_term' = 'Minutes Document Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `next_review_scheduled_date` SET TAGS ('pii_business_glossary_term' = 'Next Review Scheduled Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `recommendations` SET TAGS ('pii_business_glossary_term' = 'Recommendations');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `regulatory_authority` SET TAGS ('pii_business_glossary_term' = 'Regulatory Authority');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `regulatory_compliance_flag` SET TAGS ('pii_business_glossary_term' = 'Regulatory Compliance Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `review_date` SET TAGS ('pii_business_glossary_term' = 'Review Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `review_number` SET TAGS ('pii_business_glossary_term' = 'Review Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `review_status` SET TAGS ('pii_business_glossary_term' = 'Review Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `review_status` SET TAGS ('pii_value_regex' = 'scheduled|in_progress|completed|cancelled|deferred');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `review_type` SET TAGS ('pii_business_glossary_term' = 'Review Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `review_type` SET TAGS ('pii_value_regex' = 'internal_peer_review|interdisciplinary_check|client_milestone_review|third_party_review|authority_review|constructability_review');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `scheduled_date` SET TAGS ('pii_business_glossary_term' = 'Scheduled Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `sign_off_authority` SET TAGS ('pii_business_glossary_term' = 'Sign-Off Authority');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `sign_off_date` SET TAGS ('pii_business_glossary_term' = 'Sign-Off Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `stage` SET TAGS ('pii_business_glossary_term' = 'Review Stage');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `summary` SET TAGS ('pii_business_glossary_term' = 'Review Summary');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `total_comments_raised` SET TAGS ('pii_business_glossary_term' = 'Total Comments Raised');
+ALTER TABLE `vibe_construction_v1`.`design`.`review` ALTER COLUMN `wbs_code` SET TAGS ('pii_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` SET TAGS ('pii_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` SET TAGS ('pii_subdomain' = 'change_management');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `change_notice_id` SET TAGS ('pii_business_glossary_term' = 'Change Notice ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `regulatory_permit_id` SET TAGS ('pii_business_glossary_term' = 'Permit Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Project ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `bid_contract_agreement_id` SET TAGS ('pii_business_glossary_term' = 'Sub Contract Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `cost_code_id` SET TAGS ('pii_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `master_id` SET TAGS ('pii_business_glossary_term' = 'Material Material Master Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `contact_id` SET TAGS ('pii_business_glossary_term' = 'Originator Contact Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'Originator Employee Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `actual_cost_impact_amount` SET TAGS ('pii_business_glossary_term' = 'Actual Cost Impact Amount');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `actual_schedule_impact_days` SET TAGS ('pii_business_glossary_term' = 'Actual Schedule Impact Days');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `affected_disciplines` SET TAGS ('pii_business_glossary_term' = 'Affected Disciplines');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `affected_drawing_references` SET TAGS ('pii_business_glossary_term' = 'Affected Drawing References');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `affected_specification_references` SET TAGS ('pii_business_glossary_term' = 'Affected Specification References');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `approval_authority` SET TAGS ('pii_business_glossary_term' = 'Approval Authority');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `approval_date` SET TAGS ('pii_business_glossary_term' = 'Approval Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `bim_model_reference` SET TAGS ('pii_business_glossary_term' = 'Building Information Modeling (BIM) Model Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `change_notice_number` SET TAGS ('pii_business_glossary_term' = 'Engineering Change Notice (ECN) Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `change_notice_status` SET TAGS ('pii_business_glossary_term' = 'Change Notice Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `change_notice_type` SET TAGS ('pii_business_glossary_term' = 'Change Notice Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `change_notice_type` SET TAGS ('pii_value_regex' = 'design_change|engineering_change|specification_change|material_substitution|scope_change|regulatory_change');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `change_order_reference` SET TAGS ('pii_business_glossary_term' = 'Change Order (CO) Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `clash_detection_impact` SET TAGS ('pii_business_glossary_term' = 'Clash Detection Impact');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `client_approval_date` SET TAGS ('pii_business_glossary_term' = 'Client Approval Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `client_approval_required_flag` SET TAGS ('pii_business_glossary_term' = 'Client Approval Required Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `comments` SET TAGS ('pii_business_glossary_term' = 'Comments');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `cost_impact_flag` SET TAGS ('pii_business_glossary_term' = 'Cost Impact Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `currency_code` SET TAGS ('pii_business_glossary_term' = 'Currency Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `date_raised` SET TAGS ('pii_business_glossary_term' = 'Date Raised');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `change_notice_description` SET TAGS ('pii_business_glossary_term' = 'Change Notice Description');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `discipline` SET TAGS ('pii_business_glossary_term' = 'Engineering Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `estimated_cost_impact_amount` SET TAGS ('pii_business_glossary_term' = 'Estimated Cost Impact Amount');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `estimated_schedule_impact_days` SET TAGS ('pii_business_glossary_term' = 'Estimated Schedule Impact Days');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `implementation_completion_date` SET TAGS ('pii_business_glossary_term' = 'Implementation Completion Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `implementation_start_date` SET TAGS ('pii_business_glossary_term' = 'Implementation Start Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `implementation_status` SET TAGS ('pii_business_glossary_term' = 'Implementation Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `implementation_status` SET TAGS ('pii_value_regex' = 'not_started|in_progress|completed|on_hold|cancelled');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `last_modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `originating_cause` SET TAGS ('pii_business_glossary_term' = 'Originating Cause');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `originating_cause` SET TAGS ('pii_value_regex' = 'client_instruction|site_condition|design_error|regulatory_requirement|value_engineering|constructability_improvement');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `originator_organization` SET TAGS ('pii_business_glossary_term' = 'Originator Organization');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `priority` SET TAGS ('pii_business_glossary_term' = 'Change Notice Priority');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `priority` SET TAGS ('pii_value_regex' = 'critical|high|medium|low');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `regulatory_compliance_flag` SET TAGS ('pii_business_glossary_term' = 'Regulatory Compliance Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `regulatory_reference` SET TAGS ('pii_business_glossary_term' = 'Regulatory Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `rejection_date` SET TAGS ('pii_business_glossary_term' = 'Rejection Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `rejection_reason` SET TAGS ('pii_business_glossary_term' = 'Rejection Reason');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `schedule_impact_flag` SET TAGS ('pii_business_glossary_term' = 'Schedule Impact Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `title` SET TAGS ('pii_business_glossary_term' = 'Change Notice Title');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_notice` ALTER COLUMN `wbs_code` SET TAGS ('pii_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` SET TAGS ('pii_data_type' = 'master_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` SET TAGS ('pii_subdomain' = 'spatial_coordination');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `mep_coordination_zone_id` SET TAGS ('pii_business_glossary_term' = 'Mechanical Electrical Plumbing (MEP) Coordination Zone ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'Assigned MEP Coordinator ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `access_constraints` SET TAGS ('pii_business_glossary_term' = 'Access Constraints');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `actual_completion_date` SET TAGS ('pii_business_glossary_term' = 'Actual Completion Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `actual_start_date` SET TAGS ('pii_business_glossary_term' = 'Actual Start Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `available_clearance_m` SET TAGS ('pii_business_glossary_term' = 'Available Clearance in Meters');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `bim_model_reference` SET TAGS ('pii_business_glossary_term' = 'Building Information Modeling (BIM) Model Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `bim_model_version` SET TAGS ('pii_business_glossary_term' = 'BIM Model Version');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `building_reference` SET TAGS ('pii_business_glossary_term' = 'Building Reference Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `ceiling_height_m` SET TAGS ('pii_business_glossary_term' = 'Ceiling Height in Meters');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `clash_detection_status` SET TAGS ('pii_business_glossary_term' = 'Clash Detection Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `clash_detection_status` SET TAGS ('pii_value_regex' = 'not_started|in_progress|completed|clashes_detected|clashes_resolved');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `contractor_organization` SET TAGS ('pii_business_glossary_term' = 'Contractor Organization');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `coordination_meeting_date` SET TAGS ('pii_business_glossary_term' = 'Coordination Meeting Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `coordination_notes` SET TAGS ('pii_business_glossary_term' = 'Coordination Notes');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `coordination_priority_rank` SET TAGS ('pii_business_glossary_term' = 'Coordination Priority Rank');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `coordination_status` SET TAGS ('pii_business_glossary_term' = 'Coordination Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `coordination_status` SET TAGS ('pii_value_regex' = 'pending|in_progress|under_review|signed_off|on_hold|rejected');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `document_reference` SET TAGS ('pii_business_glossary_term' = 'Document Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `grid_reference_end` SET TAGS ('pii_business_glossary_term' = 'Grid Reference End');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `grid_reference_start` SET TAGS ('pii_business_glossary_term' = 'Grid Reference Start');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `installation_sequence_number` SET TAGS ('pii_business_glossary_term' = 'Installation Sequence Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `level_reference` SET TAGS ('pii_business_glossary_term' = 'Level Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `modified_by` SET TAGS ('pii_business_glossary_term' = 'Modified By');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `open_clash_count` SET TAGS ('pii_business_glossary_term' = 'Open Clash Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `planned_completion_date` SET TAGS ('pii_business_glossary_term' = 'Planned Completion Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `planned_start_date` SET TAGS ('pii_business_glossary_term' = 'Planned Start Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `primary_discipline` SET TAGS ('pii_business_glossary_term' = 'Primary MEP Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `sign_off_authority` SET TAGS ('pii_business_glossary_term' = 'Sign-Off Authority');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `sign_off_date` SET TAGS ('pii_business_glossary_term' = 'Sign-Off Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `soffit_height_m` SET TAGS ('pii_business_glossary_term' = 'Soffit Height in Meters');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `special_requirements` SET TAGS ('pii_business_glossary_term' = 'Special Requirements');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `total_clash_count` SET TAGS ('pii_business_glossary_term' = 'Total Clash Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `wbs_code` SET TAGS ('pii_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `zone_area_sqm` SET TAGS ('pii_business_glossary_term' = 'Zone Area in Square Meters');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `zone_complexity_rating` SET TAGS ('pii_business_glossary_term' = 'Zone Complexity Rating');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `zone_complexity_rating` SET TAGS ('pii_value_regex' = 'low|medium|high|critical');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `zone_name` SET TAGS ('pii_business_glossary_term' = 'MEP Zone Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `zone_number` SET TAGS ('pii_business_glossary_term' = 'MEP Zone Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`mep_coordination_zone` ALTER COLUMN `created_by` SET TAGS ('pii_business_glossary_term' = 'Created By');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` SET TAGS ('pii_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` SET TAGS ('pii_subdomain' = 'change_management');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `value_engineering_proposal_id` SET TAGS ('pii_business_glossary_term' = 'Value Engineering (VE) Proposal ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Project ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `cost_code_id` SET TAGS ('pii_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `master_id` SET TAGS ('pii_business_glossary_term' = 'Material Material Master Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'Originator Employee Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `affected_design_elements` SET TAGS ('pii_business_glossary_term' = 'Affected Design Elements');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `approval_authority` SET TAGS ('pii_business_glossary_term' = 'Approval Authority');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `change_order_reference` SET TAGS ('pii_business_glossary_term' = 'Change Order (CO) Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `client_decision` SET TAGS ('pii_business_glossary_term' = 'Client Decision');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `client_decision` SET TAGS ('pii_value_regex' = 'accepted|rejected|deferred|conditional_acceptance|pending');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `client_decision_date` SET TAGS ('pii_business_glossary_term' = 'Client Decision Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `client_decision_notes` SET TAGS ('pii_business_glossary_term' = 'Client Decision Notes');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `client_review_due_date` SET TAGS ('pii_business_glossary_term' = 'Client Review Due Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `client_submission_date` SET TAGS ('pii_business_glossary_term' = 'Client Submission Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `comments` SET TAGS ('pii_business_glossary_term' = 'Comments');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `currency_code` SET TAGS ('pii_business_glossary_term' = 'Currency Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `currency_code` SET TAGS ('pii_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `environmental_impact_flag` SET TAGS ('pii_business_glossary_term' = 'Environmental Impact Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `estimated_cost_saving` SET TAGS ('pii_business_glossary_term' = 'Estimated Cost Saving');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `implementation_completion_date` SET TAGS ('pii_business_glossary_term' = 'Implementation Completion Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `implementation_start_date` SET TAGS ('pii_business_glossary_term' = 'Implementation Start Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `implementation_status` SET TAGS ('pii_business_glossary_term' = 'Implementation Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `implementation_status` SET TAGS ('pii_value_regex' = 'not_started|in_progress|completed|cancelled|on_hold');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `implemented_saving_value` SET TAGS ('pii_business_glossary_term' = 'Implemented Saving Value');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `originator_discipline` SET TAGS ('pii_business_glossary_term' = 'Originator Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `originator_organization` SET TAGS ('pii_business_glossary_term' = 'Originator Organization');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `priority` SET TAGS ('pii_business_glossary_term' = 'Priority');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `priority` SET TAGS ('pii_value_regex' = 'low|medium|high|critical');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `proposal_description` SET TAGS ('pii_business_glossary_term' = 'Value Engineering (VE) Proposal Description');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `proposal_number` SET TAGS ('pii_business_glossary_term' = 'Value Engineering (VE) Proposal Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `proposal_number` SET TAGS ('pii_value_regex' = '^VE-[A-Z0-9]{4,12}$');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `proposal_status` SET TAGS ('pii_business_glossary_term' = 'Value Engineering (VE) Proposal Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `proposal_title` SET TAGS ('pii_business_glossary_term' = 'Value Engineering (VE) Proposal Title');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `quality_impact_assessment` SET TAGS ('pii_business_glossary_term' = 'Quality Impact Assessment');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `quality_impact_assessment` SET TAGS ('pii_value_regex' = 'positive|neutral|negative|requires_further_study');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `quality_impact_notes` SET TAGS ('pii_business_glossary_term' = 'Quality Impact Notes');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `related_drawing_references` SET TAGS ('pii_business_glossary_term' = 'Related Drawing References');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `related_specification_references` SET TAGS ('pii_business_glossary_term' = 'Related Specification References');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `review_date` SET TAGS ('pii_business_glossary_term' = 'Review Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `reviewed_by` SET TAGS ('pii_business_glossary_term' = 'Reviewed By');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `risk_assessment` SET TAGS ('pii_business_glossary_term' = 'Risk Assessment');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `risk_assessment` SET TAGS ('pii_value_regex' = 'low|medium|high|critical');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `risk_description` SET TAGS ('pii_business_glossary_term' = 'Risk Description');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `safety_impact_flag` SET TAGS ('pii_business_glossary_term' = 'Safety Impact Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `safety_review_notes` SET TAGS ('pii_business_glossary_term' = 'Safety Review Notes');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `schedule_impact_days` SET TAGS ('pii_business_glossary_term' = 'Schedule Impact Days');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `sustainability_rating` SET TAGS ('pii_business_glossary_term' = 'Sustainability Rating');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `sustainability_rating` SET TAGS ('pii_value_regex' = 'improved|neutral|reduced|not_applicable');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `wbs_code` SET TAGS ('pii_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`value_engineering_proposal` ALTER COLUMN `created_by` SET TAGS ('pii_business_glossary_term' = 'Created By');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` SET TAGS ('pii_data_type' = 'master_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` SET TAGS ('pii_subdomain' = 'change_management');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` SET TAGS ('pii_ssot_role' = 'reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` SET TAGS ('pii_ssot_master' = 'contract.contract_scope');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` SET TAGS ('pii_ssot' = 'design.design_scope');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` SET TAGS ('pii_ssot_distinct' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` SET TAGS ('pii_ssot_scope' = 'design');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` SET TAGS ('pii_ssot_counterpart' = 'contract.contract_scope');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` SET TAGS ('pii_ssot_resolved' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `design_scope_id` SET TAGS ('pii_business_glossary_term' = 'Design Scope Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Contract Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Project Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'Design Responsibility Owner Employee Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `superseded_by_scope_design_scope_id` SET TAGS ('pii_business_glossary_term' = 'Superseded By Scope Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `applicable_codes_standards` SET TAGS ('pii_business_glossary_term' = 'Applicable Codes and Standards');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `approval_authority` SET TAGS ('pii_business_glossary_term' = 'Approval Authority');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `approval_date` SET TAGS ('pii_business_glossary_term' = 'Approval Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `bim_model_reference` SET TAGS ('pii_business_glossary_term' = 'Building Information Modeling (BIM) Model Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `change_control_baseline` SET TAGS ('pii_business_glossary_term' = 'Change Control Baseline');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `comments` SET TAGS ('pii_business_glossary_term' = 'Comments');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `confidentiality_classification` SET TAGS ('pii_business_glossary_term' = 'Confidentiality Classification');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `confidentiality_classification` SET TAGS ('pii_value_regex' = 'Public|Internal|Confidential|Restricted');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `contract_type` SET TAGS ('pii_business_glossary_term' = 'Contract Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `corrosion_allowance_mm` SET TAGS ('pii_business_glossary_term' = 'Corrosion Allowance Millimeters (mm)');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `design_basis_memorandum_reference` SET TAGS ('pii_business_glossary_term' = 'Design Basis Memorandum (DBM) Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `design_life_years` SET TAGS ('pii_business_glossary_term' = 'Design Life Years');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `design_responsibility_matrix` SET TAGS ('pii_business_glossary_term' = 'Design Responsibility Matrix');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `discipline` SET TAGS ('pii_business_glossary_term' = 'Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `environmental_design_conditions` SET TAGS ('pii_business_glossary_term' = 'Environmental Design Conditions');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `exclusions_limitations` SET TAGS ('pii_business_glossary_term' = 'Exclusions and Limitations');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `fire_rating_requirements` SET TAGS ('pii_business_glossary_term' = 'Fire Rating Requirements');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `freeze_date` SET TAGS ('pii_business_glossary_term' = 'Scope Freeze Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `interface_points` SET TAGS ('pii_business_glossary_term' = 'Interface Points');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `iso_19650_compliance_flag` SET TAGS ('pii_business_glossary_term' = 'ISO 19650 Compliance Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `jurisdiction` SET TAGS ('pii_business_glossary_term' = 'Jurisdiction');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `last_modified_by` SET TAGS ('pii_business_glossary_term' = 'Last Modified By');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `last_modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `leed_certification_target` SET TAGS ('pii_business_glossary_term' = 'Leadership in Energy and Environmental Design (LEED) Certification Target');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `leed_certification_target` SET TAGS ('pii_value_regex' = 'Not Applicable|Certified|Silver|Gold|Platinum');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `manager_name` SET TAGS ('pii_business_glossary_term' = 'Scope Manager Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `narrative_description` SET TAGS ('pii_business_glossary_term' = 'Scope Narrative Description');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `owner_organization` SET TAGS ('pii_business_glossary_term' = 'Scope Owner Organization');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `package_number` SET TAGS ('pii_business_glossary_term' = 'Scope Package Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `package_title` SET TAGS ('pii_business_glossary_term' = 'Scope Package Title');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `retention_period_years` SET TAGS ('pii_business_glossary_term' = 'Retention Period Years');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `revision_number` SET TAGS ('pii_business_glossary_term' = 'Revision Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `scope_of_work_id` SET TAGS ('pii_business_glossary_term' = 'Contract Scope Id');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `scope_of_work_id` SET TAGS ('pii_ssot_reference' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `scope_of_work_id` SET TAGS ('pii_ssot' = 'contract.contract_scope');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `scope_status` SET TAGS ('pii_business_glossary_term' = 'Scope Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `seismic_zone_classification` SET TAGS ('pii_business_glossary_term' = 'Seismic Zone Classification');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `snow_loading_criteria` SET TAGS ('pii_business_glossary_term' = 'Snow Loading Criteria');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `temperature_range_max_c` SET TAGS ('pii_business_glossary_term' = 'Temperature Range Maximum Celsius (C)');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `temperature_range_min_c` SET TAGS ('pii_business_glossary_term' = 'Temperature Range Minimum Celsius (C)');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `wbs_code` SET TAGS ('pii_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `wind_loading_criteria` SET TAGS ('pii_business_glossary_term' = 'Wind Loading Criteria');
+ALTER TABLE `vibe_construction_v1`.`design`.`design_scope` ALTER COLUMN `created_by` SET TAGS ('pii_business_glossary_term' = 'Created By');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` SET TAGS ('pii_data_type' = 'master_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` SET TAGS ('pii_subdomain' = 'spatial_coordination');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `interface_point_id` SET TAGS ('pii_business_glossary_term' = 'Interface Point Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'Approval Authority Employee Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Project Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `craft_worker_id` SET TAGS ('pii_business_glossary_term' = 'Coordinator Worker Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `cost_code_id` SET TAGS ('pii_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `firm_profile_id` SET TAGS ('pii_business_glossary_term' = 'Sub Firm Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `actual_handover_date` SET TAGS ('pii_business_glossary_term' = 'Actual Interface Handover Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `bim_model_reference` SET TAGS ('pii_business_glossary_term' = 'Building Information Modeling (BIM) Model Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `clash_detection_status` SET TAGS ('pii_business_glossary_term' = 'Clash Detection Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `clash_detection_status` SET TAGS ('pii_value_regex' = 'not-applicable|pending|in-progress|resolved|unresolved');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `closure_date` SET TAGS ('pii_business_glossary_term' = 'Interface Closure Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `comments` SET TAGS ('pii_business_glossary_term' = 'Interface Comments');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `coordination_meeting_frequency` SET TAGS ('pii_business_glossary_term' = 'Coordination Meeting Frequency');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `coordination_meeting_frequency` SET TAGS ('pii_value_regex' = 'daily|weekly|bi-weekly|monthly|as-needed|none');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `cost_impact_amount` SET TAGS ('pii_business_glossary_term' = 'Cost Impact Amount');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `cost_impact_amount` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `cost_impact_flag` SET TAGS ('pii_business_glossary_term' = 'Cost Impact Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `discipline` SET TAGS ('pii_business_glossary_term' = 'Engineering Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `interface_agreement_date` SET TAGS ('pii_business_glossary_term' = 'Interface Agreement Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `interface_category` SET TAGS ('pii_business_glossary_term' = 'Interface Category');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `interface_category` SET TAGS ('pii_value_regex' = 'design-design|design-construction|construction-construction|construction-commissioning|internal|external');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `interface_description` SET TAGS ('pii_business_glossary_term' = 'Interface Point Description');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `interface_freeze_date` SET TAGS ('pii_business_glossary_term' = 'Interface Freeze Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `interface_number` SET TAGS ('pii_business_glossary_term' = 'Interface Point Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `interface_status` SET TAGS ('pii_business_glossary_term' = 'Interface Point Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `interface_status` SET TAGS ('pii_value_regex' = 'open|under-review|agreed|frozen|closed|disputed');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `interface_title` SET TAGS ('pii_business_glossary_term' = 'Interface Point Title');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `interface_type` SET TAGS ('pii_business_glossary_term' = 'Interface Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `interface_type` SET TAGS ('pii_value_regex' = 'physical|functional|data|contractual|organizational');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `location_description` SET TAGS ('pii_business_glossary_term' = 'Interface Location Description');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `modified_by` SET TAGS ('pii_business_glossary_term' = 'Record Last Modified By User');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Record Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `originating_party_contact_email` SET TAGS ('pii_business_glossary_term' = 'Originating Party Contact Email');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `originating_party_contact_email` SET TAGS ('pii_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `originating_party_contact_email` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `originating_party_contact_email` SET TAGS ('pii_email' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `originating_party_contact_name` SET TAGS ('pii_business_glossary_term' = 'Originating Party Contact Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `originating_party_contact_name` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `originating_party_organization` SET TAGS ('pii_business_glossary_term' = 'Originating Party Organization');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `originating_scope_package` SET TAGS ('pii_business_glossary_term' = 'Originating Scope Package');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `outstanding_actions` SET TAGS ('pii_business_glossary_term' = 'Outstanding Interface Actions');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `planned_handover_date` SET TAGS ('pii_business_glossary_term' = 'Planned Interface Handover Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `priority` SET TAGS ('pii_business_glossary_term' = 'Interface Priority');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `priority` SET TAGS ('pii_value_regex' = 'critical|high|medium|low');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `receiving_party_contact_email` SET TAGS ('pii_business_glossary_term' = 'Receiving Party Contact Email');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `receiving_party_contact_email` SET TAGS ('pii_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `receiving_party_contact_email` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `receiving_party_contact_email` SET TAGS ('pii_email' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `receiving_party_contact_name` SET TAGS ('pii_business_glossary_term' = 'Receiving Party Contact Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `receiving_party_contact_name` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `receiving_party_organization` SET TAGS ('pii_business_glossary_term' = 'Receiving Party Organization');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `receiving_scope_package` SET TAGS ('pii_business_glossary_term' = 'Receiving Scope Package');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `related_drawing_references` SET TAGS ('pii_business_glossary_term' = 'Related Drawing References');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `related_rfi_numbers` SET TAGS ('pii_business_glossary_term' = 'Related Request for Information (RFI) Numbers');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `risk_level` SET TAGS ('pii_business_glossary_term' = 'Interface Risk Level');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `risk_level` SET TAGS ('pii_value_regex' = 'very-high|high|medium|low|very-low');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `schedule_impact_days` SET TAGS ('pii_business_glossary_term' = 'Schedule Impact Days');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `wbs_code` SET TAGS ('pii_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_point` ALTER COLUMN `created_by` SET TAGS ('pii_business_glossary_term' = 'Record Created By User');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` SET TAGS ('pii_data_type' = 'master_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` SET TAGS ('pii_subdomain' = 'engineering_drawings');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `calculation_register_id` SET TAGS ('pii_business_glossary_term' = 'Calculation Register ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'Approver ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Project ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `emission_factor_id` SET TAGS ('pii_business_glossary_term' = 'Emission Factor Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `master_id` SET TAGS ('pii_business_glossary_term' = 'Material Material Master Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `primary_calculation_employee_id` SET TAGS ('pii_business_glossary_term' = 'Author ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `primary_calculation_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `primary_calculation_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `analysis_software` SET TAGS ('pii_business_glossary_term' = 'Analysis Software');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `approval_date` SET TAGS ('pii_business_glossary_term' = 'Approval Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `approver_name` SET TAGS ('pii_business_glossary_term' = 'Approver Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `approver_name` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `approver_name` SET TAGS ('pii_name' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `author_name` SET TAGS ('pii_business_glossary_term' = 'Author Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `author_name` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `author_name` SET TAGS ('pii_name' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `calculation_number` SET TAGS ('pii_business_glossary_term' = 'Calculation Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `calculation_purpose` SET TAGS ('pii_business_glossary_term' = 'Calculation Purpose');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `calculation_purpose` SET TAGS ('pii_value_regex' = 'member_sizing|hydraulic_analysis|load_study|heat_load|fire_hydraulics|other');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `checker_name` SET TAGS ('pii_business_glossary_term' = 'Checker Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `checker_name` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `checker_name` SET TAGS ('pii_name' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `creation_timestamp` SET TAGS ('pii_business_glossary_term' = 'Creation Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `design_code` SET TAGS ('pii_business_glossary_term' = 'Design Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `discipline` SET TAGS ('pii_business_glossary_term' = 'Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `discipline` SET TAGS ('pii_value_regex' = 'structural|hydraulic|electrical|hvac|fire_protection|civil');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `document_reference` SET TAGS ('pii_business_glossary_term' = 'Document Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `effective_date` SET TAGS ('pii_business_glossary_term' = 'Effective Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `expiration_date` SET TAGS ('pii_business_glossary_term' = 'Expiration Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `input_assumptions` SET TAGS ('pii_business_glossary_term' = 'Input Assumptions');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `is_confidential` SET TAGS ('pii_business_glossary_term' = 'Confidential Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `last_modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `notes` SET TAGS ('pii_business_glossary_term' = 'Notes');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `result_units` SET TAGS ('pii_business_glossary_term' = 'Result Units');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `result_value` SET TAGS ('pii_business_glossary_term' = 'Result Value');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `revision_number` SET TAGS ('pii_business_glossary_term' = 'Revision Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `revision_status` SET TAGS ('pii_business_glossary_term' = 'Revision Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `revision_status` SET TAGS ('pii_value_regex' = 'draft|checked|approved|superseded');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `title` SET TAGS ('pii_business_glossary_term' = 'Calculation Title');
+ALTER TABLE `vibe_construction_v1`.`design`.`calculation_register` ALTER COLUMN `wbs_code` SET TAGS ('pii_business_glossary_term' = 'WBS Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` SET TAGS ('pii_data_type' = 'association_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` SET TAGS ('pii_subdomain' = 'spatial_coordination');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` SET TAGS ('pii_association_edges' = 'design.drawing,equipment.asset');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `equipment_installation_id` SET TAGS ('pii_business_glossary_term' = 'Equipment Installation - Installation Id');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `asset_id` SET TAGS ('pii_business_glossary_term' = 'Equipment Installation - Asset Id');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project Id');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `drawing_id` SET TAGS ('pii_business_glossary_term' = 'Equipment Installation - Drawing Id');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `actual_date` SET TAGS ('pii_business_glossary_term' = 'Actual Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `actual_install_date` SET TAGS ('pii_business_glossary_term' = 'Actual Install Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `actual_installation_date` SET TAGS ('pii_business_glossary_term' = 'Actual Installation Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `as_built_ref` SET TAGS ('pii_business_glossary_term' = 'As Built Ref');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `commissioning_date` SET TAGS ('pii_business_glossary_term' = 'Commissioning Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `commissioning_required` SET TAGS ('pii_business_glossary_term' = 'Commissioning Required');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `commissioning_status` SET TAGS ('pii_business_glossary_term' = 'Commissioning Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `elevation` SET TAGS ('pii_business_glossary_term' = 'Elevation');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `elevation_level` SET TAGS ('pii_business_glossary_term' = 'Elevation Level');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `inspection_status` SET TAGS ('pii_business_glossary_term' = 'Inspection Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `installation_date` SET TAGS ('pii_business_glossary_term' = 'Installation Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `installation_location` SET TAGS ('pii_business_glossary_term' = 'Installation Location');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `installation_method` SET TAGS ('pii_business_glossary_term' = 'Installation Method');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `installation_status` SET TAGS ('pii_business_glossary_term' = 'Installation Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `installed_by` SET TAGS ('pii_business_glossary_term' = 'Installed By');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `last_modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `location_ref` SET TAGS ('pii_business_glossary_term' = 'Location Ref');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `location_reference` SET TAGS ('pii_business_glossary_term' = 'Location Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `mounting_type` SET TAGS ('pii_business_glossary_term' = 'Mounting Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `notes` SET TAGS ('pii_business_glossary_term' = 'Notes');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `orientation` SET TAGS ('pii_business_glossary_term' = 'Orientation');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `planned_date` SET TAGS ('pii_business_glossary_term' = 'Planned Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `planned_install_date` SET TAGS ('pii_business_glossary_term' = 'Planned Install Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `planned_installation_date` SET TAGS ('pii_business_glossary_term' = 'Planned Installation Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `quantity` SET TAGS ('pii_business_glossary_term' = 'Quantity Installed');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `remarks` SET TAGS ('pii_business_glossary_term' = 'Remarks');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `tag_number` SET TAGS ('pii_business_glossary_term' = 'Tag Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `test_status` SET TAGS ('pii_business_glossary_term' = 'Test Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `unit_of_measure` SET TAGS ('pii_business_glossary_term' = 'Unit Of Measure');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `updated_timestamp` SET TAGS ('pii_business_glossary_term' = 'Updated Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `verification_date` SET TAGS ('pii_business_glossary_term' = 'Verification Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `verification_status` SET TAGS ('pii_business_glossary_term' = 'Verification Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`equipment_installation` ALTER COLUMN `verified_by` SET TAGS ('pii_business_glossary_term' = 'Verified By');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` SET TAGS ('pii_data_type' = 'association_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` SET TAGS ('pii_subdomain' = 'spatial_coordination');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` SET TAGS ('pii_association_edges' = 'design.interface_point,equipment.asset');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `interface_equipment_assignment_id` SET TAGS ('pii_business_glossary_term' = 'Interface Equipment Assignment - Interface Equipment Assignment Id');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `asset_id` SET TAGS ('pii_business_glossary_term' = 'Interface Equipment Assignment - Asset Id');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `interface_point_id` SET TAGS ('pii_business_glossary_term' = 'Interface Equipment Assignment - Interface Point Id');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `assigned_date` SET TAGS ('pii_business_glossary_term' = 'Assigned Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `assignment_date` SET TAGS ('pii_business_glossary_term' = 'Assignment Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `assignment_role` SET TAGS ('pii_business_glossary_term' = 'Assignment Role');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `assignment_status` SET TAGS ('pii_business_glossary_term' = 'Assignment Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `assignment_type` SET TAGS ('pii_business_glossary_term' = 'Assignment Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `connection_type` SET TAGS ('pii_business_glossary_term' = 'Connection Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `coordination_notes` SET TAGS ('pii_business_glossary_term' = 'Coordination Notes');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `coordination_status` SET TAGS ('pii_business_glossary_term' = 'Coordination Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `installation_date` SET TAGS ('pii_business_glossary_term' = 'Asset Installation Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `interface_equipment_assignment_status` SET TAGS ('pii_business_glossary_term' = 'Interface Equipment Assignment Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `interface_notes` SET TAGS ('pii_business_glossary_term' = 'Interface Notes');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `interface_role` SET TAGS ('pii_business_glossary_term' = 'Interface Role');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `interface_status` SET TAGS ('pii_business_glossary_term' = 'Interface Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `interface_type` SET TAGS ('pii_business_glossary_term' = 'Interface Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `last_modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `notes` SET TAGS ('pii_business_glossary_term' = 'Notes');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `remarks` SET TAGS ('pii_business_glossary_term' = 'Remarks');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `resolution_date` SET TAGS ('pii_business_glossary_term' = 'Resolution Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `resolved_date` SET TAGS ('pii_business_glossary_term' = 'Resolved Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `responsibility_party` SET TAGS ('pii_business_glossary_term' = 'Responsibility Party');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `responsible_discipline` SET TAGS ('pii_business_glossary_term' = 'Responsible Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `responsible_party` SET TAGS ('pii_business_glossary_term' = 'Responsible Party');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `role_in_interface` SET TAGS ('pii_business_glossary_term' = 'Asset Role in Interface');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `updated_timestamp` SET TAGS ('pii_business_glossary_term' = 'Updated Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`interface_equipment_assignment` ALTER COLUMN `verified_flag` SET TAGS ('pii_business_glossary_term' = 'Verified Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` SET TAGS ('pii_data_type' = 'association_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` SET TAGS ('pii_subdomain' = 'change_management');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` SET TAGS ('pii_association_edges' = 'design.change_notice,equipment.asset');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `change_impact_id` SET TAGS ('pii_business_glossary_term' = 'Change Impact - Change Impact Id');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `asset_id` SET TAGS ('pii_business_glossary_term' = 'Change Impact - Asset Id');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `change_notice_id` SET TAGS ('pii_business_glossary_term' = 'Change Impact - Change Notice Id');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project Id');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `affected_discipline` SET TAGS ('pii_business_glossary_term' = 'Affected Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `assessed_by` SET TAGS ('pii_business_glossary_term' = 'Assessed By');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `assessed_date` SET TAGS ('pii_business_glossary_term' = 'Assessed Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `assessment_date` SET TAGS ('pii_business_glossary_term' = 'Assessment Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `change_impact_status` SET TAGS ('pii_business_glossary_term' = 'Change Impact Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `cost_impact` SET TAGS ('pii_business_glossary_term' = 'Cost Impact');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `cost_impact_amount` SET TAGS ('pii_business_glossary_term' = 'Asset Cost Impact');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `currency_code` SET TAGS ('pii_business_glossary_term' = 'Currency Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `disposition` SET TAGS ('pii_business_glossary_term' = 'Disposition');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `impact_category` SET TAGS ('pii_business_glossary_term' = 'Impact Category');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `impact_description` SET TAGS ('pii_business_glossary_term' = 'Impact Description');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `impact_severity` SET TAGS ('pii_business_glossary_term' = 'Impact Severity');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `impact_status` SET TAGS ('pii_business_glossary_term' = 'Impact Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `impact_type` SET TAGS ('pii_business_glossary_term' = 'Impact Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `last_modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `mitigation_action` SET TAGS ('pii_business_glossary_term' = 'Mitigation Action');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `mutator_note` SET TAGS ('pii_business_glossary_term' = 'Mutator Note');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `remarks` SET TAGS ('pii_business_glossary_term' = 'Remarks');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `schedule_impact_days` SET TAGS ('pii_business_glossary_term' = 'Schedule Impact Days');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `scope_impact` SET TAGS ('pii_business_glossary_term' = 'Scope Impact');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `scope_impact_desc` SET TAGS ('pii_business_glossary_term' = 'Scope Impact Desc');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `severity` SET TAGS ('pii_business_glossary_term' = 'Severity');
+ALTER TABLE `vibe_construction_v1`.`design`.`change_impact` ALTER COLUMN `updated_timestamp` SET TAGS ('pii_business_glossary_term' = 'Updated Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` SET TAGS ('pii_data_type' = 'association_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` SET TAGS ('pii_subdomain' = 'spatial_coordination');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` SET TAGS ('pii_association_edges' = 'design.mep_coordination_zone,equipment.asset');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `zone_equipment_allocation_id` SET TAGS ('pii_business_glossary_term' = 'Zone Equipment Allocation - Zone Equipment Allocation Id');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `asset_id` SET TAGS ('pii_business_glossary_term' = 'Zone Equipment Allocation - Asset Id');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `mep_coordination_zone_id` SET TAGS ('pii_business_glossary_term' = 'Zone Equipment Allocation - Mep Coordination Zone Id');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `access_requirement` SET TAGS ('pii_business_glossary_term' = 'Access Requirement');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `allocated_by` SET TAGS ('pii_business_glossary_term' = 'Allocated By');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `allocated_date` SET TAGS ('pii_business_glossary_term' = 'Allocated Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `allocated_quantity` SET TAGS ('pii_business_glossary_term' = 'Allocated Quantity');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `allocation_date` SET TAGS ('pii_business_glossary_term' = 'Allocation Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `allocation_status` SET TAGS ('pii_business_glossary_term' = 'Allocation Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `asset_position` SET TAGS ('pii_business_glossary_term' = 'Asset Position');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `clash_count` SET TAGS ('pii_business_glossary_term' = 'Clash Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `clash_status` SET TAGS ('pii_business_glossary_term' = 'Clash Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `clearance_requirement` SET TAGS ('pii_business_glossary_term' = 'Clearance Requirement');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `clearance_verified` SET TAGS ('pii_business_glossary_term' = 'Clearance Verified');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `coordination_notes` SET TAGS ('pii_business_glossary_term' = 'Coordination Notes');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `coordination_priority` SET TAGS ('pii_business_glossary_term' = 'Coordination Priority');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `coordination_status` SET TAGS ('pii_business_glossary_term' = 'Coordination Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `elevation` SET TAGS ('pii_business_glossary_term' = 'Elevation');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `is_clash_resolved` SET TAGS ('pii_business_glossary_term' = 'Is Clash Resolved');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `last_modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `notes` SET TAGS ('pii_business_glossary_term' = 'Notes');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `orientation` SET TAGS ('pii_business_glossary_term' = 'Orientation');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `quantity` SET TAGS ('pii_business_glossary_term' = 'Quantity');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `quantity_allocated` SET TAGS ('pii_business_glossary_term' = 'Quantity Allocated');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `remarks` SET TAGS ('pii_business_glossary_term' = 'Remarks');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `responsible_discipline` SET TAGS ('pii_business_glossary_term' = 'Responsible Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `responsible_party` SET TAGS ('pii_business_glossary_term' = 'Responsible Party');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `spatial_coordination_notes` SET TAGS ('pii_business_glossary_term' = 'Spatial Coordination Notes');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `unit_of_measure` SET TAGS ('pii_business_glossary_term' = 'Unit Of Measure');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `updated_timestamp` SET TAGS ('pii_business_glossary_term' = 'Updated Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `zone_capacity_used` SET TAGS ('pii_business_glossary_term' = 'Zone Capacity Used');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `zone_ref` SET TAGS ('pii_business_glossary_term' = 'Zone Ref');
+ALTER TABLE `vibe_construction_v1`.`design`.`zone_equipment_allocation` ALTER COLUMN `zone_reference` SET TAGS ('pii_business_glossary_term' = 'Zone Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` SET TAGS ('pii_data_type' = 'association_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` SET TAGS ('pii_subdomain' = 'engineering_drawings');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` SET TAGS ('pii_association_edges' = 'design.drawing,schedule.activity');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `drawing_requirement_id` SET TAGS ('pii_business_glossary_term' = 'Drawing Requirement - Drawing Requirement Id');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `activity_id` SET TAGS ('pii_business_glossary_term' = 'Drawing Requirement - Activity Id');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `drawing_id` SET TAGS ('pii_business_glossary_term' = 'Drawing Requirement - Drawing Id');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `dependency_type` SET TAGS ('pii_business_glossary_term' = 'Dependency Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `dependency_type` SET TAGS ('pii_schedule' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `drawing_requirement_description` SET TAGS ('pii_business_glossary_term' = 'Drawing Requirement Description');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `drawing_requirement_status` SET TAGS ('pii_business_glossary_term' = 'Drawing Requirement Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `due_date` SET TAGS ('pii_business_glossary_term' = 'Due Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `is_critical` SET TAGS ('pii_business_glossary_term' = 'Is Critical');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `lag_days` SET TAGS ('pii_business_glossary_term' = 'Lag Days');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `lag_days` SET TAGS ('pii_schedule' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `last_modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `mandatory_flag` SET TAGS ('pii_business_glossary_term' = 'Mandatory Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `notes` SET TAGS ('pii_business_glossary_term' = 'Notes');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `priority` SET TAGS ('pii_business_glossary_term' = 'Priority');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `remarks` SET TAGS ('pii_business_glossary_term' = 'Remarks');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `required_by_date` SET TAGS ('pii_business_glossary_term' = 'Required By Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `required_date` SET TAGS ('pii_business_glossary_term' = 'Required Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `requirement_description` SET TAGS ('pii_business_glossary_term' = 'Requirement Description');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `requirement_status` SET TAGS ('pii_business_glossary_term' = 'Requirement Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `requirement_type` SET TAGS ('pii_business_glossary_term' = 'Requirement Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `responsible_party` SET TAGS ('pii_business_glossary_term' = 'Responsible Party');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `updated_timestamp` SET TAGS ('pii_business_glossary_term' = 'Updated Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `verification_date` SET TAGS ('pii_business_glossary_term' = 'Verification Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `verification_status` SET TAGS ('pii_business_glossary_term' = 'Verification Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_requirement` ALTER COLUMN `verified_by` SET TAGS ('pii_business_glossary_term' = 'Verified By');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` SET TAGS ('pii_data_type' = 'association_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` SET TAGS ('pii_subdomain' = 'engineering_drawings');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` SET TAGS ('pii_association_edges' = 'design.drawing,safety.incident');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `drawing_incident_link_id` SET TAGS ('pii_business_glossary_term' = 'Drawing Incident Link - Drawing Incident Link Id');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `drawing_id` SET TAGS ('pii_business_glossary_term' = 'Drawing Incident Link - Drawing Id');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `incident_id` SET TAGS ('pii_business_glossary_term' = 'Drawing Incident Link - Incident Id');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `drawing_incident_link_status` SET TAGS ('pii_business_glossary_term' = 'Drawing Incident Link Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `impact_description` SET TAGS ('pii_business_glossary_term' = 'Impact Description');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `is_root_cause` SET TAGS ('pii_business_glossary_term' = 'Is Root Cause');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `last_modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `link_date` SET TAGS ('pii_business_glossary_term' = 'Link Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `link_description` SET TAGS ('pii_business_glossary_term' = 'Link Description');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `link_reason` SET TAGS ('pii_business_glossary_term' = 'Link Reason');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `link_status` SET TAGS ('pii_business_glossary_term' = 'Link Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `link_type` SET TAGS ('pii_business_glossary_term' = 'Link Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `linked_by` SET TAGS ('pii_business_glossary_term' = 'Linked By');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `linked_date` SET TAGS ('pii_business_glossary_term' = 'Linked Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `notes` SET TAGS ('pii_business_glossary_term' = 'Notes');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `reference_notes` SET TAGS ('pii_business_glossary_term' = 'Reference Notes');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `relevance` SET TAGS ('pii_business_glossary_term' = 'Relevance');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `relevance_description` SET TAGS ('pii_business_glossary_term' = 'Relevance Description');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `relevance_note` SET TAGS ('pii_business_glossary_term' = 'Relevance Note');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `remarks` SET TAGS ('pii_business_glossary_term' = 'Remarks');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_incident_link` ALTER COLUMN `updated_timestamp` SET TAGS ('pii_business_glossary_term' = 'Updated Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` SET TAGS ('pii_data_type' = 'master_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` SET TAGS ('pii_subdomain' = 'document_control');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `workflow_template_id` SET TAGS ('pii_business_glossary_term' = 'Workflow Template Identifier');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `parent_workflow_template_id` SET TAGS ('pii_business_glossary_term' = 'Parent Workflow Template Id');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `parent_workflow_template_id` SET TAGS ('pii_self_ref_fk' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `approval_required` SET TAGS ('pii_business_glossary_term' = 'Approval Required');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `average_step_duration_minutes` SET TAGS ('pii_business_glossary_term' = 'Average Step Duration Minutes');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `workflow_template_code` SET TAGS ('pii_business_glossary_term' = 'Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `compliance_requirements` SET TAGS ('pii_business_glossary_term' = 'Compliance Requirements');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `default_assignee_role` SET TAGS ('pii_business_glossary_term' = 'Default Assignee Role');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `workflow_template_description` SET TAGS ('pii_business_glossary_term' = 'Description');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `documentation_url` SET TAGS ('pii_business_glossary_term' = 'Documentation Url');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `effective_from` SET TAGS ('pii_business_glossary_term' = 'Effective From');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `effective_until` SET TAGS ('pii_business_glossary_term' = 'Effective Until');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `escalation_policy` SET TAGS ('pii_business_glossary_term' = 'Escalation Policy');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `is_default` SET TAGS ('pii_business_glossary_term' = 'Is Default');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `last_reviewed_timestamp` SET TAGS ('pii_business_glossary_term' = 'Last Reviewed Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `max_concurrent_instances` SET TAGS ('pii_business_glossary_term' = 'Max Concurrent Instances');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `workflow_template_name` SET TAGS ('pii_business_glossary_term' = 'Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `notification_enabled` SET TAGS ('pii_business_glossary_term' = 'Notification Enabled');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `retention_period_days` SET TAGS ('pii_business_glossary_term' = 'Retention Period Days');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `reviewed_by` SET TAGS ('pii_business_glossary_term' = 'Reviewed By');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `risk_level` SET TAGS ('pii_business_glossary_term' = 'Risk Level');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `step_count` SET TAGS ('pii_business_glossary_term' = 'Step Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `updated_timestamp` SET TAGS ('pii_business_glossary_term' = 'Updated Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `version_number` SET TAGS ('pii_business_glossary_term' = 'Version Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `workflow_template_status` SET TAGS ('pii_business_glossary_term' = 'Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`workflow_template` ALTER COLUMN `workflow_template_type` SET TAGS ('pii_business_glossary_term' = 'Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` SET TAGS ('pii_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` SET TAGS ('pii_subdomain' = 'handover_commissioning');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` SET TAGS ('pii_ecm_reviewed' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` SET TAGS ('pii_source' = 'vibe-batch');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` SET TAGS ('pii_preserve' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` SET TAGS ('pii_ssot' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` SET TAGS ('pii_ssot_role' = 'master');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` SET TAGS ('pii_ssot_resolved_against' = 'quality.quality_submittal');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` SET TAGS ('pii_ssot_distinct' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` SET TAGS ('pii_ssot_scope' = 'design');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` SET TAGS ('pii_ssot_counterpart' = 'quality.quality_submittal');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` SET TAGS ('pii_ssot_master' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `engineering_submittal_id` SET TAGS ('pii_business_glossary_term' = 'Design Submittal Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `asset_id` SET TAGS ('pii_business_glossary_term' = 'Asset Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `regulatory_permit_id` SET TAGS ('pii_business_glossary_term' = 'Permit Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `drawing_id` SET TAGS ('pii_business_glossary_term' = 'Drawing Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `cost_code_id` SET TAGS ('pii_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `master_id` SET TAGS ('pii_business_glossary_term' = 'Material Material Master Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `rfi_id` SET TAGS ('pii_business_glossary_term' = 'Rfi Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'Submitting Employee Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `trade_package_id` SET TAGS ('pii_business_glossary_term' = 'Trade Package Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `transmittal_id` SET TAGS ('pii_business_glossary_term' = 'Transmittal Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `actual_review_date` SET TAGS ('pii_business_glossary_term' = 'Actual Review Completion Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `actual_submission_date` SET TAGS ('pii_business_glossary_term' = 'Actual Submission Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `approval_authority_level` SET TAGS ('pii_business_glossary_term' = 'Approval Authority Level');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `approval_authority_level` SET TAGS ('pii_value_regex' = 'contractor|design_consultant|client|regulatory_authority|independent_verifier');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `approval_disposition` SET TAGS ('pii_business_glossary_term' = 'Approval Disposition Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `approval_disposition` SET TAGS ('pii_value_regex' = 'approved|approved_as_noted|revise_and_resubmit|rejected|no_exception_taken|reviewed_for_information');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `approver_name` SET TAGS ('pii_business_glossary_term' = 'Approver Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `approver_name` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `approver_name` SET TAGS ('pii_name' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `attachment_count` SET TAGS ('pii_business_glossary_term' = 'Attachment File Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `bim_model_reference` SET TAGS ('pii_business_glossary_term' = 'Building Information Modeling (BIM) Model Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `closure_date` SET TAGS ('pii_business_glossary_term' = 'Submittal Closure Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `confidentiality_level` SET TAGS ('pii_business_glossary_term' = 'Confidentiality Classification Level');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `confidentiality_level` SET TAGS ('pii_value_regex' = 'public|internal|confidential|restricted');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `cost_impact_flag` SET TAGS ('pii_business_glossary_term' = 'Cost Impact Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Record Creation Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `created_timestamp` SET TAGS ('pii_ssot_source' = 'quality.quality_submittal');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `discipline` SET TAGS ('pii_business_glossary_term' = 'Engineering Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `estimated_cost_impact_amount` SET TAGS ('pii_business_glossary_term' = 'Estimated Cost Impact Amount');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `estimated_cost_impact_amount` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `file_format` SET TAGS ('pii_business_glossary_term' = 'Primary File Format');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Record Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_ssot_source' = 'quality.quality_submittal');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `priority` SET TAGS ('pii_business_glossary_term' = 'Submittal Priority Level');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `priority` SET TAGS ('pii_value_regex' = 'critical|high|medium|low');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `regulatory_authority` SET TAGS ('pii_business_glossary_term' = 'Regulatory Authority Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `regulatory_compliance_flag` SET TAGS ('pii_business_glossary_term' = 'Regulatory Compliance Required Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `required_submission_date` SET TAGS ('pii_business_glossary_term' = 'Required Submission Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `response_notes` SET TAGS ('pii_business_glossary_term' = 'Submitter Response Notes');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `review_comments` SET TAGS ('pii_business_glossary_term' = 'Reviewer Comments');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `review_due_date` SET TAGS ('pii_business_glossary_term' = 'Review Due Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `reviewer_name` SET TAGS ('pii_business_glossary_term' = 'Reviewer Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `reviewer_name` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `reviewer_name` SET TAGS ('pii_name' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `reviewer_name` SET TAGS ('pii_ssot_source' = 'quality.quality_submittal');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `reviewing_organization` SET TAGS ('pii_business_glossary_term' = 'Reviewing Organization Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `revision_number` SET TAGS ('pii_business_glossary_term' = 'Submittal Revision Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `revision_number` SET TAGS ('pii_ssot_source' = 'quality.quality_submittal');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `schedule_impact_days` SET TAGS ('pii_business_glossary_term' = 'Schedule Impact Days');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `schedule_impact_days` SET TAGS ('pii_ssot_source' = 'quality.quality_submittal');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `schedule_impact_flag` SET TAGS ('pii_business_glossary_term' = 'Schedule Impact Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `specification_section` SET TAGS ('pii_business_glossary_term' = 'Specification Section Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `specification_section` SET TAGS ('pii_ssot_source' = 'quality.quality_submittal');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `submittal_number` SET TAGS ('pii_business_glossary_term' = 'Submittal Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `submittal_number` SET TAGS ('pii_ssot_source' = 'quality.quality_submittal');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `submittal_status` SET TAGS ('pii_business_glossary_term' = 'Submittal Review Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `submittal_type` SET TAGS ('pii_business_glossary_term' = 'Submittal Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `submittal_type` SET TAGS ('pii_ssot_source' = 'quality.quality_submittal');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `submitting_organization` SET TAGS ('pii_business_glossary_term' = 'Submitting Organization Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `supersedes_submittal_number` SET TAGS ('pii_business_glossary_term' = 'Supersedes Submittal Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `title` SET TAGS ('pii_business_glossary_term' = 'Submittal Title');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `title` SET TAGS ('pii_ssot_source' = 'quality.quality_submittal');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `wbs_code` SET TAGS ('pii_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `wbs_code` SET TAGS ('pii_ssot_source' = 'quality.quality_submittal');

@@ -1,5 +1,5 @@
 -- Schema for Domain: material | Business: Construction | Version: v2_mvm
--- Generated on: 2026-06-22 17:24:52
+-- Generated on: 2026-06-27 01:56:03
 
 -- ========= DATABASE =========
 CREATE DATABASE IF NOT EXISTS `vibe_construction_v1`.`material` COMMENT 'Materials management domain tracking inventory, stock levels, material receipts, consumption, transfers between sites, and material traceability (batch/lot tracking for concrete, steel, MEP components). Manages BOQ (Bill of Quantities) reconciliation, material specifications, FAT/SAT records, material conformance certificates, and warehouse operations for construction materials and consumables.';
@@ -7,7 +7,7 @@ CREATE DATABASE IF NOT EXISTS `vibe_construction_v1`.`material` COMMENT 'Materia
 -- ========= TABLES =========
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`material`.`master` (
     `master_id` BIGINT COMMENT 'Primary key for master',
-    `gl_account_id` BIGINT COMMENT 'Foreign key linking to finance.gl_account. Business justification: Inventory valuation process: each material master maps to a GL account (e.g., raw materials inventory asset account) for balance sheet posting and stock valuation reporting. Standard construction ERP ',
+    `gl_account_id` BIGINT COMMENT 'Foreign key linking to finance.gl_account. Business justification: Material master records are assigned to GL accounts (inventory account, consumption account) for automatic account determination during goods movements. This is a fundamental ERP pattern in constructi',
     `substitution_material_master_id` BIGINT COMMENT 'Identifier of an approved substitute material.',
     `vendor_id` BIGINT COMMENT 'Identifier of the primary supplier for this material.',
     `approved_timestamp` TIMESTAMP COMMENT 'Date‑time when the material record was approved for use.',
@@ -18,7 +18,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`material`.`master` (
     `currency_code` STRING COMMENT 'ISO 4217 three‑letter currency code for cost fields.',
     `master_description` STRING COMMENT 'Detailed textual description of the material, including typical applications.',
     `dimensions_cm` STRING COMMENT 'Length×Width×Height dimensions in centimeters, formatted as LxWxH.',
-    `expiration_date` DECIMAL(18,2) COMMENT 'Calendar date when the material batch expires.',
+    `expiration_date` DATE COMMENT 'Calendar date when the material batch expires.',
     `hazardous_material_indicator` BOOLEAN COMMENT 'True if the material is classified as hazardous under OSHA/EPA regulations.',
     `lead_time_days` STRING COMMENT 'Average number of days from order to receipt.',
     `leeds_compliance_flag` BOOLEAN COMMENT 'Indicates whether the material is eligible for LEED credit consideration.',
@@ -54,7 +54,9 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`material`.`master` (
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`material`.`warehouse` (
     `warehouse_id` BIGINT COMMENT 'System-generated unique identifier for the warehouse record.',
     `account_id` BIGINT COMMENT 'Foreign key linking to client.account. Business justification: REQUIRED: Some warehouses are owned or leased by a client; the FK enables asset ownership and liability tracking.',
-    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Warehouse overhead allocation: construction warehouses are assigned to cost centers to track storage costs (utilities, security, handling). Required for overhead cost allocation reports and cost cente',
+    `company_code_id` BIGINT COMMENT 'Foreign key linking to finance.company_code. Business justification: Warehouses belong to a legal entity (company code) for financial reporting, inventory ownership, and intercompany stock transfer accounting. Construction groups with multiple legal entities require co',
+    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Warehouses are operated under specific cost centers for overhead cost allocation (storage, handling, security). Construction finance requires cost center on warehouse to allocate warehouse operating c',
+    `hse_plan_id` BIGINT COMMENT 'Foreign key linking to safety.hse_plan. Business justification: Hazardous material warehouses on construction sites must be governed by a documented HSE plan covering storage requirements, emergency procedures, and regulatory compliance. This link enables complian',
     `site_id` BIGINT COMMENT 'Identifier of the construction site or project to which the warehouse is attached.',
     `access_control_method` STRING COMMENT 'Primary method used to control entry to the warehouse.. Valid values are `badge|biometric|keycard|none`',
     `address_line1` STRING COMMENT 'Primary street address of the warehouse.',
@@ -94,20 +96,20 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`material`.`warehouse` (
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`material`.`stock_level` (
     `stock_level_id` BIGINT COMMENT 'System-generated unique identifier for each stock level record.',
-    `batch_lot_id` BIGINT COMMENT 'Foreign key linking to material.batch_lot. Business justification: stock_level tracks on-hand inventory position which can be batch/lot specific (e.g., 50 units of concrete batch B-2024-001 at warehouse W1). The batch_number and lot_number on stock_level are denormal',
-    `gl_account_id` BIGINT COMMENT 'Foreign key linking to finance.gl_account. Business justification: Inventory balance sheet reporting: each stock location maps to a GL inventory account for on-hand stock valuation. Construction finance requires stock-level GL account assignment to produce accurate b',
+    `batch_lot_id` BIGINT COMMENT 'Foreign key linking to material.batch_lot. Business justification: stock_level tracks on-hand inventory and has batch_number as a denormalized STRING. For batch-tracked materials, the stock level record must link to the specific batch_lot record to enable traceabilit',
     `master_id` BIGINT COMMENT 'FK to material.material_master',
     `warehouse_id` BIGINT COMMENT 'FK to material.warehouse',
     `blocked_quantity` DECIMAL(18,2) COMMENT 'Quantity held due to quality issues, holds, or regulatory restrictions.',
     `committed_quantity` DECIMAL(18,2) COMMENT 'Quantity allocated to specific construction activities or contracts.',
     `cost_per_unit` DECIMAL(18,2) COMMENT 'Standard cost of a single unit of material in the base currency.',
     `created_timestamp` TIMESTAMP COMMENT 'Date and time when the stock level record was first created.',
-    `expiration_date` DECIMAL(18,2) COMMENT 'Date after which the material is considered unusable or non‑compliant.',
+    `expiration_date` DATE COMMENT 'Date after which the material is considered unusable or non‑compliant.',
     `in_transit_quantity` DECIMAL(18,2) COMMENT 'Quantity that has been dispatched but not yet received at the location.',
     `last_movement_date` TIMESTAMP COMMENT 'Date and time of the most recent stock transaction affecting this record.',
     `last_movement_type` STRING COMMENT 'Category of the most recent stock transaction.. Valid values are `receipt|issue|transfer|return|adjustment`',
     `last_updated_timestamp` TIMESTAMP COMMENT 'Date and time of the most recent update to the stock level record.',
     `location_code` STRING COMMENT 'Identifier of the warehouse or storage site where the stock resides.',
+    `lot_number` STRING COMMENT 'Identifier for a lot of material, often used for quality tracking.',
     `material_code` STRING COMMENT 'External business identifier or catalogue number for the material.',
     `max_stock_level` DECIMAL(18,2) COMMENT 'Upper threshold for inventory to avoid over‑stocking.',
     `min_stock_level` DECIMAL(18,2) COMMENT 'Lowest permissible inventory level before stock is considered understocked.',
@@ -124,27 +126,20 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`material`.`stock_level` (
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`material`.`stock_movement` (
     `stock_movement_id` BIGINT COMMENT 'Primary key for stock_movement',
-    `batch_lot_id` BIGINT COMMENT 'Foreign key linking to material.batch_lot. Business justification: stock_movement captures goods receipts for batch-tracked materials (concrete, steel, MEP components). The batch_number and lot_number are denormalized string fields that should reference the batch_lot',
-    `construction_project_id` BIGINT COMMENT 'Identifier of the construction project associated with the receipt.',
-    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Goods receipt cost center posting: material receipts in construction are posted to cost centers for accrual accounting and overhead absorption. Required for cost center actual vs. budget variance repo',
-    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Job costing for goods receipts: every material receipt in construction must be coded to a cost code for job cost tracking and WBS cost accumulation. Required for cost-to-complete analysis and project ',
-    `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: Material accountability reporting in construction requires knowing which craft worker (foreman/superintendent) initiated or authorized a stock movement. The existing created_by plain-text column is ',
-    `crew_id` BIGINT COMMENT 'Foreign key linking to workforce.crew. Business justification: Construction project cost reporting requires crew-level material consumption tracking. Linking stock movements to the receiving/consuming crew enables crew productivity dashboards (materials received ',
-    `warehouse_id` BIGINT COMMENT 'Foreign key linking to material.warehouse. Business justification: stock_movement records the physical receipt of materials into a warehouse. The destination_warehouse_code is a denormalized string reference to the warehouse table. Adding destination_warehouse_id FK ',
+    `batch_lot_id` BIGINT COMMENT 'Foreign key linking to material.batch_lot. Business justification: stock_movement stores batch_number and lot_number as denormalized strings. For materials requiring chain-of-custody tracking (concrete, steel, MEP components), the goods receipt must link to the batch',
+    `account_id` BIGINT COMMENT 'Foreign key linking to client.account. Business justification: REQUIRED: Goods receipts are tied to client orders; needed for delivery confirmation and contract compliance.',
+    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Goods receipts (stock movements) are posted against cost codes in construction job costing. Cost controllers require cost_code assignment on every material receipt to track actual vs. budgeted materia',
     `gl_account_id` BIGINT COMMENT 'Foreign key linking to finance.gl_account. Business justification: Required for Inventory Valuation: goods receipt creates a GL entry to record inventory value in the general ledger.',
-    `goods_receipt_id` BIGINT COMMENT 'Foreign key linking to procurement.goods_receipt. Business justification: A goods receipt posting creates a stock movement record (inventory inbound posting). Linking stock_movement to its originating goods_receipt enables three-way match validation, inventory reconciliatio',
-    `invoice_id` BIGINT COMMENT 'Foreign key linking to finance.invoice. Business justification: Three-way match process: goods receipt (stock_movement) must be matched to the vendor invoice for AP approval. Construction finance requires GR-to-invoice linkage to complete PO→GR→Invoice three-way m',
-    `master_id` BIGINT COMMENT 'Foreign key linking to material.master. Business justification: stock_movement is a goods receipt transaction that must reference the authoritative material master. Currently it stores material_code and material_description as denormalized strings. Adding material',
-    `mto_line_id` BIGINT COMMENT 'Foreign key linking to material.mto_line. Business justification: stock_movement records goods receipts against purchase orders. Linking stock_movement to mto_line connects the physical receipt event to the MTO requirement that drove procurement. mto_line has actual',
-    `permit_to_work_id` BIGINT COMMENT 'Foreign key linking to safety.permit_to_work. Business justification: Movement of hazardous materials on a construction site requires a valid permit to work. Regulatory compliance and HSE audits require tracing each hazardous stock movement to its authorising PTW. No ex',
-    `purchase_order_id` BIGINT COMMENT 'Foreign key linking to procurement.purchase_order. Business justification: Stock movement records must be linked to the originating purchase order for audit trails, cost allocation, and receipt verification.',
-    `site_id` BIGINT COMMENT 'Identifier of the construction site or warehouse where material is received.',
+    `master_id` BIGINT COMMENT 'Foreign key linking to material.master. Business justification: stock_movement records a physical goods receipt against a material. It currently stores material_code and material_description as denormalized strings. Adding material_master_id FK normalizes this to ',
+    `warehouse_id` BIGINT COMMENT 'Foreign key linking to material.warehouse. Business justification: stock_movement has source_warehouse_code as a denormalized STRING. For inter-warehouse transfers and returns, the source warehouse must be a proper FK reference to the warehouse master. Adding source_',
     `accounting_entry_posted` BOOLEAN COMMENT 'True when the financial posting for the receipt has been completed.',
     `actual_delivery_date` DATE COMMENT 'Date on which the material physically arrived at the site.',
     `compliance_status` STRING COMMENT 'Regulatory compliance status of the received material.. Valid values are `compliant|non_compliant|exempt`',
+    `cost_center_code` STRING COMMENT 'Cost center to which the receipt expense is charged.',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the goods receipt record was first created in the system.',
     `currency_code` STRING COMMENT 'Three‑letter ISO currency code for the monetary amounts.. Valid values are `USD|EUR|GBP|JPY|CAD|AUD`',
     `delivery_note_number` STRING COMMENT 'Reference number of the suppliers delivery note accompanying the shipment.',
+    `destination_warehouse_code` STRING COMMENT 'Code of the warehouse or site where the material is being received.',
     `expected_delivery_date` DATE COMMENT 'Planned delivery date as per the purchase order.',
     `freight_cost` DECIMAL(18,2) COMMENT 'Transportation cost associated with delivering the material.',
     `freight_currency_code` STRING COMMENT 'Currency of the freight cost.. Valid values are `USD|EUR|GBP|JPY|CAD|AUD`',
@@ -161,7 +156,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`material`.`stock_movement` (
     `receipt_status` STRING COMMENT 'Overall processing status of the goods receipt.. Valid values are `partial|complete|over_delivery|rejected`',
     `receipt_timestamp` TIMESTAMP COMMENT 'Exact date and time the goods receipt was posted in the system.',
     `remarks` STRING COMMENT 'Free‑text field for additional comments or notes about the receipt.',
-    `source_warehouse_code` STRING COMMENT 'Code of the warehouse or location from which the material originated.',
     `storage_location_code` STRING COMMENT 'Code of the warehouse or site location where the material is stored.',
     `tax_amount` DECIMAL(18,2) COMMENT 'Tax component associated with the goods receipt.',
     `tax_code` STRING COMMENT 'Tax classification code applied to the receipt.',
@@ -173,22 +167,15 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`material`.`stock_movement` (
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`material`.`goods_issue` (
     `goods_issue_id` BIGINT COMMENT 'System-generated unique identifier for the goods issue transaction.',
-    `contact_id` BIGINT COMMENT 'Foreign key linking to client.contact. Business justification: In construction, client representatives formally authorize material delivery and consumption, especially for owner-furnished materials and witnessed inspections. Capturing the authorizing client conta',
-    `batch_lot_id` BIGINT COMMENT 'Identifier used for end‑to‑end traceability of the material batch.',
-    `boq_line_id` BIGINT COMMENT 'Foreign key linking to material.material_boq_line. Business justification: goods_issue records actual material consumption against a WBS element. Linking goods_issue to material_boq_line enables actual-vs-planned quantity reconciliation — tracking how much of the BOQ-planned',
-    `construction_project_id` BIGINT COMMENT 'Identifier of the construction project associated with the issue.',
     `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Required for Cost Allocation: material issue costs are charged to a cost center for project accounting and financial reporting.',
-    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Material consumption job costing: every goods issue in construction must be charged to a cost code for WBS cost accumulation and earned value reporting. Construction cost engineers require this link t',
-    `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: Materials Issue process records which craft worker receives material for job tasks, needed for labor cost allocation and safety compliance.',
-    `crew_id` BIGINT COMMENT 'Foreign key linking to workforce.crew. Business justification: In construction, materials are issued to crews as a unit for work packages. Crew-level material issuance tracking enables crew productivity analysis (materials consumed per crew per activity) and cost',
-    `gl_account_id` BIGINT COMMENT 'Foreign key linking to finance.gl_account. Business justification: Goods issue GL posting: material issues generate accounting entries (debit WIP/expense, credit inventory). Direct GL account reference on goods_issue supports automated journal entry generation and fi',
-    `maintenance_order_id` BIGINT COMMENT 'Foreign key linking to equipment.maintenance_order. Business justification: Goods issues of spare parts are executed against a maintenance order in construction ERP (SAP PM/MM pattern). This link enables maintenance cost reporting, warranty claim validation, and parts consump',
+    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Material issues to site are charged to cost codes for job cost tracking. Construction cost controllers require cost_code on every goods issue to report actual material consumption by cost code against',
+    `crew_id` BIGINT COMMENT 'Foreign key linking to workforce.crew. Business justification: Crew-level material consumption tracking: materials (concrete, rebar, formwork) are issued to crews as a unit for their work scope. This link supports crew productivity analysis, cost-per-crew reporti',
+    `gl_account_id` BIGINT COMMENT 'Foreign key linking to finance.gl_account. Business justification: Goods issues post to GL accounts (inventory credit, WIP/expense debit) via automatic account determination. Construction finance teams require GL account traceability on material issues for financial ',
+    `job_cost_transaction_id` BIGINT COMMENT 'Foreign key linking to finance.job_cost_transaction. Business justification: Goods issues to site generate job cost transactions recording actual material cost against the project. Direct FK enables cost-to-issue traceability for project cost reporting, EVM, and audit — a stan',
     `master_id` BIGINT COMMENT 'Unique identifier of the material being issued.',
-    `permit_to_work_id` BIGINT COMMENT 'Foreign key linking to safety.permit_to_work. Business justification: Issuing hazardous materials from warehouse to site requires a valid PTW. Safety compliance reports and incident investigations require linking goods issues to the authorising permit. Standard construc',
-    `project_engagement_id` BIGINT COMMENT 'Foreign key linking to client.project_engagement. Business justification: Client billing reconciliation and retention calculation require linking material consumption (goods issues) to the specific contractual engagement. project_engagement tracks contract value, retention ',
+    `permit_to_work_id` BIGINT COMMENT 'Foreign key linking to safety.permit_to_work. Business justification: Construction HSE compliance requires material issues for hazardous work (hot work, confined space, working at heights) to reference the authorizing Permit to Work. Auditors trace material consumption ',
+    `requisition_id` BIGINT COMMENT 'Foreign key linking to material.requisition. Business justification: A goods_issue fulfills a material requisition — the requisition is the demand document that triggers the warehouse to issue materials. This is a fundamental procurement-to-issue traceability link. goo',
     `return_issue_goods_issue_id` BIGINT COMMENT 'Identifier of the goods issue record that reverses this transaction, if any.',
-    `stock_movement_id` BIGINT COMMENT 'Foreign key linking to material.stock_movement. Business justification: goods_issue records materials issued from warehouse to a WBS/cost center. Linking goods_issue back to the originating stock_movement (goods receipt) provides full material traceability from receipt to',
-    `vendor_id` BIGINT COMMENT 'Identifier of the supplier that provided the material.',
     `warehouse_id` BIGINT COMMENT 'Identifier of the warehouse or stock location from which the material was issued.',
     `approval_status` STRING COMMENT 'Current approval state of the goods issue.. Valid values are `pending|approved|rejected`',
     `approved_timestamp` TIMESTAMP COMMENT 'Date and time when the issue was approved.',
@@ -198,7 +185,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`material`.`goods_issue` (
     `created_timestamp` TIMESTAMP COMMENT 'System timestamp when the goods issue record was first created in the source system.',
     `currency_code` STRING COMMENT 'Three‑letter ISO currency code for monetary values.. Valid values are `USD|EUR|GBP|JPY|CAD|AUD`',
     `delivery_note_number` STRING COMMENT 'Reference number of the delivery note accompanying the material receipt.',
-    `expiration_date` DECIMAL(18,2) COMMENT 'Date after which the material is no longer usable (if applicable).',
+    `expiration_date` DATE COMMENT 'Date after which the material is no longer usable (if applicable).',
     `goods_issue_status` STRING COMMENT 'Current processing state of the goods issue record.. Valid values are `draft|issued|cancelled|reversed`',
     `gross_amount` DECIMAL(18,2) COMMENT 'Total monetary value of the issued material before taxes or discounts.',
     `hazard_classification` STRING COMMENT 'Safety classification of the material for handling and storage.. Valid values are `hazardous|non_hazardous|flammable|toxic|none`',
@@ -223,10 +210,9 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`material`.`goods_issue` (
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`material`.`batch_lot` (
     `batch_lot_id` BIGINT COMMENT 'System-generated unique identifier for the batch or lot record.',
     `account_id` BIGINT COMMENT 'Foreign key linking to client.account. Business justification: REQUIRED: Batch/lot traceability often requires knowing the client for warranty, quality and regulatory reporting.',
-    `construction_project_id` BIGINT COMMENT 'Identifier of the construction project using the material.',
-    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Batch-level job costing: in construction, specific material batches (concrete pours, structural steel lots) are tracked to cost codes for precise cost allocation and compliance reporting. Required for',
-    `master_id` BIGINT COMMENT 'Foreign key linking to material.master. Business justification: batch_lot is the traceability master for a specific batch/lot of a material — it must reference which material master it belongs to. Currently batch_lot has material_description as a denormalized stri',
-    `purchase_order_id` BIGINT COMMENT 'Foreign key linking to procurement.purchase_order. Business justification: A batch/lot in construction is sourced against a specific PO. Linking batch_lot to purchase_order enables full procurement-to-inventory traceability — essential for warranty claims, quality disputes w',
+    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Batch lots received are assigned to cost centers for inventory cost tracking and overhead allocation. Construction finance requires cost center on batch_lot to support inventory valuation reporting an',
+    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Batch/lot receipts are costed to specific cost codes for inventory valuation and job costing in construction. Cost code assignment on batch_lot enables traceability from physical material batches to f',
+    `master_id` BIGINT COMMENT 'Foreign key linking to material.master. Business justification: batch_lot is the traceability master for materials requiring lot tracking, yet it has no FK to the material master. It stores material_description and material_type as denormalized strings. Adding mat',
     `warehouse_id` BIGINT COMMENT 'Unique identifier of the warehouse holding the material.',
     `batch_number` STRING COMMENT 'Manufacturer-assigned batch number used to identify a specific production run.',
     `batch_status` STRING COMMENT 'Lifecycle status of the batch/lot.. Valid values are `produced|received|in_use|completed|recalled`',
@@ -241,7 +227,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`material`.`batch_lot` (
     `lot_number` STRING COMMENT 'Lot identifier for traceability when a batch is split into multiple lots.',
     `lot_traceability_flag` BOOLEAN COMMENT 'Indicates whether the lot is subject to full chain‑of‑custody tracking.',
     `manufacturer` STRING COMMENT 'Name of the company that produced the material.',
-    `material_type` STRING COMMENT 'Category of material represented by the batch/lot.. Valid values are `concrete|steel|rebar|mep_cable|adhesive`',
     `notes` STRING COMMENT 'Free‑form field for additional remarks or observations.',
     `production_date` DATE COMMENT 'Date the material batch was manufactured.',
     `quantity` DECIMAL(18,2) COMMENT 'Amount of material in the batch expressed in the unit of measure.',
@@ -263,12 +248,14 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`material`.`batch_lot` (
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`material`.`boq_line` (
     `boq_line_id` BIGINT COMMENT 'System‑generated unique identifier for the BOQ line item.',
-    `construction_project_id` BIGINT COMMENT 'Foreign key linking to project.construction_project. Business justification: BOQ lines belong to a specific construction project for contract administration, project-level BOQ reporting, and procurement planning. No existing FK from material_boq_line to construction_project ex',
-    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: BOQ cost center assignment: each BOQ line in construction is assigned to a cost center for budget allocation and overhead absorption. Required for cost center budget vs. actual material cost variance ',
+    `activity_id` BIGINT COMMENT 'Foreign key linking to schedule.activity. Business justification: Required for BOQ line to be assigned to the scheduled activity that will consume the material, enabling cost‑tracking, schedule integration, and material requirement reports.',
+    `commercial_change_order_id` BIGINT COMMENT 'Foreign key linking to contract.commercial_change_order. Business justification: Commercial change orders modify BOQ quantities and unit rates. Quantity surveyors require this link to identify which BOQ lines were created or revised by a specific change order, supporting variation',
+    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: BOQ lines are assigned to cost centers for budget allocation and cost control reporting. Construction cost controllers require cost_center on BOQ lines to enable budget vs. actual analysis at cost cen',
     `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Required for BOQ Budgeting: each BOQ line is associated with a cost code to track planned vs. actual costs.',
     `master_id` BIGINT COMMENT 'Identifier of the material or item that this BOQ line represents.',
-    `project_budget_id` BIGINT COMMENT 'Foreign key linking to finance.project_budget. Business justification: BOQ-to-budget linkage: material BOQ lines are the basis for project budget line items. Direct link supports budget vs. actual material cost reporting, change order impact analysis, and earned value me',
-    `technical_specification_id` BIGINT COMMENT 'Foreign key linking to design.technical_specification. Business justification: BOQ line items are governed by technical specifications that define material standards, grades, and workmanship requirements. BOQ preparation and specification compliance audits require direct linkage',
+    `mto_line_id` BIGINT COMMENT 'Foreign key linking to material.mto_line. Business justification: BOQ (Bill of Quantities) lines represent budgeted material quantities, while MTO (Material Take-Off) lines represent engineered quantities from drawings. These two must be reconciled in construction p',
+    `project_budget_id` BIGINT COMMENT 'Foreign key linking to finance.project_budget. Business justification: BOQ lines are the basis for project budget line items in construction. Linking material_boq_line to project_budget enables direct BOQ-to-budget variance analysis — a standard construction quantity sur',
+    `rfp_issuance_id` BIGINT COMMENT 'Foreign key linking to client.rfp_issuance. Business justification: BOQ (Bill of Quantities) lines are a core deliverable of the RFP response process in construction. Quantity surveyors prepare material BOQ lines directly against a specific RFP issuance. Bid complianc',
     `contract_quantity` DECIMAL(18,2) COMMENT 'Quantity of the material that is contractually committed in the BOQ.',
     `is_change_order` BOOLEAN COMMENT 'Indicates whether this line originates from a change order (true) or the original BOQ (false).',
     `item_description` STRING COMMENT 'Narrative description of the material or work item represented by the line.',
@@ -287,17 +274,12 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`material`.`boq_line` (
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`material`.`mto_line` (
     `mto_line_id` BIGINT COMMENT 'Primary key for mto_line',
-    `bim_model_id` BIGINT COMMENT 'Identifier of the BIM model version containing the material definition.',
-    `boq_line_id` BIGINT COMMENT 'Foreign key linking to material.material_boq_line. Business justification: MTO (Material Take-Off) lines are derived from engineering drawings and BIM models to quantify material requirements. BOQ (Bill of Quantities) lines represent the baselined planned quantities for a pr',
-    `construction_project_id` BIGINT COMMENT 'Identifier of the construction project associated with this MTO line.',
-    `contract_milestone_id` BIGINT COMMENT 'Foreign key linking to contract.contract_milestone. Business justification: MTO required_by_date is driven by contract milestones — materials must arrive before milestone completion. Procurement planners link MTO lines to contract milestones for critical-path material schedul',
+    `activity_id` BIGINT COMMENT 'Foreign key linking to schedule.activity. Business justification: Each MTO lines required_by_date is driven by the linked schedule activitys planned start. Procurement schedulers use this FK to generate material procurement schedules and identify long-lead items t',
     `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Required for MTO Cost Planning: material take‑off quantities are allocated to cost centers for cost estimation and forecasting.',
-    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: MTO procurement cost coding: every material take-off line must be assigned a cost code for procurement cost tracking and committed cost reporting. Construction cost engineers use this link to track ma',
-    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: MTO lines are extracted directly from construction drawings — the Material Take-Off process requires traceability from each quantity line back to its source drawing. mto_line.drawing_number is a denor',
-    `maintenance_order_id` BIGINT COMMENT 'Foreign key linking to equipment.maintenance_order. Business justification: Major equipment overhauls generate MTO lines for spare parts procurement. Linking mto_line to the triggering maintenance_order enables procurement planning driven by maintenance schedules — a standard',
+    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: MTO lines define planned material quantities and costs by cost code for procurement budget control. Construction estimators and cost controllers require cost_code on MTO lines to validate procurement ',
     `master_id` BIGINT COMMENT 'Reference to the material master record representing the specific material.',
     `mto_header_id` BIGINT COMMENT 'Identifier of the parent MTO document to which this line belongs.',
-    `project_budget_id` BIGINT COMMENT 'Foreign key linking to finance.project_budget. Business justification: MTO budget consumption tracking: MTO lines represent material procurement commitments that consume project budget. Direct link enables committed cost vs. budget reporting and budget sufficiency checks',
+    `project_budget_id` BIGINT COMMENT 'Foreign key linking to finance.project_budget. Business justification: MTO lines represent planned material procurement that consumes project budget. Direct FK to project_budget enables budget commitment tracking at MTO line level — essential for construction cost-to-com',
     `actual_received_date` DATE COMMENT 'Date when the material was received on site.',
     `actual_received_quantity` DECIMAL(18,2) COMMENT 'Quantity of material actually received on site.',
     `approved_by` STRING COMMENT 'Identifier of the user who approved the MTO line.',
@@ -335,16 +317,54 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`material`.`mto_line` (
     CONSTRAINT pk_mto_line PRIMARY KEY(`mto_line_id`)
 ) COMMENT 'Material Take-Off (MTO) line item derived from engineering drawings and BIM models, representing the estimated material quantities required for construction. Captures MTO item, material master reference, design quantity, wastage factor, net required quantity, unit of measure, drawing/BIM model reference, discipline (civil, structural, MEP), revision number, and MTO status (draft, approved, issued-for-procurement). Bridges design domain and procurement/inventory planning.';
 
+CREATE OR REPLACE TABLE `vibe_construction_v1`.`material`.`requisition` (
+    `requisition_id` BIGINT COMMENT 'Primary key for requisition',
+    `activity_id` BIGINT COMMENT 'Foreign key linking to schedule.activity. Business justification: Material requisitions are raised against specific schedule activities in construction look-ahead planning and material readiness tracking. Planners use this link to confirm materials are requisitioned',
+    `boq_line_id` BIGINT COMMENT 'Foreign key linking to material.material_boq_line. Business justification: A requisition should be traceable to the BOQ (Bill of Quantities) line that budgeted for the material. Linking requisition to material_boq_line enables BOQ reconciliation — tracking how much of the bu',
+    `account_id` BIGINT COMMENT 'Foreign key linking to client.account. Business justification: REQUIRED: Client‑initiated material requisitions need client_account_id for billing, cost allocation and compliance reporting.',
+    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Required for Budget Control: material requisitions are budgeted and approved against a specific cost center.',
+    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Material requisitions are raised against cost codes for budget availability checking before approval. Construction project controls require cost_code on requisitions to track commitments and prevent b',
+    `master_id` BIGINT COMMENT 'Master data identifier of the material or component being requested.',
+    `mto_line_id` BIGINT COMMENT 'Foreign key linking to material.mto_line. Business justification: A material requisition is often raised to fulfill a specific MTO (Material Take-Off) line requirement derived from engineering drawings. Linking requisition to mto_line enables traceability from engin',
+    `project_budget_id` BIGINT COMMENT 'Foreign key linking to finance.project_budget. Business justification: Requisition approval requires budget availability check against the project budget. Linking requisition to project_budget enables commitment tracking and budget consumption reporting — a core construc',
+    `warehouse_id` BIGINT COMMENT 'Warehouse or storage location identifier from which the material will be drawn.',
+    `approval_status` STRING COMMENT 'Status of the managerial or engineering approval workflow.. Valid values are `pending|approved|rejected`',
+    `approval_timestamp` TIMESTAMP COMMENT 'Date‑time when the approval decision was recorded.',
+    `change_order_number` STRING COMMENT 'Associated change order identifier if the requisition results from a scope change.',
+    `compliance_document_number` STRING COMMENT 'Reference to any regulatory or safety document attached to the requisition (e.g., MSDS number).',
+    `cost_estimate_gross` DECIMAL(18,2) COMMENT 'Projected total cost of the requested material before taxes and discounts.',
+    `cost_estimate_net` DECIMAL(18,2) COMMENT 'Projected net cost after tax and any discounts.',
+    `cost_estimate_tax` DECIMAL(18,2) COMMENT 'Estimated tax component applicable to the material cost.',
+    `currency_code` STRING COMMENT 'ISO 4217 three‑letter code of the currency used for the cost estimate.',
+    `fulfillment_date` DATE COMMENT 'Date on which the material was actually issued to the site or received from a supplier.',
+    `fulfillment_status` STRING COMMENT 'Progress state of the material issue or purchase fulfillment.. Valid values are `not_started|in_progress|completed|cancelled`',
+    `is_emergency` BOOLEAN COMMENT 'Indicates whether the requisition is an emergency (e.g., safety‑critical) request.',
+    `is_stock_available` BOOLEAN COMMENT 'Indicates whether the requested material is currently available in warehouse inventory.',
+    `justification` STRING COMMENT 'Narrative explanation for why the material is needed, supporting approval decisions.',
+    `notes` STRING COMMENT 'Free‑form comments or additional information supplied by the requester.',
+    `priority` STRING COMMENT 'Business priority indicating the urgency of the material request.. Valid values are `low|medium|high|critical`',
+    `quantity` DECIMAL(18,2) COMMENT 'Amount of material requested, expressed in the selected unit of measure.',
+    `record_created_timestamp` TIMESTAMP COMMENT 'System timestamp when the requisition record was first persisted in the lakehouse.',
+    `record_updated_timestamp` TIMESTAMP COMMENT 'System timestamp of the most recent modification to the requisition record.',
+    `request_timestamp` TIMESTAMP COMMENT 'Date‑time when the requisition was initially submitted by the site team.',
+    `requester_department` STRING COMMENT 'Organizational department or trade responsible for the material request.',
+    `required_by_date` DATE COMMENT 'Date by which the material must be available on site to avoid schedule impact.',
+    `requisition_number` STRING COMMENT 'External business identifier assigned to the requisition (e.g., RQ‑2024‑00123).',
+    `requisition_status` STRING COMMENT 'Current lifecycle state of the requisition.. Valid values are `pending|approved|rejected|fulfilled|closed`',
+    `safety_review_status` STRING COMMENT 'Result of the safety compliance review required for certain hazardous materials.. Valid values are `pending|cleared|failed`',
+    `tax_code` STRING COMMENT 'Tax classification code applied to the material cost.',
+    `unit_of_measure` STRING COMMENT 'Measurement unit for the requested quantity (e.g., kilograms, cubic meters).. Valid values are `kg|m3|pcs|ton|l`',
+    CONSTRAINT pk_requisition PRIMARY KEY(`requisition_id`)
+) COMMENT 'Site or project team request for materials to be issued from warehouse stock or procured. Captures requisition number, requesting WBS/work front, required material, quantity, required-by date, priority, justification, approval status (pending, approved, rejected), approver, and fulfilment status. Triggers either a goods issue (if stock available) or a purchase requisition in procurement. Supports site operations planning and material demand management.';
+
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`material`.`mto_header` (
     `mto_header_id` BIGINT COMMENT 'Primary key for mto_header',
-    `cash_flow_forecast_id` BIGINT COMMENT 'Foreign key linking to finance.cash_flow_forecast. Business justification: Material procurement cash flow planning: MTO headers drive material procurement outflows. Direct link to cash_flow_forecast (which has material_procurement_amount field) enables accurate cash flow for',
-    `construction_project_id` BIGINT COMMENT 'Foreign key linking to project.construction_project. Business justification: MTO headers represent project-level material requisition documents. While mto_line has construction_project_id, the header itself lacks a direct project FK, preventing project-level MTO register repor',
-    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: MTO header cost center assignment: material transfer/procurement events are assigned to cost centers for overhead and procurement cost allocation. Required for cost center actual cost reporting and pr',
+    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: MTO headers represent bulk material procurement/transfer events owned by a cost center for financial control and overhead allocation. Construction finance requires cost center assignment on MTO header',
+    `master_services_agreement_id` BIGINT COMMENT 'Foreign key linking to client.master_services_agreement. Business justification: Under framework/MSA contracts in construction, procurement teams prepare Material Take-Off headers for each call-off order referencing the governing MSA. This link enables MSA ceiling-value tracking, ',
+    `opportunity_id` BIGINT COMMENT 'Foreign key linking to client.client_opportunity. Business justification: In construction pre-construction/bid phase, estimators prepare Material Take-Off headers directly tied to a client opportunity for cost estimation and procurement planning. Bid managers need to trace ',
     `parent_mto_header_id` BIGINT COMMENT 'Self-referencing FK on mto_header (parent_mto_header_id)',
-    `project_budget_id` BIGINT COMMENT 'Foreign key linking to finance.project_budget. Business justification: MTO header budget commitment: bulk material procurement events (MTO headers) create budget commitments. Direct link to project_budget supports commitment accounting, budget availability checks, and ca',
     `project_site_id` BIGINT COMMENT 'Identifier of the site or warehouse where materials are shipped from.',
     `party_id` BIGINT COMMENT 'Identifier of the internal or external party that requested the material transfer.',
-    `subcontract_id` BIGINT COMMENT 'Foreign key linking to contract.subcontract. Business justification: Subcontract packages in construction generate specific MTO packages for subcontractor-supplied materials. Project controls teams track material take-offs per subcontract for procurement planning and s',
     `approval_timestamp` TIMESTAMP COMMENT 'Date‑time when the material transfer order was approved.',
     `batch_number` STRING COMMENT 'Identifier of the production batch associated with the transferred materials.',
     `compliance_status` STRING COMMENT 'Regulatory compliance state of the material transfer.',
@@ -372,28 +392,29 @@ ALTER TABLE `vibe_construction_v1`.`material`.`stock_level` ADD CONSTRAINT `fk_m
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_level` ADD CONSTRAINT `fk_material_stock_level_master_id` FOREIGN KEY (`master_id`) REFERENCES `vibe_construction_v1`.`material`.`master`(`master_id`);
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_level` ADD CONSTRAINT `fk_material_stock_level_warehouse_id` FOREIGN KEY (`warehouse_id`) REFERENCES `vibe_construction_v1`.`material`.`warehouse`(`warehouse_id`);
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ADD CONSTRAINT `fk_material_stock_movement_batch_lot_id` FOREIGN KEY (`batch_lot_id`) REFERENCES `vibe_construction_v1`.`material`.`batch_lot`(`batch_lot_id`);
-ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ADD CONSTRAINT `fk_material_stock_movement_warehouse_id` FOREIGN KEY (`warehouse_id`) REFERENCES `vibe_construction_v1`.`material`.`warehouse`(`warehouse_id`);
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ADD CONSTRAINT `fk_material_stock_movement_master_id` FOREIGN KEY (`master_id`) REFERENCES `vibe_construction_v1`.`material`.`master`(`master_id`);
-ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ADD CONSTRAINT `fk_material_stock_movement_mto_line_id` FOREIGN KEY (`mto_line_id`) REFERENCES `vibe_construction_v1`.`material`.`mto_line`(`mto_line_id`);
-ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ADD CONSTRAINT `fk_material_goods_issue_batch_lot_id` FOREIGN KEY (`batch_lot_id`) REFERENCES `vibe_construction_v1`.`material`.`batch_lot`(`batch_lot_id`);
-ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ADD CONSTRAINT `fk_material_goods_issue_boq_line_id` FOREIGN KEY (`boq_line_id`) REFERENCES `vibe_construction_v1`.`material`.`boq_line`(`boq_line_id`);
+ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ADD CONSTRAINT `fk_material_stock_movement_warehouse_id` FOREIGN KEY (`warehouse_id`) REFERENCES `vibe_construction_v1`.`material`.`warehouse`(`warehouse_id`);
 ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ADD CONSTRAINT `fk_material_goods_issue_master_id` FOREIGN KEY (`master_id`) REFERENCES `vibe_construction_v1`.`material`.`master`(`master_id`);
+ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ADD CONSTRAINT `fk_material_goods_issue_requisition_id` FOREIGN KEY (`requisition_id`) REFERENCES `vibe_construction_v1`.`material`.`requisition`(`requisition_id`);
 ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ADD CONSTRAINT `fk_material_goods_issue_return_issue_goods_issue_id` FOREIGN KEY (`return_issue_goods_issue_id`) REFERENCES `vibe_construction_v1`.`material`.`goods_issue`(`goods_issue_id`);
-ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ADD CONSTRAINT `fk_material_goods_issue_stock_movement_id` FOREIGN KEY (`stock_movement_id`) REFERENCES `vibe_construction_v1`.`material`.`stock_movement`(`stock_movement_id`);
 ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ADD CONSTRAINT `fk_material_goods_issue_warehouse_id` FOREIGN KEY (`warehouse_id`) REFERENCES `vibe_construction_v1`.`material`.`warehouse`(`warehouse_id`);
 ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` ADD CONSTRAINT `fk_material_batch_lot_master_id` FOREIGN KEY (`master_id`) REFERENCES `vibe_construction_v1`.`material`.`master`(`master_id`);
 ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` ADD CONSTRAINT `fk_material_batch_lot_warehouse_id` FOREIGN KEY (`warehouse_id`) REFERENCES `vibe_construction_v1`.`material`.`warehouse`(`warehouse_id`);
 ALTER TABLE `vibe_construction_v1`.`material`.`boq_line` ADD CONSTRAINT `fk_material_boq_line_master_id` FOREIGN KEY (`master_id`) REFERENCES `vibe_construction_v1`.`material`.`master`(`master_id`);
-ALTER TABLE `vibe_construction_v1`.`material`.`mto_line` ADD CONSTRAINT `fk_material_mto_line_boq_line_id` FOREIGN KEY (`boq_line_id`) REFERENCES `vibe_construction_v1`.`material`.`boq_line`(`boq_line_id`);
+ALTER TABLE `vibe_construction_v1`.`material`.`boq_line` ADD CONSTRAINT `fk_material_boq_line_mto_line_id` FOREIGN KEY (`mto_line_id`) REFERENCES `vibe_construction_v1`.`material`.`mto_line`(`mto_line_id`);
 ALTER TABLE `vibe_construction_v1`.`material`.`mto_line` ADD CONSTRAINT `fk_material_mto_line_master_id` FOREIGN KEY (`master_id`) REFERENCES `vibe_construction_v1`.`material`.`master`(`master_id`);
 ALTER TABLE `vibe_construction_v1`.`material`.`mto_line` ADD CONSTRAINT `fk_material_mto_line_mto_header_id` FOREIGN KEY (`mto_header_id`) REFERENCES `vibe_construction_v1`.`material`.`mto_header`(`mto_header_id`);
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ADD CONSTRAINT `fk_material_requisition_boq_line_id` FOREIGN KEY (`boq_line_id`) REFERENCES `vibe_construction_v1`.`material`.`boq_line`(`boq_line_id`);
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ADD CONSTRAINT `fk_material_requisition_master_id` FOREIGN KEY (`master_id`) REFERENCES `vibe_construction_v1`.`material`.`master`(`master_id`);
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ADD CONSTRAINT `fk_material_requisition_mto_line_id` FOREIGN KEY (`mto_line_id`) REFERENCES `vibe_construction_v1`.`material`.`mto_line`(`mto_line_id`);
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ADD CONSTRAINT `fk_material_requisition_warehouse_id` FOREIGN KEY (`warehouse_id`) REFERENCES `vibe_construction_v1`.`material`.`warehouse`(`warehouse_id`);
 ALTER TABLE `vibe_construction_v1`.`material`.`mto_header` ADD CONSTRAINT `fk_material_mto_header_parent_mto_header_id` FOREIGN KEY (`parent_mto_header_id`) REFERENCES `vibe_construction_v1`.`material`.`mto_header`(`mto_header_id`);
 
 -- ========= TAGS =========
 ALTER SCHEMA `vibe_construction_v1`.`material` SET TAGS ('dbx_division' = 'operations');
 ALTER SCHEMA `vibe_construction_v1`.`material` SET TAGS ('dbx_domain' = 'material');
 ALTER TABLE `vibe_construction_v1`.`material`.`master` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`material`.`master` SET TAGS ('dbx_subdomain' = 'material_catalog');
+ALTER TABLE `vibe_construction_v1`.`material`.`master` SET TAGS ('dbx_subdomain' = 'material_registry');
 ALTER TABLE `vibe_construction_v1`.`material`.`master` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Master Identifier');
 ALTER TABLE `vibe_construction_v1`.`material`.`master` ALTER COLUMN `gl_account_id` SET TAGS ('dbx_business_glossary_term' = 'Gl Account Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`master` ALTER COLUMN `substitution_material_master_id` SET TAGS ('dbx_business_glossary_term' = 'Substitution Material ID');
@@ -417,14 +438,12 @@ ALTER TABLE `vibe_construction_v1`.`material`.`master` ALTER COLUMN `lifecycle_s
 ALTER TABLE `vibe_construction_v1`.`material`.`master` ALTER COLUMN `lot_number` SET TAGS ('dbx_business_glossary_term' = 'Lot Number');
 ALTER TABLE `vibe_construction_v1`.`material`.`master` ALTER COLUMN `manufacturer_country` SET TAGS ('dbx_business_glossary_term' = 'Manufacturer Country');
 ALTER TABLE `vibe_construction_v1`.`material`.`master` ALTER COLUMN `manufacturer_name` SET TAGS ('dbx_business_glossary_term' = 'Manufacturer Name');
-ALTER TABLE `vibe_construction_v1`.`material`.`master` ALTER COLUMN `manufacturer_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`material`.`master` ALTER COLUMN `material_code` SET TAGS ('dbx_business_glossary_term' = 'Material Code');
 ALTER TABLE `vibe_construction_v1`.`material`.`master` ALTER COLUMN `material_origin_country` SET TAGS ('dbx_business_glossary_term' = 'Material Origin Country');
 ALTER TABLE `vibe_construction_v1`.`material`.`master` ALTER COLUMN `max_order_qty` SET TAGS ('dbx_business_glossary_term' = 'Maximum Order Quantity');
 ALTER TABLE `vibe_construction_v1`.`material`.`master` ALTER COLUMN `min_order_qty` SET TAGS ('dbx_business_glossary_term' = 'Minimum Order Quantity');
 ALTER TABLE `vibe_construction_v1`.`material`.`master` ALTER COLUMN `minimum_performance_criteria` SET TAGS ('dbx_business_glossary_term' = 'Minimum Performance Criteria');
 ALTER TABLE `vibe_construction_v1`.`material`.`master` ALTER COLUMN `master_name` SET TAGS ('dbx_business_glossary_term' = 'Material Name');
-ALTER TABLE `vibe_construction_v1`.`material`.`master` ALTER COLUMN `master_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`material`.`master` ALTER COLUMN `reorder_point_qty` SET TAGS ('dbx_business_glossary_term' = 'Reorder Point Quantity');
 ALTER TABLE `vibe_construction_v1`.`material`.`master` ALTER COLUMN `safety_stock_qty` SET TAGS ('dbx_business_glossary_term' = 'Safety Stock Quantity');
 ALTER TABLE `vibe_construction_v1`.`material`.`master` ALTER COLUMN `shelf_life_days` SET TAGS ('dbx_business_glossary_term' = 'Shelf Life (Days)');
@@ -445,7 +464,9 @@ ALTER TABLE `vibe_construction_v1`.`material`.`warehouse` SET TAGS ('dbx_data_ty
 ALTER TABLE `vibe_construction_v1`.`material`.`warehouse` SET TAGS ('dbx_subdomain' = 'inventory_control');
 ALTER TABLE `vibe_construction_v1`.`material`.`warehouse` ALTER COLUMN `warehouse_id` SET TAGS ('dbx_business_glossary_term' = 'Warehouse Identifier');
 ALTER TABLE `vibe_construction_v1`.`material`.`warehouse` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Client Account Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`material`.`warehouse` ALTER COLUMN `company_code_id` SET TAGS ('dbx_business_glossary_term' = 'Company Code Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`warehouse` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`material`.`warehouse` ALTER COLUMN `hse_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Hse Plan Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`warehouse` ALTER COLUMN `site_id` SET TAGS ('dbx_business_glossary_term' = 'Site Identifier');
 ALTER TABLE `vibe_construction_v1`.`material`.`warehouse` ALTER COLUMN `access_control_method` SET TAGS ('dbx_business_glossary_term' = 'Access Control Method');
 ALTER TABLE `vibe_construction_v1`.`material`.`warehouse` ALTER COLUMN `access_control_method` SET TAGS ('dbx_value_regex' = 'badge|biometric|keycard|none');
@@ -483,7 +504,6 @@ ALTER TABLE `vibe_construction_v1`.`material`.`warehouse` ALTER COLUMN `inventor
 ALTER TABLE `vibe_construction_v1`.`material`.`warehouse` ALTER COLUMN `is_hazardous_material_certified` SET TAGS ('dbx_business_glossary_term' = 'Hazardous Material Certification Flag');
 ALTER TABLE `vibe_construction_v1`.`material`.`warehouse` ALTER COLUMN `last_inspection_date` SET TAGS ('dbx_business_glossary_term' = 'Last Inspection Date');
 ALTER TABLE `vibe_construction_v1`.`material`.`warehouse` ALTER COLUMN `warehouse_name` SET TAGS ('dbx_business_glossary_term' = 'Warehouse Name');
-ALTER TABLE `vibe_construction_v1`.`material`.`warehouse` ALTER COLUMN `warehouse_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`material`.`warehouse` ALTER COLUMN `next_inspection_due` SET TAGS ('dbx_business_glossary_term' = 'Next Inspection Due Date');
 ALTER TABLE `vibe_construction_v1`.`material`.`warehouse` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Warehouse Notes');
 ALTER TABLE `vibe_construction_v1`.`material`.`warehouse` ALTER COLUMN `operating_hours` SET TAGS ('dbx_business_glossary_term' = 'Operating Hours');
@@ -506,7 +526,6 @@ ALTER TABLE `vibe_construction_v1`.`material`.`stock_level` SET TAGS ('dbx_data_
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_level` SET TAGS ('dbx_subdomain' = 'inventory_control');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_level` ALTER COLUMN `stock_level_id` SET TAGS ('dbx_business_glossary_term' = 'Stock Level ID');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_level` ALTER COLUMN `batch_lot_id` SET TAGS ('dbx_business_glossary_term' = 'Batch Lot Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`material`.`stock_level` ALTER COLUMN `gl_account_id` SET TAGS ('dbx_business_glossary_term' = 'Gl Account Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_level` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Material Master Id');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_level` ALTER COLUMN `master_id` SET TAGS ('dbx_internal' = 'true');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_level` ALTER COLUMN `warehouse_id` SET TAGS ('dbx_business_glossary_term' = 'Warehouse Id');
@@ -522,6 +541,7 @@ ALTER TABLE `vibe_construction_v1`.`material`.`stock_level` ALTER COLUMN `last_m
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_level` ALTER COLUMN `last_movement_type` SET TAGS ('dbx_value_regex' = 'receipt|issue|transfer|return|adjustment');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_level` ALTER COLUMN `last_updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Last Updated Timestamp');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_level` ALTER COLUMN `location_code` SET TAGS ('dbx_business_glossary_term' = 'Location Code');
+ALTER TABLE `vibe_construction_v1`.`material`.`stock_level` ALTER COLUMN `lot_number` SET TAGS ('dbx_business_glossary_term' = 'Lot Number');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_level` ALTER COLUMN `material_code` SET TAGS ('dbx_business_glossary_term' = 'Material Code');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_level` ALTER COLUMN `max_stock_level` SET TAGS ('dbx_business_glossary_term' = 'Maximum Stock Level');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_level` ALTER COLUMN `min_stock_level` SET TAGS ('dbx_business_glossary_term' = 'Minimum Stock Level');
@@ -539,28 +559,21 @@ ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` SET TAGS ('dbx_da
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` SET TAGS ('dbx_subdomain' = 'inventory_control');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `stock_movement_id` SET TAGS ('dbx_business_glossary_term' = 'Stock Movement Identifier');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `batch_lot_id` SET TAGS ('dbx_business_glossary_term' = 'Batch Lot Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
-ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Client Account Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Code Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `craft_worker_id` SET TAGS ('dbx_business_glossary_term' = 'Craft Worker Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `crew_id` SET TAGS ('dbx_business_glossary_term' = 'Crew Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `warehouse_id` SET TAGS ('dbx_business_glossary_term' = 'Destination Warehouse Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `gl_account_id` SET TAGS ('dbx_business_glossary_term' = 'Gl Account Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `goods_receipt_id` SET TAGS ('dbx_business_glossary_term' = 'Goods Receipt Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `invoice_id` SET TAGS ('dbx_business_glossary_term' = 'Invoice Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Material Master Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `mto_line_id` SET TAGS ('dbx_business_glossary_term' = 'Mto Line Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `permit_to_work_id` SET TAGS ('dbx_business_glossary_term' = 'Permit To Work Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `purchase_order_id` SET TAGS ('dbx_business_glossary_term' = 'Purchase Order Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `site_id` SET TAGS ('dbx_business_glossary_term' = 'Site ID');
+ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `warehouse_id` SET TAGS ('dbx_business_glossary_term' = 'Source Warehouse Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `accounting_entry_posted` SET TAGS ('dbx_business_glossary_term' = 'Accounting Entry Posted Flag');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `actual_delivery_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Delivery Date');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `compliance_status` SET TAGS ('dbx_business_glossary_term' = 'Compliance Status');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `compliance_status` SET TAGS ('dbx_value_regex' = 'compliant|non_compliant|exempt');
+ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `cost_center_code` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Code');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `currency_code` SET TAGS ('dbx_value_regex' = 'USD|EUR|GBP|JPY|CAD|AUD');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `delivery_note_number` SET TAGS ('dbx_business_glossary_term' = 'Delivery Note Number');
+ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `destination_warehouse_code` SET TAGS ('dbx_business_glossary_term' = 'Destination Warehouse Code');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `expected_delivery_date` SET TAGS ('dbx_business_glossary_term' = 'Expected Delivery Date');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `freight_cost` SET TAGS ('dbx_business_glossary_term' = 'Freight Cost');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `freight_currency_code` SET TAGS ('dbx_business_glossary_term' = 'Freight Currency Code');
@@ -581,7 +594,6 @@ ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `rec
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `receipt_status` SET TAGS ('dbx_value_regex' = 'partial|complete|over_delivery|rejected');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `receipt_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Goods Receipt Timestamp');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `remarks` SET TAGS ('dbx_business_glossary_term' = 'Remarks');
-ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `source_warehouse_code` SET TAGS ('dbx_business_glossary_term' = 'Source Warehouse Code');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `storage_location_code` SET TAGS ('dbx_business_glossary_term' = 'Storage Location Code');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `tax_amount` SET TAGS ('dbx_business_glossary_term' = 'Tax Amount');
 ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `tax_code` SET TAGS ('dbx_business_glossary_term' = 'Tax Code');
@@ -592,22 +604,15 @@ ALTER TABLE `vibe_construction_v1`.`material`.`stock_movement` ALTER COLUMN `cre
 ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` SET TAGS ('dbx_data_type' = 'transactional_data');
 ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` SET TAGS ('dbx_subdomain' = 'inventory_control');
 ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ALTER COLUMN `goods_issue_id` SET TAGS ('dbx_business_glossary_term' = 'Goods Issue ID');
-ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ALTER COLUMN `contact_id` SET TAGS ('dbx_business_glossary_term' = 'Authorized Contact Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ALTER COLUMN `batch_lot_id` SET TAGS ('dbx_business_glossary_term' = 'Lot Traceability ID');
-ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ALTER COLUMN `boq_line_id` SET TAGS ('dbx_business_glossary_term' = 'Material Boq Line Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
 ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Code Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ALTER COLUMN `craft_worker_id` SET TAGS ('dbx_business_glossary_term' = 'Craft Worker Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ALTER COLUMN `crew_id` SET TAGS ('dbx_business_glossary_term' = 'Crew Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ALTER COLUMN `gl_account_id` SET TAGS ('dbx_business_glossary_term' = 'Gl Account Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ALTER COLUMN `maintenance_order_id` SET TAGS ('dbx_business_glossary_term' = 'Maintenance Order Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ALTER COLUMN `job_cost_transaction_id` SET TAGS ('dbx_business_glossary_term' = 'Job Cost Transaction Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Material ID');
 ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ALTER COLUMN `permit_to_work_id` SET TAGS ('dbx_business_glossary_term' = 'Permit To Work Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ALTER COLUMN `project_engagement_id` SET TAGS ('dbx_business_glossary_term' = 'Project Engagement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ALTER COLUMN `requisition_id` SET TAGS ('dbx_business_glossary_term' = 'Requisition Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ALTER COLUMN `return_issue_goods_issue_id` SET TAGS ('dbx_business_glossary_term' = 'Return Issue ID');
-ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ALTER COLUMN `stock_movement_id` SET TAGS ('dbx_business_glossary_term' = 'Stock Movement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Supplier ID');
 ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ALTER COLUMN `warehouse_id` SET TAGS ('dbx_business_glossary_term' = 'Warehouse ID');
 ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ALTER COLUMN `approval_status` SET TAGS ('dbx_business_glossary_term' = 'Approval Status');
 ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ALTER COLUMN `approval_status` SET TAGS ('dbx_value_regex' = 'pending|approved|rejected');
@@ -644,13 +649,12 @@ ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ALTER COLUMN `unit_o
 ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ALTER COLUMN `unit_of_measure` SET TAGS ('dbx_value_regex' = 'kg|m3|pcs|l|ton|bag');
 ALTER TABLE `vibe_construction_v1`.`material`.`goods_issue` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Update Timestamp');
 ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` SET TAGS ('dbx_subdomain' = 'material_catalog');
+ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` SET TAGS ('dbx_subdomain' = 'material_registry');
 ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` ALTER COLUMN `batch_lot_id` SET TAGS ('dbx_business_glossary_term' = 'Batch Lot Identifier');
 ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Client Account Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project Identifier');
+ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Code Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Material Master Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` ALTER COLUMN `purchase_order_id` SET TAGS ('dbx_business_glossary_term' = 'Purchase Order Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` ALTER COLUMN `warehouse_id` SET TAGS ('dbx_business_glossary_term' = 'Warehouse Identifier');
 ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` ALTER COLUMN `batch_number` SET TAGS ('dbx_business_glossary_term' = 'Batch Number');
 ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` ALTER COLUMN `batch_status` SET TAGS ('dbx_business_glossary_term' = 'Batch Status');
@@ -667,10 +671,7 @@ ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` ALTER COLUMN `inspecti
 ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` ALTER COLUMN `last_inspection_date` SET TAGS ('dbx_business_glossary_term' = 'Last Inspection Date');
 ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` ALTER COLUMN `lot_number` SET TAGS ('dbx_business_glossary_term' = 'Lot Number');
 ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` ALTER COLUMN `lot_traceability_flag` SET TAGS ('dbx_business_glossary_term' = 'Lot Traceability Flag');
-ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` ALTER COLUMN `lot_traceability_flag` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` ALTER COLUMN `manufacturer` SET TAGS ('dbx_business_glossary_term' = 'Manufacturer Name');
-ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` ALTER COLUMN `material_type` SET TAGS ('dbx_business_glossary_term' = 'Material Type');
-ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` ALTER COLUMN `material_type` SET TAGS ('dbx_value_regex' = 'concrete|steel|rebar|mep_cable|adhesive');
 ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Notes');
 ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` ALTER COLUMN `production_date` SET TAGS ('dbx_business_glossary_term' = 'Production Date');
 ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` ALTER COLUMN `quantity` SET TAGS ('dbx_business_glossary_term' = 'Quantity');
@@ -690,14 +691,16 @@ ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` ALTER COLUMN `unit_vol
 ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` ALTER COLUMN `unit_weight` SET TAGS ('dbx_business_glossary_term' = 'Unit Weight');
 ALTER TABLE `vibe_construction_v1`.`material`.`batch_lot` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Update Timestamp');
 ALTER TABLE `vibe_construction_v1`.`material`.`boq_line` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`material`.`boq_line` SET TAGS ('dbx_subdomain' = 'material_catalog');
+ALTER TABLE `vibe_construction_v1`.`material`.`boq_line` SET TAGS ('dbx_subdomain' = 'material_registry');
 ALTER TABLE `vibe_construction_v1`.`material`.`boq_line` ALTER COLUMN `boq_line_id` SET TAGS ('dbx_business_glossary_term' = 'Material BOQ Line ID');
-ALTER TABLE `vibe_construction_v1`.`material`.`boq_line` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`material`.`boq_line` ALTER COLUMN `activity_id` SET TAGS ('dbx_business_glossary_term' = 'Activity Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`material`.`boq_line` ALTER COLUMN `commercial_change_order_id` SET TAGS ('dbx_business_glossary_term' = 'Commercial Change Order Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`boq_line` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`boq_line` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`boq_line` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Material ID');
+ALTER TABLE `vibe_construction_v1`.`material`.`boq_line` ALTER COLUMN `mto_line_id` SET TAGS ('dbx_business_glossary_term' = 'Mto Line Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`boq_line` ALTER COLUMN `project_budget_id` SET TAGS ('dbx_business_glossary_term' = 'Project Budget Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`material`.`boq_line` ALTER COLUMN `technical_specification_id` SET TAGS ('dbx_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`material`.`boq_line` ALTER COLUMN `rfp_issuance_id` SET TAGS ('dbx_business_glossary_term' = 'Rfp Issuance Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`boq_line` ALTER COLUMN `contract_quantity` SET TAGS ('dbx_business_glossary_term' = 'Contract Quantity');
 ALTER TABLE `vibe_construction_v1`.`material`.`boq_line` ALTER COLUMN `is_change_order` SET TAGS ('dbx_business_glossary_term' = 'Is Change Order Flag');
 ALTER TABLE `vibe_construction_v1`.`material`.`boq_line` ALTER COLUMN `item_description` SET TAGS ('dbx_business_glossary_term' = 'Item Description');
@@ -713,16 +716,11 @@ ALTER TABLE `vibe_construction_v1`.`material`.`boq_line` ALTER COLUMN `trade_dis
 ALTER TABLE `vibe_construction_v1`.`material`.`boq_line` ALTER COLUMN `unit_of_measure` SET TAGS ('dbx_business_glossary_term' = 'Unit of Measure (UOM)');
 ALTER TABLE `vibe_construction_v1`.`material`.`boq_line` ALTER COLUMN `unit_rate` SET TAGS ('dbx_business_glossary_term' = 'Unit Rate (Price per UOM)');
 ALTER TABLE `vibe_construction_v1`.`material`.`mto_line` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`material`.`mto_line` SET TAGS ('dbx_subdomain' = 'material_catalog');
+ALTER TABLE `vibe_construction_v1`.`material`.`mto_line` SET TAGS ('dbx_subdomain' = 'material_registry');
 ALTER TABLE `vibe_construction_v1`.`material`.`mto_line` ALTER COLUMN `mto_line_id` SET TAGS ('dbx_business_glossary_term' = 'Mto Line Identifier');
-ALTER TABLE `vibe_construction_v1`.`material`.`mto_line` ALTER COLUMN `bim_model_id` SET TAGS ('dbx_business_glossary_term' = 'BIM Model Identifier (BIM_ID)');
-ALTER TABLE `vibe_construction_v1`.`material`.`mto_line` ALTER COLUMN `boq_line_id` SET TAGS ('dbx_business_glossary_term' = 'Material Boq Line Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`material`.`mto_line` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
-ALTER TABLE `vibe_construction_v1`.`material`.`mto_line` ALTER COLUMN `contract_milestone_id` SET TAGS ('dbx_business_glossary_term' = 'Contract Milestone Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`material`.`mto_line` ALTER COLUMN `activity_id` SET TAGS ('dbx_business_glossary_term' = 'Activity Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`mto_line` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`mto_line` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Code Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`material`.`mto_line` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`material`.`mto_line` ALTER COLUMN `maintenance_order_id` SET TAGS ('dbx_business_glossary_term' = 'Maintenance Order Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`mto_line` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Material Master ID');
 ALTER TABLE `vibe_construction_v1`.`material`.`mto_line` ALTER COLUMN `mto_header_id` SET TAGS ('dbx_business_glossary_term' = 'Material Take-Off Header ID');
 ALTER TABLE `vibe_construction_v1`.`material`.`mto_line` ALTER COLUMN `project_budget_id` SET TAGS ('dbx_business_glossary_term' = 'Project Budget Id (Foreign Key)');
@@ -765,18 +763,60 @@ ALTER TABLE `vibe_construction_v1`.`material`.`mto_line` ALTER COLUMN `updated_t
 ALTER TABLE `vibe_construction_v1`.`material`.`mto_line` ALTER COLUMN `variance_cost` SET TAGS ('dbx_business_glossary_term' = 'Cost Variance');
 ALTER TABLE `vibe_construction_v1`.`material`.`mto_line` ALTER COLUMN `variance_quantity` SET TAGS ('dbx_business_glossary_term' = 'Quantity Variance');
 ALTER TABLE `vibe_construction_v1`.`material`.`mto_line` ALTER COLUMN `wastage_factor` SET TAGS ('dbx_business_glossary_term' = 'Wastage Factor (WASTAGE_FCTR)');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` SET TAGS ('dbx_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` SET TAGS ('dbx_subdomain' = 'inventory_control');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `requisition_id` SET TAGS ('dbx_business_glossary_term' = 'Requisition Identifier');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `activity_id` SET TAGS ('dbx_business_glossary_term' = 'Activity Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `boq_line_id` SET TAGS ('dbx_business_glossary_term' = 'Material Boq Line Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Client Account Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Code Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Material ID');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `mto_line_id` SET TAGS ('dbx_business_glossary_term' = 'Mto Line Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `project_budget_id` SET TAGS ('dbx_business_glossary_term' = 'Project Budget Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `warehouse_id` SET TAGS ('dbx_business_glossary_term' = 'Inventory Location ID');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `approval_status` SET TAGS ('dbx_business_glossary_term' = 'Approval Status');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `approval_status` SET TAGS ('dbx_value_regex' = 'pending|approved|rejected');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `approval_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Approval Timestamp');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `change_order_number` SET TAGS ('dbx_business_glossary_term' = 'Change Order Number');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `compliance_document_number` SET TAGS ('dbx_business_glossary_term' = 'Compliance Document Number');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `cost_estimate_gross` SET TAGS ('dbx_business_glossary_term' = 'Estimated Gross Cost');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `cost_estimate_net` SET TAGS ('dbx_business_glossary_term' = 'Estimated Net Cost');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `cost_estimate_tax` SET TAGS ('dbx_business_glossary_term' = 'Estimated Tax Amount');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `fulfillment_date` SET TAGS ('dbx_business_glossary_term' = 'Fulfillment Date');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `fulfillment_status` SET TAGS ('dbx_business_glossary_term' = 'Fulfillment Status');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `fulfillment_status` SET TAGS ('dbx_value_regex' = 'not_started|in_progress|completed|cancelled');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `is_emergency` SET TAGS ('dbx_business_glossary_term' = 'Emergency Request Flag');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `is_stock_available` SET TAGS ('dbx_business_glossary_term' = 'Stock Availability Flag');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `justification` SET TAGS ('dbx_business_glossary_term' = 'Requisition Justification');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Requisition Notes');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `priority` SET TAGS ('dbx_business_glossary_term' = 'Requisition Priority');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `priority` SET TAGS ('dbx_value_regex' = 'low|medium|high|critical');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `quantity` SET TAGS ('dbx_business_glossary_term' = 'Requested Quantity');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `record_created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `record_updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Updated Timestamp');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `request_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Request Timestamp');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `requester_department` SET TAGS ('dbx_business_glossary_term' = 'Requester Department');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `required_by_date` SET TAGS ('dbx_business_glossary_term' = 'Required By Date');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `requisition_number` SET TAGS ('dbx_business_glossary_term' = 'Requisition Number');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `requisition_status` SET TAGS ('dbx_business_glossary_term' = 'Requisition Status');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `requisition_status` SET TAGS ('dbx_value_regex' = 'pending|approved|rejected|fulfilled|closed');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `safety_review_status` SET TAGS ('dbx_business_glossary_term' = 'Safety Review Status');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `safety_review_status` SET TAGS ('dbx_value_regex' = 'pending|cleared|failed');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `tax_code` SET TAGS ('dbx_business_glossary_term' = 'Tax Code');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `unit_of_measure` SET TAGS ('dbx_business_glossary_term' = 'Unit of Measure');
+ALTER TABLE `vibe_construction_v1`.`material`.`requisition` ALTER COLUMN `unit_of_measure` SET TAGS ('dbx_value_regex' = 'kg|m3|pcs|ton|l');
 ALTER TABLE `vibe_construction_v1`.`material`.`mto_header` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`material`.`mto_header` SET TAGS ('dbx_subdomain' = 'material_catalog');
+ALTER TABLE `vibe_construction_v1`.`material`.`mto_header` SET TAGS ('dbx_subdomain' = 'material_registry');
 ALTER TABLE `vibe_construction_v1`.`material`.`mto_header` ALTER COLUMN `mto_header_id` SET TAGS ('dbx_business_glossary_term' = 'Mto Header Identifier');
-ALTER TABLE `vibe_construction_v1`.`material`.`mto_header` ALTER COLUMN `cash_flow_forecast_id` SET TAGS ('dbx_business_glossary_term' = 'Cash Flow Forecast Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`material`.`mto_header` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`mto_header` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`material`.`mto_header` ALTER COLUMN `master_services_agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Master Services Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`material`.`mto_header` ALTER COLUMN `opportunity_id` SET TAGS ('dbx_business_glossary_term' = 'Client Opportunity Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`mto_header` ALTER COLUMN `parent_mto_header_id` SET TAGS ('dbx_business_glossary_term' = 'Parent Mto Header Id');
 ALTER TABLE `vibe_construction_v1`.`material`.`mto_header` ALTER COLUMN `parent_mto_header_id` SET TAGS ('dbx_self_ref_fk' = 'true');
-ALTER TABLE `vibe_construction_v1`.`material`.`mto_header` ALTER COLUMN `project_budget_id` SET TAGS ('dbx_business_glossary_term' = 'Project Budget Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`mto_header` ALTER COLUMN `project_site_id` SET TAGS ('dbx_business_glossary_term' = 'Source Site Id');
 ALTER TABLE `vibe_construction_v1`.`material`.`mto_header` ALTER COLUMN `party_id` SET TAGS ('dbx_business_glossary_term' = 'Requesting Party Id');
-ALTER TABLE `vibe_construction_v1`.`material`.`mto_header` ALTER COLUMN `subcontract_id` SET TAGS ('dbx_business_glossary_term' = 'Subcontract Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`material`.`mto_header` ALTER COLUMN `approval_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Approval Timestamp');
 ALTER TABLE `vibe_construction_v1`.`material`.`mto_header` ALTER COLUMN `batch_number` SET TAGS ('dbx_business_glossary_term' = 'Batch Number');
 ALTER TABLE `vibe_construction_v1`.`material`.`mto_header` ALTER COLUMN `compliance_status` SET TAGS ('dbx_business_glossary_term' = 'Compliance Status');

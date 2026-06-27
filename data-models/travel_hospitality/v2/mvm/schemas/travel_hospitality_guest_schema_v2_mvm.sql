@@ -1,5 +1,5 @@
 -- Schema for Domain: guest | Business: Travel_Hospitality | Version: v2_mvm
--- Generated on: 2026-06-22 19:42:19
+-- Generated on: 2026-06-27 02:37:15
 
 -- ========= DATABASE =========
 CREATE DATABASE IF NOT EXISTS `vibe_travel_hospitality_v1`.`guest` COMMENT 'Single source of truth for guest identity, profiles, preferences, contact information, demographics, stay history, and segmentation across all properties and brands. Manages individual travelers, corporate accounts, group contacts, and VIP profiles. Supports FIT, corporate, and group guest types. Integrates with CRM (Salesforce) and loyalty platforms for unified guest view and lifetime value tracking.';
@@ -7,15 +7,14 @@ CREATE DATABASE IF NOT EXISTS `vibe_travel_hospitality_v1`.`guest` COMMENT 'Sing
 -- ========= TABLES =========
 CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` (
     `profile_id` BIGINT COMMENT 'Unique surrogate identifier for the guest master profile record in the lakehouse silver layer. This is the primary key and golden record anchor for all guest identity resolution across properties and brands. Role: MASTER_PARTY.',
-    `property_id` BIGINT COMMENT 'Foreign key linking to property.property. Business justification: Profile data stewardship and deduplication processes require knowing the originating property. The existing `creation_property_code` is a denormalized code; replacing it with a proper FK enables profi',
-    `market_segment_id` BIGINT COMMENT 'Foreign key linking to revenue.market_segment. Business justification: Guest profile classification into a revenue market segment drives rate eligibility, yield strategy, and STR segment reporting. Revenue managers expect each guest profile to carry a market segment assi',
+    `corporate_account_id` BIGINT COMMENT 'Foreign key linking to guest.corporate_account. Business justification: A guest profile representing a corporate traveler belongs to one corporate account. Adding corporate_account_id to profile normalizes the company affiliation — the existing company_name string on prof',
     `merged_into_profile_id` BIGINT COMMENT 'When profile_status = merged, this field references the survivor profile_id into which this record was consolidated. Enables audit trail of merge lineage and supports identity resolution queries across the guest domain.',
-    `room_type_id` BIGINT COMMENT 'Foreign key linking to inventory.room_type. Business justification: Reservation and check-in auto-assignment process: the PMS uses the guests standing room type preference to filter available inventory. preferred_room_type is a denormalized string replaced by a prope',
     `accessibility_needs` STRING COMMENT 'Free-text or coded description of the guests accessibility requirements (e.g., wheelchair accessible room, roll-in shower, hearing loop, visual impairment aids). Drives ADA-compliant room assignment and service delivery. Treated as sensitive personal data.',
+    `address` STRING COMMENT 'The address of the profile.',
     `birth_date` DATE COMMENT 'The guests date of birth in ISO 8601 format (yyyy-MM-dd). Used for age verification, birthday recognition programs, loyalty tier benefits, and regulatory identity verification at check-in.',
-    `company_name` STRING COMMENT 'The name of the company or corporate account associated with this guest profile. Used for corporate rate eligibility, billing to master accounts, and corporate segment analytics. Applicable primarily to CORPORATE guest type.',
     `country_of_residence_code` STRING COMMENT 'The guests country of permanent residence as an ISO 3166-1 alpha-3 code. Distinct from nationality; used for geographic segmentation, GDPR/CCPA jurisdiction determination, and source market analytics.. Valid values are `^[A-Z]{3}$`',
     `created_timestamp` TIMESTAMP COMMENT 'The timestamp when the guest master profile record was first created in the source system of record (Oracle OPERA PMS or Salesforce CRM). Expressed in ISO 8601 format with timezone offset. Satisfies RECORD_AUDIT_CREATED requirement for MASTER_PARTY role.',
+    `creation_property_code` STRING COMMENT 'The property code (hotel/resort identifier) at which this guest profile was originally created in the PMS. Used for cross-property profile governance, data stewardship assignment, and origin analytics.',
     `crm_contact_reference` STRING COMMENT 'The native contact identifier assigned by Salesforce CRM for this guest. Enables bi-directional synchronization between the PMS golden record and the CRM guest profile for marketing, loyalty, and case management workflows.',
     `data_privacy_consent_date` DATE COMMENT 'The date on which the guest provided or last renewed their data privacy consent. Required for GDPR and CCPA compliance audit trails, consent expiry management, and regulatory reporting.',
     `email` STRING COMMENT 'The primary email address for the guest used for reservation confirmations, pre-arrival communications, loyalty program notifications, and post-stay surveys via Medallia. Subject to GDPR and CCPA consent management.. Valid values are `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$`',
@@ -29,18 +28,18 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` (
     `job_title` STRING COMMENT 'The professional job title of the guest as provided during profile creation or CRM synchronization. Supports corporate account management, MICE event coordination, and personalized service delivery for business travelers.',
     `last_updated_timestamp` TIMESTAMP COMMENT 'The timestamp of the most recent modification to the guest profile record in the source system. Used for change data capture (CDC), ETL incremental loads, and audit trail compliance.',
     `loyalty_enrollment_date` DATE COMMENT 'The date on which the guest enrolled in the loyalty program. Used to calculate member tenure, tier qualification windows, and anniversary recognition benefits.',
-    `loyalty_member_number` BIGINT COMMENT 'The guests loyalty program membership number assigned by the central loyalty platform (Salesforce CRM / loyalty engine). The primary identifier linking the guest profile to loyalty tier, points balance, and rewards history.',
+    `loyalty_member_number` STRING COMMENT 'The guests loyalty program membership number assigned by the central loyalty platform (Salesforce CRM / loyalty engine). The primary identifier linking the guest profile to loyalty tier, points balance, and rewards history.',
     `loyalty_tier` STRING COMMENT 'The guests current loyalty program tier level, determining benefit eligibility, upgrade priority, and service recognition protocols. Tiers progress from NONE (non-member) through SILVER, GOLD, PLATINUM, to DIAMOND (highest).. Valid values are `NONE|SILVER|GOLD|PLATINUM|DIAMOND`',
     `marketing_opt_in` BOOLEAN COMMENT 'Indicates whether the guest has provided explicit consent to receive marketing communications (email, SMS, direct mail). True = opted in; False = opted out or no consent given. Mandatory for GDPR and CCPA compliance in marketing campaign execution.',
     `middle_name` STRING COMMENT 'The guests middle name or initial as provided. Supports full legal name matching for identity verification, passport validation, and regulatory compliance.',
     `mobile_phone` STRING COMMENT 'The guests mobile/cell phone number in E.164 format. Used for SMS pre-arrival messaging, mobile check-in notifications, and digital key delivery.. Valid values are `^+?[1-9]d{1,14}$`',
     `name_prefix` STRING COMMENT 'Honorific or salutation prefix for the guest (e.g., Mr, Mrs, Dr). Used in personalized correspondence, folio headers, and VIP recognition communications. [ENUM-REF-CANDIDATE: Mr|Mrs|Ms|Miss|Dr|Prof|Sir|Rev — 8 candidates stripped; promote to reference product]',
     `name_suffix` STRING COMMENT 'Name suffix for the guest (e.g., Jr., Sr., III, PhD). Supports full legal name representation for identity documents and formal correspondence.',
-    `nationality_country_code` BIGINT COMMENT 'The guests nationality expressed as an ISO 3166-1 alpha-3 three-letter country code (e.g., USA, GBR, DEU). Required for regulatory reporting, visa compliance, and international guest analytics.',
+    `nationality_country_code` STRING COMMENT 'The guests nationality expressed as an ISO 3166-1 alpha-3 three-letter country code (e.g., USA, GBR, DEU). Required for regulatory reporting, visa compliance, and international guest analytics.. Valid values are `^[A-Z]{3}$`',
     `opera_profile_reference` STRING COMMENT 'The native guest profile identifier assigned by Oracle OPERA Property Management System (PMS). Used for cross-system reconciliation and source-system traceability back to the PMS guest profile record.',
     `passport_expiry_date` DATE COMMENT 'The expiration date of the guests passport document. Used to validate document currency at check-in and for regulatory compliance in jurisdictions requiring valid travel document verification.',
-    `passport_issuing_country_code` BIGINT COMMENT 'The ISO 3166-1 alpha-3 country code of the authority that issued the guests passport. Required for immigration compliance and international guest regulatory reporting.',
-    `passport_number` BIGINT COMMENT 'The guests passport document number as presented at check-in. Required for international guest identity verification, regulatory reporting to local authorities, and compliance with immigration laws in applicable jurisdictions.',
+    `passport_issuing_country_code` STRING COMMENT 'The ISO 3166-1 alpha-3 country code of the authority that issued the guests passport. Required for immigration compliance and international guest regulatory reporting.. Valid values are `^[A-Z]{3}$`',
+    `passport_number` STRING COMMENT 'The guests passport document number as presented at check-in. Required for international guest identity verification, regulatory reporting to local authorities, and compliance with immigration laws in applicable jurisdictions.',
     `phone` STRING COMMENT 'The primary contact phone number for the guest in E.164 international format. Used for reservation confirmations, pre-arrival contact, and service recovery outreach.. Valid values are `^+?[1-9]d{1,14}$`',
     `preferred_bed_type` STRING COMMENT 'The guests preferred bed configuration for room assignment: KING, QUEEN, DOUBLE, TWIN, or SINGLE. Used during pre-arrival room blocking and at check-in to maximize guest satisfaction.. Valid values are `KING|QUEEN|DOUBLE|TWIN|SINGLE`',
     `preferred_floor` STRING COMMENT 'The guests preferred floor level or floor range for room assignment (e.g., high floor, low floor, specific floor number). Captured from guest preferences in OPERA PMS and used during pre-arrival room blocking.',
@@ -83,8 +82,8 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` (
     `messaging_handle` STRING COMMENT 'Guests account identifier or phone number on the specified digital messaging platform. Used to initiate pre-arrival, in-stay, and post-stay communications via messaging channels. Subject to GDPR and CCPA as a digital contact identifier.',
     `messaging_platform` STRING COMMENT 'Digital messaging platform through which the guest can be contacted (e.g., WhatsApp, WeChat, LINE, SMS). Supports pre-arrival messaging, in-stay service requests, and post-stay follow-up communications per guest opt-in preferences.. Valid values are `whatsapp|wechat|line|sms|other`',
     `opt_in_source` STRING COMMENT 'The channel or touchpoint through which the guest provided their marketing or transactional communication consent. Used for consent audit trails and channel attribution analysis. [ENUM-REF-CANDIDATE: web|mobile_app|front_desk|call_center|ota|loyalty_enrollment|other — promote to reference product if additional sources are required]',
-    `phone_country_code` BIGINT COMMENT 'International dialing country code prefix for the guest phone number (e.g., +1 for USA, +44 for UK). Stored separately to support international call routing and country-level analytics. Conforms to ITU-T E.164 country code standards.',
-    `phone_number` BIGINT COMMENT 'Guest phone number in E.164 international format. Used for reservation confirmations, pre-arrival calls, service recovery, and emergency contact. Sourced from OPERA PMS and Salesforce CRM. Subject to GDPR and CCPA data protection requirements.',
+    `phone_country_code` STRING COMMENT 'International dialing country code prefix for the guest phone number (e.g., +1 for USA, +44 for UK). Stored separately to support international call routing and country-level analytics. Conforms to ITU-T E.164 country code standards.. Valid values are `^+[1-9]d{0,3}$`',
+    `phone_number` STRING COMMENT 'Guest phone number in E.164 international format. Used for reservation confirmations, pre-arrival calls, service recovery, and emergency contact. Sourced from OPERA PMS and Salesforce CRM. Subject to GDPR and CCPA data protection requirements.. Valid values are `^+?[1-9]d{1,14}$`',
     `phone_type` STRING COMMENT 'Classification of the phone number indicating whether it is a mobile, home, work, or fax number. Determines eligibility for SMS marketing communications and pre-arrival text notifications per guest opt-in preferences.. Valid values are `mobile|home|work|fax`',
     `postal_code` STRING COMMENT 'Postal or ZIP code of the guests address. Supports address validation, geographic clustering for feeder market analysis, and targeted direct mail campaigns. Format varies by country (e.g., 5-digit US ZIP, alphanumeric UK postcode).',
     `social_handle` STRING COMMENT 'Guests username or handle on the specified social media platform. Used for social CRM engagement, service recovery via social channels, and digital marketing personalization. Subject to GDPR and CCPA as a digital identifier.',
@@ -101,9 +100,10 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` (
     `preference_id` BIGINT COMMENT 'Unique surrogate identifier for a guest preference record in the Silver Layer lakehouse. Primary key for the preference data product within the guest domain.',
     `profile_id` BIGINT COMMENT 'Reference to the guest profile to whom this preference record belongs. Links the preference to the unified guest identity in the guest domain.',
     `property_id` BIGINT COMMENT 'Reference to the property at which this preference was captured or is applicable. A null value indicates the preference applies globally across all properties for the guest.',
-    `room_id` BIGINT COMMENT 'Foreign key linking to inventory.room. Business justification: VIP and repeat-guest specific-room preference tracking: high-value guests request the same physical room on every stay (e.g., suite 1201). The pre-arrival assignment process and VIP checklist depend o',
-    `room_type_id` BIGINT COMMENT 'Foreign key linking to inventory.room_type. Business justification: Pre-arrival room assignment process: the system matches guest room-type preferences to available inventory. A hospitality operations expert expects preference records to reference the specific room_ty',
+    `reservation_booking_id` BIGINT COMMENT 'Foreign key linking to reservation.reservation_booking. Business justification: Pre-arrival fulfillment operations require pulling guest preferences against an active booking before stay_history exists (stay_history is post-checkout). Front desk and housekeeping systems query pre',
+    `room_type_id` BIGINT COMMENT 'Foreign key linking to inventory.room_type. Business justification: Pre-arrival room assignment and preference fulfillment processes require matching guest preferences (bed_type_preference, view_type_preference, room_floor_preference) to specific room types. Front off',
     `stay_history_id` BIGINT COMMENT 'Reference to the specific stay or reservation during which this preference was captured or last confirmed. Enables preference-to-stay linkage for analytics on preference fulfillment rates and guest satisfaction correlation.',
+    `treatment_id` BIGINT COMMENT 'Foreign key linking to spa.treatment. Business justification: Pre-arrival spa personalization process: guest preference profiles drive automatic treatment suggestions and pre-booking for VIP/loyalty guests. A domain expert expects preference records to reference',
     `allergy_detail` STRING COMMENT 'Specific description of the guests food or environmental allergy (e.g., severe peanut allergy - anaphylactic, shellfish allergy, latex allergy). Classified as restricted health information under GDPR and CCPA. Triggers mandatory F&B and housekeeping alerts. Only populated when is_allergy = True.',
     `amenity_preferences` STRING COMMENT 'Guests stated preferences for in-room amenities and welcome items (e.g., extra towels, foam bath products, specific brand toiletries, fruit basket, champagne on arrival). Free-form text to accommodate the wide variety of amenity requests. Communicated to housekeeping and concierge for pre-arrival setup.',
     `bed_type_preference` STRING COMMENT 'Guests stated preference for bed configuration in their room. Sourced from OPERA PMS guest profile and used during room assignment to match available inventory. Supports pre-arrival preparation and upsell opportunity identification. [ENUM-REF-CANDIDATE: king|queen|double|twin|single|rollaway|no_preference — 7 candidates stripped; promote to reference product]',
@@ -145,9 +145,10 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` (
 CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` (
     `corporate_account_id` BIGINT COMMENT 'Unique surrogate identifier for the corporate account record in the Silver Layer lakehouse. Primary key for this entity.',
     `account_id` BIGINT COMMENT 'Foreign key linking to event.event_account. Business justification: Corporate accounts often have both transient room business (guest domain) and MICE business (event domain). Account managers need unified view of total account revenue, consolidated billing, and integ',
-    `booking_source_id` BIGINT COMMENT 'Foreign key linking to channel.booking_source. Business justification: Corporate account production reporting requires knowing which booking source (TMC, GDS, direct) governs the accounts travelers. Account managers enforce negotiated rates and track room-night producti',
-    `channel_contract_id` BIGINT COMMENT 'Foreign key linking to channel.channel_contract. Business justification: Corporate rate loading and commission enforcement require linking a corporate account to its governing channel contract. Revenue and sales teams must know which channel contract terms (rate parity, co',
-    `market_segment_id` BIGINT COMMENT 'Foreign key linking to revenue.market_segment. Business justification: Corporate accounts are classified into revenue market segments (e.g., Corporate Negotiated, MICE) to determine rate plan eligibility, commission structures, and budget allocation. Revenue managers use',
+    `cancellation_policy_id` BIGINT COMMENT 'Foreign key linking to reservation.cancellation_policy. Business justification: Corporate contract management: corporate accounts negotiate specific cancellation policies (cancellation_policy.applies_to_corporate_bookings). Linking corporate_account to their contracted cancellati',
+    `currency_id` BIGINT COMMENT 'Foreign key linking to property.currency. Business justification: Corporate accounts have a defined billing/credit currency for invoicing, credit limits, and direct billing. Normalizing credit_currency_code to a FK against the currency reference table ensures consis',
+    `hierarchy_id` BIGINT COMMENT 'Foreign key linking to property.hierarchy. Business justification: Corporate rate agreements and account management are negotiated at regional/brand hierarchy nodes (e.g., a national account covering all properties in a region). Revenue managers and account managers ',
+    `segment_id` BIGINT COMMENT 'Foreign key linking to guest.segment. Business justification: corporate_account stores market_segment_code as a free-text string (e.g., CORPORATE, MICE, GOVERNMENT). The segment table is the authoritative master for these definitions. Adding market_segment',
     `account_manager_email` STRING COMMENT 'Internal email address of the hotel groups account manager assigned to this corporate account. Used for escalation routing, contract renewal notifications, and CRM workflow automation.. Valid values are `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$`',
     `account_manager_name` STRING COMMENT 'Full name of the hotel groups internal account manager or sales manager responsible for managing the corporate relationship, contract renewals, and production performance.',
     `account_status` STRING COMMENT 'Current lifecycle status of the corporate account. Controls rate eligibility, direct billing access, and CRM engagement workflows. Active accounts are eligible for negotiated rates and direct billing.. Valid values are `active|inactive|suspended|pending_approval|terminated`',
@@ -155,7 +156,7 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account`
     `annual_revenue_target` DECIMAL(18,2) COMMENT 'Target total revenue (rooms, Food and Beverage (F&B), events) expected from this corporate account in the contract year. Used for account manager performance tracking and revenue budget planning per USALI standards.',
     `annual_room_night_target` STRING COMMENT 'Contracted or projected annual room night volume committed by the corporate client. Used for account tiering, rate negotiation leverage, and production performance tracking against actuals.',
     `billing_address_city` STRING COMMENT 'City component of the corporate clients billing address. Used for invoice generation, tax jurisdiction determination, and geographic segmentation reporting.',
-    `billing_address_country_code` BIGINT COMMENT 'ISO 3166-1 alpha-3 three-letter country code for the corporate clients billing address. Drives tax treatment, currency defaults, and regulatory compliance requirements (GDPR for EU entities).',
+    `billing_address_country_code` STRING COMMENT 'ISO 3166-1 alpha-3 three-letter country code for the corporate clients billing address. Drives tax treatment, currency defaults, and regulatory compliance requirements (GDPR for EU entities).. Valid values are `^[A-Z]{3}$`',
     `billing_address_line1` STRING COMMENT 'First line of the corporate clients official billing address used for invoice generation and accounts receivable correspondence in SAP S/4HANA.',
     `billing_instruction` STRING COMMENT 'Free-text billing instruction specifying which charges (room, tax, incidentals, F&B) are to be direct-billed to the corporate account versus charged to the individual guest. Applied automatically at check-in in OPERA PMS.',
     `blackout_dates_policy` STRING COMMENT 'Description or reference code for blackout date restrictions applicable to this corporate accounts negotiated rates. Specifies periods (e.g., peak demand, special events) when contracted rates are not available.',
@@ -163,7 +164,6 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account`
     `contract_end_date` DATE COMMENT 'Date on which the negotiated rate agreement and corporate account contract expires. Nullable for open-ended agreements. Rate eligibility ceases after this date unless renewed.',
     `contract_start_date` DATE COMMENT 'Date on which the negotiated rate agreement and corporate account contract becomes effective. Reservations made on or after this date are eligible for contracted rates.',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the corporate account record was first created in the source system. Used for audit trail, data lineage, and compliance reporting. Formatted as yyyy-MM-ddTHH:mm:ss.SSSXXX.',
-    `credit_currency_code` STRING COMMENT 'ISO 4217 three-letter currency code in which the credit limit and billing amounts are denominated for this corporate account (e.g., USD, EUR, GBP).. Valid values are `^[A-Z]{3}$`',
     `credit_limit` DECIMAL(18,2) COMMENT 'Maximum outstanding balance permitted on the corporate accounts direct billing (city ledger) facility in the OPERA AR module. Enforced at check-in and during reservation creation to prevent credit overexposure.',
     `crm_account_reference` STRING COMMENT 'External account identifier from Salesforce CRM, used to cross-reference the corporate account record with the CRM system of record for guest profiles and marketing campaigns.',
     `data_privacy_consent` BOOLEAN COMMENT 'Indicates whether the corporate contact has provided consent for processing of their personal data in accordance with GDPR and CCPA requirements. Required for marketing communications and data sharing with third-party partners.',
@@ -176,9 +176,9 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account`
     `los_minimum_nights` STRING COMMENT 'Minimum Length of Stay (LOS) requirement in nights applicable to this corporate accounts negotiated rate. A value of 1 indicates no minimum stay restriction.',
     `loyalty_program_eligible` BOOLEAN COMMENT 'Indicates whether individual travelers booking under this corporate account are eligible to earn loyalty program points. Some negotiated rate codes exclude loyalty accrual per program terms.',
     `mice_eligible` BOOLEAN COMMENT 'Indicates whether this corporate account is eligible for MICE (Meetings, Incentives, Conferences, Exhibitions) group rates and event space allocations managed through Delphi by Amadeus.',
-    `negotiated_rate_code` DECIMAL(18,2) COMMENT 'Primary negotiated rate code assigned to this corporate account in the Central Reservation System (CRS) and Property Management System (PMS). Used for Best Available Rate (BAR) eligibility verification and rate distribution across channels. Denormalized natural-key reference; non-authoritative copy resolved per v2 rebuild (authoritative source is the linked parent via FK).',
-    `opera_ar_account_number` BIGINT COMMENT 'Accounts Receivable account number assigned in Oracle OPERA PMS AR module, used for direct billing, city ledger management, and credit limit enforcement at the property level.',
-    `payment_terms` DECIMAL(18,2) COMMENT 'Agreed payment terms for direct billing invoices issued to this corporate account. Determines invoice due dates and triggers accounts receivable aging in SAP S/4HANA.',
+    `negotiated_rate_code` STRING COMMENT 'Primary negotiated rate code assigned to this corporate account in the Central Reservation System (CRS) and Property Management System (PMS). Used for Best Available Rate (BAR) eligibility verification and rate distribution across channels. Natural key normalized; resolve via revenue.rate_plan reference.',
+    `opera_ar_account_number` STRING COMMENT 'Accounts Receivable account number assigned in Oracle OPERA PMS AR module, used for direct billing, city ledger management, and credit limit enforcement at the property level.',
+    `payment_terms` STRING COMMENT 'Agreed payment terms for direct billing invoices issued to this corporate account. Determines invoice due dates and triggers accounts receivable aging in SAP S/4HANA.. Valid values are `net_30|net_45|net_60|immediate|prepaid`',
     `preferred_property_codes` STRING COMMENT 'Comma-separated list of hotel property codes (from OPERA PMS) designated as preferred properties for this corporate account. Drives rate availability, inventory allocation, and channel distribution priority.',
     `primary_contact_email` STRING COMMENT 'Business email address of the primary corporate contact. Used for contract communications, rate confirmations, and program updates. Subject to GDPR and CCPA data subject rights.. Valid values are `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$`',
     `primary_contact_name` STRING COMMENT 'Full name of the primary travel coordinator or procurement contact at the corporate client organization responsible for managing the hotel program and employee travel bookings.',
@@ -191,64 +191,15 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account`
     CONSTRAINT pk_corporate_account PRIMARY KEY(`corporate_account_id`)
 ) COMMENT 'Corporate client account master representing companies and organizations that negotiate rates and manage employee travel programs with the hotel group. Captures company name, industry classification (SIC/NAICS), negotiated rate codes, credit terms, billing instructions, account manager assignment, annual room night production targets, contract validity periods, and preferred properties. Links to individual guest profiles via corporate affiliation for rate eligibility verification. Sourced from Salesforce CRM and OPERA PMS AR module.';
 
-CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` (
-    `guest_group_block_id` BIGINT COMMENT 'Unique surrogate identifier for the guest group block record in the lakehouse silver layer. Primary key. Entity role: MASTER_AGREEMENT — represents a contracted room block allocation binding the property to a group organizer for a defined stay window.',
-    `booking_source_id` BIGINT COMMENT 'Foreign key linking to channel.booking_source. Business justification: Group business production reporting by channel requires linking each group block to its originating booking source (e.g., DMC, travel agent, direct sales). source_of_business_code is a denormalized re',
-    `corporate_account_id` BIGINT COMMENT 'Reference to the accounts receivable (AR) master account or corporate billing account to which the group master folio charges are posted. Sourced from OPERA PMS AR module.',
-    `event_booking_id` BIGINT COMMENT 'Foreign key linking to event.event_booking. Business justification: MICE operations require linking a group room block to its associated event booking for integrated pickup tracking, attrition reporting, and master folio billing. Revenue managers and event coordinator',
-    `profile_id` BIGINT COMMENT 'Reference to the guest profile of the primary group leader or organizer responsible for the block. Sourced from OPERA PMS guest profile or Salesforce CRM contact.',
-    `market_segment_id` BIGINT COMMENT 'Foreign key linking to revenue.market_segment. Business justification: Group blocks are classified by market segment for revenue displacement analysis, group vs. transient mix optimization, and USALI group segment reporting. Revenue managers need this link to evaluate gr',
-    `meeting_space_id` BIGINT COMMENT 'Foreign key linking to property.meeting_space. Business justification: MICE group blocks routinely contract specific meeting spaces as part of the room block agreement. Sales and catering systems link group blocks to meeting space assignments for capacity planning, minim',
-    `property_id` BIGINT COMMENT 'Reference to the property at which the group room block is contracted. Links to the property master in the property domain.',
-    `revenue_rate_plan_id` BIGINT COMMENT 'Foreign key linking to revenue.revenue_rate_plan. Business justification: Group blocks are contracted against a specific rate plan. Linking to revenue_rate_plan enables group rate plan performance tracking, LRA compliance auditing, and rate plan pickup reporting for group b',
-    `room_type_id` BIGINT COMMENT 'Foreign key linking to inventory.room_type. Business justification: Group block pickup reporting and attrition calculation require knowing which room type the block is contracted for. Group sales contracts specify room types; without this FK, pickup percentage and att',
-    `seasonal_calendar_id` BIGINT COMMENT 'Foreign key linking to property.seasonal_calendar. Business justification: Group displacement analysis — a core revenue management process — requires evaluating a group block against the propertys seasonal demand classification, blackout dates, and minimum LOS restrictions.',
-    `accessible_rooms_requested` STRING COMMENT 'Number of ADA-compliant accessible rooms requested within the group block. Tracked for ADA compliance and pre-assignment planning.',
-    `arrival_date` DATE COMMENT 'The first date of the contracted room block period — the date the group is scheduled to begin checking in. Serves as EFFECTIVE_FROM for this agreement.',
-    `attrition_pct` DECIMAL(18,2) COMMENT 'Contractual minimum pickup percentage the group must achieve to avoid attrition penalties. Expressed as a percentage (e.g., 80.00 means the group must pick up at least 80% of contracted rooms). Aligns with revenue.wash_factor domain.',
-    `billing_master_folio_instructions` STRING COMMENT 'Free-text instructions governing how charges are routed and settled for the group block master folio (e.g., Room and tax to master; incidentals to individual guest folio, All F&B charges to master account). Sourced from OPERA PMS cashiering module.',
-    `block_status` STRING COMMENT 'Current lifecycle state of the group room block. Tentative indicates a hold pending contract execution; Definite indicates a signed/confirmed block; Cancelled indicates the block was released; Closed indicates the group has departed and the block is reconciled. Serves as the LIFECYCLE_STATUS for this MASTER_AGREEMENT entity.. Valid values are `tentative|definite|cancelled|closed|waitlist`',
-    `cancellation_date` DATE COMMENT 'The date on which the group block was cancelled, if applicable. Null for active or closed blocks. Used for attrition penalty calculation and revenue recovery tracking.',
-    `cancellation_policy_code` STRING COMMENT 'Code referencing the cancellation and penalty policy applicable to this group block contract. Governs financial penalties if the group cancels after the cutoff date.. Valid values are `^[A-Z0-9_]{2,20}$`',
-    `complimentary_rooms_contracted` STRING COMMENT 'Number of complimentary (comp) rooms included in the group block contract, typically awarded on a ratio basis (e.g., 1 comp per 40 paid rooms). Tracked separately for revenue accounting under USALI.',
-    `contracted_date` DATE COMMENT 'The date on which the group block contract was formally executed and the block status moved to Definite. Represents the BUSINESS_EVENT_TIMESTAMP for the agreement lifecycle.',
-    `contracted_rate_amount` DECIMAL(18,2) COMMENT 'Negotiated room rate per night per room agreed in the group block contract. Expressed in the propertys operating currency. Confidential commercial term.',
-    `contracted_room_nights` STRING COMMENT 'Total number of room nights committed in the group block contract across all room types and all nights of the block period. Primary quantitative measure of block size.',
-    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the group block record was first created in the source system (OPERA PMS or Delphi). Serves as RECORD_AUDIT_CREATED for this entity.',
-    `currency_code` STRING COMMENT 'ISO 4217 three-letter currency code for all monetary values on this group block record (e.g., USD, EUR, GBP).. Valid values are `^[A-Z]{3}$`',
-    `cutoff_date` DATE COMMENT 'The contractual deadline by which individual reservations must be made against the block at the contracted group rate. Rooms not picked up by this date are released back to general inventory per the attrition policy.',
-    `delphi_opportunity_reference` STRING COMMENT 'Source system identifier from Delphi by Amadeus event sales platform linking this group block to the originating sales opportunity or group proposal. Enables cross-system traceability.',
-    `departure_date` DATE COMMENT 'The last date of the contracted room block period — the date the group is scheduled to check out. Serves as EFFECTIVE_UNTIL for this agreement.',
-    `deposit_due_date` DATE COMMENT 'Contractual deadline by which the group deposit must be received to maintain the block in Definite status.',
-    `deposit_received_amount` DECIMAL(18,2) COMMENT 'Actual deposit amount received from the group organizer to date. Compared against deposit_required_amount to determine outstanding deposit balance.',
-    `deposit_required_amount` DECIMAL(18,2) COMMENT 'Contractual deposit amount required from the group to confirm the block. Expressed in the currency defined by currency_code.',
-    `group_code` STRING COMMENT 'Externally-known alphanumeric code used to identify the group block across systems (OPERA PMS, CRS, OTA channels). Used by guests and agents to associate individual reservations to the block. Serves as the BUSINESS_IDENTIFIER for this agreement.. Valid values are `^[A-Z0-9]{3,20}$`',
-    `group_name` STRING COMMENT 'Human-readable name of the group (e.g., Smith Wedding Party, Acme Corp Q3 Sales Conference, Chicago Bulls Away Team). Displayed on folios, rooming lists, and internal reports.',
-    `group_notes` STRING COMMENT 'Free-text operational notes and special instructions for the group block (e.g., VIP handling requirements, early check-in requests, amenity preferences, security arrangements). Sourced from OPERA PMS group block notes field.',
-    `group_rate_code` DECIMAL(18,2) COMMENT 'Rate plan code applied to individual reservations made under this group block. Links to the negotiated group rate in the revenue rate plan. Sourced from OPERA PMS and distributed via SynXis CRS. Denormalized natural-key reference; non-authoritative copy resolved per v2 rebuild (authoritative source is the linked parent via FK).',
-    `group_type` STRING COMMENT 'Categorical classification of the group travel party type. Drives billing rules, rate eligibility, and operational handling. [ENUM-REF-CANDIDATE: tour|corporate|wedding|sports_team|airline_crew|government|other — promote to reference product]',
-    `last_updated_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent modification to the group block record in the source system. Serves as RECORD_AUDIT_UPDATED for this entity. Used for incremental ETL processing.',
-    `opera_block_reference` STRING COMMENT 'Native block identifier from Oracle OPERA PMS Group Blocks module. Used for reconciliation and lineage tracing between the lakehouse silver layer and the operational source system.',
-    `peak_block_rooms` STRING COMMENT 'Maximum number of rooms blocked on any single night within the group block period. Used for capacity planning, displacement analysis, and revenue management evaluation.',
-    `repeat_group_flag` BOOLEAN COMMENT 'Indicates whether this group has stayed at the property in a prior year or period. Used for loyalty recognition, preferential rate negotiation, and retention analytics.',
-    `rooming_list_due_date` DATE COMMENT 'Contractual deadline by which the group organizer must submit the complete rooming list with individual guest names and room type preferences.',
-    `rooming_list_status` STRING COMMENT 'Current status of the rooming list submission for this group block. Tracks whether the group organizer has provided individual guest names and room assignments required for pre-arrival processing.. Valid values are `not_received|partial|complete|finalized`',
-    `rooms_picked_up` STRING COMMENT 'Current count of individual reservations made against the group block (actual pickup). Compared against contracted_room_nights to calculate pickup rate and attrition exposure.',
-    `suite_block_rooms` STRING COMMENT 'Number of suite-category rooms included in the contracted block. Tracked separately from standard rooms for inventory management and upsell reporting.',
-    `vip_flag` BOOLEAN COMMENT 'Indicates whether this group block has been designated as VIP, triggering elevated service protocols, dedicated concierge assignment, and executive-level attention.',
-    `wash_pct` DECIMAL(18,2) COMMENT 'Estimated percentage of contracted rooms expected to be released back to general inventory based on historical pickup patterns for this group type. Used by revenue management for net block sizing and forecasting.',
-    CONSTRAINT pk_guest_group_block PRIMARY KEY(`guest_group_block_id`)
-) COMMENT 'Group guest block master representing organized group travel parties (tour groups, corporate meetings, wedding parties, sports teams, airline crew). Captures group name, group type classification, group leader/contact profile reference, contracted room block size, pickup rate tracking, group code, cut-off date, billing master folio instructions, rooming list status, group coordinator assignment, and wash/attrition percentage thresholds. Distinct from MICE event management in the event domain — this focuses on room block allocation, guest-facing group identity, and rooming list management. Sourced from OPERA PMS Group Blocks and Delphi/Salesforce.';
-
 CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` (
     `vip_designation_id` BIGINT COMMENT 'Unique surrogate identifier for each VIP designation record in the silver layer lakehouse. Primary key for the vip_designation data product. Sourced from Oracle OPERA PMS VIP code assignments and Salesforce CRM VIP profile records.',
     `corporate_account_id` BIGINT COMMENT 'Reference to the corporate account record when the VIP designation is granted based on a corporate relationship (e.g., key account executive, contracted corporate partner). Null for individual leisure VIP guests. Sourced from Salesforce CRM account object.',
+    `hierarchy_id` BIGINT COMMENT 'Foreign key linking to property.hierarchy. Business justification: VIP designations can be scoped chain-wide or regionally (e.g., VIP at all properties in APAC region), not just at a single property. The existing property_id covers property-level scope; hierarchy_id ',
     `member_id` BIGINT COMMENT 'Reference to the loyalty program membership record associated with this VIP guest. Links VIP designation entitlements with loyalty tier benefits to ensure non-duplication and correct benefit stacking. Sourced from Salesforce CRM loyalty management module.',
-    `room_id` BIGINT COMMENT 'Foreign key linking to inventory.room. Business justification: VIP pre-arrival room pre-blocking: the VIP designation record drives automatic reservation of a specific physical room. room_assignment_priority and pre_arrival_checklist_template on vip_designation r',
-    `room_type_id` BIGINT COMMENT 'Foreign key linking to inventory.room_type. Business justification: VIP pre-arrival room blocking process: the system must know which room type a VIP guest is guaranteed or preferred for. upgrade_eligible and room_assignment_priority on vip_designation require a targe',
     `profile_id` BIGINT COMMENT 'Reference to the guest profile record for whom this VIP designation is assigned. Links to the master guest profile in the guest domain. A single guest may hold multiple concurrent VIP designations across brand and property levels.',
     `property_id` BIGINT COMMENT 'Reference to the property at which this VIP designation applies. A designation may be property-specific (e.g., Celebrity at a single resort) or brand-wide (null indicates brand-level designation). Sourced from Oracle OPERA PMS property configuration.',
-    `tier_id` BIGINT COMMENT 'Foreign key linking to loyalty.tier. Business justification: VIP designation assignment workflows are directly driven by loyalty tier — Platinum members automatically receive VIP-1 status. Guest services and front-office systems use this link to apply tier-appr',
+    `room_type_id` BIGINT COMMENT 'Foreign key linking to inventory.room_type. Business justification: VIP pre-arrival protocols require designating a preferred or guaranteed room type for VIP guests (upgrade_eligible, room_assignment_priority). Front office VIP handling and pre-arrival checklists depe',
+    `tier_id` BIGINT COMMENT 'Foreign key linking to loyalty.tier. Business justification: VIP designations in hospitality are frequently triggered by or aligned with loyalty tier thresholds (e.g., Platinum members auto-qualify for VIP handling). This FK supports auditing which tier level t',
     `airport_transfer_required` BOOLEAN COMMENT 'Indicates whether a complimentary or arranged airport transfer service is required for this VIP guest as part of their designation entitlements. Triggers coordination with the concierge and transportation team during pre-arrival preparation.',
     `alias_name` STRING COMMENT 'Pseudonym or alias name used for incognito check-in and reservation bookings to protect the identity of high-profile guests. Used in place of the guests legal name on folios, room assignments, and staff communications when incognito_checkin is true.',
     `amenity_tier_code` STRING COMMENT 'Code referencing the amenity entitlement package associated with this VIP level. Determines the standard amenity setup (e.g., welcome fruit basket, champagne, floral arrangement, personalized stationery) to be prepared prior to guest arrival. Sourced from OPERA PMS amenity configuration.. Valid values are `^[A-Z0-9_]{2,30}$`',
@@ -269,50 +220,50 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` (
     `no_photo_policy` BOOLEAN COMMENT 'Indicates that the guest has explicitly prohibited photography, video recording, or any visual documentation of their presence on property. Staff must be briefed on this restriction during pre-arrival preparation. Applies to celebrity, royalty, and diplomatic designations.',
     `pre_arrival_checklist_template` STRING COMMENT 'Code identifying the standardized pre-arrival preparation checklist template to be activated for this VIP designation. Templates define the sequence of tasks (amenity setup, room inspection, GM briefing, transportation coordination) required before the guests arrival.. Valid values are `^[A-Z0-9_]{2,50}$`',
     `revenue_threshold_amount` DECIMAL(18,2) COMMENT 'Minimum annual revenue contribution (in USD) that qualified this guest for the VIP designation based on the revenue threshold reason. Used for annual VIP eligibility reviews and LTV (Lifetime Value) analysis. Sourced from OPERA PMS revenue history and SAP S/4HANA financial records.',
-    `revenue_threshold_currency` DECIMAL(18,2) COMMENT 'ISO 4217 three-letter currency code for the revenue_threshold_amount field. Ensures correct currency context for multi-currency properties and international guests. Defaults to USD for US-based properties.',
+    `revenue_threshold_currency` STRING COMMENT 'ISO 4217 three-letter currency code for the revenue_threshold_amount field. Ensures correct currency context for multi-currency properties and international guests. Defaults to USD for US-based properties.. Valid values are `^[A-Z]{3}$`',
     `review_date` DATE COMMENT 'Scheduled date for the next periodic review of this VIP designation to confirm continued eligibility based on revenue thresholds, relationship status, or public figure standing. Supports annual VIP audit processes managed by the guest relations team.',
     `revocation_reason` STRING COMMENT 'Reason code explaining why a VIP designation was revoked or suspended. Populated only when designation_status is revoked or suspended. Supports audit trail requirements and VIP eligibility governance reviews. Sourced from Salesforce CRM case closure reason.. Valid values are `revenue_below_threshold|relationship_ended|policy_violation|guest_request|duplicate_record|other`',
     `room_assignment_priority` STRING COMMENT 'Numeric priority rank (lower value = higher priority) used by the front desk and revenue management systems to sequence room assignment and upgrade eligibility for this VIP guest relative to other arriving guests. Integrates with IDeaS G3 RMS inventory controls.',
     `security_escort_required` BOOLEAN COMMENT 'Indicates whether a dedicated security escort or personal protection detail coordination is required for this VIP guest during their stay. Triggers security briefing and coordination protocols with the property security team and any external protection services.',
-    `service_recovery_escalation_level` BIGINT COMMENT 'Defines the escalation path and response urgency for service recovery incidents involving this VIP guest. Immediate_gm requires the General Manager to be notified within minutes of any complaint. Drives Medallia case routing and Salesforce CRM service recovery workflows.',
+    `service_recovery_escalation_level` STRING COMMENT 'Defines the escalation path and response urgency for service recovery incidents involving this VIP guest. Immediate_gm requires the General Manager to be notified within minutes of any complaint. Drives Medallia case routing and Salesforce CRM service recovery workflows.. Valid values are `standard|elevated|executive|immediate_gm`',
     `source_system_vip_code` STRING COMMENT 'The native VIP code or identifier as stored in the originating source system (Oracle OPERA PMS or Salesforce CRM). Retained for traceability and reconciliation between the lakehouse silver layer and the operational system of record.. Valid values are `^[A-Z0-9_-]{1,50}$`',
     `special_handling_notes` STRING COMMENT 'Free-text field capturing bespoke service instructions specific to this VIP designation, such as preferred room temperature, dietary restrictions for amenity setup, security escort requirements, or specific staff interaction protocols. Sourced from Salesforce CRM case notes and OPERA PMS profile remarks.',
     `total_stays_in_period` STRING COMMENT 'Count of completed stays by the guest within the current designation validity period (effective_from to effective_until). Used to validate continued VIP eligibility at review date and to support LTV (Lifetime Value) reporting. Sourced from Oracle OPERA PMS stay history.',
     `updated_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent modification to this VIP designation record in the silver layer lakehouse. Tracks changes to designation status, special handling instructions, privacy flags, or host assignments. Formatted as yyyy-MM-ddTHH:mm:ss.SSSXXX per platform conventions.',
     `upgrade_eligible` BOOLEAN COMMENT 'Indicates whether this VIP designation entitles the guest to complimentary room category upgrades subject to availability at check-in. When true, the front desk system surfaces upgrade options during the check-in workflow in Oracle OPERA PMS.',
-    `vip_level` BIGINT COMMENT 'Tiered classification of the VIP designation indicating the service protocol level assigned to the guest. VIP1 is entry-level recognition; VIP5 is the highest standard tier. Celebrity, Royalty, Owner, and Board Member are special-class designations. [ENUM-REF-CANDIDATE: VIP1|VIP2|VIP3|VIP4|VIP5|Celebrity|Royalty|Owner|Board Member — promote to reference product]',
+    `vip_level` STRING COMMENT 'Tiered classification of the VIP designation indicating the service protocol level assigned to the guest. VIP1 is entry-level recognition; VIP5 is the highest standard tier. Celebrity, Royalty, Owner, and Board Member are special-class designations. [ENUM-REF-CANDIDATE: VIP1|VIP2|VIP3|VIP4|VIP5|Celebrity|Royalty|Owner|Board Member — promote to reference product]',
     CONSTRAINT pk_vip_designation PRIMARY KEY(`vip_designation_id`)
 ) COMMENT 'VIP classification and designation records for high-value guests requiring elevated service protocols. Captures VIP level/tier (VIP1 through VIP5, Celebrity, Royalty, Owner, Board Member), designation reason (revenue threshold, corporate relationship, public figure status), assigned property host or butler, special handling instructions (amenity setup, GM greeting, airport transfer), amenity entitlements per tier, privacy flags (do-not-disturb, incognito check-in, no-photo policy), and designation validity period. One guest may hold multiple concurrent designations (e.g., VIP3 at brand level + Celebrity at property level). Sourced from OPERA PMS VIP codes and Salesforce CRM. Drives pre-arrival preparation checklists, room assignment priority, upgrade eligibility, and service recovery escalation paths.';
 
 CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` (
     `stay_history_id` BIGINT COMMENT 'Unique surrogate identifier for each completed guest stay record in the silver layer lakehouse. Primary key for the stay_history data product. Sourced from Oracle OPERA PMS post-checkout records.',
-    `booking_source_id` BIGINT COMMENT 'Foreign key linking to channel.booking_source. Business justification: Channel production reporting, loyalty points attribution by channel, and OTA cost-of-acquisition analysis all require stay_history to reference the exact booking_source. booking_channel_code is a deno',
+    `channel_id` BIGINT COMMENT 'Foreign key linking to channel.channel. Business justification: Channel contribution analysis per guest — identifying which distribution channels produce high-value, loyal guests — is a core hospitality revenue and marketing process. Replacing the denormalized bo',
     `corporate_account_id` BIGINT COMMENT 'Reference to the corporate account associated with this stay, applicable when guest_type is corporate. Links to negotiated rate agreements and corporate travel program tracking. Sourced from Oracle OPERA PMS accounts receivable module.',
-    `guest_group_block_id` BIGINT COMMENT 'Reference to the group block associated with this stay, applicable when guest_type is group. Links to group contract, pickup tracking, and group revenue attribution. Sourced from Oracle OPERA PMS group module.',
-    `market_segment_id` BIGINT COMMENT 'Foreign key linking to revenue.market_segment. Business justification: Each stay must be attributed to a revenue market segment for USALI segment-level P&L reporting, RevPAR contribution analysis, and performance_actuals reconciliation. Revenue managers depend on this li',
-    `member_id` BIGINT COMMENT 'Foreign key linking to loyalty.member. Business justification: Points posting and member stay history reporting require linking each stay to the loyalty member record. Loyalty operations analysts reconcile points earned per stay against the member account. loyalt',
+    `currency_id` BIGINT COMMENT 'Foreign key linking to property.currency. Business justification: Stay history records revenue figures (ADR, room revenue, total folio) in a specific currency. Normalizing currency_code to a FK against the currency reference table enables accurate multi-currency rev',
+    `event_booking_id` BIGINT COMMENT 'Foreign key linking to event.event_booking. Business justification: MICE revenue attribution and event P&L reporting require linking guest stay records directly to the event booking that generated the room demand. Enables direct group room revenue reporting per event ',
+    `segment_id` BIGINT COMMENT 'Foreign key linking to guest.segment. Business justification: stay_history currently stores market_segment_code as a free-text string. The segment table is the authoritative master for market segment definitions (segment_code, segment_name, segment_type, etc.). ',
+    `member_id` BIGINT COMMENT 'Foreign key linking to loyalty.member. Business justification: Loyalty points posting, qualifying-night calculation, and tier progression all require joining stay history directly to the loyalty member record. A domain expert would expect stay_history to carry me',
     `profile_id` BIGINT COMMENT 'Reference to the guest profile record representing the primary registered guest for this stay. Supports Lifetime Value (LTV) calculation, segmentation, and personalization across all properties.',
     `property_id` BIGINT COMMENT 'Reference to the property where the stay occurred. Enables property-level performance analytics including ADR, RevPAR, and OCC reporting per USALI standards.',
-    `reservation_booking_id` BIGINT COMMENT 'Reference to the originating reservation record from which this stay history was created upon checkout. Links stay history back to the reservation domain for full booking-to-stay traceability.',
-    `revenue_rate_plan_id` BIGINT COMMENT 'Foreign key linking to revenue.revenue_rate_plan. Business justification: Linking stay history to the rate plan applied enables rate plan performance analysis (ADR by rate plan, LRA compliance tracking, rate plan pickup reporting). Revenue managers need this to evaluate whi',
-    `room_id` BIGINT COMMENT 'Foreign key linking to inventory.room. Business justification: Physical room occupancy history supports maintenance correlation with guest complaints, VIP room preference tracking at the physical room level, and housekeeping performance reporting. room_number is ',
-    `room_type_id` BIGINT COMMENT 'Foreign key linking to inventory.room_type. Business justification: Historical stay reporting by room category, loyalty tier qualification based on room type upgrades, and RevPAR contribution analysis all require linking stay history to the room_type entity. room_type',
-    `adr` DECIMAL(18,2) COMMENT 'Average Daily Rate (ADR) for the stay, calculated as total room revenue divided by the number of occupied room nights. A primary KPI per USALI and STR STAR Report standards. Expressed in the propertys local currency. Used for RevPAR computation and competitive benchmarking via STR.',
+    `reservation_rate_plan_id` BIGINT COMMENT 'Foreign key linking to reservation.reservation_rate_plan. Business justification: Revenue management rate plan performance reporting by stay requires linking stay_history to the structured reservation_rate_plan entity. rate_plan_code is currently denormalized on stay_history; norma',
+    `room_id` BIGINT COMMENT 'Foreign key linking to inventory.room. Business justification: Room-level performance reporting, repeat-guest room assignment, and maintenance impact analysis require linking each stay to the specific physical room occupied. Housekeeping and asset management team',
+    `room_type_id` BIGINT COMMENT 'Foreign key linking to inventory.room_type. Business justification: Post-stay analytics and revenue reporting require linking stay history to room type entities to calculate ADR, RevPAR, NPS, and loyalty points by room type. room_type_code is a denormalized representa',
+    `adr` DECIMAL(18,2) COMMENT 'Average Daily Rate (ADR) for the stay, calculated as total room revenue divided by the number of occupied room nights. A primary KPI per USALI and STR STAR Report standards. Expressed in the propertys local currency. Used for RevPAR computation and competitive benchmarking via STR. [v2 note: this is ADR not RevPAR; canonical RevPAR is in the revenue domain.]',
     `ancillary_revenue` DECIMAL(18,2) COMMENT 'Total ancillary charges posted to the guest folio during the stay, including spa, parking, laundry, telephone, and other non-room, non-F&B charges. Sourced from Oracle OPERA PMS. Contributes to TRevPAR and GOPPAR calculations per USALI.',
     `arrival_date` DATE COMMENT 'Actual date the guest checked in to the property (yyyy-MM-dd). May differ from the originally reserved arrival date in cases of early arrival or late arrival. Used as the principal business event date for stay analytics and STR benchmarking.',
     `booking_date` DATE COMMENT 'Date on which the reservation was originally created (yyyy-MM-dd). Used to calculate booking lead time (days between booking_date and arrival_date), a key input for demand forecasting and pickup report analysis.',
     `checkin_timestamp` TIMESTAMP COMMENT 'Exact date and time the guest completed the check-in process at the front desk or via mobile/digital check-in (yyyy-MM-ddTHH:mm:ss.SSSXXX). Sourced from Oracle OPERA PMS front desk module. Used for operational SLA tracking and guest experience analytics.',
     `checkout_timestamp` TIMESTAMP COMMENT 'Exact date and time the guest completed the checkout process (yyyy-MM-ddTHH:mm:ss.SSSXXX). Sourced from Oracle OPERA PMS cashiering module. Marks the point at which the stay record is finalized and posted to the stay history.',
     `complimentary_flag` BOOLEAN COMMENT 'Indicates whether the stay was provided on a complimentary (no-charge) basis (True = complimentary; False = revenue-generating stay). Sourced from Oracle OPERA PMS. Used for USALI complimentary room reporting and GOP calculation.',
-    `confirmation_number` BIGINT COMMENT 'Externally-known alphanumeric confirmation number assigned by the Central Reservation System (CRS) or Property Management System (PMS) at time of booking. Used by guests and agents to reference the stay. Sourced from Sabre SynXis CRS or Oracle OPERA PMS.',
+    `confirmation_number` STRING COMMENT 'Externally-known alphanumeric confirmation number assigned by the Central Reservation System (CRS) or Property Management System (PMS) at time of booking. Used by guests and agents to reference the stay. Sourced from Sabre SynXis CRS or Oracle OPERA PMS.. Valid values are `^[A-Z0-9]{6,20}$`',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this stay history record was first created in the silver layer lakehouse, typically upon post-checkout processing from Oracle OPERA PMS (yyyy-MM-ddTHH:mm:ss.SSSXXX). Used for data lineage, audit trail, and ETL pipeline monitoring.',
-    `currency_code` STRING COMMENT 'ISO 4217 three-letter currency code in which all monetary amounts on this stay record are denominated (e.g., USD, EUR, GBP). Required for multi-currency properties and international financial reporting under IFRS/GAAP.. Valid values are `^[A-Z]{3}$`',
     `departure_date` DATE COMMENT 'Actual date the guest checked out of the property (yyyy-MM-dd). May differ from the originally reserved departure date in cases of early departure or extended stay. Used in conjunction with arrival_date to compute Length of Stay (LOS).',
     `do_not_disturb_flag` BOOLEAN COMMENT 'Indicates whether the guest activated Do Not Disturb (DND) status during the stay (True = DND activated at any point; False = DND not activated). Sourced from Oracle OPERA PMS housekeeping module. Used for housekeeping scheduling and guest preference analytics.',
     `fb_revenue` DECIMAL(18,2) COMMENT 'Total Food and Beverage (F&B) charges posted to the guest folio during the stay, including restaurant, bar, room service, and minibar charges. Sourced from Oracle Hospitality MICROS POS. Contributes to TRevPAR calculation.',
-    `feedback_topics_extracted` DECIMAL(18,2) COMMENT 'Topics extracted from review/feedback for the stay',
     `gss_score` DECIMAL(18,2) COMMENT 'Overall Guest Satisfaction Score (GSS) for the stay as captured by Medallia post-stay survey, typically on a scale of 1-10 or 1-100 depending on survey instrument. Distinct from NPS; measures overall satisfaction rather than likelihood to recommend. Used for Satisfaction and Loyalty Tracking (SALT) reporting.',
     `guest_type` STRING COMMENT 'Classification of the guest stay by traveler category. fit (Free Independent Traveler) indicates leisure individual; corporate indicates business traveler under a negotiated account; group indicates part of a group block; crew indicates airline or transport crew; complimentary indicates no-charge stay. Drives segmentation and LTV modeling.. Valid values are `fit|corporate|group|crew|complimentary`',
+    `length_of_stay` STRING COMMENT 'The length of stay for stay history in the guest domain.',
+    `length_of_stay_nights` STRING COMMENT '',
     `los_nights` STRING COMMENT 'Actual number of nights the guest stayed at the property, computed as departure_date minus arrival_date. A core metric for Average Length of Stay (ALOS) analysis, revenue management, and demand forecasting in IDeaS G3 RMS.',
     `loyalty_points_earned` STRING COMMENT 'Number of loyalty program points earned by the guest for this stay, based on the applicable earning rate for the rate plan, room type, and member tier. Sourced from Salesforce CRM loyalty management. Used for loyalty program liability accrual and member engagement analytics.',
     `loyalty_tier_at_stay` STRING COMMENT 'The guests loyalty program tier level at the time of the stay (e.g., Silver, Gold, Platinum, Diamond). Captured as a snapshot to preserve historical tier context for LTV analysis and personalization, independent of the guests current tier. [ENUM-REF-CANDIDATE: promote to reference product as tiers vary by brand]',
@@ -321,10 +272,10 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` (
     `num_children` STRING COMMENT 'Count of child guests (under 18 years) registered for the stay as recorded in Oracle OPERA PMS. Used for family segment analytics, amenity planning, and F&B revenue forecasting.',
     `original_arrival_date` DATE COMMENT 'The arrival date as originally reserved at time of booking, before any modifications. Used to measure early arrival or late arrival deviations and to support wash factor analysis in IDeaS G3 RMS.',
     `original_departure_date` DATE COMMENT 'The departure date as originally reserved at time of booking, before any modifications. Used to identify early departure and extended stay patterns for demand forecasting and wash factor analysis in IDeaS G3 RMS.',
-    `payment_method` DECIMAL(18,2) COMMENT 'Primary payment instrument used to settle the guest folio at checkout. Sourced from Oracle OPERA PMS cashiering module. Used for payment mix analysis and PCI DSS compliance reporting. [ENUM-REF-CANDIDATE: credit_card|debit_card|cash|direct_bill|loyalty_points|bank_transfer|voucher|cryptocurrency — promote to reference product]',
+    `payment_method` STRING COMMENT 'Primary payment instrument used to settle the guest folio at checkout. Sourced from Oracle OPERA PMS cashiering module. Used for payment mix analysis and PCI DSS compliance reporting. [ENUM-REF-CANDIDATE: credit_card|debit_card|cash|direct_bill|loyalty_points|bank_transfer|voucher|cryptocurrency — promote to reference product]. Valid values are `credit_card|debit_card|cash|direct_bill|loyalty_points|bank_transfer`',
     `qualifying_nights` STRING COMMENT 'Number of nights from this stay that count toward the guests loyalty program tier qualification. May differ from los_nights if the rate plan is non-qualifying (e.g., wholesale, complimentary). Sourced from Salesforce CRM loyalty management.',
-    `rate_plan_code` STRING COMMENT 'Code identifying the rate plan under which the stay was booked (e.g., BAR, LRA, NRR, corporate negotiated, package). Sourced from Oracle OPERA PMS and Sabre SynXis CRS. Critical for revenue management analysis and channel contribution reporting.',
     `room_revenue` DECIMAL(18,2) COMMENT 'Total room charges posted to the guest folio for the entire stay, excluding taxes, fees, and ancillary charges. Sourced from Oracle OPERA PMS cashiering module. Core component of RevPAR and TRevPAR calculations per USALI.',
+    `rooms_sold` STRING COMMENT 'Number of rooms sold recorded in the guest stay history.',
     `service_recovery_flag` BOOLEAN COMMENT 'Indicates whether a service recovery action was initiated during or after this stay (True = service recovery case opened; False = no service recovery). Sourced from Medallia or Salesforce CRM case management. Used for Guest Recovery Rate (GRR) calculation and experience analytics.',
     `stay_status` STRING COMMENT 'Outcome status of the guest stay upon checkout processing. completed indicates normal checkout on scheduled departure date; early_departure indicates guest checked out before scheduled departure; extended indicates stay was prolonged beyond original departure date; no_show indicates reservation was not cancelled but guest never arrived; cancelled indicates reservation was cancelled post-check-in processing.. Valid values are `completed|early_departure|extended|no_show|cancelled`',
     `tax_amount` DECIMAL(18,2) COMMENT 'Total tax charges applied to the guest folio for the stay, including occupancy tax, VAT, city tax, and other applicable levies. Sourced from Oracle OPERA PMS cashiering. Required for IFRS/GAAP financial reporting and SOX compliance.',
@@ -332,12 +283,12 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` (
     `updated_timestamp` TIMESTAMP COMMENT 'Timestamp when this stay history record was last modified in the silver layer lakehouse (yyyy-MM-ddTHH:mm:ss.SSSXXX). Captures post-checkout adjustments such as folio corrections, survey score updates, or loyalty point recalculations. Used for data lineage and audit compliance.',
     `vip_code` STRING COMMENT 'VIP designation code assigned to the guest for this stay in Oracle OPERA PMS (e.g., VIP1, VIP2, VVIP, CELEB). Drives special handling, amenity delivery, and management attention protocols. Null if guest has no VIP designation.',
     CONSTRAINT pk_stay_history PRIMARY KEY(`stay_history_id`)
-) COMMENT 'Consolidated historical record of all completed guest stays across all properties and brands. Captures arrival date, departure date, property, room type, room number, rate plan, ADR, total revenue (rooms + F&B + ancillary), LOS, number of guests, booking channel, and stay outcome (completed, early departure, extended). Sourced from OPERA PMS post-checkout records. Foundational for LTV calculation, segmentation, and personalization. Distinct from active reservations managed in the reservation domain.';
+) COMMENT 'Consolidated historical record of all completed guest stays across all properties and brands. Captures arrival date, departure date, property, room type, room number, rate plan, ADR, total revenue (rooms + F&B + ancillary), LOS, number of guests, booking channel, and stay outcome (completed, early departure, extended). Sourced from OPERA PMS post-checkout records. Foundational for LTV calculation, segmentation, and personalization. Distinct from active reservations managed in the reservation domain. ADR (RevPAR lives in revenue domain) measure removed/renamed: prior definition divided room_revenue by occupied room nights which yields ADR not ADR (RevPAR lives in revenue domain); canonical ADR (RevPAR lives in revenue domain) is owned by the revenue domain. The ECM ADR (RevPAR lives in revenue domain) measure that divided room revenue by occupied room nights was actually ADR; it has been renamed/removed because true ADR (RevPAR lives in revenue domain) is owned by the revenue domain. RevPAR measure removed from guest metrics (was actually ADR = revenue / occupied room nights); canonical RevPAR lives in the revenue domain. Incorrect RevPAR measure removed; correct RevPAR lives in revenue domain.';
 
 CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` (
     `communication_consent_id` BIGINT COMMENT 'Unique identifier for the communication consent record. Primary key.',
+    `property_id` BIGINT COMMENT 'Foreign key linking to property.property. Business justification: GDPR and privacy regulations require knowing which property captured a guests consent (jurisdiction, lawful basis, and data controller identity vary by property location). Compliance audits and conse',
     `profile_id` BIGINT COMMENT 'Reference to the guest profile who provided or withdrew consent. Links to the guest master record in CRM.',
-    `property_id` BIGINT COMMENT 'Foreign key linking to property.property. Business justification: GDPR and privacy regulations require knowing which property captured a guests consent (e.g., at check-in kiosk or front desk). Regulatory audit trails and data subject requests must identify the capt',
     `consent_audit_trail` STRING COMMENT 'Structured or semi-structured audit trail capturing the history of consent changes, including who made changes, when, and why. May be JSON or delimited text format.',
     `consent_capture_url` STRING COMMENT 'The URL of the web page or application screen where the consent was captured. Helps trace back to the exact consent form version and context.',
     `consent_expiry_date` DATE COMMENT 'The date on which the consent expires and must be re-confirmed. Null for consents without expiration. Some jurisdictions and internal policies require periodic re-consent.',
@@ -357,7 +308,7 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_cons
     `crm_consent_reference` STRING COMMENT 'The unique consent record identifier from the source CRM system (Salesforce). Used for traceability and reconciliation with the operational system of record.',
     `double_opt_in_confirmed_timestamp` TIMESTAMP COMMENT 'Timestamp when the guest confirmed their consent via double opt-in mechanism (e.g., clicked email confirmation link). Null if double opt-in was not used or not yet confirmed.',
     `double_opt_in_flag` BOOLEAN COMMENT 'Indicates whether the consent was confirmed through a double opt-in process (e.g., email confirmation link). True if double opt-in was completed, False otherwise. Best practice for email marketing consent.',
-    `guest_country_code` BIGINT COMMENT 'Three-letter ISO 3166-1 alpha-3 country code representing the guest primary country of residence at the time consent was captured. Used to determine applicable privacy regulations.',
+    `guest_country_code` STRING COMMENT 'Three-letter ISO 3166-1 alpha-3 country code representing the guest primary country of residence at the time consent was captured. Used to determine applicable privacy regulations.. Valid values are `^[A-Z]{3}$`',
     `ip_address` STRING COMMENT 'The IP address from which the consent was submitted. Used as part of the audit trail to demonstrate consent authenticity. May be considered PII in some jurisdictions.',
     `jurisdiction` STRING COMMENT 'The primary privacy regulation or jurisdiction governing this consent record. Examples include GDPR (EU), CCPA (California), CASL (Canada), LGPD (Brazil), PIPEDA (Canada federal), APPI (Japan), POPIA (South Africa). [ENUM-REF-CANDIDATE: GDPR|CCPA|CASL|LGPD|PIPEDA|APPI|POPIA — 7 candidates stripped; promote to reference product]',
     `last_modified_timestamp` TIMESTAMP COMMENT 'Timestamp when this consent record was last updated in the data platform. Tracks the most recent change for audit and reconciliation purposes.',
@@ -367,7 +318,7 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_cons
     `record_active_flag` BOOLEAN COMMENT 'Indicates whether this consent record is currently active and should be used for consent enforcement. False if the record has been superseded or logically deleted.',
     `suppression_list_flag` BOOLEAN COMMENT 'Indicates whether this guest and communication type combination is currently on the suppression list (opted out or consent withdrawn). True if suppressed, False if active consent.',
     `third_party_sharing_consent_flag` BOOLEAN COMMENT 'Indicates whether the guest has consented to sharing their personal data with third-party partners (e.g., OTA partners, co-branded loyalty programs). True if consented, False otherwise.',
-    `user_agent` BIGINT COMMENT 'The browser or application user agent string captured at the time of consent submission. Provides additional context for consent authenticity verification.',
+    `user_agent` STRING COMMENT 'The browser or application user agent string captured at the time of consent submission. Provides additional context for consent authenticity verification.',
     CONSTRAINT pk_communication_consent PRIMARY KEY(`communication_consent_id`)
 ) COMMENT 'Guest communication consent and privacy preference records tracking opt-in/opt-out status for each communication channel and purpose. Captures consent type (marketing email, SMS, push notification, postal mail, phone), consent status, consent date, withdrawal date, consent source (web, front desk, CRM), jurisdiction (GDPR, CCPA, CASL), and legal basis for processing. Sourced from Salesforce CRM. Mandatory for regulatory compliance with GDPR and CCPA. Distinct from general contact info.';
 
@@ -382,7 +333,7 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document`
     `created_timestamp` TIMESTAMP COMMENT 'Date and time when this identity document record was first created in the system. Format: yyyy-MM-ddTHH:mm:ss.SSSXXX. Audit trail field for record creation.',
     `data_retention_category` STRING COMMENT 'Data retention classification for this identity document record. Determines how long the record must be retained per regulatory and business requirements. Values: standard (normal retention period), extended (longer retention for compliance), legal_hold (litigation hold), purge_eligible (eligible for deletion).. Valid values are `standard|extended|legal_hold|purge_eligible`',
     `date_of_birth` DATE COMMENT 'Guest date of birth as recorded on the identity document. Format: yyyy-MM-dd. Used for age verification and compliance.',
-    `document_number` BIGINT COMMENT 'The unique identification number printed on the identity document. This is the primary identifier on the document itself (e.g., passport number, national ID number, drivers license number).',
+    `document_number` STRING COMMENT 'The unique identification number printed on the identity document. This is the primary identifier on the document itself (e.g., passport number, national ID number, drivers license number).',
     `document_scan_reference` STRING COMMENT 'Reference identifier or file path to the scanned image or digital copy of the identity document stored in the document management system. Used for audit and compliance verification.',
     `document_scan_timestamp` TIMESTAMP COMMENT 'Date and time when the identity document was scanned or digitally captured. Format: yyyy-MM-ddTHH:mm:ss.SSSXXX.',
     `document_type` STRING COMMENT 'Type of identity document presented by the guest. Standard types include passport, national ID card, drivers license, visa, residence permit, and military ID.. Valid values are `passport|national_id|drivers_license|visa|residence_permit|military_id`',
@@ -396,7 +347,7 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document`
     `is_primary_document` BOOLEAN COMMENT 'Boolean flag indicating whether this is the primary identity document on file for the guest. True if this is the main document used for identification, False otherwise.',
     `issue_date` DATE COMMENT 'Date on which the identity document was issued by the issuing authority. Format: yyyy-MM-dd.',
     `issuing_authority` STRING COMMENT 'Name of the government agency or authority that issued the identity document (e.g., U.S. Department of State, UK Home Office, Ministry of Interior).',
-    `issuing_country_code` BIGINT COMMENT 'Three-letter ISO 3166-1 alpha-3 country code of the country or jurisdiction that issued the identity document.',
+    `issuing_country_code` STRING COMMENT 'Three-letter ISO 3166-1 alpha-3 country code of the country or jurisdiction that issued the identity document.. Valid values are `^[A-Z]{3}$`',
     `last_modified_timestamp` TIMESTAMP COMMENT 'Date and time when this identity document record was last updated or modified. Format: yyyy-MM-ddTHH:mm:ss.SSSXXX. Audit trail field for record modification.',
     `nationality_code` STRING COMMENT 'Three-letter ISO 3166-1 alpha-3 country code representing the guests nationality as stated on the identity document.. Valid values are `^[A-Z]{3}$`',
     `place_of_birth` STRING COMMENT 'City and country of birth as recorded on the identity document. Used for enhanced identity verification in some jurisdictions.',
@@ -411,11 +362,9 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document`
 
 CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` (
     `segment_id` BIGINT COMMENT 'Unique identifier for the guest market segment record. Primary key for both segment master definitions and individual guest-to-segment assignment records.',
-    `market_segment_id` BIGINT COMMENT 'Foreign key linking to revenue.market_segment. Business justification: Guest segmentation must map to revenue market segmentation for rate strategy alignment, RMS rule targeting, and segment-level budget planning. Revenue managers reconcile guest segment assignments agai',
     `parent_segment_id` BIGINT COMMENT 'Reference to the parent segment in the hierarchy for roll-up aggregation. Null for top-level segments.',
     `primary_superseded_by_assignment_segment_id` BIGINT COMMENT 'Reference to the segment assignment record that supersedes this one. Used for tracking segment migration history and maintaining assignment lineage.',
-    `profile_id` BIGINT COMMENT 'Reference to the individual guest profile for guest-to-segment assignment records. Null for segment master definition records.',
-    `property_id` BIGINT COMMENT 'Foreign key linking to property.property. Business justification: Revenue managers configure market segments at the property level — segment ADR index, RevPAR contribution, and yield management flags are property-specific. Property-level segment reporting (e.g., seg',
+    `property_id` BIGINT COMMENT 'Foreign key linking to property.property. Business justification: Market segments in hospitality revenue management are defined and managed at the property level. Property-specific segment definitions drive rate strategy, displacement analysis, and RevPAR contributi',
     `adr_index_vs_property` DECIMAL(18,2) COMMENT 'Average Daily Rate index for this segment relative to property-wide ADR. 1.0 = at property average, >1.0 = premium segment, <1.0 = discount segment. Used for segment mix optimization.',
     `advance_booking_window_days` STRING COMMENT 'Typical advance booking window in days for this segment. Used for demand forecasting and pickup analysis. Transient segments typically 0-30 days, Group segments 90-365 days.',
     `ancillary_revenue_per_stay` DECIMAL(18,2) COMMENT 'Average ancillary revenue (F&B, spa, parking, resort fees, etc.) per stay for this segment. Used for total revenue forecasting and TRevPAR optimization.',
@@ -455,22 +404,21 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` (
 ) COMMENT 'Guest market segmentation master definitions and individual guest-to-segment assignment records. The master component defines business segments (transient, group, contract, wholesale, complimentary, crew) with segment code, name, hierarchy level, USALI mapping, and applicable rate strategy. The assignment component tracks individual guest-to-segment associations including assignment date, assignment method (rule-based, ML-inferred, manual override), confidence score, validity period, and superseding assignment reference. Sourced from OPERA PMS Market Segment codes, IDeaS G3 RMS, and Salesforce CRM segmentation. Used for RevPAR analysis, demand forecasting, targeted marketing, rate fence enforcement, and LTV-based prioritization. Note: this product contains both reference definitions and transactional assignments — the master definitions change infrequently while assignments are high-volume.';
 
 -- ========= FOREIGN KEYS =========
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ADD CONSTRAINT `fk_guest_profile_corporate_account_id` FOREIGN KEY (`corporate_account_id`) REFERENCES `vibe_travel_hospitality_v1`.`guest`.`corporate_account`(`corporate_account_id`);
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ADD CONSTRAINT `fk_guest_profile_merged_into_profile_id` FOREIGN KEY (`merged_into_profile_id`) REFERENCES `vibe_travel_hospitality_v1`.`guest`.`profile`(`profile_id`);
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ADD CONSTRAINT `fk_guest_contact_info_profile_id` FOREIGN KEY (`profile_id`) REFERENCES `vibe_travel_hospitality_v1`.`guest`.`profile`(`profile_id`);
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ADD CONSTRAINT `fk_guest_preference_profile_id` FOREIGN KEY (`profile_id`) REFERENCES `vibe_travel_hospitality_v1`.`guest`.`profile`(`profile_id`);
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ADD CONSTRAINT `fk_guest_preference_stay_history_id` FOREIGN KEY (`stay_history_id`) REFERENCES `vibe_travel_hospitality_v1`.`guest`.`stay_history`(`stay_history_id`);
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ADD CONSTRAINT `fk_guest_guest_group_block_corporate_account_id` FOREIGN KEY (`corporate_account_id`) REFERENCES `vibe_travel_hospitality_v1`.`guest`.`corporate_account`(`corporate_account_id`);
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ADD CONSTRAINT `fk_guest_guest_group_block_profile_id` FOREIGN KEY (`profile_id`) REFERENCES `vibe_travel_hospitality_v1`.`guest`.`profile`(`profile_id`);
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ADD CONSTRAINT `fk_guest_corporate_account_segment_id` FOREIGN KEY (`segment_id`) REFERENCES `vibe_travel_hospitality_v1`.`guest`.`segment`(`segment_id`);
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ADD CONSTRAINT `fk_guest_vip_designation_corporate_account_id` FOREIGN KEY (`corporate_account_id`) REFERENCES `vibe_travel_hospitality_v1`.`guest`.`corporate_account`(`corporate_account_id`);
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ADD CONSTRAINT `fk_guest_vip_designation_profile_id` FOREIGN KEY (`profile_id`) REFERENCES `vibe_travel_hospitality_v1`.`guest`.`profile`(`profile_id`);
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ADD CONSTRAINT `fk_guest_stay_history_corporate_account_id` FOREIGN KEY (`corporate_account_id`) REFERENCES `vibe_travel_hospitality_v1`.`guest`.`corporate_account`(`corporate_account_id`);
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ADD CONSTRAINT `fk_guest_stay_history_guest_group_block_id` FOREIGN KEY (`guest_group_block_id`) REFERENCES `vibe_travel_hospitality_v1`.`guest`.`guest_group_block`(`guest_group_block_id`);
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ADD CONSTRAINT `fk_guest_stay_history_segment_id` FOREIGN KEY (`segment_id`) REFERENCES `vibe_travel_hospitality_v1`.`guest`.`segment`(`segment_id`);
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ADD CONSTRAINT `fk_guest_stay_history_profile_id` FOREIGN KEY (`profile_id`) REFERENCES `vibe_travel_hospitality_v1`.`guest`.`profile`(`profile_id`);
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ADD CONSTRAINT `fk_guest_communication_consent_profile_id` FOREIGN KEY (`profile_id`) REFERENCES `vibe_travel_hospitality_v1`.`guest`.`profile`(`profile_id`);
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ADD CONSTRAINT `fk_guest_identity_document_profile_id` FOREIGN KEY (`profile_id`) REFERENCES `vibe_travel_hospitality_v1`.`guest`.`profile`(`profile_id`);
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ADD CONSTRAINT `fk_guest_segment_parent_segment_id` FOREIGN KEY (`parent_segment_id`) REFERENCES `vibe_travel_hospitality_v1`.`guest`.`segment`(`segment_id`);
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ADD CONSTRAINT `fk_guest_segment_primary_superseded_by_assignment_segment_id` FOREIGN KEY (`primary_superseded_by_assignment_segment_id`) REFERENCES `vibe_travel_hospitality_v1`.`guest`.`segment`(`segment_id`);
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ADD CONSTRAINT `fk_guest_segment_profile_id` FOREIGN KEY (`profile_id`) REFERENCES `vibe_travel_hospitality_v1`.`guest`.`profile`(`profile_id`);
 
 -- ========= TAGS =========
 ALTER SCHEMA `vibe_travel_hospitality_v1`.`guest` SET TAGS ('dbx_division' = 'business');
@@ -478,82 +426,63 @@ ALTER SCHEMA `vibe_travel_hospitality_v1`.`guest` SET TAGS ('dbx_domain' = 'gues
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` SET TAGS ('dbx_data_type' = 'master_data');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` SET TAGS ('dbx_subdomain' = 'guest_identity');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `profile_id` SET TAGS ('dbx_business_glossary_term' = 'Guest Profile ID');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `property_id` SET TAGS ('dbx_business_glossary_term' = 'Creation Property Id (Foreign Key)');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `market_segment_id` SET TAGS ('dbx_business_glossary_term' = 'Market Segment Id (Foreign Key)');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `corporate_account_id` SET TAGS ('dbx_business_glossary_term' = 'Corporate Account Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `merged_into_profile_id` SET TAGS ('dbx_business_glossary_term' = 'Merged Into Guest Profile ID');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `room_type_id` SET TAGS ('dbx_business_glossary_term' = 'Preferred Room Type Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `accessibility_needs` SET TAGS ('dbx_business_glossary_term' = 'Guest Accessibility Requirements');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `accessibility_needs` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `address` SET TAGS ('dbx_pii_classification' = 'PII');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `address` SET TAGS ('dbx_sensitivity' = 'confidential');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `address` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `birth_date` SET TAGS ('dbx_business_glossary_term' = 'Guest Date of Birth');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `birth_date` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `birth_date` SET TAGS ('dbx_pii_dob' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `birth_date` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `birth_date` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `birth_date` SET TAGS ('dbx_pii_type' = 'dob');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `birth_date` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `birth_date` SET TAGS ('dbx_pii_class' = 'dob');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `birth_date` SET TAGS ('dbx_mask_nonprod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `company_name` SET TAGS ('dbx_business_glossary_term' = 'Guest Associated Company Name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `company_name` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `company_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `company_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `company_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `company_name` SET TAGS ('dbx_mask_non_prod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `birth_date` SET TAGS ('dbx_pii_tracked' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `birth_date` SET TAGS ('dbx_pii_classification' = 'PII');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `birth_date` SET TAGS ('dbx_sensitivity' = 'confidential');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `country_of_residence_code` SET TAGS ('dbx_business_glossary_term' = 'Guest Country of Residence Code (ISO 3166-1 Alpha-3)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `country_of_residence_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `country_of_residence_code` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `country_of_residence_code` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Guest Profile Record Creation Timestamp');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `creation_property_code` SET TAGS ('dbx_business_glossary_term' = 'Profile Creation Property Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `crm_contact_reference` SET TAGS ('dbx_business_glossary_term' = 'Salesforce CRM Contact ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `crm_contact_reference` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `crm_contact_reference` SET TAGS ('dbx_pii_identifier' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `data_privacy_consent_date` SET TAGS ('dbx_business_glossary_term' = 'Guest Data Privacy Consent Date');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `data_privacy_consent_date` SET TAGS ('dbx_pii_tracked' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `data_privacy_consent_date` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `email` SET TAGS ('dbx_business_glossary_term' = 'Guest Primary Email Address');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `email` SET TAGS ('dbx_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `email` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `email` SET TAGS ('dbx_pii_email' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `email` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `email` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `email` SET TAGS ('dbx_pii_type' = 'email');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `email` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `email` SET TAGS ('dbx_pii_class' = 'email');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `email` SET TAGS ('dbx_mask_nonprod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `email` SET TAGS ('dbx_pii_tracked' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `email` SET TAGS ('dbx_pii_classification' = 'PII');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `email` SET TAGS ('dbx_sensitivity' = 'confidential');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `email_opt_in` SET TAGS ('dbx_business_glossary_term' = 'Guest Email Marketing Opt-In Flag');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `email_opt_in` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `email_opt_in` SET TAGS ('dbx_pii_email' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `email_opt_in` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `email_opt_in` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `email_opt_in` SET TAGS ('dbx_pii_type' = 'email');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `email_opt_in` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `email_opt_in` SET TAGS ('dbx_pii_class' = 'email');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `email_opt_in` SET TAGS ('dbx_mask_nonprod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `email_opt_in` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `family_name` SET TAGS ('dbx_business_glossary_term' = 'Guest Family Name (Last Name)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `family_name` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `family_name` SET TAGS ('dbx_pii_name' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `family_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `family_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `family_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `family_name` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `family_name` SET TAGS ('dbx_pii_class' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `family_name` SET TAGS ('dbx_mask_nonprod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `family_name` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `gdpr_erasure_requested` SET TAGS ('dbx_business_glossary_term' = 'GDPR Right to Erasure Request Flag');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `gdpr_erasure_requested` SET TAGS ('dbx_pii_tracked' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `gdpr_erasure_requested` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `gender` SET TAGS ('dbx_business_glossary_term' = 'Guest Gender');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `gender` SET TAGS ('dbx_value_regex' = 'M|F|X|U');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `gender` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `gender` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `gender` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `gender` SET TAGS ('dbx_pii_type' = 'special_category');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `gender` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `gender` SET TAGS ('dbx_pii_class' = 'special_category');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `gender` SET TAGS ('dbx_mask_nonprod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `gender` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `given_name` SET TAGS ('dbx_business_glossary_term' = 'Guest Given Name (First Name)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `given_name` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `given_name` SET TAGS ('dbx_pii_name' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `given_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `given_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `given_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `given_name` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `given_name` SET TAGS ('dbx_pii_class' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `given_name` SET TAGS ('dbx_mask_nonprod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `given_name` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `guest_type` SET TAGS ('dbx_business_glossary_term' = 'Guest Type');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `guest_type` SET TAGS ('dbx_value_regex' = 'FIT|CORPORATE|GROUP|CREW|TRAVEL_AGENT|VIP');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `is_merge_survivor` SET TAGS ('dbx_business_glossary_term' = 'Guest Profile Merge Survivor Flag');
@@ -564,43 +493,34 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `loyalty
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `loyalty_member_number` SET TAGS ('dbx_business_glossary_term' = 'Loyalty Program Member Number');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `loyalty_member_number` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `loyalty_member_number` SET TAGS ('dbx_pii_identifier' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `loyalty_member_number` SET TAGS ('dbx_typed' = 'numeric_correction');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `loyalty_tier` SET TAGS ('dbx_business_glossary_term' = 'Loyalty Program Tier');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `loyalty_tier` SET TAGS ('dbx_value_regex' = 'NONE|SILVER|GOLD|PLATINUM|DIAMOND');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `marketing_opt_in` SET TAGS ('dbx_business_glossary_term' = 'Guest Marketing Communications Opt-In Flag');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `marketing_opt_in` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `middle_name` SET TAGS ('dbx_business_glossary_term' = 'Guest Middle Name');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `middle_name` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `middle_name` SET TAGS ('dbx_pii_name' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `middle_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `middle_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `middle_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `middle_name` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `middle_name` SET TAGS ('dbx_pii_class' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `middle_name` SET TAGS ('dbx_mask_nonprod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `middle_name` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `mobile_phone` SET TAGS ('dbx_business_glossary_term' = 'Guest Mobile Phone Number');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `mobile_phone` SET TAGS ('dbx_value_regex' = '^+?[1-9]d{1,14}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `mobile_phone` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `mobile_phone` SET TAGS ('dbx_pii_phone' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `mobile_phone` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `mobile_phone` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `mobile_phone` SET TAGS ('dbx_pii_type' = 'phone');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `mobile_phone` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `mobile_phone` SET TAGS ('dbx_pii_class' = 'phone');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `mobile_phone` SET TAGS ('dbx_mask_nonprod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `mobile_phone` SET TAGS ('dbx_pii_tracked' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `mobile_phone` SET TAGS ('dbx_pii_classification' = 'PII');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `mobile_phone` SET TAGS ('dbx_sensitivity' = 'confidential');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `name_prefix` SET TAGS ('dbx_business_glossary_term' = 'Guest Name Prefix (Salutation)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `name_prefix` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `name_prefix` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `name_prefix` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `name_prefix` SET TAGS ('dbx_mask_non_prod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `name_prefix` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `name_suffix` SET TAGS ('dbx_business_glossary_term' = 'Guest Name Suffix');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `name_suffix` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `name_suffix` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `name_suffix` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `name_suffix` SET TAGS ('dbx_mask_non_prod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `name_suffix` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `nationality_country_code` SET TAGS ('dbx_business_glossary_term' = 'Guest Nationality Country Code (ISO 3166-1 Alpha-3)');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `nationality_country_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `nationality_country_code` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `nationality_country_code` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `nationality_country_code` SET TAGS ('dbx_typed' = 'numeric_correction');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `nationality_country_code` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `opera_profile_reference` SET TAGS ('dbx_business_glossary_term' = 'Oracle OPERA PMS Profile ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `opera_profile_reference` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `opera_profile_reference` SET TAGS ('dbx_pii_identifier' = 'true');
@@ -608,46 +528,34 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passpor
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_expiry_date` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_expiry_date` SET TAGS ('dbx_pii_passport' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_expiry_date` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_expiry_date` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_expiry_date` SET TAGS ('dbx_pii_type' = 'passport');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_expiry_date` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_expiry_date` SET TAGS ('dbx_pii_class' = 'passport');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_expiry_date` SET TAGS ('dbx_mask_nonprod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_expiry_date` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_issuing_country_code` SET TAGS ('dbx_business_glossary_term' = 'Guest Passport Issuing Country Code (ISO 3166-1 Alpha-3)');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_issuing_country_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_issuing_country_code` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_issuing_country_code` SET TAGS ('dbx_pii_passport' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_issuing_country_code` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_issuing_country_code` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_issuing_country_code` SET TAGS ('dbx_pii_type' = 'passport');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_issuing_country_code` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_issuing_country_code` SET TAGS ('dbx_pii_class' = 'passport');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_issuing_country_code` SET TAGS ('dbx_mask_nonprod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_issuing_country_code` SET TAGS ('dbx_typed' = 'numeric_correction');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_issuing_country_code` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_number` SET TAGS ('dbx_business_glossary_term' = 'Guest Passport Number');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_number` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_number` SET TAGS ('dbx_pii_passport' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_number` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_number` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_number` SET TAGS ('dbx_pii_type' = 'passport');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_number` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_number` SET TAGS ('dbx_pii_class' = 'passport');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_number` SET TAGS ('dbx_mask_nonprod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_number` SET TAGS ('dbx_typed' = 'numeric_correction');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_number` SET TAGS ('dbx_pii_tracked' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_number` SET TAGS ('dbx_pii_classification' = 'PII');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `passport_number` SET TAGS ('dbx_sensitivity' = 'restricted');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `phone` SET TAGS ('dbx_business_glossary_term' = 'Guest Primary Phone Number');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `phone` SET TAGS ('dbx_value_regex' = '^+?[1-9]d{1,14}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `phone` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `phone` SET TAGS ('dbx_pii_phone' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `phone` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `phone` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `phone` SET TAGS ('dbx_pii_type' = 'phone');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `phone` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `phone` SET TAGS ('dbx_pii_class' = 'phone');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `phone` SET TAGS ('dbx_mask_nonprod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `phone` SET TAGS ('dbx_pii_tracked' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `phone` SET TAGS ('dbx_pii_classification' = 'PII');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `phone` SET TAGS ('dbx_sensitivity' = 'confidential');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `preferred_bed_type` SET TAGS ('dbx_business_glossary_term' = 'Guest Preferred Bed Type');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `preferred_bed_type` SET TAGS ('dbx_value_regex' = 'KING|QUEEN|DOUBLE|TWIN|SINGLE');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `preferred_floor` SET TAGS ('dbx_business_glossary_term' = 'Guest Preferred Floor');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `preferred_language_code` SET TAGS ('dbx_business_glossary_term' = 'Guest Preferred Language Code (ISO 639-1)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `preferred_language_code` SET TAGS ('dbx_value_regex' = '^[a-z]{2}(-[A-Z]{2})?$');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `preferred_language_code` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `profile_status` SET TAGS ('dbx_business_glossary_term' = 'Guest Profile Lifecycle Status');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `profile_status` SET TAGS ('dbx_value_regex' = 'active|inactive|merged|suspended|deceased');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `smoking_preference` SET TAGS ('dbx_business_glossary_term' = 'Guest Smoking Preference');
@@ -658,46 +566,33 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`profile` ALTER COLUMN `vip_sta
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` SET TAGS ('dbx_data_type' = 'master_data');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` SET TAGS ('dbx_subdomain' = 'guest_identity');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `contact_info_id` SET TAGS ('dbx_business_glossary_term' = 'Contact Information ID');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `contact_info_id` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `profile_id` SET TAGS ('dbx_business_glossary_term' = 'Guest ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_line1` SET TAGS ('dbx_business_glossary_term' = 'Address Line 1');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_line1` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_line1` SET TAGS ('dbx_pii_address' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_line1` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_line1` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_line1` SET TAGS ('dbx_pii_type' = 'address');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_line1` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_line1` SET TAGS ('dbx_pii_class' = 'address');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_line1` SET TAGS ('dbx_mask_nonprod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_line1` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_line2` SET TAGS ('dbx_business_glossary_term' = 'Address Line 2');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_line2` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_line2` SET TAGS ('dbx_pii_address' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_line2` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_line2` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_line2` SET TAGS ('dbx_pii_type' = 'address');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_line2` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_line2` SET TAGS ('dbx_pii_class' = 'address');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_line2` SET TAGS ('dbx_mask_nonprod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_line2` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_type` SET TAGS ('dbx_business_glossary_term' = 'Address Type');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_type` SET TAGS ('dbx_value_regex' = 'home|billing|mailing|work|other');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_type` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_type` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_type` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_type` SET TAGS ('dbx_pii_type' = 'address');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_type` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_validated_date` SET TAGS ('dbx_business_glossary_term' = 'Address Validated Date');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_validated_date` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_validated_date` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_validated_date` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_validated_date` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_validated_date` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_validated_date` SET TAGS ('dbx_pii_type' = 'address');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_validated_date` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_validation_status` SET TAGS ('dbx_business_glossary_term' = 'Address Validation Status');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_validation_status` SET TAGS ('dbx_value_regex' = 'validated|unvalidated|failed|corrected');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_validation_status` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_validation_status` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_validation_status` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_validation_status` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_validation_status` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_validation_status` SET TAGS ('dbx_pii_type' = 'address');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `address_validation_status` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `bounce_reason` SET TAGS ('dbx_business_glossary_term' = 'Bounce Reason');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `bounce_reason` SET TAGS ('dbx_value_regex' = 'hard_bounce|soft_bounce|spam_complaint|invalid_address|unsubscribed');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `city` SET TAGS ('dbx_business_glossary_term' = 'City');
@@ -705,96 +600,94 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `ci
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `city` SET TAGS ('dbx_pii_address' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `contact_channel` SET TAGS ('dbx_business_glossary_term' = 'Contact Channel');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `contact_channel` SET TAGS ('dbx_value_regex' = 'email|phone|postal|social|messaging');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `contact_channel` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `contact_status` SET TAGS ('dbx_business_glossary_term' = 'Contact Status');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `contact_status` SET TAGS ('dbx_value_regex' = 'active|inactive|bounced|undeliverable|suppressed');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `contact_status` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `contact_type` SET TAGS ('dbx_business_glossary_term' = 'Contact Type');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `contact_type` SET TAGS ('dbx_value_regex' = 'primary|secondary|work|home|billing|emergency');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `contact_type` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `country_code` SET TAGS ('dbx_business_glossary_term' = 'Country Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `country_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `country_code` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `data_retention_expiry_date` SET TAGS ('dbx_business_glossary_term' = 'Data Retention Expiry Date');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `data_retention_expiry_date` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `do_not_contact` SET TAGS ('dbx_business_glossary_term' = 'Do Not Contact Indicator');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `do_not_contact` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `email_address` SET TAGS ('dbx_business_glossary_term' = 'Email Address');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `email_address` SET TAGS ('dbx_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `email_address` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `email_address` SET TAGS ('dbx_pii_email' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `email_address` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `email_address` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `email_address` SET TAGS ('dbx_pii_type' = 'email');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `email_address` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `email_address` SET TAGS ('dbx_pii_class' = 'email');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `email_address` SET TAGS ('dbx_mask_nonprod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `email_address` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `email_type` SET TAGS ('dbx_business_glossary_term' = 'Email Type');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `email_type` SET TAGS ('dbx_value_regex' = 'personal|work|other');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `email_type` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `email_type` SET TAGS ('dbx_pii_type' = 'email');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `email_type` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `email_type` SET TAGS ('dbx_sensitivity' = 'email');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `email_type` SET TAGS ('dbx_mask_nonprod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `email_type` SET TAGS ('dbx_pii_class' = 'email');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `email_type` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `gdpr_lawful_basis` SET TAGS ('dbx_business_glossary_term' = 'General Data Protection Regulation (GDPR) Lawful Basis');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `gdpr_lawful_basis` SET TAGS ('dbx_value_regex' = 'consent|contract|legal_obligation|vital_interests|public_task|legitimate_interests');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `gdpr_lawful_basis` SET TAGS ('dbx_pii_tracked' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `gdpr_lawful_basis` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `is_primary` SET TAGS ('dbx_business_glossary_term' = 'Primary Contact Indicator');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `is_verified` SET TAGS ('dbx_business_glossary_term' = 'Contact Verified Indicator');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `language_code` SET TAGS ('dbx_business_glossary_term' = 'Preferred Language Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `language_code` SET TAGS ('dbx_value_regex' = '^[a-z]{2}(-[A-Z]{2})?$');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `language_code` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `latitude` SET TAGS ('dbx_business_glossary_term' = 'Latitude');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `latitude` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `latitude` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `latitude` SET TAGS ('dbx_pii_tracked' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `latitude` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `longitude` SET TAGS ('dbx_business_glossary_term' = 'Longitude');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `longitude` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `longitude` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `longitude` SET TAGS ('dbx_pii_tracked' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `longitude` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `marketing_opt_in` SET TAGS ('dbx_business_glossary_term' = 'Marketing Opt-In Indicator');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `marketing_opt_in` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `marketing_opt_in_date` SET TAGS ('dbx_business_glossary_term' = 'Marketing Opt-In Date');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `marketing_opt_in_date` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `marketing_opt_out_date` SET TAGS ('dbx_business_glossary_term' = 'Marketing Opt-Out Date');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `marketing_opt_out_date` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `messaging_handle` SET TAGS ('dbx_business_glossary_term' = 'Messaging Platform ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `messaging_handle` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `messaging_handle` SET TAGS ('dbx_pii_identifier' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `messaging_handle` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `messaging_handle` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `messaging_platform` SET TAGS ('dbx_business_glossary_term' = 'Messaging Platform');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `messaging_platform` SET TAGS ('dbx_value_regex' = 'whatsapp|wechat|line|sms|other');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `opt_in_source` SET TAGS ('dbx_business_glossary_term' = 'Opt-In Source');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_country_code` SET TAGS ('dbx_business_glossary_term' = 'Phone Country Code');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_country_code` SET TAGS ('dbx_value_regex' = '^+[1-9]d{0,3}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_country_code` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_country_code` SET TAGS ('dbx_pii_phone' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_country_code` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_country_code` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_country_code` SET TAGS ('dbx_pii_type' = 'phone');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_country_code` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_country_code` SET TAGS ('dbx_pii_class' = 'phone');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_country_code` SET TAGS ('dbx_mask_nonprod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_country_code` SET TAGS ('dbx_typed' = 'numeric_correction');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_country_code` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_number` SET TAGS ('dbx_business_glossary_term' = 'Phone Number');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_number` SET TAGS ('dbx_value_regex' = '^+?[1-9]d{1,14}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_number` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_number` SET TAGS ('dbx_pii_phone' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_number` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_number` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_number` SET TAGS ('dbx_pii_type' = 'phone');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_number` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_number` SET TAGS ('dbx_pii_class' = 'phone');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_number` SET TAGS ('dbx_mask_nonprod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_number` SET TAGS ('dbx_typed' = 'numeric_correction');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_number` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_type` SET TAGS ('dbx_business_glossary_term' = 'Phone Type');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_type` SET TAGS ('dbx_value_regex' = 'mobile|home|work|fax');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_type` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_type` SET TAGS ('dbx_pii_phone' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_type` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_type` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_type` SET TAGS ('dbx_pii_type' = 'phone');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_type` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_type` SET TAGS ('dbx_pii_class' = 'phone');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_type` SET TAGS ('dbx_mask_nonprod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `phone_type` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `postal_code` SET TAGS ('dbx_business_glossary_term' = 'Postal Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `postal_code` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `postal_code` SET TAGS ('dbx_pii_address' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `postal_code` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `postal_code` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `postal_code` SET TAGS ('dbx_pii_type' = 'address');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `postal_code` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `social_handle` SET TAGS ('dbx_business_glossary_term' = 'Social Media Handle');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `social_handle` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `social_handle` SET TAGS ('dbx_pii_identifier' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `social_handle` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `social_handle` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `social_platform` SET TAGS ('dbx_business_glossary_term' = 'Social Media Platform');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `social_platform` SET TAGS ('dbx_value_regex' = 'twitter|instagram|facebook|linkedin|wechat|other');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `social_platform` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `source_system_record_code` SET TAGS ('dbx_business_glossary_term' = 'Source System Record ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `state_province` SET TAGS ('dbx_business_glossary_term' = 'State or Province');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `state_province` SET TAGS ('dbx_restricted' = 'true');
@@ -803,13 +696,16 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `tr
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Updated Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`contact_info` ALTER COLUMN `verified_date` SET TAGS ('dbx_business_glossary_term' = 'Contact Verified Date');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` SET TAGS ('dbx_subdomain' = 'stay_experience');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` SET TAGS ('dbx_subdomain' = 'stay_engagement');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `preference_id` SET TAGS ('dbx_business_glossary_term' = 'Guest Preference ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `profile_id` SET TAGS ('dbx_business_glossary_term' = 'Guest ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `property_id` SET TAGS ('dbx_business_glossary_term' = 'Property ID');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `room_id` SET TAGS ('dbx_business_glossary_term' = 'Room Id (Foreign Key)');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `reservation_booking_id` SET TAGS ('dbx_business_glossary_term' = 'Reservation Booking Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `room_type_id` SET TAGS ('dbx_business_glossary_term' = 'Room Type Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `stay_history_id` SET TAGS ('dbx_business_glossary_term' = 'Stay ID');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `treatment_id` SET TAGS ('dbx_business_glossary_term' = 'Treatment Id (Foreign Key)');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `treatment_id` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `treatment_id` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `allergy_detail` SET TAGS ('dbx_business_glossary_term' = 'Allergy Detail');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `allergy_detail` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `allergy_detail` SET TAGS ('dbx_pii_health' = 'true');
@@ -821,10 +717,13 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `pref
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `communication_channel_preference` SET TAGS ('dbx_business_glossary_term' = 'Communication Channel Preference');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `communication_channel_preference` SET TAGS ('dbx_value_regex' = 'email|sms|phone|app_push|whatsapp|no_contact');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `consent_date` SET TAGS ('dbx_business_glossary_term' = 'Preference Consent Date');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `consent_date` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `consent_given` SET TAGS ('dbx_business_glossary_term' = 'Preference Data Consent Flag');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `consent_given` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `data_classification` SET TAGS ('dbx_business_glossary_term' = 'Data Classification Level');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `data_classification` SET TAGS ('dbx_value_regex' = 'restricted|confidential|internal|public');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `data_classification` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `dietary_restriction` SET TAGS ('dbx_business_glossary_term' = 'Dietary Restriction');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `fulfillment_notes` SET TAGS ('dbx_business_glossary_term' = 'Preference Fulfillment Notes');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `fulfillment_status` SET TAGS ('dbx_business_glossary_term' = 'Preference Fulfillment Status');
@@ -836,6 +735,7 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `is_a
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `is_mandatory` SET TAGS ('dbx_business_glossary_term' = 'Mandatory Preference Flag');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `language_preference` SET TAGS ('dbx_business_glossary_term' = 'Language Preference');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `language_preference` SET TAGS ('dbx_value_regex' = '^[a-z]{2,3}(-[A-Z]{2})?$');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `language_preference` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `last_confirmed_date` SET TAGS ('dbx_business_glossary_term' = 'Preference Last Confirmed Date');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `loyalty_tier_at_capture` SET TAGS ('dbx_business_glossary_term' = 'Loyalty Tier at Capture');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `newspaper_preference` SET TAGS ('dbx_business_glossary_term' = 'Newspaper Preference');
@@ -857,29 +757,22 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `valu
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `view_type_preference` SET TAGS ('dbx_business_glossary_term' = 'Room View Type Preference');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`preference` ALTER COLUMN `valid_from` SET TAGS ('dbx_business_glossary_term' = 'Preference Valid From Date');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` SET TAGS ('dbx_subdomain' = 'account_segmentation');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` SET TAGS ('dbx_subdomain' = 'corporate_segmentation');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `corporate_account_id` SET TAGS ('dbx_business_glossary_term' = 'Corporate Account ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Event Account Id (Foreign Key)');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `booking_source_id` SET TAGS ('dbx_business_glossary_term' = 'Booking Source Id (Foreign Key)');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `channel_contract_id` SET TAGS ('dbx_business_glossary_term' = 'Channel Contract Id (Foreign Key)');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `market_segment_id` SET TAGS ('dbx_business_glossary_term' = 'Market Segment Id (Foreign Key)');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `cancellation_policy_id` SET TAGS ('dbx_business_glossary_term' = 'Cancellation Policy Id (Foreign Key)');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `currency_id` SET TAGS ('dbx_business_glossary_term' = 'Currency Id (Foreign Key)');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `hierarchy_id` SET TAGS ('dbx_business_glossary_term' = 'Hierarchy Id (Foreign Key)');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `segment_id` SET TAGS ('dbx_business_glossary_term' = 'Market Segment Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `account_manager_email` SET TAGS ('dbx_business_glossary_term' = 'Account Manager Email Address');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `account_manager_email` SET TAGS ('dbx_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `account_manager_email` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `account_manager_email` SET TAGS ('dbx_pii_email' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `account_manager_email` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `account_manager_email` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `account_manager_email` SET TAGS ('dbx_pii_type' = 'email');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `account_manager_email` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `account_manager_email` SET TAGS ('dbx_pii_class' = 'email');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `account_manager_email` SET TAGS ('dbx_mask_nonprod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `account_manager_email` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `account_manager_name` SET TAGS ('dbx_business_glossary_term' = 'Account Manager Name');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `account_manager_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `account_manager_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `account_manager_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `account_manager_name` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `account_manager_name` SET TAGS ('dbx_pii_class' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `account_manager_name` SET TAGS ('dbx_mask_nonprod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `account_manager_name` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `account_status` SET TAGS ('dbx_business_glossary_term' = 'Corporate Account Status');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `account_status` SET TAGS ('dbx_value_regex' = 'active|inactive|suspended|pending_approval|terminated');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `account_type` SET TAGS ('dbx_business_glossary_term' = 'Corporate Account Type');
@@ -891,54 +784,42 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUM
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_city` SET TAGS ('dbx_business_glossary_term' = 'Billing Address City');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_city` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_city` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_city` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_city` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_city` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_city` SET TAGS ('dbx_pii_type' = 'address');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_city` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_city` SET TAGS ('dbx_pii_class' = 'address');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_city` SET TAGS ('dbx_mask_nonprod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_country_code` SET TAGS ('dbx_business_glossary_term' = 'Billing Address Country Code (ISO 3166-1 Alpha-3)');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_country_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_country_code` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_country_code` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_country_code` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_country_code` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_country_code` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_country_code` SET TAGS ('dbx_pii_type' = 'address');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_country_code` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_country_code` SET TAGS ('dbx_pii_class' = 'address');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_country_code` SET TAGS ('dbx_mask_nonprod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_country_code` SET TAGS ('dbx_typed' = 'numeric_correction');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_line1` SET TAGS ('dbx_business_glossary_term' = 'Billing Address Line 1');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_line1` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_line1` SET TAGS ('dbx_pii_address' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_line1` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_line1` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_line1` SET TAGS ('dbx_pii_type' = 'address');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_line1` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_line1` SET TAGS ('dbx_pii_class' = 'address');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_line1` SET TAGS ('dbx_mask_nonprod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_address_line1` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_instruction` SET TAGS ('dbx_business_glossary_term' = 'Billing Instruction');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `billing_instruction` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `blackout_dates_policy` SET TAGS ('dbx_business_glossary_term' = 'Blackout Dates Policy');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `company_name` SET TAGS ('dbx_business_glossary_term' = 'Company Legal Name');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `company_name` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `company_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `company_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `company_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `company_name` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `contract_end_date` SET TAGS ('dbx_business_glossary_term' = 'Contract Effective End Date');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `contract_start_date` SET TAGS ('dbx_business_glossary_term' = 'Contract Effective Start Date');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `credit_currency_code` SET TAGS ('dbx_business_glossary_term' = 'Credit Currency Code (ISO 4217)');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `credit_currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `credit_limit` SET TAGS ('dbx_business_glossary_term' = 'Direct Billing Credit Limit');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `credit_limit` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `credit_limit` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `crm_account_reference` SET TAGS ('dbx_business_glossary_term' = 'Customer Relationship Management (CRM) Account ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `data_privacy_consent` SET TAGS ('dbx_business_glossary_term' = 'Data Privacy Consent Flag');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `data_privacy_consent` SET TAGS ('dbx_pii_tracked' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `data_privacy_consent` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `direct_billing_enabled` SET TAGS ('dbx_business_glossary_term' = 'Direct Billing Enabled Flag');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `discount_percent` SET TAGS ('dbx_business_glossary_term' = 'Negotiated Discount Percentage');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `discount_percent` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `gdpr_data_subject_region` SET TAGS ('dbx_business_glossary_term' = 'General Data Protection Regulation (GDPR) Data Subject Region');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `gdpr_data_subject_region` SET TAGS ('dbx_value_regex' = 'eu|uk|california|other');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `gdpr_data_subject_region` SET TAGS ('dbx_pii_tracked' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `gdpr_data_subject_region` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `industry_naics_code` SET TAGS ('dbx_business_glossary_term' = 'North American Industry Classification System (NAICS) Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `industry_naics_code` SET TAGS ('dbx_value_regex' = '^[0-9]{6}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `industry_sic_code` SET TAGS ('dbx_business_glossary_term' = 'Standard Industrial Classification (SIC) Code');
@@ -949,47 +830,32 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUM
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `mice_eligible` SET TAGS ('dbx_business_glossary_term' = 'Meetings Incentives Conferences Exhibitions (MICE) Eligible Flag');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `negotiated_rate_code` SET TAGS ('dbx_business_glossary_term' = 'Negotiated Rate Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `negotiated_rate_code` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `negotiated_rate_code` SET TAGS ('dbx_denormalized_natural_key' = 'warning_resolved');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `negotiated_rate_code` SET TAGS ('dbx_data_classification' = 'derived_reference');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `negotiated_rate_code` SET TAGS ('dbx_normalization' = 'denormalized_natural_key_redundant');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `negotiated_rate_code` SET TAGS ('dbx_normalized' = 'denormalized_natural_key');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `negotiated_rate_code` SET TAGS ('dbx_typed' = 'numeric_correction');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `negotiated_rate_code` SET TAGS ('dbx_normalization' = 'natural_key_resolved');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `negotiated_rate_code` SET TAGS ('dbx_denormalized_natural_key' = 'resolved');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `opera_ar_account_number` SET TAGS ('dbx_business_glossary_term' = 'Oracle OPERA Accounts Receivable (AR) Account Number');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `opera_ar_account_number` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `opera_ar_account_number` SET TAGS ('dbx_typed' = 'numeric_correction');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `opera_ar_account_number` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `opera_ar_account_number` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `payment_terms` SET TAGS ('dbx_business_glossary_term' = 'Payment Terms');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `payment_terms` SET TAGS ('dbx_value_regex' = 'net_30|net_45|net_60|immediate|prepaid');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `payment_terms` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `preferred_property_codes` SET TAGS ('dbx_business_glossary_term' = 'Preferred Property Codes');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `preferred_property_codes` SET TAGS ('dbx_normalization' = 'denormalized_natural_key_redundant');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_email` SET TAGS ('dbx_business_glossary_term' = 'Primary Corporate Contact Email Address');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_email` SET TAGS ('dbx_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_email` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_email` SET TAGS ('dbx_pii_email' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_email` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_email` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_email` SET TAGS ('dbx_pii_type' = 'email');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_email` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_email` SET TAGS ('dbx_pii_class' = 'email');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_email` SET TAGS ('dbx_mask_nonprod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_email` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_name` SET TAGS ('dbx_business_glossary_term' = 'Primary Corporate Contact Name');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_name` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_name` SET TAGS ('dbx_pii_name' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_name` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_name` SET TAGS ('dbx_pii_class' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_name` SET TAGS ('dbx_mask_nonprod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_phone` SET TAGS ('dbx_business_glossary_term' = 'Primary Corporate Contact Phone Number');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_phone` SET TAGS ('dbx_value_regex' = '^+?[0-9s-().]{7,20}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_phone` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_phone` SET TAGS ('dbx_pii_phone' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_phone` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_phone` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_phone` SET TAGS ('dbx_pii_type' = 'phone');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_phone` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_phone` SET TAGS ('dbx_pii_class' = 'phone');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_phone` SET TAGS ('dbx_mask_nonprod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `primary_contact_phone` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `rate_program_type` SET TAGS ('dbx_business_glossary_term' = 'Rate Program Type');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `rate_program_type` SET TAGS ('dbx_value_regex' = 'lra|nrr|bar_discount|fixed_rate|dynamic');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `tax_exempt_status` SET TAGS ('dbx_business_glossary_term' = 'Tax Exempt Status');
@@ -997,108 +863,30 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUM
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `tax_exempt_status` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `tax_exemption_certificate` SET TAGS ('dbx_business_glossary_term' = 'Tax Exemption Certificate Number');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `tax_exemption_certificate` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `tax_exemption_certificate` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `tax_exemption_certificate` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `tax_exemption_certificate` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `tax_exemption_certificate` SET TAGS ('dbx_pii_type' = 'tax_id');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `tax_exemption_certificate` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `trading_name` SET TAGS ('dbx_business_glossary_term' = 'Company Trading Name (DBA)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `trading_name` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `trading_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `trading_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `trading_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `trading_name` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `vip_tier` SET TAGS ('dbx_business_glossary_term' = 'Corporate Account VIP Tier');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`corporate_account` ALTER COLUMN `vip_tier` SET TAGS ('dbx_value_regex' = 'standard|preferred|key|strategic');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` SET TAGS ('dbx_subdomain' = 'account_segmentation');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `guest_group_block_id` SET TAGS ('dbx_business_glossary_term' = 'Guest Group Block ID');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `booking_source_id` SET TAGS ('dbx_business_glossary_term' = 'Booking Source Id (Foreign Key)');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `corporate_account_id` SET TAGS ('dbx_business_glossary_term' = 'Billing Account ID');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `event_booking_id` SET TAGS ('dbx_business_glossary_term' = 'Event Booking Id (Foreign Key)');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `profile_id` SET TAGS ('dbx_business_glossary_term' = 'Group Leader Guest Profile ID');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `profile_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `profile_id` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `profile_id` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `profile_id` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `market_segment_id` SET TAGS ('dbx_business_glossary_term' = 'Market Segment Id (Foreign Key)');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `meeting_space_id` SET TAGS ('dbx_business_glossary_term' = 'Meeting Space Id (Foreign Key)');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `property_id` SET TAGS ('dbx_business_glossary_term' = 'Property ID');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `revenue_rate_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Revenue Rate Plan Id (Foreign Key)');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `room_type_id` SET TAGS ('dbx_business_glossary_term' = 'Room Type Id (Foreign Key)');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `seasonal_calendar_id` SET TAGS ('dbx_business_glossary_term' = 'Seasonal Calendar Id (Foreign Key)');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `accessible_rooms_requested` SET TAGS ('dbx_business_glossary_term' = 'Accessible Rooms Requested');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `arrival_date` SET TAGS ('dbx_business_glossary_term' = 'Group Arrival Date');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `attrition_pct` SET TAGS ('dbx_business_glossary_term' = 'Attrition Percentage');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `billing_master_folio_instructions` SET TAGS ('dbx_business_glossary_term' = 'Billing Master Folio Instructions');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `billing_master_folio_instructions` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `block_status` SET TAGS ('dbx_business_glossary_term' = 'Group Block Status');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `block_status` SET TAGS ('dbx_value_regex' = 'tentative|definite|cancelled|closed|waitlist');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `cancellation_date` SET TAGS ('dbx_business_glossary_term' = 'Group Block Cancellation Date');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `cancellation_policy_code` SET TAGS ('dbx_business_glossary_term' = 'Cancellation Policy Code');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `cancellation_policy_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9_]{2,20}$');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `cancellation_policy_code` SET TAGS ('dbx_normalization' = 'denormalized_natural_key_redundant');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `complimentary_rooms_contracted` SET TAGS ('dbx_business_glossary_term' = 'Complimentary Rooms Contracted');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `contracted_date` SET TAGS ('dbx_business_glossary_term' = 'Group Block Contracted Date');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `contracted_rate_amount` SET TAGS ('dbx_business_glossary_term' = 'Contracted Group Rate Amount');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `contracted_rate_amount` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `contracted_room_nights` SET TAGS ('dbx_business_glossary_term' = 'Contracted Room Nights');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `cutoff_date` SET TAGS ('dbx_business_glossary_term' = 'Group Block Cut-Off Date');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `delphi_opportunity_reference` SET TAGS ('dbx_business_glossary_term' = 'Delphi Opportunity ID');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `departure_date` SET TAGS ('dbx_business_glossary_term' = 'Group Departure Date');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `deposit_due_date` SET TAGS ('dbx_business_glossary_term' = 'Deposit Due Date');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `deposit_received_amount` SET TAGS ('dbx_business_glossary_term' = 'Deposit Received Amount');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `deposit_received_amount` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `deposit_required_amount` SET TAGS ('dbx_business_glossary_term' = 'Deposit Required Amount');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `deposit_required_amount` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `group_code` SET TAGS ('dbx_business_glossary_term' = 'Group Block Code');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `group_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{3,20}$');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `group_name` SET TAGS ('dbx_business_glossary_term' = 'Group Block Name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `group_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `group_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `group_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `group_name` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `group_notes` SET TAGS ('dbx_business_glossary_term' = 'Group Block Notes');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `group_rate_code` SET TAGS ('dbx_business_glossary_term' = 'Group Rate Code');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `group_rate_code` SET TAGS ('dbx_denormalized_natural_key' = 'warning_resolved');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `group_rate_code` SET TAGS ('dbx_data_classification' = 'derived_reference');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `group_rate_code` SET TAGS ('dbx_normalization' = 'denormalized_natural_key_redundant');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `group_rate_code` SET TAGS ('dbx_normalized' = 'denormalized_natural_key');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `group_rate_code` SET TAGS ('dbx_typed' = 'numeric_correction');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `group_type` SET TAGS ('dbx_business_glossary_term' = 'Group Type Classification');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `last_updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Last Updated Timestamp');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `opera_block_reference` SET TAGS ('dbx_business_glossary_term' = 'OPERA PMS Block ID');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `peak_block_rooms` SET TAGS ('dbx_business_glossary_term' = 'Peak Block Rooms');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `repeat_group_flag` SET TAGS ('dbx_business_glossary_term' = 'Repeat Group Flag');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `rooming_list_due_date` SET TAGS ('dbx_business_glossary_term' = 'Rooming List Due Date');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `rooming_list_status` SET TAGS ('dbx_business_glossary_term' = 'Rooming List Status');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `rooming_list_status` SET TAGS ('dbx_value_regex' = 'not_received|partial|complete|finalized');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `rooms_picked_up` SET TAGS ('dbx_business_glossary_term' = 'Rooms Picked Up');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `suite_block_rooms` SET TAGS ('dbx_business_glossary_term' = 'Suite Block Rooms');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `vip_flag` SET TAGS ('dbx_business_glossary_term' = 'VIP Group Flag');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`guest_group_block` ALTER COLUMN `wash_pct` SET TAGS ('dbx_business_glossary_term' = 'Wash Percentage');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` SET TAGS ('dbx_subdomain' = 'stay_experience');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` SET TAGS ('dbx_subdomain' = 'stay_engagement');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `vip_designation_id` SET TAGS ('dbx_business_glossary_term' = 'VIP Designation ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `corporate_account_id` SET TAGS ('dbx_business_glossary_term' = 'Corporate Account ID');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `hierarchy_id` SET TAGS ('dbx_business_glossary_term' = 'Hierarchy Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `member_id` SET TAGS ('dbx_business_glossary_term' = 'Loyalty Member ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `member_id` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `member_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `room_id` SET TAGS ('dbx_business_glossary_term' = 'Preferred Room Id (Foreign Key)');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `room_type_id` SET TAGS ('dbx_business_glossary_term' = 'Preferred Room Type Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `profile_id` SET TAGS ('dbx_business_glossary_term' = 'Guest ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `property_id` SET TAGS ('dbx_business_glossary_term' = 'Property ID');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `room_type_id` SET TAGS ('dbx_business_glossary_term' = 'Room Type Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `tier_id` SET TAGS ('dbx_business_glossary_term' = 'Tier Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `airport_transfer_required` SET TAGS ('dbx_business_glossary_term' = 'Airport Transfer Required Flag');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `alias_name` SET TAGS ('dbx_business_glossary_term' = 'VIP Guest Alias Name');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `alias_name` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `alias_name` SET TAGS ('dbx_pii_name' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `alias_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `alias_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `alias_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `alias_name` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `amenity_tier_code` SET TAGS ('dbx_business_glossary_term' = 'Amenity Tier Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `amenity_tier_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9_]{2,30}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `concurrent_designation_count` SET TAGS ('dbx_business_glossary_term' = 'Concurrent Designation Count');
@@ -1129,6 +917,7 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN 
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `revenue_threshold_amount` SET TAGS ('dbx_business_glossary_term' = 'VIP Revenue Threshold Amount');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `revenue_threshold_amount` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `revenue_threshold_currency` SET TAGS ('dbx_business_glossary_term' = 'Revenue Threshold Currency Code');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `revenue_threshold_currency` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `review_date` SET TAGS ('dbx_business_glossary_term' = 'VIP Designation Review Date');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `revocation_reason` SET TAGS ('dbx_business_glossary_term' = 'VIP Designation Revocation Reason');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `revocation_reason` SET TAGS ('dbx_value_regex' = 'revenue_below_threshold|relationship_ended|policy_violation|guest_request|duplicate_record|other');
@@ -1137,7 +926,7 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN 
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `security_escort_required` SET TAGS ('dbx_business_glossary_term' = 'Security Escort Required Flag');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `security_escort_required` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `service_recovery_escalation_level` SET TAGS ('dbx_business_glossary_term' = 'Service Recovery Escalation Level');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `service_recovery_escalation_level` SET TAGS ('dbx_typed' = 'numeric_correction');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `service_recovery_escalation_level` SET TAGS ('dbx_value_regex' = 'standard|elevated|executive|immediate_gm');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `source_system_vip_code` SET TAGS ('dbx_business_glossary_term' = 'Source System VIP Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `source_system_vip_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9_-]{1,50}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `special_handling_notes` SET TAGS ('dbx_business_glossary_term' = 'Special Handling Instructions');
@@ -1146,21 +935,20 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN 
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Updated Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `upgrade_eligible` SET TAGS ('dbx_business_glossary_term' = 'Upgrade Eligible Flag');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `vip_level` SET TAGS ('dbx_business_glossary_term' = 'VIP Level');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`vip_designation` ALTER COLUMN `vip_level` SET TAGS ('dbx_typed' = 'numeric_correction');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` SET TAGS ('dbx_subdomain' = 'stay_experience');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` SET TAGS ('dbx_subdomain' = 'stay_engagement');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `stay_history_id` SET TAGS ('dbx_business_glossary_term' = 'Stay History ID');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `booking_source_id` SET TAGS ('dbx_business_glossary_term' = 'Booking Source Id (Foreign Key)');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `channel_id` SET TAGS ('dbx_business_glossary_term' = 'Channel Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `corporate_account_id` SET TAGS ('dbx_business_glossary_term' = 'Corporate Account ID');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `guest_group_block_id` SET TAGS ('dbx_business_glossary_term' = 'Group Block ID');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `market_segment_id` SET TAGS ('dbx_business_glossary_term' = 'Market Segment Id (Foreign Key)');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `currency_id` SET TAGS ('dbx_business_glossary_term' = 'Currency Id (Foreign Key)');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `event_booking_id` SET TAGS ('dbx_business_glossary_term' = 'Event Booking Id (Foreign Key)');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `segment_id` SET TAGS ('dbx_business_glossary_term' = 'Market Segment Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `member_id` SET TAGS ('dbx_business_glossary_term' = 'Member Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `member_id` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `member_id` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `profile_id` SET TAGS ('dbx_business_glossary_term' = 'Guest ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `property_id` SET TAGS ('dbx_business_glossary_term' = 'Property ID');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `reservation_booking_id` SET TAGS ('dbx_business_glossary_term' = 'Reservation ID');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `revenue_rate_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Revenue Rate Plan Id (Foreign Key)');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `reservation_rate_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Reservation Rate Plan Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `room_id` SET TAGS ('dbx_business_glossary_term' = 'Room Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `room_type_id` SET TAGS ('dbx_business_glossary_term' = 'Room Type Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `adr` SET TAGS ('dbx_business_glossary_term' = 'Average Daily Rate (ADR)');
@@ -1175,10 +963,8 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `ch
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `checkout_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Check-Out Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `complimentary_flag` SET TAGS ('dbx_business_glossary_term' = 'Complimentary Stay Flag');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `confirmation_number` SET TAGS ('dbx_business_glossary_term' = 'Confirmation Number');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `confirmation_number` SET TAGS ('dbx_typed' = 'numeric_correction');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `confirmation_number` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{6,20}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `departure_date` SET TAGS ('dbx_business_glossary_term' = 'Departure Date');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `do_not_disturb_flag` SET TAGS ('dbx_business_glossary_term' = 'Do Not Disturb Flag');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `fb_revenue` SET TAGS ('dbx_business_glossary_term' = 'Food and Beverage (F&B) Revenue');
@@ -1187,6 +973,7 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `fb
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `gss_score` SET TAGS ('dbx_business_glossary_term' = 'Guest Satisfaction Score (GSS)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `guest_type` SET TAGS ('dbx_business_glossary_term' = 'Guest Type');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `guest_type` SET TAGS ('dbx_value_regex' = 'fit|corporate|group|crew|complimentary');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `length_of_stay` SET TAGS ('dbx_business_glossary_term' = 'Length Of Stay');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `los_nights` SET TAGS ('dbx_business_glossary_term' = 'Length of Stay (LOS) Nights');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `loyalty_points_earned` SET TAGS ('dbx_business_glossary_term' = 'Loyalty Points Earned');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `loyalty_tier_at_stay` SET TAGS ('dbx_business_glossary_term' = 'Loyalty Tier at Stay');
@@ -1196,11 +983,12 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `nu
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `original_arrival_date` SET TAGS ('dbx_business_glossary_term' = 'Original Arrival Date');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `original_departure_date` SET TAGS ('dbx_business_glossary_term' = 'Original Departure Date');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `payment_method` SET TAGS ('dbx_business_glossary_term' = 'Payment Method');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `payment_method` SET TAGS ('dbx_value_regex' = 'credit_card|debit_card|cash|direct_bill|loyalty_points|bank_transfer');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `qualifying_nights` SET TAGS ('dbx_business_glossary_term' = 'Qualifying Nights');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `rate_plan_code` SET TAGS ('dbx_business_glossary_term' = 'Rate Plan Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `room_revenue` SET TAGS ('dbx_business_glossary_term' = 'Room Revenue');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `room_revenue` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `room_revenue` SET TAGS ('dbx_pii_financial' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `rooms_sold` SET TAGS ('dbx_business_glossary_term' = 'Rooms Sold');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `service_recovery_flag` SET TAGS ('dbx_business_glossary_term' = 'Service Recovery Flag');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `stay_status` SET TAGS ('dbx_business_glossary_term' = 'Stay Status');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `stay_status` SET TAGS ('dbx_value_regex' = 'completed|early_departure|extended|no_show|cancelled');
@@ -1215,57 +1003,77 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`stay_history` ALTER COLUMN `vi
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` SET TAGS ('dbx_data_type' = 'master_data');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` SET TAGS ('dbx_subdomain' = 'guest_identity');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `communication_consent_id` SET TAGS ('dbx_business_glossary_term' = 'Communication Consent ID');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `communication_consent_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `property_id` SET TAGS ('dbx_business_glossary_term' = 'Capture Property Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `profile_id` SET TAGS ('dbx_business_glossary_term' = 'Guest Profile ID');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `property_id` SET TAGS ('dbx_business_glossary_term' = 'Property Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_audit_trail` SET TAGS ('dbx_business_glossary_term' = 'Consent Audit Trail');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_audit_trail` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_capture_url` SET TAGS ('dbx_business_glossary_term' = 'Consent Capture URL');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_capture_url` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_expiry_date` SET TAGS ('dbx_business_glossary_term' = 'Consent Expiry Date');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_expiry_date` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_granted_date` SET TAGS ('dbx_business_glossary_term' = 'Consent Granted Date');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_granted_date` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_granted_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Consent Granted Timestamp');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_granted_timestamp` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_language_code` SET TAGS ('dbx_business_glossary_term' = 'Consent Language Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_language_code` SET TAGS ('dbx_value_regex' = '^[a-z]{2}$');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_language_code` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_language_code` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_method` SET TAGS ('dbx_business_glossary_term' = 'Consent Method');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_method` SET TAGS ('dbx_value_regex' = 'explicit_opt_in|implicit_opt_in|pre_checked_box|verbal|written|electronic_signature');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_method` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_notes` SET TAGS ('dbx_business_glossary_term' = 'Consent Notes');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_notes` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_purpose` SET TAGS ('dbx_business_glossary_term' = 'Consent Purpose');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_purpose` SET TAGS ('dbx_value_regex' = 'marketing|promotional|transactional|service_updates|loyalty_program|surveys');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_purpose` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_source` SET TAGS ('dbx_business_glossary_term' = 'Consent Source');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_source` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_status` SET TAGS ('dbx_business_glossary_term' = 'Consent Status');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_status` SET TAGS ('dbx_value_regex' = 'opted_in|opted_out|pending|expired|revoked');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_status` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_text_version` SET TAGS ('dbx_business_glossary_term' = 'Consent Text Version');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_text_version` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_type` SET TAGS ('dbx_business_glossary_term' = 'Consent Type');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_type` SET TAGS ('dbx_value_regex' = 'marketing_email|transactional_email|sms|push_notification|postal_mail|phone_call');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_type` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_withdrawn_date` SET TAGS ('dbx_business_glossary_term' = 'Consent Withdrawn Date');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_withdrawn_date` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_withdrawn_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Consent Withdrawn Timestamp');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `consent_withdrawn_timestamp` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `crm_consent_reference` SET TAGS ('dbx_business_glossary_term' = 'CRM (Customer Relationship Management) Consent ID');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `crm_consent_reference` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `double_opt_in_confirmed_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Double Opt-In Confirmed Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `double_opt_in_flag` SET TAGS ('dbx_business_glossary_term' = 'Double Opt-In Flag');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `guest_country_code` SET TAGS ('dbx_business_glossary_term' = 'Guest Country Code');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `guest_country_code` SET TAGS ('dbx_typed' = 'numeric_correction');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `guest_country_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `guest_country_code` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `ip_address` SET TAGS ('dbx_business_glossary_term' = 'IP Address');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `ip_address` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `ip_address` SET TAGS ('dbx_pii_ip' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `ip_address` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `ip_address` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `ip_address` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `ip_address` SET TAGS ('dbx_pii_type' = 'address');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `ip_address` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `jurisdiction` SET TAGS ('dbx_business_glossary_term' = 'Privacy Jurisdiction');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Last Modified Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `legal_basis` SET TAGS ('dbx_business_glossary_term' = 'Legal Basis for Processing');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `legal_basis` SET TAGS ('dbx_value_regex' = 'consent|legitimate_interest|contract|legal_obligation|vital_interest|public_task');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `marketing_cloud_subscriber_key` SET TAGS ('dbx_business_glossary_term' = 'Marketing Cloud Subscriber Key');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `profiling_consent_flag` SET TAGS ('dbx_business_glossary_term' = 'Profiling Consent Flag');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `profiling_consent_flag` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `record_active_flag` SET TAGS ('dbx_business_glossary_term' = 'Record Active Flag');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `suppression_list_flag` SET TAGS ('dbx_business_glossary_term' = 'Suppression List Flag');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `third_party_sharing_consent_flag` SET TAGS ('dbx_business_glossary_term' = 'Third-Party Sharing Consent Flag');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `third_party_sharing_consent_flag` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `user_agent` SET TAGS ('dbx_business_glossary_term' = 'User Agent String');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `user_agent` SET TAGS ('dbx_internal' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `user_agent` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `user_agent` SET TAGS ('dbx_typed' = 'numeric_correction');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`communication_consent` ALTER COLUMN `user_agent` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` SET TAGS ('dbx_data_type' = 'master_data');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` SET TAGS ('dbx_subdomain' = 'guest_identity');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `identity_document_id` SET TAGS ('dbx_business_glossary_term' = 'Identity Document ID');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `identity_document_id` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `profile_id` SET TAGS ('dbx_business_glossary_term' = 'Guest ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `property_id` SET TAGS ('dbx_business_glossary_term' = 'Property ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `reservation_booking_id` SET TAGS ('dbx_business_glossary_term' = 'Reservation ID');
@@ -1276,19 +1084,15 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUM
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `data_retention_category` SET TAGS ('dbx_business_glossary_term' = 'Data Retention Category');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `data_retention_category` SET TAGS ('dbx_value_regex' = 'standard|extended|legal_hold|purge_eligible');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `data_retention_category` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `date_of_birth` SET TAGS ('dbx_business_glossary_term' = 'Date of Birth');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `date_of_birth` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `date_of_birth` SET TAGS ('dbx_pii_dob' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `date_of_birth` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `date_of_birth` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `date_of_birth` SET TAGS ('dbx_pii_type' = 'dob');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `date_of_birth` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `date_of_birth` SET TAGS ('dbx_pii_class' = 'dob');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `date_of_birth` SET TAGS ('dbx_mask_nonprod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `document_number` SET TAGS ('dbx_business_glossary_term' = 'Document Number');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `document_number` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `document_number` SET TAGS ('dbx_pii_identifier' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `document_number` SET TAGS ('dbx_typed' = 'numeric_correction');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `document_number` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `document_scan_reference` SET TAGS ('dbx_business_glossary_term' = 'Document Scan Reference');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `document_scan_reference` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `document_scan_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Document Scan Timestamp');
@@ -1299,21 +1103,14 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUM
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `full_name_on_document` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `full_name_on_document` SET TAGS ('dbx_pii_name' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `full_name_on_document` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `full_name_on_document` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `full_name_on_document` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `full_name_on_document` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `full_name_on_document` SET TAGS ('dbx_pii_class' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `full_name_on_document` SET TAGS ('dbx_mask_nonprod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `gdpr_consent_flag` SET TAGS ('dbx_business_glossary_term' = 'GDPR (General Data Protection Regulation) Consent Flag');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `gdpr_consent_flag` SET TAGS ('dbx_pii_tracked' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `gdpr_consent_flag` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `gender` SET TAGS ('dbx_business_glossary_term' = 'Gender');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `gender` SET TAGS ('dbx_value_regex' = 'M|F|X|U');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `gender` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `gender` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `gender` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `gender` SET TAGS ('dbx_pii_type' = 'special_category');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `gender` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `gender` SET TAGS ('dbx_pii_class' = 'special_category');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `gender` SET TAGS ('dbx_mask_nonprod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `gender` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `government_report_status` SET TAGS ('dbx_business_glossary_term' = 'Government Report Status');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `government_report_status` SET TAGS ('dbx_value_regex' = 'not_required|pending|submitted|confirmed|failed');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `government_report_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Government Report Timestamp');
@@ -1322,14 +1119,17 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUM
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `issue_date` SET TAGS ('dbx_business_glossary_term' = 'Issue Date');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `issuing_authority` SET TAGS ('dbx_business_glossary_term' = 'Issuing Authority');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `issuing_country_code` SET TAGS ('dbx_business_glossary_term' = 'Issuing Country Code');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `issuing_country_code` SET TAGS ('dbx_typed' = 'numeric_correction');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `issuing_country_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `issuing_country_code` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `nationality_code` SET TAGS ('dbx_business_glossary_term' = 'Nationality Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `nationality_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `nationality_code` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `nationality_code` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `nationality_code` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `place_of_birth` SET TAGS ('dbx_business_glossary_term' = 'Place of Birth');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `place_of_birth` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `place_of_birth` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `verification_method` SET TAGS ('dbx_business_glossary_term' = 'Verification Method');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `verification_method` SET TAGS ('dbx_value_regex' = 'manual|automated|biometric|third_party');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `verification_notes` SET TAGS ('dbx_business_glossary_term' = 'Verification Notes');
@@ -1341,12 +1141,10 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUM
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `visa_entry_type` SET TAGS ('dbx_value_regex' = 'single|multiple|transit');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`identity_document` ALTER COLUMN `visa_type` SET TAGS ('dbx_business_glossary_term' = 'Visa Type');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` SET TAGS ('dbx_data_type' = 'reference_data');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` SET TAGS ('dbx_subdomain' = 'stay_experience');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` SET TAGS ('dbx_subdomain' = 'corporate_segmentation');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `segment_id` SET TAGS ('dbx_business_glossary_term' = 'Segment ID');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `market_segment_id` SET TAGS ('dbx_business_glossary_term' = 'Market Segment Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `parent_segment_id` SET TAGS ('dbx_business_glossary_term' = 'Parent Segment ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `primary_superseded_by_assignment_segment_id` SET TAGS ('dbx_business_glossary_term' = 'Superseded By Assignment ID');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `profile_id` SET TAGS ('dbx_business_glossary_term' = 'Guest ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `property_id` SET TAGS ('dbx_business_glossary_term' = 'Property Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `adr_index_vs_property` SET TAGS ('dbx_business_glossary_term' = 'ADR (Average Daily Rate) Index vs Property');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `advance_booking_window_days` SET TAGS ('dbx_business_glossary_term' = 'Advance Booking Window Days');
@@ -1361,6 +1159,7 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `assignm
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `assignment_reason_code` SET TAGS ('dbx_business_glossary_term' = 'Assignment Reason Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `assignment_reason_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9_]{2,20}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `average_los_days` SET TAGS ('dbx_business_glossary_term' = 'Average LOS (Length of Stay) Days');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `average_los_days` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `cancellation_policy_code` SET TAGS ('dbx_business_glossary_term' = 'Cancellation Policy Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `cancellation_policy_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{2,6}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `segment_category` SET TAGS ('dbx_business_glossary_term' = 'Segment Category');
@@ -1382,9 +1181,6 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `lra_eli
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `modified_by_user` SET TAGS ('dbx_business_glossary_term' = 'Modified By User');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `segment_name` SET TAGS ('dbx_business_glossary_term' = 'Segment Name');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `segment_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `segment_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `segment_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `segment_name` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `rate_strategy_type` SET TAGS ('dbx_business_glossary_term' = 'Rate Strategy Type');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `rate_strategy_type` SET TAGS ('dbx_value_regex' = 'dynamic|fixed|negotiated|promotional|opaque');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `revpar_contribution_pct` SET TAGS ('dbx_business_glossary_term' = 'RevPAR (Revenue Per Available Room) Contribution Percentage');
@@ -1396,3 +1192,4 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `source_
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `usali_mapping_code` SET TAGS ('dbx_business_glossary_term' = 'USALI (Uniform System of Accounts for the Lodging Industry) Mapping Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `usali_mapping_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{2,6}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `yield_management_flag` SET TAGS ('dbx_business_glossary_term' = 'Yield Management Flag');
+ALTER TABLE `vibe_travel_hospitality_v1`.`guest`.`segment` ALTER COLUMN `yield_management_flag` SET TAGS ('dbx_pii_tracked' = 'true');

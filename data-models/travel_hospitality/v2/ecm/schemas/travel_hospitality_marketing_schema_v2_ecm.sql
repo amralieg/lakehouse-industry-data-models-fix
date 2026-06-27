@@ -1,5 +1,5 @@
 -- Schema for Domain: marketing | Business:  | Version: v2_ecm
--- Generated on: 2026-06-22 17:53:45
+-- Generated on: 2026-06-27 00:50:45
 
 -- ========= DATABASE =========
 CREATE DATABASE IF NOT EXISTS `vibe_travel_hospitality_v1`.`marketing` COMMENT 'Brand marketing, campaign management, guest acquisition, and digital marketing operations. Manages marketing campaigns, promotional offers, content management, social media engagement, and marketing attribution. Tracks campaign ROI, guest acquisition cost, NPS (Net Promoter Score), and GSS (Guest Satisfaction Score). Integrates with Salesforce CRM for personalized guest communications and retention programs.';
@@ -8,7 +8,6 @@ CREATE DATABASE IF NOT EXISTS `vibe_travel_hospitality_v1`.`marketing` COMMENT '
 CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` (
     `campaign_id` BIGINT COMMENT 'Unique identifier for the marketing campaign. Primary key.',
     `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Marketing campaigns require cost center assignment for budget allocation, variance reporting, and USALI departmental expense tracking. Essential for hotel financial management and campaign ROI analysi',
-    `policy_id` BIGINT COMMENT 'Foreign key linking to compliance.policy. Business justification: Marketing campaigns must comply with advertising policies (truth-in-advertising, promotional disclosures, data privacy regulations). Campaign approval workflows require policy compliance verification ',
     `procurement_contract_id` BIGINT COMMENT 'Foreign key linking to procurement.procurement_contract. Business justification: Marketing campaigns operate under master service agreements or annual contracts with agencies, media vendors, platforms. Linking campaign to contract enables contract compliance verification, spend tr',
     `touchpoint_id` BIGINT COMMENT 'Foreign key linking to experience.touchpoint. Business justification: Campaigns target specific guest journey touchpoints (pre-arrival, check-in, in-stay, checkout, post-stay) for personalized engagement. Marketing teams design campaigns around touchpoint moments to max',
     `vendor_id` BIGINT COMMENT 'Foreign key linking to procurement.vendor. Business justification: Marketing campaigns engage external vendors (creative agencies, media buyers, email platforms, event production). Linking campaign to vendor enables budget reconciliation, invoice matching, vendor per',
@@ -70,16 +69,16 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer
     `discount_value` DECIMAL(18,2) COMMENT 'Numeric value of the discount. For percentage discounts, this is the percentage (e.g., 15.00 for 15%). For fixed amount discounts, this is the currency amount. For BAR override, this is the override rate amount.',
     `eligible_property_codes` STRING COMMENT 'Comma-separated list of property codes where this offer is valid. Used when eligible_property_scope is property_list. Null indicates scope is defined by eligible_property_scope alone.',
     `eligible_property_scope` STRING COMMENT 'Defines the geographic or organizational scope of properties where this offer is valid. All properties indicates portfolio-wide. Brand specific limits to specific brand(s). Region specific limits to geographic region(s). Property list indicates specific property codes are defined.. Valid values are `all_properties|brand_specific|region_specific|property_list`',
-    `eligible_rate_plans` DECIMAL(18,2) COMMENT 'Comma-separated list of rate plan codes that this offer can be combined with or applied to. Null or ALL indicates offer applies to all rate plans.',
+    `eligible_rate_plans` STRING COMMENT 'Comma-separated list of rate plan codes that this offer can be combined with or applied to. Null or ALL indicates offer applies to all rate plans.',
     `eligible_room_types` STRING COMMENT 'Comma-separated list of room type codes eligible for this offer. Null or ALL indicates offer applies to all room types.',
-    `eligible_tier_levels` BIGINT COMMENT 'Comma-separated list of loyalty tier levels eligible for this offer (e.g., Silver,Gold,Platinum). Null or ALL indicates offer is available to all tiers including non-members.',
+    `eligible_tier_levels` STRING COMMENT 'Comma-separated list of loyalty tier levels eligible for this offer (e.g., Silver,Gold,Platinum). Null or ALL indicates offer is available to all tiers including non-members.',
     `enrollment_required_flag` BOOLEAN COMMENT 'Indicates whether guest must explicitly enroll or opt-in to this offer before redemption. True requires enrollment. False allows immediate redemption with offer code.',
     `marketing_message` STRING COMMENT 'Short promotional message or tagline used in marketing communications and guest-facing materials to describe this offer.',
     `maximum_los` STRING COMMENT 'Maximum number of consecutive nights allowed under this offer. Null indicates no maximum LOS restriction.',
     `member_exclusive_flag` BOOLEAN COMMENT 'Indicates whether this offer is exclusively available to loyalty program members. True restricts to members only. False allows non-member access.',
     `minimum_los` STRING COMMENT 'Minimum number of consecutive nights required to qualify for this offer. Null indicates no minimum LOS requirement.',
     `minimum_spend_amount` DECIMAL(18,2) COMMENT 'Minimum total spend amount required to qualify for this offer. Applies to total reservation value or qualifying spend category. Null indicates no minimum spend requirement.',
-    `minimum_spend_currency` DECIMAL(18,2) COMMENT 'Three-letter ISO 4217 currency code for the minimum spend amount (e.g., USD, EUR, GBP).',
+    `minimum_spend_currency` STRING COMMENT 'Three-letter ISO 4217 currency code for the minimum spend amount (e.g., USD, EUR, GBP).. Valid values are `^[A-Z]{3}$`',
     `modified_by_user` STRING COMMENT 'Username or identifier of the user who last modified this campaign offer record.',
     `modified_timestamp` TIMESTAMP COMMENT 'Date and time when this campaign offer record was last modified.',
     `offer_code` STRING COMMENT 'Unique alphanumeric code used by guests to redeem this promotional offer. This is the externally-known identifier used in booking channels, CRS, and PMS systems.. Valid values are `^[A-Z0-9]{6,20}$`',
@@ -89,7 +88,7 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer
     `offer_type` STRING COMMENT 'Classification of the promotional offer mechanism. Percentage discount applies a percentage reduction to BAR. Flat discount applies a fixed currency amount reduction. Free night provides complimentary accommodation. Room upgrade provides category enhancement. F&B credit provides food and beverage spending credit. Bonus points provides additional loyalty points. Tier accelerator provides multiplied tier qualifying activity. Partner earn provides bonus points from partner programs. Member rate provides loyalty member exclusive pricing. Birthday offer provides member birthday recognition benefit. Package deal bundles multiple benefits. [ENUM-REF-CANDIDATE: percentage_discount|flat_discount|free_night|room_upgrade|fnb_credit|bonus_points|tier_accelerator|partner_earn|member_rate|birthday_offer|package_deal — 11 candidates stripped; promote to reference product]',
     `redemption_count` STRING COMMENT 'Current count of how many times this offer has been redeemed. Incremented with each qualifying reservation or transaction.',
     `redemption_limit_per_guest` STRING COMMENT 'Maximum number of times a single guest can redeem this offer. Null indicates unlimited redemptions per guest.',
-    `redemption_limit_total` DECIMAL(18,2) COMMENT 'Maximum total number of redemptions allowed across all guests for this offer. Used to cap offer exposure. Null indicates unlimited total redemptions.',
+    `redemption_limit_total` STRING COMMENT 'Maximum total number of redemptions allowed across all guests for this offer. Used to cap offer exposure. Null indicates unlimited total redemptions.',
     `terms_and_conditions` STRING COMMENT 'Full legal terms and conditions text governing this promotional offer. Includes eligibility requirements, restrictions, cancellation policies, and disclaimers.',
     `tier_credit_multiplier` DECIMAL(18,2) COMMENT 'Multiplier applied to tier qualifying credits for tier accelerator campaigns. For example, 2.00 represents double tier credits. Null for non-tier-accelerator offers.',
     `valid_from_date` DATE COMMENT 'Start date from which this offer becomes active and can be redeemed. Reservations with arrival dates on or after this date are eligible.',
@@ -103,7 +102,7 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execu
     `campaign_offer_id` BIGINT COMMENT 'Foreign key linking to marketing.campaign_offer. Business justification: campaign_execution currently has offer_code (STRING) which is a denormalized reference to campaign_offer. Adding offer_id FK to campaign_offer.campaign_offer_id normalizes this relationship and allows',
     `corporate_account_id` BIGINT COMMENT 'Foreign key linking to guest.corporate_account. Business justification: Account-based marketing campaigns target specific corporate accounts with customized offers (e.g., Acme Corp Q4 incentive). Sales and marketing teams measure account-level campaign performance, track ',
     `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Individual campaign executions (email sends, paid media buys, OTA co-op) represent actual marketing spend that must be posted to cost centers for budget consumption tracking, variance analysis, and fi',
-    `procurement_employee_id` BIGINT COMMENT 'Reference to the marketing user or system account that created this execution record. Used for audit and accountability.',
+    `employee_id` BIGINT COMMENT 'Reference to the marketing user or system account that created this execution record. Used for audit and accountability.',
     `touchpoint_id` BIGINT COMMENT 'Foreign key linking to experience.touchpoint. Business justification: Campaign executions are deployed at specific touchpoints in the guest journey (e.g., post-checkout email, in-room tablet message). Tracks which touchpoint triggered the marketing action, enabling touc',
     `guest_segment_id` BIGINT COMMENT 'Reference to the guest audience segment targeted by this execution. Links to the specific customer cohort or persona group.',
     `promotion_id` BIGINT COMMENT 'Foreign key linking to loyalty.promotion. Business justification: Campaign executions frequently promote specific loyalty offers (e.g., double points promotion, tier upgrade challenge). Links marketing delivery to the loyalty promotion being advertised, enabling per',
@@ -119,7 +118,7 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execu
     `channel` STRING COMMENT 'The marketing channel through which this execution was deployed. Represents the medium used to reach the target audience. [ENUM-REF-CANDIDATE: email|sms|push_notification|paid_social|display|gds|ota — 7 candidates stripped; promote to reference product]',
     `channel_category` STRING COMMENT 'High-level categorization of the marketing channel. Owned channels are company-controlled (email, SMS), paid channels require media spend (display, social), earned channels are organic (PR, reviews).. Valid values are `owned|paid|earned`',
     `channel_code` STRING COMMENT 'Standardized code representing the specific channel configuration or platform used for this execution. Used for system integration and tracking.. Valid values are `^[A-Z0-9_]+$`',
-    `channel_cost_model` DECIMAL(18,2) COMMENT 'Pricing model used for this channel execution. CPC (Cost Per Click), CPM (Cost Per Mille/Thousand Impressions), CPA (Cost Per Acquisition), flat fee, or revenue share arrangement.',
+    `channel_cost_model` STRING COMMENT 'Pricing model used for this channel execution. CPC (Cost Per Click), CPM (Cost Per Mille/Thousand Impressions), CPA (Cost Per Acquisition), flat fee, or revenue share arrangement.. Valid values are `cpc|cpm|cpa|flat_fee|revenue_share`',
     `click_count` STRING COMMENT 'Number of unique clicks on links or calls-to-action within the campaign content. Measures engagement level.',
     `completed_timestamp` TIMESTAMP COMMENT 'Date and time when this execution completed all send and delivery activities. Marks the end of the deployment process.',
     `conversion_count` STRING COMMENT 'Number of conversions or desired actions completed as a result of this execution. Examples: bookings made, loyalty enrollments, event registrations.',
@@ -129,7 +128,7 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execu
     `delivery_count` STRING COMMENT 'Number of messages successfully delivered to recipients. Excludes bounces and delivery failures.',
     `execution_cost` DECIMAL(18,2) COMMENT 'Total cost incurred for this specific execution instance. Includes media spend, agency fees, content production, and technology costs.',
     `execution_name` STRING COMMENT 'Descriptive name for this execution instance. Typically includes campaign name, channel, and wave identifier for easy recognition by marketing teams.',
-    `execution_number` BIGINT COMMENT 'Business-readable identifier for this execution instance. Used for operational tracking and reporting. Example: CAMP-2024-Q1-EMAIL-001.. Valid values are `^[A-Z0-9-]+$`',
+    `execution_number` STRING COMMENT 'Business-readable identifier for this execution instance. Used for operational tracking and reporting. Example: CAMP-2024-Q1-EMAIL-001.. Valid values are `^[A-Z0-9-]+$`',
     `execution_status` STRING COMMENT 'Current lifecycle status of this campaign execution. Tracks progression from planning through completion or failure.. Valid values are `draft|scheduled|in_progress|completed|failed|cancelled`',
     `execution_timestamp` TIMESTAMP COMMENT 'Date and time when this campaign execution was deployed or sent. The principal business event timestamp representing when the campaign reached the audience.',
     `invoice_reference` STRING COMMENT 'Reference number of the vendor invoice associated with this execution cost. Links to accounts payable for reconciliation.',
@@ -137,12 +136,12 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execu
     `lookback_window_days` STRING COMMENT 'Number of days after execution during which conversions are attributed to this campaign. Defines the attribution time window.',
     `notes` STRING COMMENT 'Free-text notes or comments about this execution. Used by marketing teams to document special circumstances, issues, or observations.',
     `open_count` STRING COMMENT 'Number of unique opens or views of the campaign content. Applicable to email, push notifications, and display channels.',
-    `payment_status` DECIMAL(18,2) COMMENT 'Current status of payment for this execution. Tracks financial settlement with vendors and partners.',
+    `payment_status` STRING COMMENT 'Current status of payment for this execution. Tracks financial settlement with vendors and partners.. Valid values are `pending|paid|overdue|disputed|cancelled`',
     `revenue_attributed` DECIMAL(18,2) COMMENT 'Total revenue attributed to this campaign execution based on the attribution model. Represents the financial impact of this execution.',
-    `sap_cost_document_reference` DECIMAL(18,2) COMMENT 'Reference to the SAP S/4HANA cost accounting document that records this execution expense. Used for financial reconciliation and USALI reporting.',
+    `sap_cost_document_reference` STRING COMMENT 'Reference to the SAP S/4HANA cost accounting document that records this execution expense. Used for financial reconciliation and USALI reporting.',
     `scheduled_timestamp` TIMESTAMP COMMENT 'Date and time when this execution was originally scheduled to deploy. May differ from actual execution timestamp if delays occurred.',
     `send_count` STRING COMMENT 'Total number of messages or impressions sent or served in this execution. Represents actual deployment volume.',
-    `spend_category` DECIMAL(18,2) COMMENT 'Classification of the execution spend by type. Used for budget allocation tracking and financial reporting per USALI standards.',
+    `spend_category` STRING COMMENT 'Classification of the execution spend by type. Used for budget allocation tracking and financial reporting per USALI standards.. Valid values are `media_buy|agency_fee|content_production|technology|events_trade_shows|print`',
     `subject_line` STRING COMMENT 'Email subject line or message headline used in this execution. Applicable to email and push notification channels.',
     `tracking_capability` STRING COMMENT 'Level of tracking and attribution capability available for this execution. Full tracking includes all metrics, partial tracking has limited visibility, none indicates no tracking available.. Valid values are `full|partial|none`',
     CONSTRAINT pk_campaign_execution PRIMARY KEY(`campaign_execution_id`)
@@ -150,7 +149,7 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execu
 
 CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` (
     `guest_segment_id` BIGINT COMMENT 'Unique identifier for the guest segment definition. Primary key.',
-    `procurement_employee_id` BIGINT COMMENT 'Foreign key linking to procurement.employee. Business justification: Guest segment ownership requires clear accountability for segment definition maintenance, refresh execution, and campaign targeting decisions. Marketing analysts and managers need assigned ownership f',
+    `employee_id` BIGINT COMMENT 'Foreign key linking to workforce.employee. Business justification: Guest segment ownership requires clear accountability for segment definition maintenance, refresh execution, and campaign targeting decisions. Marketing analysts and managers need assigned ownership f',
     `touchpoint_id` BIGINT COMMENT 'Foreign key linking to experience.touchpoint. Business justification: Guest segments are often defined by behavior at specific touchpoints (e.g., mobile check-in users, spa bookers, late checkout requesters). Enables touchpoint-based segmentation strategy, allowin',
     `approved_by` STRING COMMENT 'Username or identifier of the marketing manager or governance authority who approved this segment for operational use. Null for draft or unapproved segments.',
     `approved_timestamp` TIMESTAMP COMMENT 'Timestamp when this segment definition was approved for operational use. Null for draft or unapproved segments.',
@@ -196,7 +195,6 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communic
     `campaign_id` BIGINT COMMENT 'Identifier of the marketing campaign under which this communication was sent. Links to the campaign master record.',
     `cancellation_id` BIGINT COMMENT 'Foreign key linking to reservation.cancellation. Business justification: Service recovery and win-back communications are triggered by cancellations. Marketing tracks cancellation-specific outreach for sentiment analysis, re-booking campaigns, and loyalty retention. Essent',
     `communication_template_id` BIGINT COMMENT 'Identifier of the communication template used for this message. Links to the template library for reusable content governance.',
-    `privacy_incident_id` BIGINT COMMENT 'Foreign key linking to compliance.privacy_incident. Business justification: When guest communications are involved in data breaches (email list exposure, unauthorized sends to opted-out guests), linking communication records to privacy incidents enables impact assessment, sub',
     `profile_id` BIGINT COMMENT 'Identifier of the guest who received this communication. Links to the guest master record in the Guest domain.',
     `property_id` BIGINT COMMENT 'Identifier of the property or brand associated with this communication. Used for property-specific or brand-specific messaging.',
     `reservation_booking_id` BIGINT COMMENT 'Identifier of the reservation associated with this communication, if applicable. Used for pre-arrival, in-stay, and post-stay communications.',
@@ -240,6 +238,7 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_ev
     `campaign_id` BIGINT COMMENT 'Identifier of the marketing campaign that generated this touchpoint event.',
     `campaign_offer_id` BIGINT COMMENT 'Identifier of the promotional offer or rate plan associated with this attribution event, if applicable.',
     `content_asset_id` BIGINT COMMENT 'Identifier of the specific ad creative (banner, video, text ad) displayed during this touchpoint event. Used for creative performance analysis.',
+    `privacy_incident_id` BIGINT COMMENT 'Foreign key linking to compliance.privacy_incident. Business justification: Attribution tracking involves cookies, device IDs, and IP addresses subject to privacy regulations. Privacy incidents may involve tracking data breaches or unauthorized tracking. Link enables impact a',
     `profile_id` BIGINT COMMENT 'Identifier of the guest associated with this attribution event. Links to the guest master record when the visitor is identified.',
     `reservation_booking_id` BIGINT COMMENT 'Identifier of the reservation that resulted from this attribution path, if a conversion occurred.',
     `revenue_rate_plan_id` BIGINT COMMENT 'Foreign key linking to revenue.revenue_rate_plan. Business justification: Attribution tracking must capture which rate plan was ultimately booked after a marketing touchpoint. This is essential for marketing mix modeling, channel ROI analysis, and understanding rate plan co',
@@ -259,7 +258,7 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_ev
     `event_status` STRING COMMENT 'The processing status of this attribution event within the marketing analytics pipeline (captured, processed, attributed, excluded).. Valid values are `captured|processed|attributed|excluded`',
     `event_timestamp` TIMESTAMP COMMENT 'The precise date and time when the guest touchpoint interaction occurred, in ISO 8601 format.',
     `geo_city` STRING COMMENT 'The city derived from the IP address, providing granular geographic attribution for campaign performance analysis.',
-    `geo_country_code` BIGINT COMMENT 'Three-letter ISO country code derived from the IP address, indicating the guests geographic location at the time of the event.. Valid values are `^[A-Z]{3}$`',
+    `geo_country_code` STRING COMMENT 'Three-letter ISO country code derived from the IP address, indicating the guests geographic location at the time of the event.. Valid values are `^[A-Z]{3}$`',
     `geo_region` STRING COMMENT 'The state, province, or region derived from the IP address, providing sub-country geographic attribution.',
     `ip_address` STRING COMMENT 'The IP address of the guest device at the time of the touchpoint event. Used for geographic attribution and fraud detection.',
     `keyword` STRING COMMENT 'The search keyword or phrase that triggered this touchpoint event in paid or organic search campaigns.',
@@ -316,7 +315,7 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset`
     `usage_count` STRING COMMENT 'Number of times the content asset has been used or deployed across marketing campaigns, channels, and properties.',
     `usage_rights_expiry_date` DATE COMMENT 'Date when the usage rights or license for the content asset expire, after which the asset may no longer be legally used.',
     `usage_rights_type` STRING COMMENT 'Type of usage rights or licensing model for the content asset (e.g., owned, licensed, royalty-free, rights-managed, Creative Commons, public domain).. Valid values are `owned|licensed|royalty_free|rights_managed|creative_commons|public_domain`',
-    `version_number` BIGINT COMMENT 'Version identifier for the content asset, used to track revisions and updates over time (e.g., 1.0, 2.1, 3.0).',
+    `version_number` STRING COMMENT 'Version identifier for the content asset, used to track revisions and updates over time (e.g., 1.0, 2.1, 3.0).',
     CONSTRAINT pk_content_asset PRIMARY KEY(`content_asset_id`)
 ) COMMENT 'Master record for digital and physical marketing content assets managed by the marketing team, including images, videos, banner ads, brochures, landing page copy, social media posts, and in-property collateral. Captures asset name, asset type, file format, file URL/storage path, brand/property association, campaign linkage, content theme (seasonal, loyalty, F&B, MICE, destination), language/locale, usage rights expiry date, approval status, and version. Supports digital asset management (DAM) and brand compliance across global properties.';
 
@@ -367,8 +366,8 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program
     `brand_id` BIGINT COMMENT 'Foreign key linking to marketing.brand. Business justification: survey_program currently has brand_code (STRING) which is a denormalized reference to brand. Adding brand_id FK to brand.marketing_brand_id normalizes this relationship and allows proper referential i',
     `campaign_id` BIGINT COMMENT 'Foreign key reference to the parent marketing campaign if this survey is part of a broader campaign initiative. Null for standalone survey programs.',
     `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Guest satisfaction survey programs (Medallia, Qualtrics) have vendor subscription costs, incentive expenses, and operational costs that must be allocated to marketing cost centers for budget tracking ',
-    `procurement_employee_id` BIGINT COMMENT 'Foreign key reference to the marketing user or team responsible for managing this survey program. Links to workforce/user management system.',
-    `property_id` BIGINT COMMENT 'Foreign key reference to the specific property when property_scope is property. Null for multi-property or enterprise-wide surveys.',
+    `employee_id` BIGINT COMMENT 'Foreign key reference to the marketing user or team responsible for managing this survey program. Links to workforce/user management system.',
+    `property_id` BIGINT COMMENT 'Foreign key reference to the specific property when property_scope is property. Null for multi-property or surveys.',
     `tertiary_survey_modified_by_user_employee_id` BIGINT COMMENT 'Foreign key reference to the user who last modified the survey program record. Audit trail for change accountability.',
     `touchpoint_id` BIGINT COMMENT 'Foreign key linking to experience.touchpoint. Business justification: Marketing survey programs are triggered at specific experience touchpoints (post-checkout, post-spa visit, post-dining). The touchpoint determines survey timing, content, and relevance. Critical for t',
     `vendor_id` BIGINT COMMENT 'Foreign key linking to procurement.vendor. Business justification: Guest satisfaction surveys administered by third-party platforms (Medallia, Qualtrics). Linking survey program to vendor enables contract compliance tracking, invoice reconciliation, platform vendor p',
@@ -386,7 +385,7 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program
     `max_reminders` STRING COMMENT 'Maximum number of reminder messages to send to a non-respondent. Null if reminder_enabled_flag is False. Typically 1-2 to avoid guest fatigue.',
     `modified_timestamp` TIMESTAMP COMMENT 'Timestamp when the survey program record was last modified. Audit trail for configuration change tracking.',
     `privacy_notice_version` STRING COMMENT 'Version identifier of the privacy notice presented to guests with this survey. Ensures GDPR/CCPA compliance and tracks consent framework changes.',
-    `property_scope` STRING COMMENT 'Defines the property coverage of the survey program: all (enterprise-wide across all brands and properties), brand (specific brand segment - luxury/premium/select), region (geographic region), property (single property), portfolio (custom property grouping).. Valid values are `all|brand|region|property|portfolio`',
+    `property_scope` STRING COMMENT 'Defines the property coverage of the survey program: all ( across all brands and properties), brand (specific brand segment - luxury/premium/select), region (geographic region), property (single property), portfolio (custom property grouping).. Valid values are `all|brand|region|property|portfolio`',
     `question_count` STRING COMMENT 'Total number of questions in the survey instrument. Used for survey length optimization and completion rate analysis.',
     `region_code` STRING COMMENT 'Geographic region code when property_scope is region (e.g., NA-EAST, EMEA, APAC). Null for non-regional surveys.',
     `reminder_delay_hours` STRING COMMENT 'Number of hours after initial survey send to wait before sending a reminder. Null if reminder_enabled_flag is False.',
@@ -450,7 +449,7 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_respons
 
 CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` (
     `brand_id` BIGINT COMMENT 'Primary key for brand',
-    `procurement_employee_id` BIGINT COMMENT 'Foreign key linking to procurement.employee. Business justification: Brand P&L accountability requires linking brand manager to employee master for org chart reporting, succession planning, performance tracking, and compensation decisions. Current brand_manager_name an',
+    `employee_id` BIGINT COMMENT 'Foreign key linking to workforce.employee. Business justification: Brand P&L accountability requires linking brand manager to employee master for org chart reporting, succession planning, performance tracking, and compensation decisions. Current brand_manager_name an',
     `average_daily_rate_target` DECIMAL(18,2) COMMENT 'Target average daily rate for properties under this brand. Used for revenue management strategy and brand positioning in competitive set analysis.',
     `brand_status` STRING COMMENT 'Current operational status of the brand in the portfolio. Determines whether the brand is actively marketed and accepting new property affiliations.. Valid values are `active|inactive|under-development|sunset|rebranding`',
     `brand_code` STRING COMMENT 'Unique alphanumeric code assigned to the brand for operational and system identification. Used across property management systems, central reservation systems, and marketing platforms.. Valid values are `^[A-Z0-9]{2,10}$`',
@@ -525,7 +524,7 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redempti
     `stay_date_to` DATE COMMENT 'The check-out date for the reservation associated with this offer redemption. Null if redeemed at point of sale.',
     `terms_acceptance_timestamp` TIMESTAMP COMMENT 'The date and time when the guest accepted the promotional offer terms and conditions.',
     `updated_timestamp` TIMESTAMP COMMENT 'The date and time when this offer redemption record was last modified. Audit trail for data lineage and change tracking.',
-    `user_agent` BIGINT COMMENT 'The browser or application user agent string captured at redemption. Used for technical analytics and fraud detection.',
+    `user_agent` STRING COMMENT 'The browser or application user agent string captured at redemption. Used for technical analytics and fraud detection.',
     `validation_status` STRING COMMENT 'The validation status of the offer redemption. Used for fraud prevention and ensuring offer terms compliance.. Valid values are `validated|rejected|pending|expired|fraudulent|duplicate`',
     `validation_timestamp` TIMESTAMP COMMENT 'The date and time when the offer redemption was validated or rejected by the system.',
     CONSTRAINT pk_offer_redemption PRIMARY KEY(`offer_redemption_id`)
@@ -535,18 +534,19 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` (
     `consent_id` BIGINT COMMENT 'Primary key for consent',
     `brand_id` BIGINT COMMENT 'Identifier of the hotel brand or sub-brand for which this consent applies. Allows brand-specific consent management in multi-brand hospitality groups.',
     `campaign_id` BIGINT COMMENT 'Identifier of the marketing campaign that prompted this consent capture. Null if consent was not captured in the context of a specific campaign.',
-    `procurement_employee_id` BIGINT COMMENT 'Identifier of the employee or system user who captured or recorded the consent on behalf of the guest (e.g., front desk agent, call center representative). Null if self-service.',
+    `employee_id` BIGINT COMMENT 'Identifier of the employee or system user who captured or recorded the consent on behalf of the guest (e.g., front desk agent, call center representative). Null if self-service.',
+    `privacy_incident_id` BIGINT COMMENT 'Foreign key linking to compliance.privacy_incident. Business justification: Privacy incidents often involve consent violations (marketing sent after opt-out, consent records exposed in breach). Direct link enables root cause analysis, regulatory reporting of consent-related b',
     `profile_id` BIGINT COMMENT 'Unique identifier of the guest to whom this consent record applies. Links to the guest master record in Salesforce CRM and OPERA PMS guest profiles.',
     `program_config_id` BIGINT COMMENT 'Identifier of the loyalty program associated with this consent. Consent may be tied to loyalty membership enrollment or benefits.',
     `property_id` BIGINT COMMENT 'Identifier of the specific property or hotel where the consent was captured. Null if consent applies across all properties or was captured centrally.',
     `communication_frequency_preference` STRING COMMENT 'The guest preferred frequency for receiving marketing communications. Allows guests to control volume of messages even when opted in.. Valid values are `daily|weekly|monthly|quarterly|as_needed|never`',
-    `consent_date` DATE COMMENT 'The date and time when the guest provided or updated their consent for this communication type. Critical for GDPR and CCPA compliance audit trails.',
+    `consent_date` TIMESTAMP COMMENT 'The date and time when the guest provided or updated their consent for this communication type. Critical for GDPR and CCPA compliance audit trails.',
     `consent_status` STRING COMMENT 'Current status of the guest consent for this communication channel. Opted-in indicates active consent, opted-out indicates explicit refusal, pending indicates consent request awaiting response, expired indicates consent that has lapsed per retention policy, and withdrawn indicates previously granted consent that has been revoked.. Valid values are `opted_in|opted_out|pending|expired|withdrawn`',
     `consent_type` STRING COMMENT 'The type of marketing communication or data usage for which consent is being recorded. Includes email marketing, SMS marketing, push notifications, direct mail, third-party sharing, and phone call marketing.. Valid values are `email_marketing|sms_marketing|push_notification|direct_mail|third_party_sharing|phone_call`',
     `created_timestamp` TIMESTAMP COMMENT 'The date and time when this consent record was first created in the system. Part of standard audit trail.',
     `data_processing_agreement_accepted` BOOLEAN COMMENT 'Indicates whether the guest has accepted the data processing agreement or privacy policy associated with this consent. Required for GDPR compliance.',
     `double_opt_in_confirmed` BOOLEAN COMMENT 'Indicates whether the guest confirmed their consent through a double opt-in process (e.g., clicking a confirmation link in an email). True if confirmed, false if single opt-in only. Best practice for email marketing compliance.',
-    `double_opt_in_date` DATE COMMENT 'The date and time when the guest confirmed their consent via double opt-in process. Null if double opt-in was not used or not yet confirmed.',
+    `double_opt_in_date` TIMESTAMP COMMENT 'The date and time when the guest confirmed their consent via double opt-in process. Null if double opt-in was not used or not yet confirmed.',
     `expiry_date` DATE COMMENT 'The date on which this consent expires and must be re-confirmed. Some jurisdictions require periodic re-consent. Null if consent does not expire.',
     `ip_address` STRING COMMENT 'The IP address from which the consent was provided. Used for fraud detection and consent verification. May be considered PII under GDPR.',
     `is_active` BOOLEAN COMMENT 'Indicates whether this consent record is currently active and should be honored for marketing operations. False if superseded by a newer consent record or if consent has been withdrawn.',
@@ -556,7 +556,7 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` (
     `last_modified_timestamp` TIMESTAMP COMMENT 'The date and time when this consent record was last updated. Tracks all modifications to consent status, preferences, or metadata.',
     `legal_basis` STRING COMMENT 'The legal basis under GDPR for processing this guest data for marketing purposes. Consent is most common for marketing; legitimate interest may apply for existing customer communications.. Valid values are `consent|legitimate_interest|contract|legal_obligation|vital_interest|public_task`',
     `minor_consent_required` BOOLEAN COMMENT 'Indicates whether parental or guardian consent is required for this guest due to age restrictions under COPPA or GDPR. True if guest is a minor and special consent rules apply.',
-    `opt_out_date` DATE COMMENT 'The date and time when the guest opted out or withdrew their consent for this communication type. Null if consent has never been withdrawn.',
+    `opt_out_date` TIMESTAMP COMMENT 'The date and time when the guest opted out or withdrew their consent for this communication type. Null if consent has never been withdrawn.',
     `opt_out_reason` STRING COMMENT 'Free-text explanation or categorized reason provided by the guest for opting out of marketing communications. Used for service recovery and marketing strategy refinement.',
     `parental_consent_verified` BOOLEAN COMMENT 'Indicates whether parental or guardian consent has been verified for a minor guest. True if verified, false if not yet verified or not applicable.',
     `preference_center_url` STRING COMMENT 'The URL of the preference center or web form where the guest can update their consent preferences. Supports self-service consent management.',
@@ -565,7 +565,7 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` (
     `scope` STRING COMMENT 'Description of the scope of data usage covered by this consent. Specifies what data will be used and for what marketing purposes. Free-text field for transparency.',
     `source` STRING COMMENT 'The channel or touchpoint through which the guest provided their consent. Examples include booking engine during reservation, loyalty program enrollment, front desk check-in, website form, mobile app, email preference link, call center interaction, or property self-service kiosk. [ENUM-REF-CANDIDATE: booking_engine|loyalty_enrollment|front_desk|web_form|mobile_app|email_link|call_center|property_kiosk — 8 candidates stripped; promote to reference product]',
     `third_party_processor_name` STRING COMMENT 'Name of the third-party data processor or marketing platform that will process guest data under this consent (e.g., email service provider, SMS gateway). Required for GDPR transparency.',
-    `user_agent` BIGINT COMMENT 'The browser or application user agent string captured at the time of consent. Provides technical context for consent capture and helps verify authenticity.',
+    `user_agent` STRING COMMENT 'The browser or application user agent string captured at the time of consent. Provides technical context for consent capture and helps verify authenticity.',
     `version` STRING COMMENT 'Version identifier of the consent policy or terms and conditions that the guest agreed to. Tracks changes to privacy policies and consent language over time.',
     CONSTRAINT pk_consent PRIMARY KEY(`consent_id`)
 ) COMMENT 'Master record of guest marketing communication consent and opt-in/opt-out preferences, capturing GDPR, CCPA, and CAN-SPAM compliance status per guest and channel. Records guest ID, consent type (email marketing, SMS marketing, push notifications, direct mail, third-party sharing), consent status (opted-in, opted-out, pending), consent date, consent source (booking engine, loyalty enrollment, front desk, web form), opt-out date, opt-out reason, jurisdiction, and Salesforce CRM consent record ID. SSOT for marketing consent governance.';
@@ -577,7 +577,7 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` (
     `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: A/B tests and marketing experiments with budget implications require cost center tracking for spend authorization, budget consumption monitoring, and ROI calculation against estimated_annual_impact_am',
     `guest_segment_id` BIGINT COMMENT 'Reference to the guest segment targeted by this experiment. Enables segment-specific testing and personalization strategies.',
     `parent_experiment_id` BIGINT COMMENT 'Self-referencing FK on experiment (parent_experiment_id)',
-    `procurement_employee_id` BIGINT COMMENT 'Reference to the user who approved the experiment design and launch. Typically a marketing manager or director with authority to allocate resources and traffic.',
+    `employee_id` BIGINT COMMENT 'Reference to the user who approved the experiment design and launch. Typically a marketing manager or director with authority to allocate resources and traffic.',
     `property_id` BIGINT COMMENT 'Reference to the specific property where this experiment is being conducted. Enables property-level experiment tracking and localized optimization.',
     `revenue_rate_plan_id` BIGINT COMMENT 'Foreign key linking to revenue.revenue_rate_plan. Business justification: A/B tests in marketing often test different rate plans (e.g., promoting BAR vs. advance purchase). Linking the rate plan(s) being tested is essential for experiment analysis and measuring rate plan me',
     `tertiary_experiment_modified_by_user_employee_id` BIGINT COMMENT 'Reference to the user who last modified the experiment record. Supports accountability and audit trail for experiment changes.',
@@ -621,9 +621,10 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` (
 CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` (
     `marketing_calendar_id` BIGINT COMMENT 'Unique identifier for the marketing calendar entry. Primary key.',
     `campaign_id` BIGINT COMMENT 'Foreign key reference to the primary campaign associated with this calendar entry. Nullable for non-campaign entries (tentpoles, blackouts, brand moments).',
+    `compliance_calendar_id` BIGINT COMMENT 'add column compliance_calendar_id (BIGINT) with FK to compliance.compliance_calendar.compliance_calendar_id - calendar SSOT linkage to avoid duplicate calendar concepts.',
     `parent_calendar_entry_marketing_calendar_id` BIGINT COMMENT 'Foreign key reference to the parent calendar entry if this is a recurring instance or sub-entry. Nullable for standalone entries.',
     `parent_marketing_calendar_id` BIGINT COMMENT 'Self-referencing FK on marketing_calendar (parent_marketing_calendar_id)',
-    `procurement_employee_id` BIGINT COMMENT 'User ID of the person who approved this calendar entry. Nullable if not yet approved or approval not required.',
+    `employee_id` BIGINT COMMENT 'User ID of the person who approved this calendar entry. Nullable if not yet approved or approval not required.',
     `tertiary_marketing_modified_by_user_employee_id` BIGINT COMMENT 'User ID of the person who last modified this calendar entry.',
     `actual_campaign_count` STRING COMMENT 'Actual number of campaigns executed during this calendar window. Updated as campaigns are launched and completed.',
     `approval_required_flag` BOOLEAN COMMENT 'Boolean flag indicating whether this calendar entry requires executive or cross-functional approval before confirmation.',
@@ -649,7 +650,7 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_cale
     `owning_team` STRING COMMENT 'The marketing team or department responsible for this calendar entry (e.g., Brand Marketing, Digital Marketing, Revenue Marketing, Regional Marketing EMEA).',
     `planning_quarter` STRING COMMENT 'The fiscal quarter this entry belongs to (Q1, Q2, Q3, Q4) for quarterly marketing planning and review cycles.. Valid values are `Q1|Q2|Q3|Q4`',
     `planning_year` STRING COMMENT 'The fiscal or calendar year this entry belongs to for annual planning cycles (e.g., 2024, 2025).',
-    `priority_level` BIGINT COMMENT 'Business priority of this calendar entry: critical (must-execute, top-tier events), high (important strategic initiatives), medium (standard campaigns), low (opportunistic or filler activities).. Valid values are `critical|high|medium|low`',
+    `priority_level` STRING COMMENT 'Business priority of this calendar entry: critical (must-execute, top-tier events), high (important strategic initiatives), medium (standard campaigns), low (opportunistic or filler activities).. Valid values are `critical|high|medium|low`',
     `property_milestone_description` STRING COMMENT 'Detailed description of the property milestone if entry_type is property_milestone (e.g., Grand Opening, Renovation Completion, Anniversary Celebration, Award Recognition).',
     `property_scope` STRING COMMENT 'Property or property group this entry applies to (e.g., All Properties, Resort Portfolio, Urban Hotels, specific property codes). Supports property-level milestone tracking.',
     `recurrence_pattern` STRING COMMENT 'Indicates if this calendar entry recurs: one_time (single occurrence), annual (repeats yearly), quarterly (repeats every quarter), monthly (repeats monthly), weekly (repeats weekly), custom (custom recurrence rule).. Valid values are `one_time|annual|quarterly|monthly|weekly|custom`',
@@ -658,7 +659,7 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_cale
     `tentpole_event_name` STRING COMMENT 'Name of the tentpole event if entry_type is tentpole_event (e.g., Summer Travel Season, Holiday Season, Spring Break, Major Conference, Industry Trade Show).',
     `visibility_scope` STRING COMMENT 'Access level for this calendar entry: public (visible to all stakeholders), internal (visible to marketing team), restricted (visible to specific teams), confidential (executive visibility only).. Valid values are `public|internal|restricted|confidential`',
     CONSTRAINT pk_marketing_calendar PRIMARY KEY(`marketing_calendar_id`)
-) COMMENT 'Master planning record for the marketing activity calendar, capturing planned campaign windows, seasonal tentpole events (holidays, school breaks, major conferences), blackout periods, brand moments, and property-level marketing milestones. Records calendar entry name, entry type (campaign window, tentpole, blackout, brand moment), start/end dates, market scope, brand/property scope, priority level, owning team, status (planned, confirmed, in-flight, completed), and linked campaign IDs. Enables cross-functional visibility into marketing activity density, prevents campaign collision, and supports annual/quarterly marketing planning cycles.';
+) COMMENT 'Single source of truth is compliance.compliance_calendar. Master planning record for the marketing activity calendar, capturing planned campaign windows, seasonal tentpole events (holidays, school breaks, major conferences), blackout periods, brand moments, and property-level marketing milestones. Records calendar entry name, entry type (campaign window, tentpole, blackout, brand moment), start/end dates, market scope, brand/property scope, priority level, owning team, status (planned, confirmed, in-flight, completed), and linked campaign IDs. Enables cross-functional visibility into marketing activity density, prevents campaign collision, and supports annual/quarterly marketing planning cycles.compliance_calendar as single source of truth]compliance_calendar. [SSOT:calendar] Domain-specific specialization of the calendar concept; canonical SSOT owner is compliance.compliance_calendar. SSOT: defers to canonical compliance.compliance_calendar (MVM cross-domain dedup).';
 
 CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_treatment_promotion` (
     `campaign_treatment_promotion_id` BIGINT COMMENT 'Unique identifier for this campaign-treatment promotional relationship. Primary key.',
@@ -683,6 +684,7 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_
     `brand_id` BIGINT COMMENT 'Reference to the hotel brand or property segment this template is associated with.',
     `campaign_id` BIGINT COMMENT 'Reference to the marketing campaign this template is associated with, if applicable.',
     `parent_communication_template_id` BIGINT COMMENT 'Self-referencing FK on communication_template (parent_communication_template_id)',
+    `property_id` BIGINT COMMENT 'add column property_id (BIGINT) with FK to property.property.property_id - communication templates are property-scoped for branded comms.',
     `a_b_test_enabled` BOOLEAN COMMENT 'Indicates whether this template is part of an A/B testing experiment.',
     `a_b_test_variant` STRING COMMENT 'Identifies which variant this template represents in an A/B test.',
     `approved_by` STRING COMMENT 'Username or identifier of the user who approved the template for use.',
@@ -690,6 +692,7 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_
     `body_content` STRING COMMENT 'Main body content of the communication template, may include merge field placeholders.',
     `call_to_action_text` STRING COMMENT 'Primary call-to-action button or link text in the template.',
     `call_to_action_url` STRING COMMENT 'Target URL for the primary call-to-action link.',
+    `communication_template_status` STRING COMMENT 'Current lifecycle status of the communication template.',
     `compliance_approved` BOOLEAN COMMENT 'Indicates whether the template has been reviewed and approved for regulatory compliance.',
     `compliance_notes` STRING COMMENT 'Notes or comments from compliance review process.',
     `created_timestamp` TIMESTAMP COMMENT 'Date and time when the template record was first created.',
@@ -711,7 +714,6 @@ CREATE OR REPLACE TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_
     `segment_criteria` STRING COMMENT 'Target audience segment criteria or rules for this template (e.g., loyalty tier, booking history, geographic region).',
     `sender_email` STRING COMMENT 'Email address used as the sender for email communications.',
     `sender_name` STRING COMMENT 'Display name of the sender shown to recipients.',
-    `communication_template_status` STRING COMMENT 'Current lifecycle status of the communication template.',
     `subject_line` STRING COMMENT 'Subject line or headline text for the communication template. Applicable to email and push notifications.',
     `tags` STRING COMMENT 'Comma-separated list of tags or keywords for template categorization and search.',
     `template_category` STRING COMMENT 'Business category classification of the template purpose.',
@@ -763,10 +765,11 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` AD
 ALTER SCHEMA `vibe_travel_hospitality_v1`.`marketing` SET TAGS ('dbx_division' = 'corporate');
 ALTER SCHEMA `vibe_travel_hospitality_v1`.`marketing` SET TAGS ('dbx_domain' = 'marketing');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` SET TAGS ('dbx_subdomain' = 'campaign_planning');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` SET TAGS ('dbx_subdomain' = 'campaign_management');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` SET TAGS ('dbx_governance' = 'section2_supreme_authority');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` SET TAGS ('dbx_structure_preserved' = 'v2');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `campaign_id` SET TAGS ('dbx_business_glossary_term' = 'Campaign ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `policy_id` SET TAGS ('dbx_business_glossary_term' = 'Policy Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `procurement_contract_id` SET TAGS ('dbx_business_glossary_term' = 'Procurement Contract Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `touchpoint_id` SET TAGS ('dbx_business_glossary_term' = 'Touchpoint Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Vendor Id (Foreign Key)');
@@ -792,20 +795,14 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `cr
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `campaign_description` SET TAGS ('dbx_business_glossary_term' = 'Campaign Description');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `display_budget_amount` SET TAGS ('dbx_business_glossary_term' = 'Display Advertising Budget Amount');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `email_budget_amount` SET TAGS ('dbx_business_glossary_term' = 'Email Budget Amount');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `email_budget_amount` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `email_budget_amount` SET TAGS ('dbx_pii_email' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `email_budget_amount` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `email_budget_amount` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `email_budget_amount` SET TAGS ('dbx_pii_type' = 'email');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `email_budget_amount` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `email_budget_amount` SET TAGS ('dbx_pii_class' = 'email');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `email_budget_amount` SET TAGS ('dbx_mask_nonprod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `email_budget_amount` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `end_date` SET TAGS ('dbx_business_glossary_term' = 'Campaign End Date');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `is_active` SET TAGS ('dbx_business_glossary_term' = 'Is Active Flag');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `campaign_name` SET TAGS ('dbx_business_glossary_term' = 'Campaign Name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `campaign_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `campaign_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `campaign_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `campaign_name` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `objective` SET TAGS ('dbx_business_glossary_term' = 'Campaign Objective');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `objective` SET TAGS ('dbx_value_regex' = 'acquisition|retention|upsell|reactivation|awareness|engagement');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `other_channel_budget_amount` SET TAGS ('dbx_business_glossary_term' = 'Other Channel Budget Amount');
@@ -823,7 +820,9 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `ut
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `utm_source` SET TAGS ('dbx_business_glossary_term' = 'Urchin Tracking Module (UTM) Source');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign` ALTER COLUMN `utm_term` SET TAGS ('dbx_business_glossary_term' = 'Urchin Tracking Module (UTM) Term');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` SET TAGS ('dbx_subdomain' = 'campaign_planning');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` SET TAGS ('dbx_subdomain' = 'campaign_management');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` SET TAGS ('dbx_governance' = 'section2_supreme_authority');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` SET TAGS ('dbx_structure_preserved' = 'v2');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `campaign_offer_id` SET TAGS ('dbx_business_glossary_term' = 'Campaign Offer ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `campaign_id` SET TAGS ('dbx_business_glossary_term' = 'Campaign ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `cancellation_policy_id` SET TAGS ('dbx_business_glossary_term' = 'Cancellation Policy Id (Foreign Key)');
@@ -844,48 +843,45 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLU
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `eligible_property_scope` SET TAGS ('dbx_business_glossary_term' = 'Eligible Property Scope');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `eligible_property_scope` SET TAGS ('dbx_value_regex' = 'all_properties|brand_specific|region_specific|property_list');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `eligible_rate_plans` SET TAGS ('dbx_business_glossary_term' = 'Eligible Rate Plans');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `eligible_rate_plans` SET TAGS ('dbx_typed' = 'numeric_correction');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `eligible_room_types` SET TAGS ('dbx_business_glossary_term' = 'Eligible Room Types');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `eligible_tier_levels` SET TAGS ('dbx_business_glossary_term' = 'Eligible Tier Levels');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `eligible_tier_levels` SET TAGS ('dbx_typed' = 'numeric_correction');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `enrollment_required_flag` SET TAGS ('dbx_business_glossary_term' = 'Enrollment Required Flag');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `marketing_message` SET TAGS ('dbx_business_glossary_term' = 'Marketing Message');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `marketing_message` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `maximum_los` SET TAGS ('dbx_business_glossary_term' = 'Maximum Length of Stay (LOS)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `member_exclusive_flag` SET TAGS ('dbx_business_glossary_term' = 'Member Exclusive Flag');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `minimum_los` SET TAGS ('dbx_business_glossary_term' = 'Minimum Length of Stay (LOS)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `minimum_spend_amount` SET TAGS ('dbx_business_glossary_term' = 'Minimum Spend Amount');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `minimum_spend_currency` SET TAGS ('dbx_business_glossary_term' = 'Minimum Spend Currency Code');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `minimum_spend_currency` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `modified_by_user` SET TAGS ('dbx_business_glossary_term' = 'Modified By User');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `offer_code` SET TAGS ('dbx_business_glossary_term' = 'Offer Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `offer_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{6,20}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `offer_description` SET TAGS ('dbx_business_glossary_term' = 'Offer Description');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `offer_name` SET TAGS ('dbx_business_glossary_term' = 'Offer Name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `offer_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `offer_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `offer_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `offer_name` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `offer_status` SET TAGS ('dbx_business_glossary_term' = 'Offer Status');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `offer_status` SET TAGS ('dbx_value_regex' = 'draft|active|paused|expired|cancelled');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `offer_type` SET TAGS ('dbx_business_glossary_term' = 'Offer Type');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `redemption_count` SET TAGS ('dbx_business_glossary_term' = 'Redemption Count');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `redemption_limit_per_guest` SET TAGS ('dbx_business_glossary_term' = 'Redemption Limit Per Guest');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `redemption_limit_total` SET TAGS ('dbx_business_glossary_term' = 'Total Redemption Limit');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `redemption_limit_total` SET TAGS ('dbx_monetary' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `terms_and_conditions` SET TAGS ('dbx_business_glossary_term' = 'Terms and Conditions');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `tier_credit_multiplier` SET TAGS ('dbx_business_glossary_term' = 'Tier Credit Multiplier');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `valid_from_date` SET TAGS ('dbx_business_glossary_term' = 'Valid From Date');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_offer` ALTER COLUMN `valid_to_date` SET TAGS ('dbx_business_glossary_term' = 'Valid To Date');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` SET TAGS ('dbx_subdomain' = 'campaign_planning');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` SET TAGS ('dbx_subdomain' = 'campaign_management');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` SET TAGS ('dbx_governance' = 'section2_supreme_authority');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` SET TAGS ('dbx_structure_preserved' = 'v2');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `campaign_execution_id` SET TAGS ('dbx_business_glossary_term' = 'Campaign Execution ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `campaign_id` SET TAGS ('dbx_business_glossary_term' = 'Campaign ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `campaign_offer_id` SET TAGS ('dbx_business_glossary_term' = 'Offer Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `corporate_account_id` SET TAGS ('dbx_business_glossary_term' = 'Corporate Account Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `procurement_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Created By User ID');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `procurement_employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `procurement_employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Created By User ID');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `touchpoint_id` SET TAGS ('dbx_business_glossary_term' = 'Execution Touchpoint Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `guest_segment_id` SET TAGS ('dbx_business_glossary_term' = 'Audience Segment ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `promotion_id` SET TAGS ('dbx_business_glossary_term' = 'Promotion Id (Foreign Key)');
@@ -906,6 +902,7 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER 
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `channel_code` SET TAGS ('dbx_business_glossary_term' = 'Channel Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `channel_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9_]+$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `channel_cost_model` SET TAGS ('dbx_business_glossary_term' = 'Channel Cost Model');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `channel_cost_model` SET TAGS ('dbx_value_regex' = 'cpc|cpm|cpa|flat_fee|revenue_share');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `click_count` SET TAGS ('dbx_business_glossary_term' = 'Click Count');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `completed_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Completed Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `conversion_count` SET TAGS ('dbx_business_glossary_term' = 'Conversion Count');
@@ -916,13 +913,8 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER 
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `delivery_count` SET TAGS ('dbx_business_glossary_term' = 'Delivery Count');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `execution_cost` SET TAGS ('dbx_business_glossary_term' = 'Execution Cost');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `execution_name` SET TAGS ('dbx_business_glossary_term' = 'Execution Name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `execution_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `execution_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `execution_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `execution_name` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `execution_number` SET TAGS ('dbx_business_glossary_term' = 'Execution Number');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `execution_number` SET TAGS ('dbx_value_regex' = '^[A-Z0-9-]+$');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `execution_number` SET TAGS ('dbx_typed' = 'numeric_correction');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `execution_status` SET TAGS ('dbx_business_glossary_term' = 'Execution Status');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `execution_status` SET TAGS ('dbx_value_regex' = 'draft|scheduled|in_progress|completed|failed|cancelled');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `execution_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Execution Timestamp');
@@ -932,20 +924,24 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER 
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Execution Notes');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `open_count` SET TAGS ('dbx_business_glossary_term' = 'Open Count');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `payment_status` SET TAGS ('dbx_business_glossary_term' = 'Payment Status');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `payment_status` SET TAGS ('dbx_value_regex' = 'pending|paid|overdue|disputed|cancelled');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `revenue_attributed` SET TAGS ('dbx_business_glossary_term' = 'Revenue Attributed');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `sap_cost_document_reference` SET TAGS ('dbx_business_glossary_term' = 'SAP Cost Document Reference');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `scheduled_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Scheduled Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `send_count` SET TAGS ('dbx_business_glossary_term' = 'Send Count');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `spend_category` SET TAGS ('dbx_business_glossary_term' = 'Spend Category');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `spend_category` SET TAGS ('dbx_value_regex' = 'media_buy|agency_fee|content_production|technology|events_trade_shows|print');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `subject_line` SET TAGS ('dbx_business_glossary_term' = 'Subject Line');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `tracking_capability` SET TAGS ('dbx_business_glossary_term' = 'Tracking Capability');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_execution` ALTER COLUMN `tracking_capability` SET TAGS ('dbx_value_regex' = 'full|partial|none');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` SET TAGS ('dbx_data_type' = 'master_data');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` SET TAGS ('dbx_subdomain' = 'audience_targeting');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` SET TAGS ('dbx_governance' = 'section2_supreme_authority');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` SET TAGS ('dbx_structure_preserved' = 'v2');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `guest_segment_id` SET TAGS ('dbx_business_glossary_term' = 'Guest Segment ID');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `procurement_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Segment Owner Employee Id (Foreign Key)');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `procurement_employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `procurement_employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Segment Owner Employee Id (Foreign Key)');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `touchpoint_id` SET TAGS ('dbx_business_glossary_term' = 'Touchpoint Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Approved By User');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `approved_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Approved Timestamp');
@@ -958,13 +954,10 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUM
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `effective_start_date` SET TAGS ('dbx_business_glossary_term' = 'Effective Start Date');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `estimated_size` SET TAGS ('dbx_business_glossary_term' = 'Estimated Segment Size');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `geographic_scope` SET TAGS ('dbx_business_glossary_term' = 'Geographic Scope');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `geographic_scope` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `last_refresh_date` SET TAGS ('dbx_business_glossary_term' = 'Last Refresh Date');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `loyalty_tier_scope` SET TAGS ('dbx_business_glossary_term' = 'Loyalty Tier Scope');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `ml_model_name` SET TAGS ('dbx_business_glossary_term' = 'Machine Learning (ML) Model Name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `ml_model_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `ml_model_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `ml_model_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `ml_model_name` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `ml_model_version` SET TAGS ('dbx_business_glossary_term' = 'Machine Learning (ML) Model Version');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `modified_by` SET TAGS ('dbx_business_glossary_term' = 'Modified By User');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
@@ -975,6 +968,8 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUM
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `owning_team` SET TAGS ('dbx_business_glossary_term' = 'Owning Marketing Team');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `personalization_priority` SET TAGS ('dbx_business_glossary_term' = 'Personalization Priority');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `personalization_priority` SET TAGS ('dbx_value_regex' = 'high|medium|low');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `personalization_priority` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `personalization_priority` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `property_tier_scope` SET TAGS ('dbx_business_glossary_term' = 'Property Tier Scope');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `property_tier_scope` SET TAGS ('dbx_value_regex' = 'luxury|premium|select_service|all_tiers');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `refresh_frequency` SET TAGS ('dbx_business_glossary_term' = 'Refresh Frequency');
@@ -985,10 +980,6 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUM
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `segment_creation_method` SET TAGS ('dbx_value_regex' = 'rule_based|ml_model|manual|hybrid');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `segment_description` SET TAGS ('dbx_business_glossary_term' = 'Segment Description');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `segment_name` SET TAGS ('dbx_business_glossary_term' = 'Segment Name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `segment_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `segment_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `segment_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `segment_name` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `segment_status` SET TAGS ('dbx_business_glossary_term' = 'Segment Status');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `segment_status` SET TAGS ('dbx_value_regex' = 'active|inactive|draft|archived');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `segment_type` SET TAGS ('dbx_business_glossary_term' = 'Segment Type');
@@ -1002,11 +993,12 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUM
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_segment` ALTER COLUMN `created_by` SET TAGS ('dbx_business_glossary_term' = 'Created By User');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` SET TAGS ('dbx_data_type' = 'transactional_data');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` SET TAGS ('dbx_subdomain' = 'audience_targeting');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` SET TAGS ('dbx_governance' = 'section2_supreme_authority');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` SET TAGS ('dbx_structure_preserved' = 'v2');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `guest_communication_id` SET TAGS ('dbx_business_glossary_term' = 'Guest Communication ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `campaign_id` SET TAGS ('dbx_business_glossary_term' = 'Campaign ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `cancellation_id` SET TAGS ('dbx_business_glossary_term' = 'Cancellation Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `communication_template_id` SET TAGS ('dbx_business_glossary_term' = 'Template ID');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `privacy_incident_id` SET TAGS ('dbx_business_glossary_term' = 'Privacy Incident Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `profile_id` SET TAGS ('dbx_business_glossary_term' = 'Guest ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `property_id` SET TAGS ('dbx_business_glossary_term' = 'Property ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `reservation_booking_id` SET TAGS ('dbx_business_glossary_term' = 'Reservation ID');
@@ -1029,50 +1021,41 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `delivery_status` SET TAGS ('dbx_value_regex' = 'sent|delivered|bounced|failed|unsubscribed|blocked');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `language_code` SET TAGS ('dbx_business_glossary_term' = 'Language Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `language_code` SET TAGS ('dbx_value_regex' = '^[a-z]{2}$');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `language_code` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `locale_code` SET TAGS ('dbx_business_glossary_term' = 'Locale Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `locale_code` SET TAGS ('dbx_value_regex' = '^[a-z]{2}_[A-Z]{2}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `opened_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Opened Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `opt_in_status` SET TAGS ('dbx_business_glossary_term' = 'Opt-In Status');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `opt_in_status` SET TAGS ('dbx_value_regex' = 'opted_in|opted_out|pending|not_applicable');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `personalization_fields` SET TAGS ('dbx_business_glossary_term' = 'Personalization Fields');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `personalization_fields` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `personalization_fields` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `recipient_email` SET TAGS ('dbx_business_glossary_term' = 'Recipient Email Address');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `recipient_email` SET TAGS ('dbx_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `recipient_email` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `recipient_email` SET TAGS ('dbx_pii_email' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `recipient_email` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `recipient_email` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `recipient_email` SET TAGS ('dbx_pii_type' = 'email');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `recipient_email` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `recipient_email` SET TAGS ('dbx_pii_class' = 'email');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `recipient_email` SET TAGS ('dbx_mask_nonprod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `recipient_email` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `recipient_phone` SET TAGS ('dbx_business_glossary_term' = 'Recipient Phone Number');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `recipient_phone` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `recipient_phone` SET TAGS ('dbx_pii_phone' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `recipient_phone` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `recipient_phone` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `recipient_phone` SET TAGS ('dbx_pii_type' = 'phone');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `recipient_phone` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `recipient_phone` SET TAGS ('dbx_pii_class' = 'phone');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `recipient_phone` SET TAGS ('dbx_mask_nonprod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `recipient_phone` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `reply_to_email` SET TAGS ('dbx_business_glossary_term' = 'Reply-To Email Address');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `reply_to_email` SET TAGS ('dbx_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `reply_to_email` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `reply_to_email` SET TAGS ('dbx_pii_email' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `reply_to_email` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `reply_to_email` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `reply_to_email` SET TAGS ('dbx_pii_type' = 'email');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `reply_to_email` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `reply_to_email` SET TAGS ('dbx_pii_class' = 'email');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `reply_to_email` SET TAGS ('dbx_mask_nonprod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `reply_to_email` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `send_priority` SET TAGS ('dbx_business_glossary_term' = 'Send Priority');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `send_priority` SET TAGS ('dbx_value_regex' = 'high|normal|low');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `sender_email` SET TAGS ('dbx_business_glossary_term' = 'Sender Email Address');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `sender_email` SET TAGS ('dbx_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `sender_email` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `sender_email` SET TAGS ('dbx_pii_email' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `sender_email` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `sender_email` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `sender_email` SET TAGS ('dbx_pii_type' = 'email');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `sender_email` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `sender_email` SET TAGS ('dbx_pii_class' = 'email');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `sender_email` SET TAGS ('dbx_mask_nonprod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `sender_email` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `sender_name` SET TAGS ('dbx_business_glossary_term' = 'Sender Name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `sender_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `sender_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `sender_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `sender_name` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `sent_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Sent Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `subject_line` SET TAGS ('dbx_business_glossary_term' = 'Subject Line');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `suppression_reason` SET TAGS ('dbx_business_glossary_term' = 'Suppression Reason');
@@ -1080,12 +1063,15 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `unsubscribed_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Unsubscribed Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`guest_communication` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Updated Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` SET TAGS ('dbx_subdomain' = 'performance_measurement');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` SET TAGS ('dbx_subdomain' = 'audience_targeting');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` SET TAGS ('dbx_governance' = 'section2_supreme_authority');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` SET TAGS ('dbx_structure_preserved' = 'v2');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `attribution_event_id` SET TAGS ('dbx_business_glossary_term' = 'Attribution Event ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `booking_source_id` SET TAGS ('dbx_business_glossary_term' = 'Booking Source Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `campaign_id` SET TAGS ('dbx_business_glossary_term' = 'Campaign ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `campaign_offer_id` SET TAGS ('dbx_business_glossary_term' = 'Offer ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `content_asset_id` SET TAGS ('dbx_business_glossary_term' = 'Ad Creative ID');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `privacy_incident_id` SET TAGS ('dbx_business_glossary_term' = 'Privacy Incident Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `profile_id` SET TAGS ('dbx_business_glossary_term' = 'Guest ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `reservation_booking_id` SET TAGS ('dbx_business_glossary_term' = 'Reservation ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `revenue_rate_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Revenue Rate Plan Id (Foreign Key)');
@@ -1113,19 +1099,20 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER C
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `event_status` SET TAGS ('dbx_value_regex' = 'captured|processed|attributed|excluded');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `event_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Event Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `geo_city` SET TAGS ('dbx_business_glossary_term' = 'Geographic City');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `geo_city` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `geo_country_code` SET TAGS ('dbx_business_glossary_term' = 'Geographic Country Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `geo_country_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `geo_country_code` SET TAGS ('dbx_typed' = 'numeric_correction');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `geo_country_code` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `geo_region` SET TAGS ('dbx_business_glossary_term' = 'Geographic Region');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `geo_region` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `ip_address` SET TAGS ('dbx_business_glossary_term' = 'IP (Internet Protocol) Address');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `ip_address` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `ip_address` SET TAGS ('dbx_pii_ip' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `ip_address` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `ip_address` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `ip_address` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `ip_address` SET TAGS ('dbx_pii_type' = 'address');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `ip_address` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `keyword` SET TAGS ('dbx_business_glossary_term' = 'Keyword');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `landing_page_url` SET TAGS ('dbx_business_glossary_term' = 'Landing Page URL (Uniform Resource Locator)');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `landing_page_url` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `operating_system` SET TAGS ('dbx_business_glossary_term' = 'Operating System');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `referrer_url` SET TAGS ('dbx_business_glossary_term' = 'Referrer URL (Uniform Resource Locator)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `session_code` SET TAGS ('dbx_business_glossary_term' = 'Session ID');
@@ -1141,6 +1128,8 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER C
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`attribution_event` ALTER COLUMN `utm_term` SET TAGS ('dbx_business_glossary_term' = 'UTM (Urchin Tracking Module) Term');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` SET TAGS ('dbx_data_type' = 'master_data');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` SET TAGS ('dbx_subdomain' = 'brand_content');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` SET TAGS ('dbx_governance' = 'section2_supreme_authority');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` SET TAGS ('dbx_structure_preserved' = 'v2');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `content_asset_id` SET TAGS ('dbx_business_glossary_term' = 'Content Asset ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `brand_id` SET TAGS ('dbx_business_glossary_term' = 'Brand ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `campaign_id` SET TAGS ('dbx_business_glossary_term' = 'Campaign ID');
@@ -1156,19 +1145,11 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUM
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Approved By');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `asset_code` SET TAGS ('dbx_business_glossary_term' = 'Asset Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `asset_name` SET TAGS ('dbx_business_glossary_term' = 'Asset Name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `asset_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `asset_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `asset_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `asset_name` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `asset_type` SET TAGS ('dbx_business_glossary_term' = 'Asset Type');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `content_theme` SET TAGS ('dbx_business_glossary_term' = 'Content Theme');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `copyright_holder` SET TAGS ('dbx_business_glossary_term' = 'Copyright Holder');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `creator_name` SET TAGS ('dbx_business_glossary_term' = 'Creator Name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `creator_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `creator_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `creator_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `creator_name` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `content_asset_description` SET TAGS ('dbx_business_glossary_term' = 'Asset Description');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `download_count` SET TAGS ('dbx_business_glossary_term' = 'Download Count');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `file_format` SET TAGS ('dbx_business_glossary_term' = 'File Format');
@@ -1178,6 +1159,7 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUM
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `keywords` SET TAGS ('dbx_business_glossary_term' = 'Keywords');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `language_code` SET TAGS ('dbx_business_glossary_term' = 'Language Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `language_code` SET TAGS ('dbx_value_regex' = '^[a-z]{2}$');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `language_code` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `locale_code` SET TAGS ('dbx_business_glossary_term' = 'Locale Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `locale_code` SET TAGS ('dbx_value_regex' = '^[a-z]{2}_[A-Z]{2}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
@@ -1186,13 +1168,17 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUM
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `target_audience` SET TAGS ('dbx_business_glossary_term' = 'Target Audience');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `thumbnail_url` SET TAGS ('dbx_business_glossary_term' = 'Thumbnail URL');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `usage_count` SET TAGS ('dbx_business_glossary_term' = 'Usage Count');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `usage_count` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `usage_rights_expiry_date` SET TAGS ('dbx_business_glossary_term' = 'Usage Rights Expiry Date');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `usage_rights_expiry_date` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `usage_rights_type` SET TAGS ('dbx_business_glossary_term' = 'Usage Rights Type');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `usage_rights_type` SET TAGS ('dbx_value_regex' = 'owned|licensed|royalty_free|rights_managed|creative_commons|public_domain');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `usage_rights_type` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `version_number` SET TAGS ('dbx_business_glossary_term' = 'Version Number');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`content_asset` ALTER COLUMN `version_number` SET TAGS ('dbx_typed' = 'numeric_correction');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`social_post` SET TAGS ('dbx_data_type' = 'transactional_data');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`social_post` SET TAGS ('dbx_subdomain' = 'brand_content');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`social_post` SET TAGS ('dbx_governance' = 'section2_supreme_authority');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`social_post` SET TAGS ('dbx_structure_preserved' = 'v2');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`social_post` ALTER COLUMN `social_post_id` SET TAGS ('dbx_business_glossary_term' = 'Social Post ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`social_post` ALTER COLUMN `brand_id` SET TAGS ('dbx_business_glossary_term' = 'Brand ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`social_post` ALTER COLUMN `campaign_id` SET TAGS ('dbx_business_glossary_term' = 'Marketing Campaign ID');
@@ -1207,12 +1193,15 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`social_post` ALTER COLUMN 
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`social_post` ALTER COLUMN `boost_currency_code` SET TAGS ('dbx_business_glossary_term' = 'Boost Budget Currency Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`social_post` ALTER COLUMN `comments_count` SET TAGS ('dbx_business_glossary_term' = 'Comments Count');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`social_post` ALTER COLUMN `content_language` SET TAGS ('dbx_business_glossary_term' = 'Content Language Code');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`social_post` ALTER COLUMN `content_language` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`social_post` ALTER COLUMN `content_text` SET TAGS ('dbx_business_glossary_term' = 'Post Content Text');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`social_post` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`social_post` ALTER COLUMN `deleted_reason` SET TAGS ('dbx_business_glossary_term' = 'Deletion Reason');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`social_post` ALTER COLUMN `deleted_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Deletion Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`social_post` ALTER COLUMN `engagement_count` SET TAGS ('dbx_business_glossary_term' = 'Total Engagement Count');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`social_post` ALTER COLUMN `engagement_count` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`social_post` ALTER COLUMN `engagement_rate` SET TAGS ('dbx_business_glossary_term' = 'Engagement Rate');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`social_post` ALTER COLUMN `engagement_rate` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`social_post` ALTER COLUMN `hashtags` SET TAGS ('dbx_business_glossary_term' = 'Post Hashtags');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`social_post` ALTER COLUMN `impressions_count` SET TAGS ('dbx_business_glossary_term' = 'Impressions Count');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`social_post` ALTER COLUMN `is_boosted` SET TAGS ('dbx_business_glossary_term' = 'Boosted Post Flag');
@@ -1235,14 +1224,16 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`social_post` ALTER COLUMN 
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`social_post` ALTER COLUMN `target_audience` SET TAGS ('dbx_business_glossary_term' = 'Target Audience Segment');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`social_post` ALTER COLUMN `video_views_count` SET TAGS ('dbx_business_glossary_term' = 'Video Views Count');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` SET TAGS ('dbx_subdomain' = 'performance_measurement');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` SET TAGS ('dbx_subdomain' = 'survey_intelligence');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` SET TAGS ('dbx_governance' = 'section2_supreme_authority');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` SET TAGS ('dbx_structure_preserved' = 'v2');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `survey_program_id` SET TAGS ('dbx_business_glossary_term' = 'Survey Program Identifier');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `brand_id` SET TAGS ('dbx_business_glossary_term' = 'Brand Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `campaign_id` SET TAGS ('dbx_business_glossary_term' = 'Marketing Campaign ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `procurement_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Owner User ID');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `procurement_employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `procurement_employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Owner User ID');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `property_id` SET TAGS ('dbx_business_glossary_term' = 'Property ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `tertiary_survey_modified_by_user_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Modified By User ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `tertiary_survey_modified_by_user_employee_id` SET TAGS ('dbx_confidential' = 'true');
@@ -1253,6 +1244,7 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLU
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `auto_case_creation_flag` SET TAGS ('dbx_business_glossary_term' = 'Automatic Case Creation Flag');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `data_retention_days` SET TAGS ('dbx_business_glossary_term' = 'Data Retention Period (Days)');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `data_retention_days` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `distribution_channel` SET TAGS ('dbx_business_glossary_term' = 'Survey Distribution Channel');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `distribution_channel` SET TAGS ('dbx_value_regex' = 'email|sms|in-app|web|kiosk|qr-code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `effective_end_date` SET TAGS ('dbx_business_glossary_term' = 'Effective End Date');
@@ -1261,6 +1253,7 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLU
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `incentive_description` SET TAGS ('dbx_business_glossary_term' = 'Incentive Description');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `incentive_offered_flag` SET TAGS ('dbx_business_glossary_term' = 'Incentive Offered Flag');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `language_codes` SET TAGS ('dbx_business_glossary_term' = 'Supported Language Codes');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `language_codes` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `max_reminders` SET TAGS ('dbx_business_glossary_term' = 'Maximum Reminders');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `privacy_notice_version` SET TAGS ('dbx_business_glossary_term' = 'Privacy Notice Version');
@@ -1275,10 +1268,6 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLU
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `survey_category` SET TAGS ('dbx_business_glossary_term' = 'Survey Category');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `survey_category` SET TAGS ('dbx_value_regex' = 'nps|gss|csat|transactional|relationship');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `survey_name` SET TAGS ('dbx_business_glossary_term' = 'Survey Program Name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `survey_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `survey_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `survey_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `survey_name` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `survey_program_status` SET TAGS ('dbx_business_glossary_term' = 'Survey Program Status');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `survey_program_status` SET TAGS ('dbx_value_regex' = 'draft|active|paused|completed|archived');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `survey_type` SET TAGS ('dbx_business_glossary_term' = 'Survey Type');
@@ -1290,7 +1279,9 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLU
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `target_segment` SET TAGS ('dbx_business_glossary_term' = 'Target Guest Segment');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_program` ALTER COLUMN `trigger_event` SET TAGS ('dbx_business_glossary_term' = 'Survey Trigger Event');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_response` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_response` SET TAGS ('dbx_subdomain' = 'performance_measurement');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_response` SET TAGS ('dbx_subdomain' = 'survey_intelligence');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_response` SET TAGS ('dbx_governance' = 'section2_supreme_authority');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_response` SET TAGS ('dbx_structure_preserved' = 'v2');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_response` ALTER COLUMN `survey_response_id` SET TAGS ('dbx_business_glossary_term' = 'Survey Response Identifier');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_response` ALTER COLUMN `privacy_incident_id` SET TAGS ('dbx_business_glossary_term' = 'Privacy Incident Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_response` ALTER COLUMN `profile_id` SET TAGS ('dbx_business_glossary_term' = 'Guest ID');
@@ -1302,6 +1293,7 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_response` ALTER COL
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_response` ALTER COLUMN `booking_channel` SET TAGS ('dbx_business_glossary_term' = 'Booking Channel');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_response` ALTER COLUMN `checkout_date` SET TAGS ('dbx_business_glossary_term' = 'Checkout Date');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_response` ALTER COLUMN `contact_permission_flag` SET TAGS ('dbx_business_glossary_term' = 'Contact Permission Flag');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_response` ALTER COLUMN `contact_permission_flag` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_response` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_response` ALTER COLUMN `csat_score` SET TAGS ('dbx_business_glossary_term' = 'Customer Satisfaction (CSAT) Score');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_response` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code');
@@ -1328,6 +1320,7 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_response` ALTER COL
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_response` ALTER COLUMN `sentiment_score` SET TAGS ('dbx_business_glossary_term' = 'Sentiment Score');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_response` ALTER COLUMN `stay_date` SET TAGS ('dbx_business_glossary_term' = 'Stay Date');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_response` ALTER COLUMN `survey_language` SET TAGS ('dbx_business_glossary_term' = 'Survey Language Code');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_response` ALTER COLUMN `survey_language` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_response` ALTER COLUMN `survey_sent_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Survey Sent Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_response` ALTER COLUMN `survey_version` SET TAGS ('dbx_business_glossary_term' = 'Survey Version');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_response` ALTER COLUMN `total_spend_amount` SET TAGS ('dbx_business_glossary_term' = 'Total Spend Amount');
@@ -1337,12 +1330,16 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_response` ALTER COL
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`survey_response` ALTER COLUMN `verbatim_comment` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` SET TAGS ('dbx_data_type' = 'master_data');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` SET TAGS ('dbx_subdomain' = 'brand_content');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` SET TAGS ('dbx_governance' = 'section2_supreme_authority');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` SET TAGS ('dbx_structure_preserved' = 'v2');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `brand_id` SET TAGS ('dbx_business_glossary_term' = 'Brand Identifier');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `procurement_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Brand Manager Employee Id (Foreign Key)');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `procurement_employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `procurement_employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Brand Manager Employee Id (Foreign Key)');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `average_daily_rate_target` SET TAGS ('dbx_business_glossary_term' = 'Average Daily Rate (ADR) Target');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `average_daily_rate_target` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `average_daily_rate_target` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `brand_status` SET TAGS ('dbx_business_glossary_term' = 'Brand Status');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `brand_status` SET TAGS ('dbx_value_regex' = 'active|inactive|under-development|sunset|rebranding');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `brand_code` SET TAGS ('dbx_business_glossary_term' = 'Brand Code');
@@ -1350,26 +1347,20 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `brand
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `brand_description` SET TAGS ('dbx_business_glossary_term' = 'Brand Description');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `geographic_focus` SET TAGS ('dbx_business_glossary_term' = 'Geographic Focus');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `geographic_focus` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `guest_satisfaction_score_target` SET TAGS ('dbx_business_glossary_term' = 'Guest Satisfaction Score (GSS) Target');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `guidelines_url` SET TAGS ('dbx_business_glossary_term' = 'Brand Guidelines Document Uniform Resource Locator (URL)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `is_featured_brand` SET TAGS ('dbx_business_glossary_term' = 'Featured Brand Flag');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `launch_date` SET TAGS ('dbx_business_glossary_term' = 'Brand Launch Date');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `logo_url` SET TAGS ('dbx_business_glossary_term' = 'Brand Logo Uniform Resource Locator (URL)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `loyalty_program_name` SET TAGS ('dbx_business_glossary_term' = 'Loyalty Program Name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `loyalty_program_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `loyalty_program_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `loyalty_program_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `loyalty_program_name` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `marketing_budget_annual` SET TAGS ('dbx_business_glossary_term' = 'Annual Marketing Budget');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `marketing_budget_annual` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `brand_name` SET TAGS ('dbx_business_glossary_term' = 'Brand Name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `brand_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `brand_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `brand_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `brand_name` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `net_promoter_score_target` SET TAGS ('dbx_business_glossary_term' = 'Net Promoter Score (NPS) Target');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `parent_company` SET TAGS ('dbx_business_glossary_term' = 'Parent Company Name');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `positioning_statement` SET TAGS ('dbx_business_glossary_term' = 'Brand Positioning Statement');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `positioning_statement` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `primary_color_hex` SET TAGS ('dbx_business_glossary_term' = 'Primary Brand Color Hexadecimal (HEX) Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `primary_color_hex` SET TAGS ('dbx_value_regex' = '^#[0-9A-Fa-f]{6}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `property_count` SET TAGS ('dbx_business_glossary_term' = 'Property Count');
@@ -1389,7 +1380,9 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `updat
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `voice` SET TAGS ('dbx_business_glossary_term' = 'Brand Voice');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`brand` ALTER COLUMN `website_url` SET TAGS ('dbx_business_glossary_term' = 'Brand Website Uniform Resource Locator (URL)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` SET TAGS ('dbx_subdomain' = 'performance_measurement');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` SET TAGS ('dbx_subdomain' = 'audience_targeting');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` SET TAGS ('dbx_governance' = 'section2_supreme_authority');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` SET TAGS ('dbx_structure_preserved' = 'v2');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `offer_redemption_id` SET TAGS ('dbx_business_glossary_term' = 'Offer Redemption ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `campaign_id` SET TAGS ('dbx_business_glossary_term' = 'Campaign ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `campaign_offer_id` SET TAGS ('dbx_business_glossary_term' = 'Offer ID');
@@ -1401,6 +1394,7 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER CO
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `property_id` SET TAGS ('dbx_business_glossary_term' = 'Property ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `reservation_booking_id` SET TAGS ('dbx_business_glossary_term' = 'Reservation ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `travel_agent_id` SET TAGS ('dbx_business_glossary_term' = 'Agent ID');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `travel_agent_id` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `attribution_source` SET TAGS ('dbx_business_glossary_term' = 'Attribution Source');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `booking_date` SET TAGS ('dbx_business_glossary_term' = 'Booking Date');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
@@ -1410,6 +1404,7 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER CO
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `device_type` SET TAGS ('dbx_value_regex' = 'desktop|mobile|tablet|kiosk|pos_terminal|call_center');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `discount_amount` SET TAGS ('dbx_business_glossary_term' = 'Discount Amount');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `discount_percentage` SET TAGS ('dbx_business_glossary_term' = 'Discount Percentage');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `discount_percentage` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `discount_type` SET TAGS ('dbx_business_glossary_term' = 'Discount Type');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `discount_type` SET TAGS ('dbx_value_regex' = 'percentage|fixed_amount|free_night|upgrade|points_multiplier|amenity');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `final_rate_amount` SET TAGS ('dbx_business_glossary_term' = 'Final Rate Amount');
@@ -1417,10 +1412,8 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER CO
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `ip_address` SET TAGS ('dbx_value_regex' = '^(?:[0-9]{1,3}.){3}[0-9]{1,3}$|^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `ip_address` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `ip_address` SET TAGS ('dbx_pii_ip' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `ip_address` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `ip_address` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `ip_address` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `ip_address` SET TAGS ('dbx_pii_type' = 'address');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `ip_address` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `length_of_stay` SET TAGS ('dbx_business_glossary_term' = 'Length of Stay (LOS)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `market_segment_code` SET TAGS ('dbx_business_glossary_term' = 'Market Segment Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `market_segment_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{2,10}$');
@@ -1436,9 +1429,13 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER CO
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `redemption_location_latitude` SET TAGS ('dbx_business_glossary_term' = 'Redemption Location Latitude');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `redemption_location_latitude` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `redemption_location_latitude` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `redemption_location_latitude` SET TAGS ('dbx_pii_tracked' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `redemption_location_latitude` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `redemption_location_longitude` SET TAGS ('dbx_business_glossary_term' = 'Redemption Location Longitude');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `redemption_location_longitude` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `redemption_location_longitude` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `redemption_location_longitude` SET TAGS ('dbx_pii_tracked' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `redemption_location_longitude` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `redemption_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Redemption Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `rejection_reason` SET TAGS ('dbx_business_glossary_term' = 'Rejection Reason');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `room_type_code` SET TAGS ('dbx_business_glossary_term' = 'Room Type Code');
@@ -1452,28 +1449,35 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER CO
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `user_agent` SET TAGS ('dbx_business_glossary_term' = 'User Agent');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `user_agent` SET TAGS ('dbx_internal' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `user_agent` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `user_agent` SET TAGS ('dbx_typed' = 'numeric_correction');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `user_agent` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `validation_status` SET TAGS ('dbx_business_glossary_term' = 'Validation Status');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `validation_status` SET TAGS ('dbx_value_regex' = 'validated|rejected|pending|expired|fraudulent|duplicate');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`offer_redemption` ALTER COLUMN `validation_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Validation Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` SET TAGS ('dbx_data_type' = 'master_data');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` SET TAGS ('dbx_subdomain' = 'audience_targeting');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` SET TAGS ('dbx_governance' = 'section2_supreme_authority');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` SET TAGS ('dbx_structure_preserved' = 'v2');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `consent_id` SET TAGS ('dbx_business_glossary_term' = 'Consent Identifier');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `consent_id` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `brand_id` SET TAGS ('dbx_business_glossary_term' = 'Brand ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `campaign_id` SET TAGS ('dbx_business_glossary_term' = 'Campaign ID');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `procurement_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Consent Captured By User ID');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `procurement_employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `procurement_employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Consent Captured By User ID');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `privacy_incident_id` SET TAGS ('dbx_business_glossary_term' = 'Privacy Incident Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `profile_id` SET TAGS ('dbx_business_glossary_term' = 'Guest ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `program_config_id` SET TAGS ('dbx_business_glossary_term' = 'Loyalty Program ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `property_id` SET TAGS ('dbx_business_glossary_term' = 'Property ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `communication_frequency_preference` SET TAGS ('dbx_business_glossary_term' = 'Communication Frequency Preference');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `communication_frequency_preference` SET TAGS ('dbx_value_regex' = 'daily|weekly|monthly|quarterly|as_needed|never');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `consent_date` SET TAGS ('dbx_business_glossary_term' = 'Consent Date');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `consent_date` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `consent_status` SET TAGS ('dbx_business_glossary_term' = 'Consent Status');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `consent_status` SET TAGS ('dbx_value_regex' = 'opted_in|opted_out|pending|expired|withdrawn');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `consent_status` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `consent_type` SET TAGS ('dbx_business_glossary_term' = 'Consent Type');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `consent_type` SET TAGS ('dbx_value_regex' = 'email_marketing|sms_marketing|push_notification|direct_mail|third_party_sharing|phone_call');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `consent_type` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `data_processing_agreement_accepted` SET TAGS ('dbx_business_glossary_term' = 'Data Processing Agreement Accepted');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `double_opt_in_confirmed` SET TAGS ('dbx_business_glossary_term' = 'Double Opt-In Confirmed');
@@ -1482,38 +1486,40 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `exp
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `ip_address` SET TAGS ('dbx_business_glossary_term' = 'IP Address');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `ip_address` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `ip_address` SET TAGS ('dbx_pii_ip' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `ip_address` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `ip_address` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `ip_address` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `ip_address` SET TAGS ('dbx_pii_type' = 'address');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `ip_address` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `is_active` SET TAGS ('dbx_business_glossary_term' = 'Is Active');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `jurisdiction` SET TAGS ('dbx_business_glossary_term' = 'Jurisdiction');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `language` SET TAGS ('dbx_business_glossary_term' = 'Consent Language');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `language` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `last_communication_date` SET TAGS ('dbx_business_glossary_term' = 'Last Communication Date');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `legal_basis` SET TAGS ('dbx_business_glossary_term' = 'Legal Basis');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `legal_basis` SET TAGS ('dbx_value_regex' = 'consent|legitimate_interest|contract|legal_obligation|vital_interest|public_task');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `minor_consent_required` SET TAGS ('dbx_business_glossary_term' = 'Minor Consent Required');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `minor_consent_required` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `opt_out_date` SET TAGS ('dbx_business_glossary_term' = 'Opt-Out Date');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `opt_out_reason` SET TAGS ('dbx_business_glossary_term' = 'Opt-Out Reason');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `parental_consent_verified` SET TAGS ('dbx_business_glossary_term' = 'Parental Consent Verified');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `parental_consent_verified` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `preference_center_url` SET TAGS ('dbx_business_glossary_term' = 'Preference Center URL');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `proof_document_url` SET TAGS ('dbx_business_glossary_term' = 'Consent Proof Document URL');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `salesforce_consent_code` SET TAGS ('dbx_business_glossary_term' = 'Salesforce CRM Consent Record ID');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `salesforce_consent_code` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `scope` SET TAGS ('dbx_business_glossary_term' = 'Consent Scope');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `scope` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `source` SET TAGS ('dbx_business_glossary_term' = 'Consent Source');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `source` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `third_party_processor_name` SET TAGS ('dbx_business_glossary_term' = 'Third-Party Processor Name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `third_party_processor_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `third_party_processor_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `third_party_processor_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `third_party_processor_name` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `user_agent` SET TAGS ('dbx_business_glossary_term' = 'User Agent');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `user_agent` SET TAGS ('dbx_internal' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `user_agent` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `user_agent` SET TAGS ('dbx_typed' = 'numeric_correction');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `user_agent` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`consent` ALTER COLUMN `version` SET TAGS ('dbx_business_glossary_term' = 'Consent Version');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` SET TAGS ('dbx_subdomain' = 'campaign_planning');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` SET TAGS ('dbx_subdomain' = 'survey_intelligence');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` SET TAGS ('dbx_governance' = 'section2_supreme_authority');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` SET TAGS ('dbx_structure_preserved' = 'v2');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `experiment_id` SET TAGS ('dbx_business_glossary_term' = 'Experiment ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `brand_id` SET TAGS ('dbx_business_glossary_term' = 'Brand ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `campaign_id` SET TAGS ('dbx_business_glossary_term' = 'Campaign ID');
@@ -1521,9 +1527,9 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `guest_segment_id` SET TAGS ('dbx_business_glossary_term' = 'Target Segment ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `parent_experiment_id` SET TAGS ('dbx_business_glossary_term' = 'Parent Experiment Id');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `parent_experiment_id` SET TAGS ('dbx_self_ref_fk' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `procurement_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Approved By User ID');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `procurement_employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `procurement_employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Approved By User ID');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `property_id` SET TAGS ('dbx_business_glossary_term' = 'Property ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `revenue_rate_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Revenue Rate Plan Id (Foreign Key)');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `tertiary_experiment_modified_by_user_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Modified By User ID');
@@ -1537,7 +1543,9 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `experiment_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9_-]{3,20}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `conclusion_notes` SET TAGS ('dbx_business_glossary_term' = 'Conclusion Notes');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `confidence_level_percentage` SET TAGS ('dbx_business_glossary_term' = 'Confidence Level Percentage');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `confidence_level_percentage` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `control_allocation_percentage` SET TAGS ('dbx_business_glossary_term' = 'Control Allocation Percentage');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `control_allocation_percentage` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `control_variant_description` SET TAGS ('dbx_business_glossary_term' = 'Control Variant Description');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `end_date` SET TAGS ('dbx_business_glossary_term' = 'Experiment End Date');
@@ -1551,12 +1559,9 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `implementation_date` SET TAGS ('dbx_business_glossary_term' = 'Implementation Date');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `implementation_flag` SET TAGS ('dbx_business_glossary_term' = 'Implementation Flag');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `lift_percentage` SET TAGS ('dbx_business_glossary_term' = 'Lift Percentage');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `lift_percentage` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `experiment_name` SET TAGS ('dbx_business_glossary_term' = 'Experiment Name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `experiment_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `experiment_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `experiment_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `experiment_name` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `p_value` SET TAGS ('dbx_business_glossary_term' = 'P-Value');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `planned_duration_days` SET TAGS ('dbx_business_glossary_term' = 'Planned Duration Days');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `primary_metric` SET TAGS ('dbx_business_glossary_term' = 'Primary Metric');
@@ -1567,28 +1572,38 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `statistical_significance_threshold` SET TAGS ('dbx_business_glossary_term' = 'Statistical Significance Threshold');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `test_variable` SET TAGS ('dbx_business_glossary_term' = 'Test Variable');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `traffic_allocation_percentage` SET TAGS ('dbx_business_glossary_term' = 'Traffic Allocation Percentage');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `traffic_allocation_percentage` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `treatment_allocation_percentage` SET TAGS ('dbx_business_glossary_term' = 'Treatment Allocation Percentage');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `treatment_allocation_percentage` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `treatment_allocation_percentage` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `treatment_allocation_percentage` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `treatment_variant_description` SET TAGS ('dbx_business_glossary_term' = 'Treatment Variant Description');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `treatment_variant_description` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `treatment_variant_description` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `winning_variant` SET TAGS ('dbx_business_glossary_term' = 'Winning Variant');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`experiment` ALTER COLUMN `winning_variant` SET TAGS ('dbx_value_regex' = 'control|treatment|inconclusive|ongoing');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` SET TAGS ('dbx_subdomain' = 'campaign_planning');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` SET TAGS ('dbx_ssot_source' = 'compliance.compliance_calendar');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` SET TAGS ('dbx_ssot_family' = 'calendar');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` SET TAGS ('dbx_subdomain' = 'brand_content');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` SET TAGS ('dbx_mvm_ssot_role' = 'designated');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` SET TAGS ('dbx_ssot_concept' = 'calendar');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` SET TAGS ('dbx_governance' = 'section2_supreme_authority');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` SET TAGS ('dbx_ssot_references' = 'compliance.compliance_calendar');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` SET TAGS ('dbx_ssot_duplicate' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` SET TAGS ('dbx_ssot' = 'alias');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` SET TAGS ('dbx_ssot_authority_defer_to' = 'compliance.compliance_calendar');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` SET TAGS ('dbx_structure_preserved' = 'v2');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` SET TAGS ('dbx_ssot_ref' = 'compliance.compliance_calendar');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` SET TAGS ('dbx_ssot_group' = 'calendar');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` SET TAGS ('dbx_ssot_canonical' = 'compliance.compliance_calendar');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` SET TAGS ('dbx_ssot_role' = 'reference');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` SET TAGS ('dbx_ssot_owner' = 'compliance.compliance_calendar');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `marketing_calendar_id` SET TAGS ('dbx_business_glossary_term' = 'Marketing Calendar ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `campaign_id` SET TAGS ('dbx_business_glossary_term' = 'Campaign ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `parent_calendar_entry_marketing_calendar_id` SET TAGS ('dbx_business_glossary_term' = 'Parent Calendar Entry ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `parent_marketing_calendar_id` SET TAGS ('dbx_business_glossary_term' = 'Parent Marketing Calendar Id');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `parent_marketing_calendar_id` SET TAGS ('dbx_self_ref_fk' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `procurement_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Approved By User ID');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `procurement_employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `procurement_employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Approved By User ID');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `tertiary_marketing_modified_by_user_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Modified By User ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `tertiary_marketing_modified_by_user_employee_id` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `tertiary_marketing_modified_by_user_employee_id` SET TAGS ('dbx_pii' = 'true');
@@ -1606,10 +1621,6 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER 
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `entry_code` SET TAGS ('dbx_business_glossary_term' = 'Calendar Entry Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `entry_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9_-]{4,20}$');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `entry_name` SET TAGS ('dbx_business_glossary_term' = 'Calendar Entry Name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `entry_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `entry_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `entry_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `entry_name` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `entry_status` SET TAGS ('dbx_business_glossary_term' = 'Calendar Entry Status');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `entry_status` SET TAGS ('dbx_value_regex' = 'planned|confirmed|in_flight|completed|cancelled|postponed');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `entry_type` SET TAGS ('dbx_business_glossary_term' = 'Calendar Entry Type');
@@ -1626,7 +1637,6 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER 
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `planning_year` SET TAGS ('dbx_business_glossary_term' = 'Planning Year');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `priority_level` SET TAGS ('dbx_business_glossary_term' = 'Entry Priority Level');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `priority_level` SET TAGS ('dbx_value_regex' = 'critical|high|medium|low');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `priority_level` SET TAGS ('dbx_typed' = 'numeric_correction');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `property_milestone_description` SET TAGS ('dbx_business_glossary_term' = 'Property Milestone Description');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `property_scope` SET TAGS ('dbx_business_glossary_term' = 'Property Scope');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `recurrence_pattern` SET TAGS ('dbx_business_glossary_term' = 'Recurrence Pattern');
@@ -1635,15 +1645,13 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER 
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `tentpole_category` SET TAGS ('dbx_business_glossary_term' = 'Tentpole Category');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `tentpole_category` SET TAGS ('dbx_value_regex' = 'holiday|seasonal|conference|industry_event|cultural_moment|sporting_event');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `tentpole_event_name` SET TAGS ('dbx_business_glossary_term' = 'Tentpole Event Name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `tentpole_event_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `tentpole_event_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `tentpole_event_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `tentpole_event_name` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `visibility_scope` SET TAGS ('dbx_business_glossary_term' = 'Visibility Scope');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`marketing_calendar` ALTER COLUMN `visibility_scope` SET TAGS ('dbx_value_regex' = 'public|internal|restricted|confidential');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_treatment_promotion` SET TAGS ('dbx_data_type' = 'association_data');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_treatment_promotion` SET TAGS ('dbx_subdomain' = 'campaign_planning');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_treatment_promotion` SET TAGS ('dbx_subdomain' = 'campaign_management');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_treatment_promotion` SET TAGS ('dbx_association_edges' = 'marketing.campaign,spa.treatment');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_treatment_promotion` SET TAGS ('dbx_governance' = 'section2_supreme_authority');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_treatment_promotion` SET TAGS ('dbx_structure_preserved' = 'v2');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_treatment_promotion` ALTER COLUMN `campaign_treatment_promotion_id` SET TAGS ('dbx_business_glossary_term' = 'Campaign Treatment Promotion ID');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_treatment_promotion` ALTER COLUMN `campaign_treatment_promotion_id` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_treatment_promotion` ALTER COLUMN `campaign_treatment_promotion_id` SET TAGS ('dbx_pii' = 'true');
@@ -1656,6 +1664,7 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_treatment_promoti
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_treatment_promotion` ALTER COLUMN `campaign_start_date` SET TAGS ('dbx_business_glossary_term' = 'Campaign Start Date');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_treatment_promotion` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_treatment_promotion` ALTER COLUMN `discount_percentage` SET TAGS ('dbx_business_glossary_term' = 'Discount Percentage');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_treatment_promotion` ALTER COLUMN `discount_percentage` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_treatment_promotion` ALTER COLUMN `featured_position` SET TAGS ('dbx_business_glossary_term' = 'Featured Position');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_treatment_promotion` ALTER COLUMN `promo_code` SET TAGS ('dbx_business_glossary_term' = 'Promo Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_treatment_promotion` ALTER COLUMN `promotion_status` SET TAGS ('dbx_business_glossary_term' = 'Promotion Status');
@@ -1663,7 +1672,9 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_treatment_promoti
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_treatment_promotion` ALTER COLUMN `revenue_generated` SET TAGS ('dbx_business_glossary_term' = 'Revenue Generated');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`campaign_treatment_promotion` ALTER COLUMN `created_by` SET TAGS ('dbx_business_glossary_term' = 'Created By');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` SET TAGS ('dbx_subdomain' = 'audience_targeting');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` SET TAGS ('dbx_subdomain' = 'brand_content');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` SET TAGS ('dbx_governance' = 'section2_supreme_authority');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` SET TAGS ('dbx_structure_preserved' = 'v2');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `communication_template_id` SET TAGS ('dbx_business_glossary_term' = 'Communication Template Identifier');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `brand_id` SET TAGS ('dbx_business_glossary_term' = 'Brand Id');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `campaign_id` SET TAGS ('dbx_business_glossary_term' = 'Campaign Id');
@@ -1676,6 +1687,7 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` AL
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `body_content` SET TAGS ('dbx_business_glossary_term' = 'Body Content');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `call_to_action_text` SET TAGS ('dbx_business_glossary_term' = 'Call To Action Text');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `call_to_action_url` SET TAGS ('dbx_business_glossary_term' = 'Call To Action Url');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `communication_template_status` SET TAGS ('dbx_business_glossary_term' = 'Status');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `compliance_approved` SET TAGS ('dbx_business_glossary_term' = 'Compliance Approved');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `compliance_notes` SET TAGS ('dbx_business_glossary_term' = 'Compliance Notes');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
@@ -1686,45 +1698,34 @@ ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` AL
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `footer_text` SET TAGS ('dbx_business_glossary_term' = 'Footer Text');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `html_content` SET TAGS ('dbx_business_glossary_term' = 'Html Content');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `language_code` SET TAGS ('dbx_business_glossary_term' = 'Language Code');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `language_code` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `last_modified_by` SET TAGS ('dbx_business_glossary_term' = 'Last Modified By');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `last_used_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Used Timestamp');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `merge_fields` SET TAGS ('dbx_business_glossary_term' = 'Merge Fields');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `personalization_enabled` SET TAGS ('dbx_business_glossary_term' = 'Personalization Enabled');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `personalization_enabled` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `personalization_enabled` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `plain_text_content` SET TAGS ('dbx_business_glossary_term' = 'Plain Text Content');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `preheader_text` SET TAGS ('dbx_business_glossary_term' = 'Preheader Text');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `reply_to_email` SET TAGS ('dbx_business_glossary_term' = 'Reply To Email');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `reply_to_email` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `reply_to_email` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `reply_to_email` SET TAGS ('dbx_pii_type' = 'email');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `reply_to_email` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `reply_to_email` SET TAGS ('dbx_pii_class' = 'email');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `reply_to_email` SET TAGS ('dbx_mask_nonprod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `reply_to_email` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `reply_to_email` SET TAGS ('dbx_pii' = 'contact');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `reply_to_email` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `segment_criteria` SET TAGS ('dbx_business_glossary_term' = 'Segment Criteria');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `sender_email` SET TAGS ('dbx_business_glossary_term' = 'Sender Email');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `sender_email` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `sender_email` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `sender_email` SET TAGS ('dbx_pii_type' = 'email');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `sender_email` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `sender_email` SET TAGS ('dbx_pii_class' = 'email');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `sender_email` SET TAGS ('dbx_mask_nonprod' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `sender_email` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `sender_email` SET TAGS ('dbx_pii' = 'contact');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `sender_email` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `sender_name` SET TAGS ('dbx_business_glossary_term' = 'Sender Name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `sender_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `sender_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `sender_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `sender_name` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `communication_template_status` SET TAGS ('dbx_business_glossary_term' = 'Status');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `subject_line` SET TAGS ('dbx_business_glossary_term' = 'Subject Line');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `tags` SET TAGS ('dbx_business_glossary_term' = 'Tags');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `template_category` SET TAGS ('dbx_business_glossary_term' = 'Template Category');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `template_code` SET TAGS ('dbx_business_glossary_term' = 'Template Code');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `template_name` SET TAGS ('dbx_business_glossary_term' = 'Template Name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `template_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `template_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `template_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `template_name` SET TAGS ('dbx_mask_non_prod' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `template_type` SET TAGS ('dbx_business_glossary_term' = 'Template Type');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `thumbnail_url` SET TAGS ('dbx_business_glossary_term' = 'Thumbnail Url');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `unsubscribe_link_required` SET TAGS ('dbx_business_glossary_term' = 'Unsubscribe Link Required');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `usage_count` SET TAGS ('dbx_business_glossary_term' = 'Usage Count');
+ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `usage_count` SET TAGS ('dbx_pii_tracked' = 'true');
 ALTER TABLE `vibe_travel_hospitality_v1`.`marketing`.`communication_template` ALTER COLUMN `created_by` SET TAGS ('dbx_business_glossary_term' = 'Created By');

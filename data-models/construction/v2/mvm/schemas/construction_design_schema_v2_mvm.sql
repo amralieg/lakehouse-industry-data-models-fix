@@ -1,5 +1,5 @@
 -- Schema for Domain: design | Business: Construction | Version: v2_mvm
--- Generated on: 2026-06-22 17:24:51
+-- Generated on: 2026-06-27 01:56:03
 
 -- ========= DATABASE =========
 CREATE DATABASE IF NOT EXISTS `vibe_construction_v1`.`design` COMMENT 'Engineering and design domain owning BIM models, CAD drawings, technical specifications, design packages, RFIs, submittals, clash detection, document control registers, transmittals, correspondence, workflow approvals, and handover documentation for construction projects';
@@ -7,8 +7,8 @@ CREATE DATABASE IF NOT EXISTS `vibe_construction_v1`.`design` COMMENT 'Engineeri
 -- ========= TABLES =========
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`transmittal` (
     `transmittal_id` BIGINT COMMENT 'Unique identifier for the transmittal record. Primary key for the transmittal entity.',
-    `construction_project_id` BIGINT COMMENT 'Reference to the construction project for which this transmittal is issued. Links transmittal to the parent project context.',
-    `contact_id` BIGINT COMMENT 'Foreign key linking to client.contact. Business justification: Transmittal correspondence management requires linking each transmittal to the specific client contact who received it. Supports contractual correspondence audit trails, dispute resolution, and client',
+    `phase_id` BIGINT COMMENT 'Reference to the project phase or stage during which this transmittal is issued. Provides temporal context within the project lifecycle.',
+    `vendor_id` BIGINT COMMENT 'Foreign key linking to procurement.vendor. Business justification: Design transmittals are formally issued to vendors in construction (RFQ packages, IFC drawings, specifications). recipient_organization is a plain-text denormalization when the recipient is a vendor. ',
     `account_id` BIGINT COMMENT 'Foreign key linking to client.account. Business justification: Transmittal origin must be linked to the client account for contract document tracking and regulatory filing.',
     `acknowledgement_by` STRING COMMENT 'Full name of the individual who provided formal acknowledgement on behalf of the recipient organization. Establishes personal accountability for receipt confirmation.',
     `acknowledgement_date` DATE COMMENT 'The date when the recipient formally acknowledged receipt of the transmittal. Null if not yet acknowledged. Provides legally defensible proof of document delivery.',
@@ -25,7 +25,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`transmittal` (
     `modified_timestamp` TIMESTAMP COMMENT 'Timestamp when the transmittal record was last modified or updated. Tracks the most recent change to the record for audit and version control purposes.',
     `priority` STRING COMMENT 'Priority level assigned to the transmittal indicating the urgency of review or response required from the recipient. Guides workflow prioritization.. Valid values are `urgent|high|normal|low`',
     `purpose_of_issue` STRING COMMENT 'The intended purpose or action required from the recipient upon receiving the transmittal. Defines the business intent behind the document distribution and guides recipient response obligations.. Valid values are `for_approval|for_information|for_construction|for_record|for_review|for_comment`',
-    `recipient_email` STRING COMMENT 'Email address of the recipient contact for delivery confirmation and acknowledgement of the transmittal.. Valid values are `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$`',
     `recipient_organization` STRING COMMENT 'Name of the organization or company receiving the transmittal. Identifies the party to whom the documents are being dispatched.',
     `reference_transmittal_number` STRING COMMENT 'Transmittal number of a previous or related transmittal that this transmittal references, supersedes, or responds to. Establishes document lineage and traceability.',
     `remarks` STRING COMMENT 'Additional notes, comments, or special instructions related to the transmittal that do not fit in other structured fields. Provides supplementary context.',
@@ -36,18 +35,18 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`transmittal` (
     `transmittal_number` STRING COMMENT 'Unique business identifier for the transmittal as recognized by all project parties. Typically follows project-specific numbering conventions and serves as the externally-known reference for document distribution tracking.. Valid values are `^[A-Z0-9-]+$`',
     `transmittal_status` STRING COMMENT 'Current lifecycle status of the transmittal indicating its position in the document distribution workflow. Tracks progression from draft through issuance to acknowledgement or closure.. Valid values are `draft|issued|acknowledged|rejected|superseded|closed`',
     CONSTRAINT pk_transmittal PRIMARY KEY(`transmittal_id`)
-) COMMENT 'Records the formal dispatch of documents, drawings, and submittals between project parties via Aconex transmittals. Captures transmittal number, issue date, sender organization, recipient organization, purpose of issue (for approval, for information, for construction, for record), document list, and acknowledgement status. Provides a legally defensible audit trail of document distribution throughout the project lifecycle. Canonical design.transmittal entity (v2 curated).';
+) COMMENT 'Records the formal dispatch of documents, drawings, and submittals between project parties via Aconex transmittals. Captures transmittal number, issue date, sender organization, recipient organization, purpose of issue (for approval, for information, for construction, for record), document list, and acknowledgement status. Provides a legally defensible audit trail of document distribution throughout the project lifecycle.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`rfi` (
     `rfi_id` BIGINT COMMENT 'Primary key for rfi',
-    `contact_id` BIGINT COMMENT 'Foreign key linking to client.contact. Business justification: RFIs in construction are directed to or raised by a specific client contact (e.g., clients design manager). Linking RFI to the client contact enables RFI response SLA tracking, client reporting, and ',
-    `construction_project_id` BIGINT COMMENT 'Reference to the construction project to which this RFI belongs.',
+    `account_id` BIGINT COMMENT 'Foreign key linking to client.account. Business justification: RFI management requires tracking which client account the RFI is raised against for client-specific RFI registers, escalation reporting, and contractual response-time SLA monitoring. A construction do',
     `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: RFIs may result in cost changes; linking each RFI to the relevant cost code enables cost impact analysis.',
+    `project_budget_id` BIGINT COMMENT 'Foreign key linking to finance.project_budget. Business justification: RFIs with cost_impact_flag=true must be traced to the specific budget line affected for cost impact management and budget variance reporting. Project controls engineers use rfi→project_budget traceabi',
     `actual_response_date` DATE COMMENT 'The actual date on which the RFI response was provided and recorded in the system.',
     `closure_date` DATE COMMENT 'The date on which the RFI was formally closed after response acceptance and any required follow-up actions were completed.',
     `closure_notes` STRING COMMENT 'Additional notes or comments recorded at the time of RFI closure, documenting final resolution or outstanding items.',
     `cost_impact_amount` DECIMAL(18,2) COMMENT 'Estimated financial impact (in project currency) resulting from the RFI clarification, if applicable.',
-    `cost_impact_flag` DECIMAL(18,2) COMMENT 'Indicates whether the RFI response has identified a potential cost impact to the project, triggering change order evaluation.',
+    `cost_impact_flag` BOOLEAN COMMENT 'Indicates whether the RFI response has identified a potential cost impact to the project, triggering change order evaluation.',
     `created_timestamp` TIMESTAMP COMMENT 'The timestamp when this RFI record was first created in the data platform.',
     `date_raised` DATE COMMENT 'The date on which the RFI was formally submitted or raised in the project management system.',
     `rfi_description` STRING COMMENT 'Detailed description of the question, issue, or clarification being requested, including context and specific areas of concern.',
@@ -64,14 +63,12 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`rfi` (
     `schedule_impact_flag` BOOLEAN COMMENT 'Indicates whether the RFI response has identified a potential schedule impact, potentially triggering an Extension of Time (EOT) request.',
     `subject` STRING COMMENT 'Brief title or subject line summarizing the nature of the clarification request.',
     CONSTRAINT pk_rfi PRIMARY KEY(`rfi_id`)
-) COMMENT 'Request for Information records capturing formal queries raised by contractors seeking clarification on design intent, specifications, or contract documents. Tracks RFI number, subject, discipline, originator, addressee, date raised, response due date, actual response date, response content, cost/schedule impact assessment, linked drawing or specification reference, and closure status. High-volume transactional entity critical for design coordination and contractual record-keeping. Sourced from Procore RFI module and Aconex. Canonical design.rfi entity (v2 curated).';
+) COMMENT 'Request for Information records capturing formal queries raised by contractors seeking clarification on design intent, specifications, or contract documents. Tracks RFI number, subject, discipline, originator, addressee, date raised, response due date, actual response date, response content, cost/schedule impact assessment, linked drawing or specification reference, and closure status. High-volume transactional entity critical for design coordination and contractual record-keeping. Sourced from Procore RFI module and Aconex.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`document_register` (
     `document_register_id` BIGINT COMMENT 'Unique identifier for the document register entry. Primary key for the document register product.',
-    `construction_project_id` BIGINT COMMENT 'Reference to the construction project this document belongs to.',
-    `agreement_id` BIGINT COMMENT 'Foreign key linking to subcontractor.contract_agreement. Business justification: Documents often belong to a subcontractor contract; FK supports contract‑based document control, retention, and regulatory reporting.',
-    `rfi_id` BIGINT COMMENT 'Foreign key linking to design.rfi. Business justification: RFI is currently siloed; adding a foreign key from document_register to rfi creates an inbound link and removes the redundant string reference column.',
-    `transmittal_id` BIGINT COMMENT 'Foreign key linking to design.transmittal. Business justification: document_register.transmittal_number is a denormalized STRING reference to the most recent transmittal associated with this document. Replacing with transmittal_id FK normalizes the relationship and r',
+    `package_id` BIGINT COMMENT 'Foreign key linking to design.package. Business justification: Documents in the register are organized and issued as part of formal design packages. Adding document_register.package_id as a FK to design.package.package_id links each document register entry to its',
+    `transmittal_id` BIGINT COMMENT 'Foreign key linking to design.transmittal. Business justification: Documents in the register are formally issued via transmittals. document_register.transmittal_number is a denormalized STRING reference. Adding document_register.transmittal_id as a FK to design.trans',
     `approval_date` DATE COMMENT 'Date when the document received formal approval from the designated approver.',
     `approver_name` STRING COMMENT 'Name of the individual who provided final approval for the document to be issued.',
     `confidentiality_classification` STRING COMMENT 'Security classification level of the document content determining access rights and distribution restrictions.. Valid values are `public|internal|confidential|restricted`',
@@ -102,13 +99,13 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`document_register` (
     `superseded_by_document_number` STRING COMMENT 'Document number of the newer document that supersedes this document, if applicable. Used to maintain document lineage and version control.',
     `supersedes_document_number` STRING COMMENT 'Document number of the older document that this document supersedes or replaces.',
     CONSTRAINT pk_document_register PRIMARY KEY(`document_register_id`)
-) COMMENT 'Central master register of all project documents beyond drawings — including specifications, reports, procedures, method statements, O&M manuals, certificates, and correspondence — managed in Aconex CDE (Common Data Environment). Captures document number, title, document type, discipline, revision, status, originator, issue date, confidentiality classification, retention period, and numbering convention. Provides the authoritative catalog of all project documentation per ISO 19650 information container requirements. Canonical design.document_register entity (v2 curated).';
+) COMMENT 'Central master register of all project documents beyond drawings — including specifications, reports, procedures, method statements, O&M manuals, certificates, and correspondence — managed in Aconex CDE (Common Data Environment). Captures document number, title, document type, discipline, revision, status, originator, issue date, confidentiality classification, retention period, and numbering convention. Provides the authoritative catalog of all project documentation per ISO 19650 information container requirements.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`revision` (
     `revision_id` BIGINT COMMENT 'Primary key for revision',
     `document_register_id` BIGINT COMMENT 'Reference to the parent document in the document register. Links this revision to its master document record.',
     `superseded_revision_id` BIGINT COMMENT 'Reference to the previous revision that this version replaces. Maintains the revision chain and version history.',
-    `transmittal_id` BIGINT COMMENT 'Foreign key linking to design.transmittal. Business justification: revision.transmittal_number is a denormalized STRING reference to the transmittal that distributed this document revision. Replacing it with a proper FK transmittal_id → design.transmittal.transmittal',
+    `transmittal_id` BIGINT COMMENT 'Foreign key linking to design.transmittal. Business justification: Document revisions are issued and distributed via transmittals. revision.transmittal_number is a denormalized STRING reference to the transmittal. Adding revision.transmittal_id as a FK to design.tran',
     `approval_date` DATE COMMENT 'Date when this revision was officially approved for issuance. Represents a distinct lifecycle event in the approval workflow.',
     `approver_name` STRING COMMENT 'Full name of the individual who approved this revision for release. Authorized signatory for document issuance.',
     `author_name` STRING COMMENT 'Full name of the individual who authored or prepared this revision. Responsible party for the content creation.',
@@ -134,15 +131,12 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`revision` (
     `revision_type` STRING COMMENT 'Classification of the revision based on the nature and impact of changes. Distinguishes between routine updates and significant modifications.. Valid values are `initial|minor|major|emergency|regulatory`',
     `sheet_count` STRING COMMENT 'Total number of sheets or drawings in this revision (applicable for CAD and BIM documents). Used for drawing set completeness checks.',
     CONSTRAINT pk_revision PRIMARY KEY(`revision_id`)
-) COMMENT 'Version control record for each document in the document register, capturing revision identifier, revision date, revision description, author, reviewer, approver, change summary, superseded revision reference, and file storage path. Maintains a complete and auditable version history for all project documents to support regulatory compliance, handover, and DLP (Defects Liability Period) obligations. Canonical design.revision entity (v2 curated).';
+) COMMENT 'Version control record for each document in the document register, capturing revision identifier, revision date, revision description, author, reviewer, approver, change summary, superseded revision reference, and file storage path. Maintains a complete and auditable version history for all project documents to support regulatory compliance, handover, and DLP (Defects Liability Period) obligations.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`workflow_approval` (
     `workflow_approval_id` BIGINT COMMENT 'Unique identifier for the workflow approval instance. Primary key for the workflow approval entity.',
-    `contact_id` BIGINT COMMENT 'Foreign key linking to client.contact. Business justification: Client contacts frequently participate as external reviewers in document approval workflows (e.g., clients engineer approving IFC drawings). Linking to client.contact supports approval audit trails, ',
-    `construction_project_id` BIGINT COMMENT 'Reference to the construction project to which this workflow approval belongs. Enables project-level reporting and audit trails.',
     `document_register_id` BIGINT COMMENT 'Reference to the document or deliverable under review in this workflow. Links to the document management system record.',
-    `revision_id` BIGINT COMMENT 'Foreign key linking to design.revision. Business justification: workflow_approval.revision_number is a denormalized STRING reference to the document revision under review. In document control, approval workflows are initiated for a specific revision of a document ',
-    `submittal_id` BIGINT COMMENT 'Foreign key linking to design.design_submittal. Business justification: In construction design management, formal multi-step approval workflows (tracked in workflow_approval) are frequently initiated specifically for design submittals — shop drawings, material submittals,',
+    `revision_id` BIGINT COMMENT 'Foreign key linking to design.revision. Business justification: Workflow approvals are initiated to formally approve a specific document revision. workflow_approval.revision_number is a denormalized STRING reference to the revision being approved. Adding workflow_',
     `action_date` TIMESTAMP COMMENT 'Date and time when the reviewer recorded their approval decision or action. Used for SLA compliance tracking and audit trail.',
     `action_taken` STRING COMMENT 'The decision or action recorded by the reviewer at the current workflow step. Determines routing to next step or workflow termination. [ENUM-REF-CANDIDATE: approved|approved_with_comments|rejected|no_objection|commented|delegated|returned_for_revision|acknowledged|pending — 9 candidates stripped; promote to reference product]',
     `approval_authority_level` STRING COMMENT 'The organizational or contractual authority level required to approve this workflow. Determines who has final sign-off rights per delegation of authority matrix. [ENUM-REF-CANDIDATE: project_team|discipline_lead|project_manager|design_manager|technical_director|client_representative|regulatory_authority — 7 candidates stripped; promote to reference product]',
@@ -174,12 +168,13 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`workflow_approval` (
     `workflow_status` STRING COMMENT 'Current lifecycle state of the workflow approval. Tracks progression through the approval chain from initiation to final outcome. [ENUM-REF-CANDIDATE: initiated|in_progress|pending_review|approved|rejected|on_hold|cancelled|completed — 8 candidates stripped; promote to reference product]',
     `workflow_type` STRING COMMENT 'Classification of the workflow approval by business purpose. Determines routing rules, SLA targets, and approval authority requirements. [ENUM-REF-CANDIDATE: design_review|submittal_approval|rfi_response|change_order_approval|drawing_approval|specification_review|technical_query|document_transmittal|noncompliance_review|method_statement_approval — 10 candidates stripped; promote to reference product]',
     CONSTRAINT pk_workflow_approval PRIMARY KEY(`workflow_approval_id`)
-) COMMENT 'Formal document review and approval workflow instances tracking multi-step approval chains in Aconex and BIM 360 CDE. Captures workflow template, document under review, step sequence, assigned reviewer (role and individual), action taken (approved, rejected, commented, delegated, no objection), action date, reviewer comments, SLA target vs actual duration, and overall workflow outcome. Provides the legally required audit trail of all document approval decisions for ISO 9001 quality management, ISO 19650 information management, and contractual compliance under FIDIC/NEC. Canonical design.workflow_approval entity (v2 curated).';
+) COMMENT 'Formal document review and approval workflow instances tracking multi-step approval chains in Aconex and BIM 360 CDE. Captures workflow template, document under review, step sequence, assigned reviewer (role and individual), action taken (approved, rejected, commented, delegated, no objection), action date, reviewer comments, SLA target vs actual duration, and overall workflow outcome. Provides the legally required audit trail of all document approval decisions for ISO 9001 quality management, ISO 19650 information management, and contractual compliance under FIDIC/NEC.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`bim_model` (
     `bim_model_id` BIGINT COMMENT 'Unique identifier for the BIM model record. Primary key for the BIM model entity.',
-    `construction_project_id` BIGINT COMMENT 'Reference to the construction project this BIM model belongs to. Links the model to its parent project context.',
-    `master_id` BIGINT COMMENT 'Foreign key linking to material.material_master. Business justification: BIM model material library requires linking each model to its material master for quantity take‑off and clash detection.',
+    `asset_id` BIGINT COMMENT 'Foreign key linking to equipment.asset. Business justification: BIM models represent specific physical assets in ISO 19650 digital twin and asset handover workflows. Linking bim_model to asset enables BIM model for this asset queries critical for facilities mana',
+    `package_id` BIGINT COMMENT 'Foreign key linking to design.package. Business justification: BIM models are formally issued as part of design deliverable packages at project milestones. Adding bim_model.package_id as a FK to design.package.package_id links each BIM model to the design package',
+    `phase_id` BIGINT COMMENT 'Foreign key linking to project.phase. Business justification: BIM models progress through LOD levels tied to project phases (LOD 100 concept → LOD 500 as-built) per ISO 19650. BIM managers track model versions by phase for BIM Execution Plan compliance. Phase-ba',
     `superseded_by_model_bim_model_id` BIGINT COMMENT 'Reference to the newer BIM model version that replaces this one. Null if this is the current version.',
     `author_organization` STRING COMMENT 'Organization or company responsible for authoring the BIM model (e.g., design consultant, contractor).',
     `authoring_software` STRING COMMENT 'Software application used to create and edit the BIM model (e.g., Autodesk Revit, Bentley MicroStation, ArchiCAD, Tekla Structures).',
@@ -193,7 +188,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`bim_model` (
     `discipline` STRING COMMENT 'Engineering or design discipline that owns this BIM model. Determines the technical domain and responsible team. [ENUM-REF-CANDIDATE: architectural|structural|mechanical|electrical|plumbing|civil|geotechnical|landscape|interior_design|fire_protection|telecommunications|environmental — 12 candidates stripped; promote to reference product]',
     `element_count` STRING COMMENT 'Total number of BIM elements (objects) contained in the model. Indicator of model complexity.',
     `external_reference_code` STRING COMMENT 'Identifier from the source system (Autodesk BIM 360, Bentley ProjectWise) for integration and synchronization.',
-    `federation_role` DECIMAL(18,2) COMMENT 'Role of this model in federated model assembly. Determines how it integrates with other discipline models.',
+    `federation_role` STRING COMMENT 'Role of this model in federated model assembly. Determines how it integrates with other discipline models.. Valid values are `host|linked|standalone|reference`',
     `file_format` STRING COMMENT 'Native or exchange file format of the BIM model. Determines interoperability and viewing requirements. [ENUM-REF-CANDIDATE: RVT|NWD|NWC|IFC|DWG|DGN|SKP|RFA|DXF — 9 candidates stripped; promote to reference product]',
     `file_size_mb` DECIMAL(18,2) COMMENT 'Size of the BIM model file in megabytes. Used for storage planning and performance optimization.',
     `iso_19650_compliance_flag` BOOLEAN COMMENT 'Indicates whether the BIM model meets ISO 19650 information management requirements and standards.',
@@ -216,15 +211,11 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`bim_model` (
     `storage_location` STRING COMMENT 'File path or cloud storage location where the BIM model file is stored (e.g., BIM 360 project folder, SharePoint path).',
     `wbs_code` STRING COMMENT 'Work Breakdown Structure code linking the BIM model to specific project scope and cost accounts.',
     CONSTRAINT pk_bim_model PRIMARY KEY(`bim_model_id`)
-) COMMENT 'Master record for each Building Information Model (BIM) asset managed in Autodesk BIM 360, Bentley ProjectWise, or equivalent platform. Captures model identity, discipline (architectural, structural, MEP, civil), authoring software and version, file format (RVT, IFC, NWD), project coordinate system, geolocation reference point, LOD (Level of Development) classification per AIA E202/BIMForum LOD Specification, model status (WIP, shared, published, archived), lifecycle stage, federation role (host/linked), and file size. SSOT for all 3D model metadata across the project portfolio, enabling federated model assembly, clash detection workflows, 4D/5D BIM integration, and ISO 19650 information management compliance. Canonical design.bim_model entity (v2 curated).';
+) COMMENT 'Master record for each Building Information Model (BIM) asset managed in Autodesk BIM 360, Bentley ProjectWise, or equivalent platform. Captures model identity, discipline (architectural, structural, MEP, civil), authoring software and version, file format (RVT, IFC, NWD), project coordinate system, geolocation reference point, LOD (Level of Development) classification per AIA E202/BIMForum LOD Specification, model status (WIP, shared, published, archived), lifecycle stage, federation role (host/linked), and file size. SSOT for all 3D model metadata across the project portfolio, enabling federated model assembly, clash detection workflows, 4D/5D BIM integration, and ISO 19650 information management compliance.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`drawing` (
     `drawing_id` BIGINT COMMENT 'Unique identifier for the engineering or construction drawing record. Primary key.',
     `bim_model_id` BIGINT COMMENT 'Foreign key linking to design.bim_model. Business justification: Drawing belongs to a BIM model; replace string reference with proper FK to BIM model for traceability.',
-    `contact_id` BIGINT COMMENT 'Foreign key linking to client.contact. Business justification: Drawings in construction require formal client sign-off before construction proceeds. Linking to the specific client contact who approved the drawing supports contractual drawing approval audit trails',
-    `construction_project_id` BIGINT COMMENT 'Reference to the construction project to which this drawing belongs.',
-    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Construction drawings are assigned cost codes for design phase cost tracking and earned value measurement. Cost engineers allocate drawing production costs to specific cost codes; this link enables de',
-    `master_id` BIGINT COMMENT 'Foreign key linking to material.material_master. Business justification: Drawings contain material call‑outs; linking to material_master enables procurement and verification of specified materials.',
     `approval_date` DATE COMMENT 'Date when the drawing was formally approved for issue.',
     `approver_name` STRING COMMENT 'Name of the individual who approved the drawing for issue.',
     `cad_file_name` STRING COMMENT 'Name of the CAD source file from which the drawing was generated.',
@@ -261,16 +252,18 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`drawing` (
     `zone_location` STRING COMMENT 'Physical zone, building, or location within the project site that the drawing depicts.',
     `created_by` STRING COMMENT 'Username or identifier of the user who created the drawing record in the system.',
     CONSTRAINT pk_drawing PRIMARY KEY(`drawing_id`)
-) COMMENT 'Master record for each engineering and construction drawing (CAD/BIM-derived) managed across the project. Tracks drawing number, title, discipline, sheet size, scale, revision number, current status (issued for construction, issued for review, superseded), originator, and approval state. Serves as the SSOT for the drawing register aligned with Autodesk BIM 360 document control. Canonical design.drawing entity (v2 curated).';
+) COMMENT 'Master record for each engineering and construction drawing (CAD/BIM-derived) managed across the project. Tracks drawing number, title, discipline, sheet size, scale, revision number, current status (issued for construction, issued for review, superseded), originator, and approval state. Serves as the SSOT for the drawing register aligned with Autodesk BIM 360 document control.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`drawing_revision` (
     `drawing_revision_id` BIGINT COMMENT 'Unique identifier for each drawing revision event. Primary key for the drawing revision record.',
-    `bim_model_id` BIGINT COMMENT 'Foreign key linking to design.bim_model. Business justification: drawing_revision.bim_model_reference is a denormalized STRING reference to the BIM model from which this drawing revision was derived. In BIM-enabled construction projects, drawings are extracted from',
+    `bim_model_id` BIGINT COMMENT 'Foreign key linking to design.bim_model. Business justification: Drawing revisions are derived from or associated with a specific BIM model version. drawing_revision.bim_model_reference is a denormalized STRING reference to the source BIM model. Adding drawing_revi',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project this drawing revision is associated with. Enables project-level filtering and reporting.',
     `drawing_id` BIGINT COMMENT 'Reference to the parent drawing document that this revision belongs to. Links to the master drawing record in the document management system.',
+    `incident_id` BIGINT COMMENT 'Foreign key linking to safety.incident. Business justification: Drawing revisions triggered by safety incidents (design error caused an incident, requiring corrective drawing revision) must be traceable to the originating incident. Incident investigators and desig',
+    `package_id` BIGINT COMMENT 'Foreign key linking to design.package. Business justification: Drawing revisions are formally issued as part of design packages at project milestones. Adding drawing_revision.package_id as a FK to design.package.package_id links each drawing revision event to the',
     `rfi_id` BIGINT COMMENT 'Foreign key linking to design.rfi. Business justification: Provides a second inbound link to RFI from drawing_revision, consolidating the existing string reference into a proper FK.',
     `superseded_revision_drawing_revision_id` BIGINT COMMENT 'Reference to the previous revision that this revision replaces or supersedes. Maintains the version control chain and audit trail.',
-    `transmittal_id` BIGINT COMMENT 'Foreign key linking to design.transmittal. Business justification: drawing_revision.transmittal_number is a denormalized STRING reference to the transmittal used to issue this drawing revision to project parties. Replacing with transmittal_id FK normalizes the relati',
+    `transmittal_id` BIGINT COMMENT 'Foreign key linking to design.transmittal. Business justification: Each drawing revision is distributed via a formal transmittal. drawing_revision.transmittal_number is a denormalized STRING reference. Adding drawing_revision.transmittal_id as a FK to design.transmit',
     `acknowledgment_required_flag` BOOLEAN COMMENT 'Indicates whether recipients are required to formally acknowledge receipt and review of this revision. Used for critical or contractual revisions.',
     `acknowledgment_status` STRING COMMENT 'Current status of acknowledgment from recipients. Tracks whether required acknowledgments have been received.. Valid values are `not_required|pending|acknowledged|overdue`',
     `approval_date` DATE COMMENT 'Date when this revision received formal approval for issuance. Marks the transition from draft to approved status.',
@@ -300,14 +293,15 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`drawing_revision` (
     `sheet_count` STRING COMMENT 'Number of sheets or pages in this drawing revision. Relevant for multi-sheet drawings and printing logistics.',
     `wbs_code` STRING COMMENT 'The WBS element or work package code that this drawing revision is associated with. Enables project structure-based reporting and cost allocation.',
     CONSTRAINT pk_drawing_revision PRIMARY KEY(`drawing_revision_id`)
-) COMMENT 'Transactional record capturing each revision event for a drawing. Stores revision code, revision date, description of changes, reason for revision (RFI-driven, design change, client instruction), issuing engineer, reviewer, approver, and distribution status. Enables full version-control audit trail for IFC/CAD drawing lifecycle. Canonical design.drawing_revision entity (v2 curated).';
+) COMMENT 'Transactional record capturing each revision event for a drawing. Stores revision code, revision date, description of changes, reason for revision (RFI-driven, design change, client instruction), issuing engineer, reviewer, approver, and distribution status. Enables full version-control audit trail for IFC/CAD drawing lifecycle.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`technical_specification` (
     `technical_specification_id` BIGINT COMMENT 'Unique identifier for the technical specification document. Primary key for this entity.',
-    `asset_category_id` BIGINT COMMENT 'Foreign key linking to equipment.asset_category. Business justification: Technical specifications are authored per equipment category (e.g., Tower Crane Specification, Concrete Pump Specification). Procurement, maintenance strategy, and regulatory compliance processes ',
-    `construction_project_id` BIGINT COMMENT 'Reference to the construction project this technical specification belongs to. Links specification to project scope and WBS (Work Breakdown Structure).',
-    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Technical specifications are coded to cost codes for design cost allocation and BOQ cost estimation. In construction, specifications drive material and workmanship cost codes; this link enables specif',
-    `master_id` BIGINT COMMENT 'Foreign key linking to material.material_master. Business justification: Technical specifications list required materials; FK to material_master supports compliance checks and sourcing.',
+    `asset_category_id` BIGINT COMMENT 'Foreign key linking to equipment.asset_category. Business justification: Technical specifications govern procurement, installation, and maintenance standards for an equipment category (e.g., crane specs, generator specs). Procurement and QA teams run specifications by equ',
+    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Technical specifications are organized by CSI division and drive material/workmanship cost estimates. Linking specification to cost_code enables QS/estimating teams to allocate budget by specification',
+    `hazard_register_id` BIGINT COMMENT 'Foreign key linking to safety.hazard_register. Business justification: Technical specifications for hazardous materials (asbestos, chemicals, explosives) must reference the hazard register entry. Spec authors and HSE officers must confirm spec requirements align with reg',
+    `phase_id` BIGINT COMMENT 'Foreign key linking to project.phase. Business justification: Technical specifications are developed and approved per project phase (basis of design, detailed design, construction). Phase-gated specification approval is required for design gate reviews. Specific',
+    `skill_trade_id` BIGINT COMMENT 'Foreign key linking to workforce.skill_trade. Business justification: Technical specifications define workmanship standards and mandatory trade qualifications (e.g., AWS D1.1 welding cert for structural steel specs). Linking spec to skill_trade enables staffing plan val',
     `applicable_standards` STRING COMMENT 'Comma-separated list of industry standards, codes, and regulations that govern this specification (e.g., ACI 318, AISC 360, NFPA 70, ASTM C150, BS EN 1992).',
     `approval_date` DATE COMMENT 'Date when the specification received formal approval from the designated approval authority (client, design manager, or regulatory body).',
     `approval_status` STRING COMMENT 'Formal approval state indicating whether the specification has received necessary sign-offs from design authority, client, or regulatory bodies.. Valid values are `pending|approved|rejected|conditional|not_required`',
@@ -348,18 +342,60 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`technical_specification
     `wbs_code` STRING COMMENT 'WBS element code linking this specification to specific project deliverables, work packages, or cost accounts for scope and budget management.',
     `workmanship_standards` STRING COMMENT 'Standards and requirements for execution, installation, fabrication, and construction methods to ensure quality workmanship.',
     CONSTRAINT pk_technical_specification PRIMARY KEY(`technical_specification_id`)
-) COMMENT 'Master record for each technical specification document governing materials, workmanship, and construction methods. Captures spec number, title, discipline, applicable standards (ACI, AISC, NFPA), revision status, approval state, and scope of work section reference. Linked to WBS elements and BOQ line items for design-build scope management. Canonical design.technical_specification entity (v2 curated).';
+) COMMENT 'Master record for each technical specification document governing materials, workmanship, and construction methods. Captures spec number, title, discipline, applicable standards (ACI, AISC, NFPA), revision status, approval state, and scope of work section reference. Linked to WBS elements and BOQ line items for design-build scope management.';
 
-CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`submittal` (
-    `submittal_id` BIGINT COMMENT 'Unique identifier for the design submittal record. Primary key for the design submittal entity.',
-    `bim_model_id` BIGINT COMMENT 'Foreign key linking to design.bim_model. Business justification: design_submittal.bim_model_reference is a denormalized STRING reference to the BIM model associated with this submittal. BIM model submittals are a specific and increasingly common type of design subm',
-    `construction_project_id` BIGINT COMMENT 'Reference to the construction project to which this submittal belongs.',
-    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Design submittal is generated from a specific drawing, may be triggered by an RFI and sent via a transmittal; replace free‑text references with FKs.',
-    `drawing_revision_id` BIGINT COMMENT 'Foreign key linking to design.drawing_revision. Business justification: A design submittal (particularly shop drawing submittals) is submitted at a specific drawing revision level. design_submittal already has drawing_id → design.drawing, but linking to the specific drawi',
+CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`package` (
+    `package_id` BIGINT COMMENT 'Unique identifier for the design deliverable package. Primary key.',
+    `phase_id` BIGINT COMMENT 'Foreign key linking to project.phase. Business justification: Design packages are issued per project phase (concept, FEED, detailed design, IFC). Phase-gated package approval is a standard design management process. Design managers report package completion by p',
+    `project_budget_id` BIGINT COMMENT 'Foreign key linking to finance.project_budget. Business justification: Design packages (IFC, IFT, IFR) are contractual deliverables tied to milestone payments and budget drawdowns. Linking package to project_budget enables earned value tracking — when a package is approv',
+    `transmittal_id` BIGINT COMMENT 'Foreign key linking to design.transmittal. Business justification: A design package is formally dispatched via a transmittal. package.transmittal_number is a denormalized STRING reference to the transmittal record. Adding package.transmittal_id as a proper FK to desi',
+    `actual_submission_date` DATE COMMENT 'Actual date when the package was submitted to the client or reviewing authority.',
+    `approval_date` DATE COMMENT 'Date when the package received final internal approval for issuance.',
+    `approval_workflow_state` STRING COMMENT 'Current state of the internal approval workflow for this package before external submission. [ENUM-REF-CANDIDATE: not_started|in_progress|pending_review|pending_approval|approved|rejected|on_hold — 7 candidates stripped; promote to reference product]',
+    `approved_by` STRING COMMENT 'Name of the individual with authority who approved the package for issuance.',
+    `bim_model_reference` STRING COMMENT 'Reference identifier or file path to the BIM model associated with this package.',
+    `client_acceptance_date` DATE COMMENT 'Date when the client formally accepted the package.',
+    `client_acceptance_status` STRING COMMENT 'Client or authority acceptance decision status for the submitted package.. Valid values are `pending|accepted|accepted_with_comments|rejected|conditionally_accepted|superseded`',
+    `comments` STRING COMMENT 'Additional notes, remarks, or instructions related to this package.',
+    `completeness_percentage` DECIMAL(18,2) COMMENT 'Percentage of required deliverable items completed within this package (0.00 to 100.00).',
+    `confidentiality_classification` STRING COMMENT 'Data classification level indicating the sensitivity and access restrictions for this package.. Valid values are `public|internal|confidential|restricted`',
+    `contractual_due_date` DATE COMMENT 'Contractually mandated deadline for package submission to client or authority.',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this package record was first created in the system.',
+    `discipline` STRING COMMENT 'Primary engineering or design discipline responsible for this package. [ENUM-REF-CANDIDATE: architectural|structural|mechanical|electrical|plumbing|civil|geotechnical|environmental|multidisciplinary — 9 candidates stripped; promote to reference product]',
+    `document_count` STRING COMMENT 'Total number of documents (drawings, specifications, reports, models) included in this package.',
+    `drawing_count` STRING COMMENT 'Number of CAD drawings included in this package.',
+    `iso_19650_compliance_flag` BOOLEAN COMMENT 'Indicates whether this package complies with ISO 19650 information management standards.',
+    `issue_date` DATE COMMENT 'Date when the package was formally issued to recipients or stakeholders.',
+    `last_modified_timestamp` TIMESTAMP COMMENT 'Timestamp when this package record was last updated or modified.',
+    `milestone_stage` STRING COMMENT 'Design milestone stage at which this package is issued. IFC = Issued for Construction, IFD = Issued for Design. [ENUM-REF-CANDIDATE: concept|preliminary|30_percent|60_percent|90_percent|ifc|ifd|as_built — 8 candidates stripped; promote to reference product]',
+    `package_number` STRING COMMENT 'Business identifier for the design deliverable package, typically following project numbering conventions (e.g., PKG-001, DP-2023-045).',
+    `package_status` STRING COMMENT 'Current lifecycle status of the design deliverable package in the approval and submission workflow. [ENUM-REF-CANDIDATE: draft|in_review|approved|issued|submitted|accepted|rejected|superseded|cancelled — 9 candidates stripped; promote to reference product]',
+    `package_type` STRING COMMENT 'Classification of the package based on its purpose and content type within the project lifecycle.. Valid values are `design_package|deliverable_package|submittal_package|handover_package|as_built_package|coordination_package`',
+    `planned_issue_date` DATE COMMENT 'Originally scheduled date for package issuance as per project baseline schedule.',
+    `recipient_distribution_list` STRING COMMENT 'Comma-separated list of organizations or individuals to whom this package is distributed.',
+    `rejection_reason` STRING COMMENT 'Explanation provided by client or reviewer for package rejection or conditional acceptance.',
+    `responsible_organization` STRING COMMENT 'Name of the organization (contractor, consultant, JV partner) responsible for preparing this package.',
+    `reviewed_by` STRING COMMENT 'Name of the individual or team who performed technical review of the package.',
+    `revision_number` STRING COMMENT 'Revision identifier for this package version (e.g., Rev 0, Rev A, Rev 1).',
+    `specification_count` STRING COMMENT 'Number of technical specifications included in this package.',
+    `storage_location` STRING COMMENT 'File system path, document management system location, or cloud storage URI where the package files are stored.',
+    `submission_status` STRING COMMENT 'Current status of the package submission to client or reviewing authority.. Valid values are `not_submitted|submitted|under_review|resubmission_required|accepted|rejected`',
+    `supersedes_package_number` STRING COMMENT 'Package number of the previous version that this package replaces or supersedes.',
+    `title` STRING COMMENT 'Descriptive title of the design deliverable package indicating its scope and content.',
+    `wbs_code` STRING COMMENT 'Work Breakdown Structure code linking this package to the project cost and schedule hierarchy.',
+    CONSTRAINT pk_package PRIMARY KEY(`package_id`)
+) COMMENT 'Master record representing a formal design deliverable package issued at a project milestone (30%, 60%, 90%, IFC, As-Built). Groups related drawings, specifications, calculations, and BIM models into a contractual issuance unit. Tracks package number, milestone stage, discipline, issue date, contractual due date, recipient distribution list, submission status, client acceptance status, and approval workflow state. Also serves as the contractual deliverable register (DDR), tracking each required deliverable item with its type (drawing, specification, report, model, calculation), responsible discipline, milestone linkage, planned vs. actual submission dates, and client acceptance status. SSOT for design deliverable scheduling, contractual compliance monitoring, and milestone gate readiness assessment.';
+
+CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`engineering_submittal` (
+    `engineering_submittal_id` BIGINT COMMENT 'Unique identifier for the design submittal record. Primary key for the design submittal entity.',
+    `bim_model_id` BIGINT COMMENT 'Foreign key linking to design.bim_model. Business justification: Engineering submittals (shop drawings, product data) are often derived from or reference a specific BIM model. engineering_submittal.bim_model_reference is a denormalized STRING reference to the sourc',
     `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Submittals are associated with cost items; linking to cost code supports cost allocation and audit of submitted items.',
     `master_id` BIGINT COMMENT 'Foreign key linking to material.material_master. Business justification: Material submittals reference specific material master records for approval and traceability.',
-    `rfi_id` BIGINT COMMENT 'Foreign key linking to design.rfi. Business justification: Link submittal to the originating RFI for clear traceability of query‑response flow.',
-    `technical_specification_id` BIGINT COMMENT 'Foreign key linking to design.technical_specification. Business justification: design_submittal.specification_section is a denormalized STRING reference to the technical specification section that governs this submittal. In construction, every design submittal is submitted again',
+    `package_id` BIGINT COMMENT 'Foreign key linking to design.package. Business justification: Engineering submittals are organized and issued as part of formal design packages. Adding engineering_submittal.package_id as a FK to design.package.package_id establishes the parent-child relationshi',
+    `project_budget_id` BIGINT COMMENT 'Foreign key linking to finance.project_budget. Business justification: Engineering submittals with cost_impact_flag=true require direct traceability to the budget line for cost impact authorization and budget variance reporting. The existing cost_code FK identifies the c',
+    `risk_assessment_id` BIGINT COMMENT 'Foreign key linking to safety.risk_assessment. Business justification: Engineering submittals for high-risk activities (confined space, hot work, lifting plans) must reference the governing risk assessment. Submittal reviewers explicitly verify risk assessment adequacy —',
+    `vendor_id` BIGINT COMMENT 'Foreign key linking to procurement.vendor. Business justification: Engineering submittals (shop drawings, material submittals) are submitted BY vendors in construction. submitting_organization is a plain-text denormalization. Structured FK enables vendor submittal pe',
+    `technical_specification_id` BIGINT COMMENT 'Foreign key linking to design.technical_specification. Business justification: Engineering submittals are submitted in compliance with a governing technical specification. engineering_submittal.specification_section (STRING) references a section within a specification, but there',
     `transmittal_id` BIGINT COMMENT 'Foreign key linking to design.transmittal. Business justification: Link submittal to the transmittal that delivered it, enabling end‑to‑end document flow tracking.',
     `actual_review_date` DATE COMMENT 'Actual date on which the review was completed and the submittal disposition was communicated back to the submitting party.',
     `actual_submission_date` DATE COMMENT 'Actual date on which the submittal was formally submitted to the reviewing authority, used for schedule performance tracking and SLA compliance.',
@@ -369,7 +405,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`submittal` (
     `attachment_count` STRING COMMENT 'Number of supporting documents, drawings, data sheets, or files attached to this submittal, used for completeness verification and document control.',
     `closure_date` DATE COMMENT 'Date on which the submittal was formally closed, indicating that all review cycles are complete, all comments are addressed, and the item is approved for construction or procurement.',
     `confidentiality_level` STRING COMMENT 'Data classification level indicating the sensitivity and access restrictions for this submittal: public for unrestricted information, internal for company-internal use, confidential for business-sensitive information, restricted for highly sensitive or proprietary data.. Valid values are `public|internal|confidential|restricted`',
-    `cost_impact_flag` DECIMAL(18,2) COMMENT 'Boolean indicator (True/False) denoting whether this submittal has potential cost implications, such as value engineering proposals, material substitutions, or design changes affecting project budget.',
+    `cost_impact_flag` BOOLEAN COMMENT 'Boolean indicator (True/False) denoting whether this submittal has potential cost implications, such as value engineering proposals, material substitutions, or design changes affecting project budget.',
     `created_timestamp` TIMESTAMP COMMENT 'System timestamp recording when this submittal record was first created in the document management system, used for audit trail and record lifecycle tracking.',
     `discipline` STRING COMMENT 'Engineering or design discipline responsible for this submittal, used for routing and review assignment. [ENUM-REF-CANDIDATE: architectural|structural|mechanical|electrical|plumbing|civil|geotechnical|environmental — 8 candidates stripped; promote to reference product]',
     `estimated_cost_impact_amount` DECIMAL(18,2) COMMENT 'Estimated financial impact (positive or negative) associated with this submittal, expressed in the project base currency. Positive values indicate cost increases, negative values indicate savings.',
@@ -387,6 +423,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`submittal` (
     `revision_number` STRING COMMENT 'Revision identifier for this submittal, incremented with each resubmission following review comments or rejection, typically using alphanumeric convention (e.g., A, B, C or 01, 02, 03).',
     `schedule_impact_days` STRING COMMENT 'Number of calendar days by which the project schedule would be delayed if this submittal is not approved by the review due date, used for schedule risk analysis.',
     `schedule_impact_flag` BOOLEAN COMMENT 'Boolean indicator (True/False) denoting whether delays in reviewing or approving this submittal will impact the project critical path or key milestone dates.',
+    `specification_section` STRING COMMENT 'Reference to the technical specification section that governs this submittal, typically using CSI MasterFormat division and section numbering (e.g., 03 30 00 for Cast-in-Place Concrete, 23 05 00 for HVAC).',
     `submittal_number` STRING COMMENT 'Unique business identifier for the submittal within the project, typically following a project-specific numbering convention (e.g., S-001, SUB-MEP-001).',
     `submittal_status` STRING COMMENT 'Current lifecycle status of the submittal in the review and approval workflow. Draft indicates preparation phase, submitted indicates formal lodgment, under_review indicates active evaluation, approved indicates full acceptance, approved_as_noted indicates conditional acceptance with minor comments, revise_and_resubmit indicates rework required, rejected indicates non-compliance, withdrawn indicates contractor cancellation, superseded indicates replacement by newer revision. [ENUM-REF-CANDIDATE: draft|submitted|under_review|approved|approved_as_noted|revise_and_resubmit|rejected|withdrawn|superseded — 9 candidates stripped; promote to reference product]',
     `submittal_type` STRING COMMENT 'Classification of the submittal item indicating the nature of the submission: shop drawings for fabrication details, product data sheets for material specifications, physical samples for approval, method statements for construction procedures, mix designs for concrete/asphalt, calculations for structural/MEP systems, or test reports for quality verification. [ENUM-REF-CANDIDATE: shop_drawing|product_data|sample|method_statement|mix_design|calculation|test_report — 7 candidates stripped; promote to reference product]',
@@ -394,44 +431,31 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`submittal` (
     `supersedes_submittal_number` STRING COMMENT 'Reference to the previous submittal number that this revision supersedes, establishing the revision chain and audit trail.',
     `title` STRING COMMENT 'Descriptive title of the submittal item identifying the material, product, or system being submitted for review.',
     `wbs_code` STRING COMMENT 'Work Breakdown Structure code linking this submittal to a specific work package or deliverable within the project hierarchy, enabling cost and schedule integration.',
-    CONSTRAINT pk_submittal PRIMARY KEY(`submittal_id`)
-) COMMENT 'Transactional record for each design-phase submittal item tracking contractor-submitted shop drawings, material data sheets, product samples, and method statements through the review and approval lifecycle. Includes register-level metadata (specification section, required submission date, contractual obligation) and item-level tracking (submission date, review status, approval authority, disposition). Canonical design.design_submittal entity (v2 curated). SSOT: authoritative source is quality.quality_submittal.';
-
-CREATE OR REPLACE TABLE `vibe_construction_v1`.`design`.`drawing_specification_compliance` (
-    `drawing_specification_compliance_id` BIGINT COMMENT 'Primary key for the drawing_specification_compliance association',
-    `drawing_id` BIGINT COMMENT 'Foreign key linking to the engineering or construction drawing governed by the referenced specification.',
-    `technical_specification_id` BIGINT COMMENT 'Foreign key linking to the technical specification that governs the associated drawing.',
-    `applicable_section_number` STRING COMMENT 'The specific CSI MasterFormat section number within the technical specification that applies to this drawing (e.g., 03 30 00 Cast-in-Place Concrete). Belongs to the relationship because the same spec may apply to a drawing via different sections depending on the drawing content.',
-    `compliance_status` STRING COMMENT 'Verification status indicating whether the drawing has been confirmed as compliant with the governing specification section. Belongs to the relationship because compliance is assessed per drawing-spec pairing, not globally on either entity.',
-    `deviation_notes` STRING COMMENT 'Free-text record of any approved deviations, non-conformances, or engineering change notices that affect the compliance of this drawing with the governing specification. Belongs to the relationship as deviations are specific to each drawing-spec pairing.',
-    `effective_date` DATE COMMENT 'Date from which this drawing-specification compliance linkage became active and binding on the project. Belongs to the relationship because the same drawing may be linked to a spec at different effective dates across revisions.',
-    CONSTRAINT pk_drawing_specification_compliance PRIMARY KEY(`drawing_specification_compliance_id`)
-) COMMENT 'This association product represents the formal compliance linkage (Contract/Register entry) between a drawing and a technical specification. It captures which section of a specification governs a given drawing, the compliance verification status, and any approved deviations. Each record links one drawing to one technical_specification with attributes that exist only in the context of this governing relationship — forming the drawing-specification cross-reference matrix that is a standard contractual deliverable on EPC and design-build construction projects.. Existence Justification: In construction engineering, drawings and technical specifications have a genuine operational many-to-many relationship: a single structural drawing may reference multiple specifications (concrete, rebar, formwork), and a single specification (e.g., Division 03 Concrete) governs dozens of drawings across multiple disciplines. Engineers actively maintain drawing-specification compliance matrices as formal project deliverables, tracking which sections of a spec apply to which drawings and whether each drawing is compliant with the governing specification.';
+    CONSTRAINT pk_engineering_submittal PRIMARY KEY(`engineering_submittal_id`)
+) COMMENT 'Transactional record for each design-phase submittal item tracking contractor-submitted shop drawings, material data sheets, product samples, and method statements through the review and approval lifecycle. Includes register-level metadata (specification section, required submission date, contractual obligation) and item-level tracking (submission date, review status, approval authority, disposition). [SSOT: distinct source of truth for design domain]';
 
 -- ========= FOREIGN KEYS =========
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ADD CONSTRAINT `fk_design_document_register_rfi_id` FOREIGN KEY (`rfi_id`) REFERENCES `vibe_construction_v1`.`design`.`rfi`(`rfi_id`);
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ADD CONSTRAINT `fk_design_document_register_package_id` FOREIGN KEY (`package_id`) REFERENCES `vibe_construction_v1`.`design`.`package`(`package_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ADD CONSTRAINT `fk_design_document_register_transmittal_id` FOREIGN KEY (`transmittal_id`) REFERENCES `vibe_construction_v1`.`design`.`transmittal`(`transmittal_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`revision` ADD CONSTRAINT `fk_design_revision_document_register_id` FOREIGN KEY (`document_register_id`) REFERENCES `vibe_construction_v1`.`design`.`document_register`(`document_register_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`revision` ADD CONSTRAINT `fk_design_revision_superseded_revision_id` FOREIGN KEY (`superseded_revision_id`) REFERENCES `vibe_construction_v1`.`design`.`revision`(`revision_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`revision` ADD CONSTRAINT `fk_design_revision_transmittal_id` FOREIGN KEY (`transmittal_id`) REFERENCES `vibe_construction_v1`.`design`.`transmittal`(`transmittal_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ADD CONSTRAINT `fk_design_workflow_approval_document_register_id` FOREIGN KEY (`document_register_id`) REFERENCES `vibe_construction_v1`.`design`.`document_register`(`document_register_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ADD CONSTRAINT `fk_design_workflow_approval_revision_id` FOREIGN KEY (`revision_id`) REFERENCES `vibe_construction_v1`.`design`.`revision`(`revision_id`);
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ADD CONSTRAINT `fk_design_workflow_approval_submittal_id` FOREIGN KEY (`submittal_id`) REFERENCES `vibe_construction_v1`.`design`.`submittal`(`submittal_id`);
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ADD CONSTRAINT `fk_design_bim_model_package_id` FOREIGN KEY (`package_id`) REFERENCES `vibe_construction_v1`.`design`.`package`(`package_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ADD CONSTRAINT `fk_design_bim_model_superseded_by_model_bim_model_id` FOREIGN KEY (`superseded_by_model_bim_model_id`) REFERENCES `vibe_construction_v1`.`design`.`bim_model`(`bim_model_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ADD CONSTRAINT `fk_design_drawing_bim_model_id` FOREIGN KEY (`bim_model_id`) REFERENCES `vibe_construction_v1`.`design`.`bim_model`(`bim_model_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ADD CONSTRAINT `fk_design_drawing_revision_bim_model_id` FOREIGN KEY (`bim_model_id`) REFERENCES `vibe_construction_v1`.`design`.`bim_model`(`bim_model_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ADD CONSTRAINT `fk_design_drawing_revision_drawing_id` FOREIGN KEY (`drawing_id`) REFERENCES `vibe_construction_v1`.`design`.`drawing`(`drawing_id`);
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ADD CONSTRAINT `fk_design_drawing_revision_package_id` FOREIGN KEY (`package_id`) REFERENCES `vibe_construction_v1`.`design`.`package`(`package_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ADD CONSTRAINT `fk_design_drawing_revision_rfi_id` FOREIGN KEY (`rfi_id`) REFERENCES `vibe_construction_v1`.`design`.`rfi`(`rfi_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ADD CONSTRAINT `fk_design_drawing_revision_superseded_revision_drawing_revision_id` FOREIGN KEY (`superseded_revision_drawing_revision_id`) REFERENCES `vibe_construction_v1`.`design`.`drawing_revision`(`drawing_revision_id`);
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ADD CONSTRAINT `fk_design_drawing_revision_transmittal_id` FOREIGN KEY (`transmittal_id`) REFERENCES `vibe_construction_v1`.`design`.`transmittal`(`transmittal_id`);
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ADD CONSTRAINT `fk_design_submittal_bim_model_id` FOREIGN KEY (`bim_model_id`) REFERENCES `vibe_construction_v1`.`design`.`bim_model`(`bim_model_id`);
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ADD CONSTRAINT `fk_design_submittal_drawing_id` FOREIGN KEY (`drawing_id`) REFERENCES `vibe_construction_v1`.`design`.`drawing`(`drawing_id`);
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ADD CONSTRAINT `fk_design_submittal_drawing_revision_id` FOREIGN KEY (`drawing_revision_id`) REFERENCES `vibe_construction_v1`.`design`.`drawing_revision`(`drawing_revision_id`);
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ADD CONSTRAINT `fk_design_submittal_rfi_id` FOREIGN KEY (`rfi_id`) REFERENCES `vibe_construction_v1`.`design`.`rfi`(`rfi_id`);
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ADD CONSTRAINT `fk_design_submittal_technical_specification_id` FOREIGN KEY (`technical_specification_id`) REFERENCES `vibe_construction_v1`.`design`.`technical_specification`(`technical_specification_id`);
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ADD CONSTRAINT `fk_design_submittal_transmittal_id` FOREIGN KEY (`transmittal_id`) REFERENCES `vibe_construction_v1`.`design`.`transmittal`(`transmittal_id`);
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_specification_compliance` ADD CONSTRAINT `fk_design_drawing_specification_compliance_drawing_id` FOREIGN KEY (`drawing_id`) REFERENCES `vibe_construction_v1`.`design`.`drawing`(`drawing_id`);
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_specification_compliance` ADD CONSTRAINT `fk_design_drawing_specification_compliance_technical_specification_id` FOREIGN KEY (`technical_specification_id`) REFERENCES `vibe_construction_v1`.`design`.`technical_specification`(`technical_specification_id`);
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ADD CONSTRAINT `fk_design_package_transmittal_id` FOREIGN KEY (`transmittal_id`) REFERENCES `vibe_construction_v1`.`design`.`transmittal`(`transmittal_id`);
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ADD CONSTRAINT `fk_design_engineering_submittal_bim_model_id` FOREIGN KEY (`bim_model_id`) REFERENCES `vibe_construction_v1`.`design`.`bim_model`(`bim_model_id`);
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ADD CONSTRAINT `fk_design_engineering_submittal_package_id` FOREIGN KEY (`package_id`) REFERENCES `vibe_construction_v1`.`design`.`package`(`package_id`);
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ADD CONSTRAINT `fk_design_engineering_submittal_technical_specification_id` FOREIGN KEY (`technical_specification_id`) REFERENCES `vibe_construction_v1`.`design`.`technical_specification`(`technical_specification_id`);
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ADD CONSTRAINT `fk_design_engineering_submittal_transmittal_id` FOREIGN KEY (`transmittal_id`) REFERENCES `vibe_construction_v1`.`design`.`transmittal`(`transmittal_id`);
 
 -- ========= TAGS =========
 ALTER SCHEMA `vibe_construction_v1`.`design` SET TAGS ('dbx_division' = 'operations');
@@ -439,9 +463,8 @@ ALTER SCHEMA `vibe_construction_v1`.`design` SET TAGS ('dbx_domain' = 'design');
 ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` SET TAGS ('dbx_data_type' = 'transactional_data');
 ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` SET TAGS ('dbx_subdomain' = 'document_control');
 ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `transmittal_id` SET TAGS ('dbx_business_glossary_term' = 'Transmittal Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `transmittal_id` SET TAGS ('dbx_key_role' = 'primary');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `contact_id` SET TAGS ('dbx_business_glossary_term' = 'Recipient Contact Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `phase_id` SET TAGS ('dbx_business_glossary_term' = 'Phase Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Recipient Vendor Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Sender Account Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `acknowledgement_by` SET TAGS ('dbx_business_glossary_term' = 'Acknowledged By');
 ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `acknowledgement_by` SET TAGS ('dbx_restricted' = 'true');
@@ -465,22 +488,18 @@ ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `priority
 ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `priority` SET TAGS ('dbx_value_regex' = 'urgent|high|normal|low');
 ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `purpose_of_issue` SET TAGS ('dbx_business_glossary_term' = 'Purpose of Issue');
 ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `purpose_of_issue` SET TAGS ('dbx_value_regex' = 'for_approval|for_information|for_construction|for_record|for_review|for_comment');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `recipient_email` SET TAGS ('dbx_business_glossary_term' = 'Recipient Email Address');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `recipient_email` SET TAGS ('dbx_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `recipient_email` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `recipient_email` SET TAGS ('dbx_mask_in_nonprod' = 'true');
 ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `recipient_organization` SET TAGS ('dbx_business_glossary_term' = 'Recipient Organization');
 ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `reference_transmittal_number` SET TAGS ('dbx_business_glossary_term' = 'Reference Transmittal Number');
 ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `remarks` SET TAGS ('dbx_business_glossary_term' = 'Transmittal Remarks');
 ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Revision Number');
 ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `revision_number` SET TAGS ('dbx_value_regex' = '^[A-Z0-9.]+$');
 ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `sender_contact_name` SET TAGS ('dbx_business_glossary_term' = 'Sender Contact Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `sender_contact_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `sender_contact_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `sender_contact_name` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `sender_contact_name` SET TAGS ('dbx_pii_name' = 'true');
 ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `sender_email` SET TAGS ('dbx_business_glossary_term' = 'Sender Email Address');
 ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `sender_email` SET TAGS ('dbx_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `sender_email` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `sender_email` SET TAGS ('dbx_mask_in_nonprod' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `sender_email` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `sender_email` SET TAGS ('dbx_pii_email' = 'true');
 ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `subject` SET TAGS ('dbx_business_glossary_term' = 'Transmittal Subject');
 ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `transmittal_number` SET TAGS ('dbx_business_glossary_term' = 'Transmittal Number');
 ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `transmittal_number` SET TAGS ('dbx_value_regex' = '^[A-Z0-9-]+$');
@@ -489,10 +508,9 @@ ALTER TABLE `vibe_construction_v1`.`design`.`transmittal` ALTER COLUMN `transmit
 ALTER TABLE `vibe_construction_v1`.`design`.`rfi` SET TAGS ('dbx_data_type' = 'transactional_data');
 ALTER TABLE `vibe_construction_v1`.`design`.`rfi` SET TAGS ('dbx_subdomain' = 'document_control');
 ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `rfi_id` SET TAGS ('dbx_business_glossary_term' = 'Rfi Identifier');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `rfi_id` SET TAGS ('dbx_key_role' = 'primary');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `contact_id` SET TAGS ('dbx_business_glossary_term' = 'Client Contact Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Client Account Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `project_budget_id` SET TAGS ('dbx_business_glossary_term' = 'Project Budget Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `actual_response_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Response Date');
 ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `closure_date` SET TAGS ('dbx_business_glossary_term' = 'Closure Date');
 ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `closure_notes` SET TAGS ('dbx_business_glossary_term' = 'Closure Notes');
@@ -518,15 +536,10 @@ ALTER TABLE `vibe_construction_v1`.`design`.`rfi` ALTER COLUMN `subject` SET TAG
 ALTER TABLE `vibe_construction_v1`.`design`.`document_register` SET TAGS ('dbx_data_type' = 'master_data');
 ALTER TABLE `vibe_construction_v1`.`design`.`document_register` SET TAGS ('dbx_subdomain' = 'document_control');
 ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `document_register_id` SET TAGS ('dbx_business_glossary_term' = 'Document Register ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `document_register_id` SET TAGS ('dbx_key_role' = 'primary');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Sub Contract Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `rfi_id` SET TAGS ('dbx_business_glossary_term' = 'Rfi Document Rfi Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `package_id` SET TAGS ('dbx_business_glossary_term' = 'Package Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `transmittal_id` SET TAGS ('dbx_business_glossary_term' = 'Transmittal Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
 ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `approver_name` SET TAGS ('dbx_business_glossary_term' = 'Approver Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `approver_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `approver_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
 ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `confidentiality_classification` SET TAGS ('dbx_business_glossary_term' = 'Confidentiality Classification');
 ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `confidentiality_classification` SET TAGS ('dbx_value_regex' = 'public|internal|confidential|restricted');
 ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
@@ -550,8 +563,6 @@ ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `pa
 ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `retention_period_years` SET TAGS ('dbx_business_glossary_term' = 'Retention Period (Years)');
 ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `review_due_date` SET TAGS ('dbx_business_glossary_term' = 'Review Due Date');
 ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_business_glossary_term' = 'Reviewer Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
 ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `revision_description` SET TAGS ('dbx_business_glossary_term' = 'Revision Description');
 ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Revision Number');
 ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `storage_location` SET TAGS ('dbx_business_glossary_term' = 'Storage Location');
@@ -560,17 +571,14 @@ ALTER TABLE `vibe_construction_v1`.`design`.`document_register` ALTER COLUMN `su
 ALTER TABLE `vibe_construction_v1`.`design`.`revision` SET TAGS ('dbx_data_type' = 'transactional_data');
 ALTER TABLE `vibe_construction_v1`.`design`.`revision` SET TAGS ('dbx_subdomain' = 'document_control');
 ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `revision_id` SET TAGS ('dbx_business_glossary_term' = 'Revision Identifier');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `revision_id` SET TAGS ('dbx_key_role' = 'primary');
 ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `document_register_id` SET TAGS ('dbx_business_glossary_term' = 'Document ID');
 ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `superseded_revision_id` SET TAGS ('dbx_business_glossary_term' = 'Superseded Revision ID');
 ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `transmittal_id` SET TAGS ('dbx_business_glossary_term' = 'Transmittal Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
 ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `approver_name` SET TAGS ('dbx_business_glossary_term' = 'Approver Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `approver_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `approver_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `approver_name` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `author_name` SET TAGS ('dbx_business_glossary_term' = 'Author Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `author_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `author_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `author_name` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `change_reason` SET TAGS ('dbx_business_glossary_term' = 'Change Reason');
 ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `change_reason` SET TAGS ('dbx_value_regex' = 'design_change|client_request|rfi_response|regulatory_update|error_correction|clarification');
 ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `change_summary` SET TAGS ('dbx_business_glossary_term' = 'Change Summary');
@@ -581,8 +589,6 @@ ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `revision_de
 ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `distribution_list` SET TAGS ('dbx_business_glossary_term' = 'Distribution List');
 ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `file_format` SET TAGS ('dbx_business_glossary_term' = 'File Format');
 ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `file_name` SET TAGS ('dbx_business_glossary_term' = 'File Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `file_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `file_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
 ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `file_size_bytes` SET TAGS ('dbx_business_glossary_term' = 'File Size (Bytes)');
 ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `file_storage_path` SET TAGS ('dbx_business_glossary_term' = 'File Storage Path');
 ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `is_controlled_copy` SET TAGS ('dbx_business_glossary_term' = 'Is Controlled Copy');
@@ -590,8 +596,7 @@ ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `modified_ti
 ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `page_count` SET TAGS ('dbx_business_glossary_term' = 'Page Count');
 ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `review_date` SET TAGS ('dbx_business_glossary_term' = 'Review Date');
 ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_business_glossary_term' = 'Reviewer Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `revision_date` SET TAGS ('dbx_business_glossary_term' = 'Revision Date');
 ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Revision Number');
 ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `revision_status` SET TAGS ('dbx_business_glossary_term' = 'Revision Status');
@@ -602,11 +607,8 @@ ALTER TABLE `vibe_construction_v1`.`design`.`revision` ALTER COLUMN `sheet_count
 ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` SET TAGS ('dbx_data_type' = 'transactional_data');
 ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` SET TAGS ('dbx_subdomain' = 'document_control');
 ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `workflow_approval_id` SET TAGS ('dbx_business_glossary_term' = 'Workflow Approval ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `contact_id` SET TAGS ('dbx_business_glossary_term' = 'Client Reviewer Contact Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
 ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `document_register_id` SET TAGS ('dbx_business_glossary_term' = 'Document ID');
 ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `revision_id` SET TAGS ('dbx_business_glossary_term' = 'Revision Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `submittal_id` SET TAGS ('dbx_business_glossary_term' = 'Design Submittal Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `action_date` SET TAGS ('dbx_business_glossary_term' = 'Action Date');
 ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `action_taken` SET TAGS ('dbx_business_glossary_term' = 'Action Taken');
 ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `approval_authority_level` SET TAGS ('dbx_business_glossary_term' = 'Approval Authority Level');
@@ -636,16 +638,15 @@ ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `sl
 ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `sla_target_hours` SET TAGS ('dbx_business_glossary_term' = 'Service Level Agreement (SLA) Target Hours');
 ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `total_steps` SET TAGS ('dbx_business_glossary_term' = 'Total Steps');
 ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `workflow_name` SET TAGS ('dbx_business_glossary_term' = 'Workflow Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `workflow_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `workflow_number` SET TAGS ('dbx_business_glossary_term' = 'Workflow Number');
 ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `workflow_status` SET TAGS ('dbx_business_glossary_term' = 'Workflow Status');
 ALTER TABLE `vibe_construction_v1`.`design`.`workflow_approval` ALTER COLUMN `workflow_type` SET TAGS ('dbx_business_glossary_term' = 'Workflow Type');
 ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` SET TAGS ('dbx_subdomain' = 'drawing_specifications');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` SET TAGS ('dbx_subdomain' = 'engineering_deliverables');
 ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `bim_model_id` SET TAGS ('dbx_business_glossary_term' = 'Building Information Model (BIM) Model ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `bim_model_id` SET TAGS ('dbx_key_role' = 'primary');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Material Material Master Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Asset Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `package_id` SET TAGS ('dbx_business_glossary_term' = 'Package Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `phase_id` SET TAGS ('dbx_business_glossary_term' = 'Phase Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `superseded_by_model_bim_model_id` SET TAGS ('dbx_business_glossary_term' = 'Superseded By Model ID');
 ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `author_organization` SET TAGS ('dbx_business_glossary_term' = 'Author Organization');
 ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `authoring_software` SET TAGS ('dbx_business_glossary_term' = 'Authoring Software');
@@ -662,6 +663,7 @@ ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `discipline
 ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `element_count` SET TAGS ('dbx_business_glossary_term' = 'Element Count');
 ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `external_reference_code` SET TAGS ('dbx_business_glossary_term' = 'External Reference ID');
 ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `federation_role` SET TAGS ('dbx_business_glossary_term' = 'Federation Role');
+ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `federation_role` SET TAGS ('dbx_value_regex' = 'host|linked|standalone|reference');
 ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `file_format` SET TAGS ('dbx_business_glossary_term' = 'File Format');
 ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `file_size_mb` SET TAGS ('dbx_business_glossary_term' = 'File Size (MB)');
 ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `iso_19650_compliance_flag` SET TAGS ('dbx_business_glossary_term' = 'ISO 19650 Compliance Flag');
@@ -671,8 +673,6 @@ ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `lifecycle_
 ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `lod_classification` SET TAGS ('dbx_business_glossary_term' = 'Level of Development (LOD) Classification');
 ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `lod_classification` SET TAGS ('dbx_value_regex' = 'LOD_100|LOD_200|LOD_300|LOD_350|LOD_400|LOD_500');
 ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `model_name` SET TAGS ('dbx_business_glossary_term' = 'BIM Model Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `model_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `model_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
 ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `model_number` SET TAGS ('dbx_business_glossary_term' = 'BIM Model Number');
 ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `model_status` SET TAGS ('dbx_business_glossary_term' = 'BIM Model Status');
 ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `model_status` SET TAGS ('dbx_value_regex' = 'wip|shared|published|archived|superseded');
@@ -688,31 +688,18 @@ ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `origin_lon
 ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `origin_longitude` SET TAGS ('dbx_pii_address' = 'true');
 ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `review_date` SET TAGS ('dbx_business_glossary_term' = 'Review Date');
 ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_business_glossary_term' = 'Reviewer Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
 ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Revision Number');
 ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `software_version` SET TAGS ('dbx_business_glossary_term' = 'Software Version');
 ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `storage_location` SET TAGS ('dbx_business_glossary_term' = 'Storage Location');
 ALTER TABLE `vibe_construction_v1`.`design`.`bim_model` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` SET TAGS ('dbx_subdomain' = 'drawing_specifications');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing` SET TAGS ('dbx_subdomain' = 'engineering_deliverables');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Identifier');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `drawing_id` SET TAGS ('dbx_key_role' = 'primary');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `bim_model_id` SET TAGS ('dbx_business_glossary_term' = 'Bim Model Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `contact_id` SET TAGS ('dbx_business_glossary_term' = 'Client Approver Contact Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project Identifier');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Code Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Material Material Master Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `approver_name` SET TAGS ('dbx_business_glossary_term' = 'Approver Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `approver_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `approver_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `cad_file_name` SET TAGS ('dbx_business_glossary_term' = 'Computer-Aided Design (CAD) File Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `cad_file_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `cad_file_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `checker_name` SET TAGS ('dbx_business_glossary_term' = 'Checker Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `checker_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `checker_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `clash_detection_status` SET TAGS ('dbx_business_glossary_term' = 'Clash Detection Status');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `clash_detection_status` SET TAGS ('dbx_value_regex' = 'not_checked|passed|clashes_detected|resolved');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `comments` SET TAGS ('dbx_business_glossary_term' = 'Comments');
@@ -750,11 +737,13 @@ ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `wbs_code` SE
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `zone_location` SET TAGS ('dbx_business_glossary_term' = 'Zone or Location');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing` ALTER COLUMN `created_by` SET TAGS ('dbx_business_glossary_term' = 'Created By User');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` SET TAGS ('dbx_subdomain' = 'drawing_specifications');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` SET TAGS ('dbx_subdomain' = 'engineering_deliverables');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `drawing_revision_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Revision Identifier (ID)');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `bim_model_id` SET TAGS ('dbx_business_glossary_term' = 'Bim Model Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project Identifier (ID)');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `incident_id` SET TAGS ('dbx_business_glossary_term' = 'Incident Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `package_id` SET TAGS ('dbx_business_glossary_term' = 'Package Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `rfi_id` SET TAGS ('dbx_business_glossary_term' = 'Rfi Document Rfi Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `superseded_revision_drawing_revision_id` SET TAGS ('dbx_business_glossary_term' = 'Superseded Revision Identifier (ID)');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `transmittal_id` SET TAGS ('dbx_business_glossary_term' = 'Transmittal Id (Foreign Key)');
@@ -763,7 +752,6 @@ ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `ack
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `acknowledgment_status` SET TAGS ('dbx_value_regex' = 'not_required|pending|acknowledged|overdue');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `approver_name` SET TAGS ('dbx_business_glossary_term' = 'Approver Full Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `approver_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `change_summary` SET TAGS ('dbx_business_glossary_term' = 'Revision Change Summary');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `clash_detection_status` SET TAGS ('dbx_business_glossary_term' = 'Clash Detection Status');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `clash_detection_status` SET TAGS ('dbx_value_regex' = 'not_required|pending|in_progress|passed|failed|resolved');
@@ -780,11 +768,9 @@ ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `dis
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `file_format` SET TAGS ('dbx_business_glossary_term' = 'File Format Type');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `file_size_mb` SET TAGS ('dbx_business_glossary_term' = 'File Size in Megabytes (MB)');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `issuing_engineer_name` SET TAGS ('dbx_business_glossary_term' = 'Issuing Engineer Full Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `issuing_engineer_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Last Modified Timestamp');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `review_date` SET TAGS ('dbx_business_glossary_term' = 'Review Completion Date');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_business_glossary_term' = 'Reviewer Full Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `revision_code` SET TAGS ('dbx_business_glossary_term' = 'Revision Code');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `revision_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{1,10}$');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `revision_date` SET TAGS ('dbx_business_glossary_term' = 'Revision Issue Date');
@@ -796,21 +782,20 @@ ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `rev
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `sheet_count` SET TAGS ('dbx_business_glossary_term' = 'Sheet Count');
 ALTER TABLE `vibe_construction_v1`.`design`.`drawing_revision` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
 ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` SET TAGS ('dbx_subdomain' = 'drawing_specifications');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` SET TAGS ('dbx_subdomain' = 'engineering_deliverables');
 ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `technical_specification_id` SET TAGS ('dbx_business_glossary_term' = 'Technical Specification ID');
 ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `asset_category_id` SET TAGS ('dbx_business_glossary_term' = 'Asset Category Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
 ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Code Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Material Material Master Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `hazard_register_id` SET TAGS ('dbx_business_glossary_term' = 'Hazard Register Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `phase_id` SET TAGS ('dbx_business_glossary_term' = 'Phase Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `skill_trade_id` SET TAGS ('dbx_business_glossary_term' = 'Skill Trade Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `applicable_standards` SET TAGS ('dbx_business_glossary_term' = 'Applicable Standards');
 ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
 ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `approval_status` SET TAGS ('dbx_business_glossary_term' = 'Approval Status');
 ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `approval_status` SET TAGS ('dbx_value_regex' = 'pending|approved|rejected|conditional|not_required');
 ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `approver_name` SET TAGS ('dbx_business_glossary_term' = 'Approver Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `approver_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `approver_role` SET TAGS ('dbx_business_glossary_term' = 'Approver Role');
 ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `author_name` SET TAGS ('dbx_business_glossary_term' = 'Author Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `author_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `author_organization` SET TAGS ('dbx_business_glossary_term' = 'Author Organization');
 ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `boq_reference` SET TAGS ('dbx_business_glossary_term' = 'Bill of Quantities (BOQ) Reference');
 ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `comments` SET TAGS ('dbx_business_glossary_term' = 'Comments');
@@ -831,7 +816,6 @@ ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLU
 ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
 ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `page_count` SET TAGS ('dbx_business_glossary_term' = 'Page Count');
 ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_business_glossary_term' = 'Reviewer Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Revision Number');
 ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `scope_of_work` SET TAGS ('dbx_business_glossary_term' = 'Scope of Work (SOW)');
 ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `section_number` SET TAGS ('dbx_business_glossary_term' = 'Section Number');
@@ -847,69 +831,112 @@ ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLU
 ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `warranty_period_months` SET TAGS ('dbx_business_glossary_term' = 'Warranty Period (Months)');
 ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
 ALTER TABLE `vibe_construction_v1`.`design`.`technical_specification` ALTER COLUMN `workmanship_standards` SET TAGS ('dbx_business_glossary_term' = 'Workmanship Standards');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` SET TAGS ('dbx_subdomain' = 'drawing_specifications');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `submittal_id` SET TAGS ('dbx_business_glossary_term' = 'Design Submittal Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `bim_model_id` SET TAGS ('dbx_business_glossary_term' = 'Bim Model Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project Identifier (ID)');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `drawing_revision_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Revision Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Material Material Master Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `rfi_id` SET TAGS ('dbx_business_glossary_term' = 'Rfi Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `technical_specification_id` SET TAGS ('dbx_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `transmittal_id` SET TAGS ('dbx_business_glossary_term' = 'Transmittal Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `actual_review_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Review Completion Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `actual_submission_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Submission Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `approval_authority_level` SET TAGS ('dbx_business_glossary_term' = 'Approval Authority Level');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `approval_authority_level` SET TAGS ('dbx_value_regex' = 'contractor|design_consultant|client|regulatory_authority|independent_verifier');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `approval_disposition` SET TAGS ('dbx_business_glossary_term' = 'Approval Disposition Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `approval_disposition` SET TAGS ('dbx_value_regex' = 'approved|approved_as_noted|revise_and_resubmit|rejected|no_exception_taken|reviewed_for_information');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `approver_name` SET TAGS ('dbx_business_glossary_term' = 'Approver Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `approver_name` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `approver_name` SET TAGS ('dbx_pii_name' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `approver_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `attachment_count` SET TAGS ('dbx_business_glossary_term' = 'Attachment File Count');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `closure_date` SET TAGS ('dbx_business_glossary_term' = 'Submittal Closure Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `confidentiality_level` SET TAGS ('dbx_business_glossary_term' = 'Confidentiality Classification Level');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `confidentiality_level` SET TAGS ('dbx_value_regex' = 'public|internal|confidential|restricted');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `cost_impact_flag` SET TAGS ('dbx_business_glossary_term' = 'Cost Impact Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Creation Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `discipline` SET TAGS ('dbx_business_glossary_term' = 'Engineering Discipline');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `estimated_cost_impact_amount` SET TAGS ('dbx_business_glossary_term' = 'Estimated Cost Impact Amount');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `estimated_cost_impact_amount` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `file_format` SET TAGS ('dbx_business_glossary_term' = 'Primary File Format');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Last Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `priority` SET TAGS ('dbx_business_glossary_term' = 'Submittal Priority Level');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `priority` SET TAGS ('dbx_value_regex' = 'critical|high|medium|low');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `regulatory_authority` SET TAGS ('dbx_business_glossary_term' = 'Regulatory Authority Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `regulatory_compliance_flag` SET TAGS ('dbx_business_glossary_term' = 'Regulatory Compliance Required Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `required_submission_date` SET TAGS ('dbx_business_glossary_term' = 'Required Submission Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `response_notes` SET TAGS ('dbx_business_glossary_term' = 'Submitter Response Notes');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `review_comments` SET TAGS ('dbx_business_glossary_term' = 'Reviewer Comments');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `review_due_date` SET TAGS ('dbx_business_glossary_term' = 'Review Due Date');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_business_glossary_term' = 'Reviewer Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_pii_name' = 'true');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `reviewing_organization` SET TAGS ('dbx_business_glossary_term' = 'Reviewing Organization Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Submittal Revision Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `schedule_impact_days` SET TAGS ('dbx_business_glossary_term' = 'Schedule Impact Days');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `schedule_impact_flag` SET TAGS ('dbx_business_glossary_term' = 'Schedule Impact Flag');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `submittal_number` SET TAGS ('dbx_business_glossary_term' = 'Submittal Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `submittal_status` SET TAGS ('dbx_business_glossary_term' = 'Submittal Review Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `submittal_type` SET TAGS ('dbx_business_glossary_term' = 'Submittal Type');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `submitting_organization` SET TAGS ('dbx_business_glossary_term' = 'Submitting Organization Name');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `supersedes_submittal_number` SET TAGS ('dbx_business_glossary_term' = 'Supersedes Submittal Number');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `title` SET TAGS ('dbx_business_glossary_term' = 'Submittal Title');
-ALTER TABLE `vibe_construction_v1`.`design`.`submittal` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_specification_compliance` SET TAGS ('dbx_data_type' = 'association_data');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_specification_compliance` SET TAGS ('dbx_subdomain' = 'drawing_specifications');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_specification_compliance` SET TAGS ('dbx_association_edges' = 'design.drawing,design.technical_specification');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_specification_compliance` ALTER COLUMN `drawing_specification_compliance_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Specification Compliance - Drawing Specification Compliance Id');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_specification_compliance` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Specification Compliance - Drawing Id');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_specification_compliance` ALTER COLUMN `technical_specification_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Specification Compliance - Technical Specification Id');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_specification_compliance` ALTER COLUMN `applicable_section_number` SET TAGS ('dbx_business_glossary_term' = 'Applicable Specification Section');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_specification_compliance` ALTER COLUMN `compliance_status` SET TAGS ('dbx_business_glossary_term' = 'Compliance Status');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_specification_compliance` ALTER COLUMN `deviation_notes` SET TAGS ('dbx_business_glossary_term' = 'Deviation Notes');
-ALTER TABLE `vibe_construction_v1`.`design`.`drawing_specification_compliance` ALTER COLUMN `effective_date` SET TAGS ('dbx_business_glossary_term' = 'Effective Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` SET TAGS ('dbx_subdomain' = 'engineering_deliverables');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `package_id` SET TAGS ('dbx_business_glossary_term' = 'Package ID');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `phase_id` SET TAGS ('dbx_business_glossary_term' = 'Phase Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `project_budget_id` SET TAGS ('dbx_business_glossary_term' = 'Project Budget Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `transmittal_id` SET TAGS ('dbx_business_glossary_term' = 'Transmittal Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `actual_submission_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Submission Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `approval_workflow_state` SET TAGS ('dbx_business_glossary_term' = 'Approval Workflow State');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Approved By');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `bim_model_reference` SET TAGS ('dbx_business_glossary_term' = 'Building Information Modeling (BIM) Model Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `client_acceptance_date` SET TAGS ('dbx_business_glossary_term' = 'Client Acceptance Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `client_acceptance_status` SET TAGS ('dbx_business_glossary_term' = 'Client Acceptance Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `client_acceptance_status` SET TAGS ('dbx_value_regex' = 'pending|accepted|accepted_with_comments|rejected|conditionally_accepted|superseded');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `comments` SET TAGS ('dbx_business_glossary_term' = 'Comments');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `completeness_percentage` SET TAGS ('dbx_business_glossary_term' = 'Completeness Percentage');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `confidentiality_classification` SET TAGS ('dbx_business_glossary_term' = 'Confidentiality Classification');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `confidentiality_classification` SET TAGS ('dbx_value_regex' = 'public|internal|confidential|restricted');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `contractual_due_date` SET TAGS ('dbx_business_glossary_term' = 'Contractual Due Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `discipline` SET TAGS ('dbx_business_glossary_term' = 'Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `document_count` SET TAGS ('dbx_business_glossary_term' = 'Document Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `drawing_count` SET TAGS ('dbx_business_glossary_term' = 'Drawing Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `iso_19650_compliance_flag` SET TAGS ('dbx_business_glossary_term' = 'ISO 19650 Compliance Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `issue_date` SET TAGS ('dbx_business_glossary_term' = 'Issue Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `milestone_stage` SET TAGS ('dbx_business_glossary_term' = 'Milestone Stage');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `package_number` SET TAGS ('dbx_business_glossary_term' = 'Package Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `package_status` SET TAGS ('dbx_business_glossary_term' = 'Package Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `package_type` SET TAGS ('dbx_business_glossary_term' = 'Package Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `package_type` SET TAGS ('dbx_value_regex' = 'design_package|deliverable_package|submittal_package|handover_package|as_built_package|coordination_package');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `planned_issue_date` SET TAGS ('dbx_business_glossary_term' = 'Planned Issue Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `recipient_distribution_list` SET TAGS ('dbx_business_glossary_term' = 'Recipient Distribution List');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `rejection_reason` SET TAGS ('dbx_business_glossary_term' = 'Rejection Reason');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `responsible_organization` SET TAGS ('dbx_business_glossary_term' = 'Responsible Organization');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `reviewed_by` SET TAGS ('dbx_business_glossary_term' = 'Reviewed By');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Revision Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `specification_count` SET TAGS ('dbx_business_glossary_term' = 'Specification Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `storage_location` SET TAGS ('dbx_business_glossary_term' = 'Storage Location');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `submission_status` SET TAGS ('dbx_business_glossary_term' = 'Submission Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `submission_status` SET TAGS ('dbx_value_regex' = 'not_submitted|submitted|under_review|resubmission_required|accepted|rejected');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `supersedes_package_number` SET TAGS ('dbx_business_glossary_term' = 'Supersedes Package Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `title` SET TAGS ('dbx_business_glossary_term' = 'Package Title');
+ALTER TABLE `vibe_construction_v1`.`design`.`package` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` SET TAGS ('dbx_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` SET TAGS ('dbx_subdomain' = 'engineering_deliverables');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `engineering_submittal_id` SET TAGS ('dbx_business_glossary_term' = 'Design Submittal Identifier (ID)');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `bim_model_id` SET TAGS ('dbx_business_glossary_term' = 'Bim Model Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Material Material Master Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `package_id` SET TAGS ('dbx_business_glossary_term' = 'Package Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `project_budget_id` SET TAGS ('dbx_business_glossary_term' = 'Project Budget Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `risk_assessment_id` SET TAGS ('dbx_business_glossary_term' = 'Risk Assessment Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Submitting Vendor Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `technical_specification_id` SET TAGS ('dbx_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `transmittal_id` SET TAGS ('dbx_business_glossary_term' = 'Transmittal Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `actual_review_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Review Completion Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `actual_submission_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Submission Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `approval_authority_level` SET TAGS ('dbx_business_glossary_term' = 'Approval Authority Level');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `approval_authority_level` SET TAGS ('dbx_value_regex' = 'contractor|design_consultant|client|regulatory_authority|independent_verifier');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `approval_disposition` SET TAGS ('dbx_business_glossary_term' = 'Approval Disposition Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `approval_disposition` SET TAGS ('dbx_value_regex' = 'approved|approved_as_noted|revise_and_resubmit|rejected|no_exception_taken|reviewed_for_information');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `approver_name` SET TAGS ('dbx_business_glossary_term' = 'Approver Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `approver_name` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `approver_name` SET TAGS ('dbx_pii_name' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `attachment_count` SET TAGS ('dbx_business_glossary_term' = 'Attachment File Count');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `closure_date` SET TAGS ('dbx_business_glossary_term' = 'Submittal Closure Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `confidentiality_level` SET TAGS ('dbx_business_glossary_term' = 'Confidentiality Classification Level');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `confidentiality_level` SET TAGS ('dbx_value_regex' = 'public|internal|confidential|restricted');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `cost_impact_flag` SET TAGS ('dbx_business_glossary_term' = 'Cost Impact Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Creation Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_ssot_source' = 'quality.quality_submittal');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `discipline` SET TAGS ('dbx_business_glossary_term' = 'Engineering Discipline');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `estimated_cost_impact_amount` SET TAGS ('dbx_business_glossary_term' = 'Estimated Cost Impact Amount');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `estimated_cost_impact_amount` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `file_format` SET TAGS ('dbx_business_glossary_term' = 'Primary File Format');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_ssot_source' = 'quality.quality_submittal');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `priority` SET TAGS ('dbx_business_glossary_term' = 'Submittal Priority Level');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `priority` SET TAGS ('dbx_value_regex' = 'critical|high|medium|low');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `regulatory_authority` SET TAGS ('dbx_business_glossary_term' = 'Regulatory Authority Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `regulatory_compliance_flag` SET TAGS ('dbx_business_glossary_term' = 'Regulatory Compliance Required Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `required_submission_date` SET TAGS ('dbx_business_glossary_term' = 'Required Submission Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `response_notes` SET TAGS ('dbx_business_glossary_term' = 'Submitter Response Notes');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `review_comments` SET TAGS ('dbx_business_glossary_term' = 'Reviewer Comments');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `review_due_date` SET TAGS ('dbx_business_glossary_term' = 'Review Due Date');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_business_glossary_term' = 'Reviewer Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_pii_name' = 'true');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_ssot_source' = 'quality.quality_submittal');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `reviewing_organization` SET TAGS ('dbx_business_glossary_term' = 'Reviewing Organization Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Submittal Revision Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `revision_number` SET TAGS ('dbx_ssot_source' = 'quality.quality_submittal');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `schedule_impact_days` SET TAGS ('dbx_business_glossary_term' = 'Schedule Impact Days');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `schedule_impact_days` SET TAGS ('dbx_ssot_source' = 'quality.quality_submittal');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `schedule_impact_flag` SET TAGS ('dbx_business_glossary_term' = 'Schedule Impact Flag');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `specification_section` SET TAGS ('dbx_business_glossary_term' = 'Specification Section Reference');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `specification_section` SET TAGS ('dbx_ssot_source' = 'quality.quality_submittal');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `submittal_number` SET TAGS ('dbx_business_glossary_term' = 'Submittal Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `submittal_number` SET TAGS ('dbx_ssot_source' = 'quality.quality_submittal');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `submittal_status` SET TAGS ('dbx_business_glossary_term' = 'Submittal Review Status');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `submittal_type` SET TAGS ('dbx_business_glossary_term' = 'Submittal Type');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `submittal_type` SET TAGS ('dbx_ssot_source' = 'quality.quality_submittal');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `submitting_organization` SET TAGS ('dbx_business_glossary_term' = 'Submitting Organization Name');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `supersedes_submittal_number` SET TAGS ('dbx_business_glossary_term' = 'Supersedes Submittal Number');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `title` SET TAGS ('dbx_business_glossary_term' = 'Submittal Title');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `title` SET TAGS ('dbx_ssot_source' = 'quality.quality_submittal');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
+ALTER TABLE `vibe_construction_v1`.`design`.`engineering_submittal` ALTER COLUMN `wbs_code` SET TAGS ('dbx_ssot_source' = 'quality.quality_submittal');

@@ -1,621 +1,50 @@
--- Metric views for domain: provider | Business: Health_Insurance | Version: 2 | Generated on: 2026-06-23 00:30:14
+-- Metric views for domain: provider | Business: Health Insurance | Version: 2 | Generated on: 2026-06-28 00:14:33
 
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_network_participation`
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_audit_performance`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Strategic KPIs measuring provider network participation health, reimbursement economics, credentialing currency, and panel capacity utilization. Used by Network Management and Finance leadership to steer network adequacy, contract performance, and provider panel strategy."
-  source: "`vibe_health_insurance_v1`.`provider`.`provider_network_participation`"
-  dimensions:
-    - name: "participation_status"
-      expr: participation_status
-      comment: "Current participation status of the provider in the network (e.g., Active, Terminated, Pending)."
-    - name: "network_tier"
-      expr: network_tier
-      comment: "Network tier assignment (e.g., Tier 1, Tier 2) used for benefit design and cost-sharing differentiation."
-    - name: "contracted_reimbursement_model"
-      expr: contracted_reimbursement_model
-      comment: "Reimbursement model type (e.g., FFS, Capitation, VBC) driving financial exposure analysis."
-    - name: "credentialing_status"
-      expr: credentialing_status
-      comment: "Current credentialing status of the provider, critical for compliance and claims adjudication eligibility."
-    - name: "par_status"
-      expr: par_status
-      comment: "Participating vs. non-participating indicator, directly affecting member cost-sharing and claims routing."
-    - name: "specialty_code"
-      expr: specialty_code
-      comment: "Provider specialty code enabling network adequacy analysis by specialty type."
-    - name: "service_area_code"
-      expr: service_area_code
-      comment: "Geographic service area code for regional network adequacy and access standard reporting."
-    - name: "vbc_participation_flag"
-      expr: vbc_participation_flag
-      comment: "Indicates whether the provider participates in a value-based care arrangement."
-    - name: "is_pcp"
-      expr: is_pcp
-      comment: "Flags primary care providers, enabling PCP panel capacity and access analysis."
-    - name: "participation_effective_date_month"
-      expr: DATE_TRUNC('MONTH', participation_effective_date)
-      comment: "Month of participation effective date for trend analysis of network growth."
-  measures:
-    - name: "total_participating_providers"
-      expr: COUNT(DISTINCT provider_network_participation_id)
-      comment: "Total number of active network participation records. Core network size KPI used in adequacy assessments and regulatory filings."
-    - name: "avg_reimbursement_rate"
-      expr: AVG(CAST(reimbursement_rate AS DOUBLE))
-      comment: "Average contracted reimbursement rate across participating providers. Drives financial modeling and contract benchmarking decisions."
-    - name: "total_capitation_rate_exposure"
-      expr: SUM(CAST(capitation_rate AS DOUBLE))
-      comment: "Total capitation rate commitment across all capitated provider arrangements. Critical for actuarial reserve and PMPM cost projections."
-    - name: "avg_quality_score"
-      expr: AVG(CAST(quality_score AS DOUBLE))
-      comment: "Average provider quality score across the network. Used by Medical Management and Network teams to steer quality improvement programs and tiering decisions."
-    - name: "pct_accepting_new_patients"
-      expr: ROUND(100.0 * SUM(CASE WHEN is_accepting_new_patients = TRUE THEN 1 ELSE 0 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of network providers currently accepting new patients. A key access standard metric monitored by regulators and used to identify panel capacity gaps."
-    - name: "pct_credentialing_current"
-      expr: ROUND(100.0 * SUM(CASE WHEN credentialing_status = 'Active' THEN 1 ELSE 0 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of providers with current/active credentialing status. Compliance risk indicator — lapsed credentialing can trigger claims denials and regulatory penalties."
-    - name: "pct_vbc_participating"
-      expr: ROUND(100.0 * SUM(CASE WHEN vbc_participation_flag = TRUE THEN 1 ELSE 0 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of network providers enrolled in value-based care arrangements. Strategic KPI tracking VBC transformation progress reported to executive leadership."
-    - name: "pct_par_providers"
-      expr: ROUND(100.0 * SUM(CASE WHEN par_status_flag = TRUE THEN 1 ELSE 0 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of providers with participating (PAR) status. Affects member out-of-pocket costs and claims adjudication routing; monitored in network adequacy reports."
-    - name: "providers_with_attestation"
-      expr: COUNT(CASE WHEN network_participation_attestation_flag = TRUE THEN provider_network_participation_id END)
-      comment: "Count of providers with a completed network participation attestation. Regulatory compliance metric for CMS and state directory accuracy requirements."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_participation_status`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "KPIs tracking provider participation status across health plans and networks, including panel management, credentialing compliance, and termination trends. Used by Network Operations and Compliance teams."
-  source: "`vibe_health_insurance_v1`.`provider`.`participation_status`"
-  dimensions:
-    - name: "participation_status_code"
-      expr: participation_status_code
-      comment: "Standardized participation status code (e.g., Active, Terminated, Suspended) for network roster management."
-    - name: "participation_category"
-      expr: participation_category
-      comment: "Category of participation (e.g., PCP, Specialist, Facility) for segmented network analysis."
-    - name: "lob_code"
-      expr: lob_code
-      comment: "Line of business code (e.g., Commercial, Medicare, Medicaid) enabling cross-LOB network adequacy comparison."
-    - name: "network_tier_code"
-      expr: network_tier_code
-      comment: "Network tier code for tiered network benefit design analysis."
-    - name: "credentialing_status"
-      expr: credentialing_status
-      comment: "Credentialing status at time of participation record, used for compliance monitoring."
-    - name: "pcp_flag"
-      expr: pcp_flag
-      comment: "Identifies primary care providers for PCP panel capacity and access reporting."
-    - name: "panel_status"
-      expr: panel_status
-      comment: "Panel open/closed status indicating whether the provider is accepting new member assignments."
-    - name: "termination_reason_code"
-      expr: termination_reason_code
-      comment: "Reason code for participation termination, used to analyze voluntary vs. involuntary attrition."
-    - name: "effective_date_month"
-      expr: DATE_TRUNC('MONTH', effective_date)
-      comment: "Month of participation effective date for network growth trend analysis."
-  measures:
-    - name: "total_participation_records"
-      expr: COUNT(DISTINCT participation_status_id)
-      comment: "Total provider participation records across all health plans and networks. Baseline network roster size metric."
-    - name: "active_participating_providers"
-      expr: COUNT(CASE WHEN current_record_flag = TRUE AND participation_status_code = 'Active' THEN participation_status_id END)
-      comment: "Count of currently active participating providers. Core network adequacy metric used in regulatory filings and executive dashboards."
-    - name: "pct_open_panel"
-      expr: ROUND(100.0 * SUM(CASE WHEN panel_status = 'Open' THEN 1 ELSE 0 END) / NULLIF(COUNT(CASE WHEN current_record_flag = TRUE THEN 1 END), 0), 2)
-      comment: "Percentage of active providers with open panels. Access standard KPI — low open panel rates trigger network adequacy interventions."
-    - name: "pct_with_regulatory_sanction"
-      expr: ROUND(100.0 * SUM(CASE WHEN regulatory_sanction_flag = TRUE THEN 1 ELSE 0 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of participation records flagged with a regulatory sanction. Compliance risk KPI requiring immediate executive attention when elevated."
-    - name: "providers_terminated_current_period"
-      expr: COUNT(CASE WHEN termination_date IS NOT NULL AND current_record_flag = FALSE THEN participation_status_id END)
-      comment: "Count of providers with a recorded termination date. Network attrition metric used to assess network stability and trigger recruitment actions."
-    - name: "pct_directory_displayed"
-      expr: ROUND(100.0 * SUM(CASE WHEN directory_display_flag = TRUE THEN 1 ELSE 0 END) / NULLIF(COUNT(CASE WHEN current_record_flag = TRUE THEN 1 END), 0), 2)
-      comment: "Percentage of active providers displayed in the member-facing directory. CMS directory accuracy compliance metric with direct regulatory penalty exposure."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_sanction`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "KPIs measuring provider sanction activity, CMS/NCQA reportability, and resolution effectiveness. Used by Compliance, Legal, and Network Management to manage regulatory risk and provider exclusion obligations."
-  source: "`vibe_health_insurance_v1`.`provider`.`sanction`"
-  dimensions:
-    - name: "sanction_type"
-      expr: sanction_type
-      comment: "Type of sanction (e.g., Exclusion, Suspension, Probation) for risk stratification."
-    - name: "severity_level"
-      expr: severity_level
-      comment: "Severity classification of the sanction, used to prioritize compliance response and escalation."
-    - name: "participation_impact"
-      expr: participation_impact
-      comment: "Describes the impact on provider network participation status resulting from the sanction."
-    - name: "cms_reportable_flag"
-      expr: cms_reportable_flag
-      comment: "Indicates whether the sanction must be reported to CMS, a critical regulatory compliance flag."
-    - name: "ncqa_reportable_flag"
-      expr: ncqa_reportable_flag
-      comment: "Indicates whether the sanction must be reported to NCQA for accreditation compliance."
-    - name: "screening_source"
-      expr: screening_source
-      comment: "Source of the sanction screening (e.g., OIG, SAM, State) for data provenance and audit trails."
-    - name: "sanction_date_month"
-      expr: DATE_TRUNC('MONTH', sanction_date)
-      comment: "Month of sanction date for trend analysis of sanction volume over time."
-    - name: "current_record_flag"
-      expr: current_record_flag
-      comment: "Flags the current active sanction record for point-in-time roster accuracy."
-  measures:
-    - name: "total_sanctions"
-      expr: COUNT(DISTINCT sanction_id)
-      comment: "Total number of provider sanctions recorded. Baseline compliance risk metric tracked by Compliance and Legal leadership."
-    - name: "active_sanctions"
-      expr: COUNT(CASE WHEN current_record_flag = TRUE AND record_end_date IS NULL THEN sanction_id END)
-      comment: "Count of currently active sanctions with no end date. Immediate compliance risk exposure metric requiring executive oversight."
-    - name: "cms_reportable_sanctions"
-      expr: COUNT(CASE WHEN cms_reportable_flag = TRUE THEN sanction_id END)
-      comment: "Count of sanctions requiring CMS reporting. Regulatory obligation metric — failure to report triggers significant federal penalties."
-    - name: "pct_resolved_sanctions"
-      expr: ROUND(100.0 * COUNT(CASE WHEN resolution_date IS NOT NULL THEN sanction_id END) / NULLIF(COUNT(DISTINCT sanction_id), 0), 2)
-      comment: "Percentage of sanctions with a recorded resolution date. Compliance program effectiveness KPI — low resolution rates indicate systemic remediation failures."
-    - name: "pct_notification_sent"
-      expr: ROUND(100.0 * SUM(CASE WHEN notification_sent_flag = TRUE THEN 1 ELSE 0 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of sanctions for which member/provider notification was sent. Regulatory notification compliance rate with direct CMS audit exposure."
-    - name: "sanctions_with_waiver"
-      expr: COUNT(CASE WHEN exclusion_waiver_flag = TRUE THEN sanction_id END)
-      comment: "Count of sanctions where an exclusion waiver was granted. Risk management metric — elevated waiver counts require executive review of waiver policy."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_exclusion_screening`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "KPIs measuring provider exclusion screening program coverage, compliance status, and resolution effectiveness. Used by Compliance and Network Operations to meet OIG/SAM screening mandates and manage exclusion risk."
-  source: "`vibe_health_insurance_v1`.`provider`.`exclusion_screening`"
-  dimensions:
-    - name: "screening_result"
-      expr: screening_result
-      comment: "Outcome of the exclusion screening (e.g., Clear, Match, Pending Review) for compliance triage."
-    - name: "compliance_status"
-      expr: compliance_status
-      comment: "Overall compliance status of the screening record, used for regulatory reporting."
-    - name: "exclusion_type"
-      expr: exclusion_type
-      comment: "Type of exclusion identified (e.g., OIG, State Medicaid) for risk stratification."
-    - name: "screening_source"
-      expr: screening_source
-      comment: "Source database screened (e.g., OIG LEIE, SAM.gov) for audit trail and coverage analysis."
-    - name: "screening_frequency"
-      expr: screening_frequency
-      comment: "Frequency of screening (e.g., Monthly, Quarterly) for program design evaluation."
-    - name: "cms_reporting_flag"
-      expr: cms_reporting_flag
-      comment: "Indicates whether the screening result requires CMS reporting."
-    - name: "screening_date_month"
-      expr: DATE_TRUNC('MONTH', screening_date)
-      comment: "Month of screening date for trend analysis of screening program activity."
-  measures:
-    - name: "total_screenings"
-      expr: COUNT(DISTINCT exclusion_screening_id)
-      comment: "Total number of exclusion screenings performed. Program coverage metric used to demonstrate OIG compliance to regulators."
-    - name: "exclusion_match_count"
-      expr: COUNT(CASE WHEN screening_result = 'Match' THEN exclusion_screening_id END)
-      comment: "Count of screenings resulting in an exclusion match. Critical compliance risk metric — each match requires immediate participation termination action."
-    - name: "pct_exclusion_match_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN screening_result = 'Match' THEN exclusion_screening_id END) / NULLIF(COUNT(DISTINCT exclusion_screening_id), 0), 2)
-      comment: "Percentage of screenings resulting in an exclusion match. Benchmark metric for assessing network exclusion risk concentration."
-    - name: "pct_resolved_exclusions"
-      expr: ROUND(100.0 * COUNT(CASE WHEN resolution_date IS NOT NULL THEN exclusion_screening_id END) / NULLIF(COUNT(CASE WHEN screening_result = 'Match' THEN exclusion_screening_id END), 0), 2)
-      comment: "Percentage of exclusion matches with a recorded resolution. Compliance program effectiveness KPI — unresolved matches create federal fraud and abuse liability."
-    - name: "cms_reportable_screenings"
-      expr: COUNT(CASE WHEN cms_reporting_flag = TRUE THEN exclusion_screening_id END)
-      comment: "Count of screenings flagged for CMS reporting. Regulatory obligation metric ensuring federal reporting mandates are met."
-    - name: "overdue_screenings"
-      expr: COUNT(CASE WHEN next_screening_due_date < CURRENT_DATE() THEN exclusion_screening_id END)
-      comment: "Count of providers whose next scheduled screening is past due. Compliance gap metric — overdue screenings create OIG audit exposure and potential False Claims Act liability."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_license`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "KPIs measuring provider license currency, expiration risk, disciplinary action rates, and primary source verification compliance. Used by Credentialing and Compliance teams to manage licensure risk and meet NCQA/URAC standards."
-  source: "`vibe_health_insurance_v1`.`provider`.`license`"
-  dimensions:
-    - name: "license_type"
-      expr: license_type
-      comment: "Type of license (e.g., MD, DO, NP, PA) for specialty-specific compliance analysis."
-    - name: "license_status"
-      expr: license_status
-      comment: "Current status of the license (e.g., Active, Expired, Suspended) for compliance triage."
-    - name: "issuing_state"
-      expr: issuing_state
-      comment: "State that issued the license, enabling geographic compliance gap analysis."
-    - name: "disciplinary_action_flag"
-      expr: disciplinary_action_flag
-      comment: "Indicates whether a disciplinary action has been recorded against this license."
-    - name: "compact_participation_flag"
-      expr: compact_participation_flag
-      comment: "Indicates participation in an interstate compact (e.g., NLC), relevant for telehealth and multi-state practice."
-    - name: "telemedicine_authorized_flag"
-      expr: telemedicine_authorized_flag
-      comment: "Indicates whether the license authorizes telemedicine practice, critical for telehealth network adequacy."
-    - name: "expiration_date_month"
-      expr: DATE_TRUNC('MONTH', expiration_date)
-      comment: "Month of license expiration for proactive renewal pipeline management."
-  measures:
-    - name: "total_licenses"
-      expr: COUNT(DISTINCT license_id)
-      comment: "Total number of provider licenses on file. Baseline credentialing inventory metric."
-    - name: "active_licenses"
-      expr: COUNT(CASE WHEN license_status = 'Active' AND record_current_flag = TRUE THEN license_id END)
-      comment: "Count of currently active licenses. Core credentialing compliance metric — providers must hold active licenses to participate in the network."
-    - name: "expired_licenses"
-      expr: COUNT(CASE WHEN expiration_date < CURRENT_DATE() AND license_status != 'Renewed' THEN license_id END)
-      comment: "Count of licenses past their expiration date. Immediate compliance risk metric — expired licenses trigger claims adjudication failures and regulatory sanctions."
-    - name: "licenses_expiring_90_days"
-      expr: COUNT(CASE WHEN expiration_date BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), 90) THEN license_id END)
-      comment: "Count of licenses expiring within 90 days. Proactive renewal pipeline metric used by Credentialing Operations to prioritize outreach."
-    - name: "pct_with_disciplinary_action"
-      expr: ROUND(100.0 * SUM(CASE WHEN disciplinary_action_flag = TRUE THEN 1 ELSE 0 END) / NULLIF(COUNT(DISTINCT license_id), 0), 2)
-      comment: "Percentage of licenses with a recorded disciplinary action. Quality and risk metric — elevated rates require Medical Staff Committee review and potential network action."
-    - name: "pct_primary_source_verified"
-      expr: ROUND(100.0 * COUNT(CASE WHEN primary_source_verification_date IS NOT NULL THEN license_id END) / NULLIF(COUNT(DISTINCT license_id), 0), 2)
-      comment: "Percentage of licenses with completed primary source verification. NCQA credentialing standard compliance metric — below threshold triggers accreditation risk."
-    - name: "avg_continuing_education_hours_required"
-      expr: AVG(CAST(continuing_education_hours_required AS DOUBLE))
-      comment: "Average continuing education hours required across licensed providers. Workforce development planning metric for CME program design."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_specialty`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "KPIs measuring provider specialty distribution, board certification rates, credentialing currency, and network adequacy by specialty. Used by Network Management and Medical Affairs to ensure specialty access standards and HEDIS compliance."
-  source: "`vibe_health_insurance_v1`.`provider`.`specialty`"
-  dimensions:
-    - name: "specialty_name"
-      expr: specialty_name
-      comment: "Provider specialty name for network adequacy analysis by specialty type."
-    - name: "specialty_category"
-      expr: specialty_category
-      comment: "Broad specialty category (e.g., Primary Care, Behavioral Health, Surgery) for portfolio-level analysis."
-    - name: "specialty_type"
-      expr: specialty_type
-      comment: "Specialty type classification for regulatory and adequacy reporting."
-    - name: "credentialing_status"
-      expr: credentialing_status
-      comment: "Credentialing status for this specialty, used to identify compliance gaps."
-    - name: "board_certified_flag"
-      expr: board_certified_flag
-      comment: "Indicates board certification status, a quality differentiator used in tiered network design."
-    - name: "pcp_eligible_flag"
-      expr: pcp_eligible_flag
-      comment: "Indicates whether this specialty qualifies for PCP designation, relevant for PCP panel adequacy."
-    - name: "hedis_specialty_flag"
-      expr: hedis_specialty_flag
-      comment: "Flags specialties relevant to HEDIS measure compliance, used in quality program targeting."
-    - name: "network_adequacy_category"
-      expr: network_adequacy_category
-      comment: "Network adequacy category assignment for regulatory time-distance standard reporting."
-    - name: "telehealth_enabled_flag"
-      expr: telehealth_enabled_flag
-      comment: "Indicates whether the provider offers telehealth services for this specialty."
-  measures:
-    - name: "total_specialty_records"
-      expr: COUNT(DISTINCT specialty_id)
-      comment: "Total specialty records on file. Baseline metric for specialty inventory and network breadth assessment."
-    - name: "board_certified_providers"
-      expr: COUNT(CASE WHEN board_certified_flag = TRUE AND current_record_flag = TRUE THEN specialty_id END)
-      comment: "Count of providers with active board certification. Quality network metric — board certification rates influence tiering decisions and member satisfaction."
-    - name: "pct_board_certified"
-      expr: ROUND(100.0 * SUM(CASE WHEN board_certified_flag = TRUE THEN 1 ELSE 0 END) / NULLIF(COUNT(CASE WHEN current_record_flag = TRUE THEN 1 END), 0), 2)
-      comment: "Percentage of active specialty records with board certification. Quality benchmark used in NCQA accreditation and network tiering strategy."
-    - name: "pct_credentialing_active"
-      expr: ROUND(100.0 * SUM(CASE WHEN credentialing_status = 'Active' THEN 1 ELSE 0 END) / NULLIF(COUNT(CASE WHEN current_record_flag = TRUE THEN 1 END), 0), 2)
-      comment: "Percentage of active specialty records with current credentialing. Compliance metric — lapsed credentialing by specialty creates claims adjudication and regulatory risk."
-    - name: "hedis_relevant_specialties"
-      expr: COUNT(CASE WHEN hedis_specialty_flag = TRUE AND current_record_flag = TRUE THEN specialty_id END)
-      comment: "Count of active providers in HEDIS-relevant specialties. Quality program planning metric used to assess HEDIS measure compliance capacity."
-    - name: "pct_telehealth_enabled"
-      expr: ROUND(100.0 * SUM(CASE WHEN telehealth_enabled_flag = TRUE THEN 1 ELSE 0 END) / NULLIF(COUNT(CASE WHEN current_record_flag = TRUE THEN 1 END), 0), 2)
-      comment: "Percentage of active specialty records with telehealth enabled. Access and innovation metric — low telehealth rates may trigger network adequacy concerns for rural populations."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_facility`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "KPIs measuring facility network composition, quality ratings, credentialing status, and service capability. Used by Network Management and Quality teams to manage facility adequacy, accreditation compliance, and member access."
-  source: "`vibe_health_insurance_v1`.`provider`.`facility`"
-  dimensions:
-    - name: "facility_type"
-      expr: facility_type
-      comment: "Type of facility (e.g., Hospital, SNF, ASC, Urgent Care) for network composition analysis."
-    - name: "participation_status"
-      expr: participation_status
-      comment: "Current network participation status of the facility."
-    - name: "credentialing_status"
-      expr: credentialing_status
-      comment: "Credentialing status of the facility, required for claims adjudication and network participation."
-    - name: "state_code"
-      expr: state_code
-      comment: "State where the facility is located for geographic network adequacy analysis."
-    - name: "ownership_type"
-      expr: ownership_type
-      comment: "Facility ownership type (e.g., Non-profit, For-profit, Government) for strategic contracting analysis."
-    - name: "teaching_hospital_flag"
-      expr: teaching_hospital_flag
-      comment: "Identifies teaching hospitals, which carry different reimbursement and quality profiles."
-    - name: "critical_access_hospital_flag"
-      expr: critical_access_hospital_flag
-      comment: "Identifies Critical Access Hospitals with special Medicare reimbursement rules and rural access importance."
-    - name: "emergency_services_flag"
-      expr: emergency_services_flag
-      comment: "Indicates whether the facility provides emergency services, critical for network adequacy standards."
-    - name: "medicare_certified_flag"
-      expr: medicare_certified_flag
-      comment: "Indicates Medicare certification status, required for Medicare Advantage network participation."
-  measures:
-    - name: "total_facilities"
-      expr: COUNT(DISTINCT facility_id)
-      comment: "Total number of facilities in the network. Baseline facility network size metric for adequacy reporting."
-    - name: "active_participating_facilities"
-      expr: COUNT(CASE WHEN participation_status = 'Active' THEN facility_id END)
-      comment: "Count of facilities with active participation status. Core network adequacy metric reported to regulators and used in member communications."
-    - name: "avg_quality_rating"
-      expr: AVG(CAST(quality_rating AS DOUBLE))
-      comment: "Average quality rating across network facilities. Strategic quality metric used in tiered network design and member steerage programs."
-    - name: "pct_credentialing_current"
-      expr: ROUND(100.0 * COUNT(CASE WHEN credentialing_status = 'Active' THEN facility_id END) / NULLIF(COUNT(DISTINCT facility_id), 0), 2)
-      comment: "Percentage of facilities with current credentialing. Compliance metric — lapsed facility credentialing creates claims adjudication failures and regulatory exposure."
-    - name: "facilities_with_emergency_services"
-      expr: COUNT(CASE WHEN emergency_services_flag = TRUE AND participation_status = 'Active' THEN facility_id END)
-      comment: "Count of active network facilities offering emergency services. Network adequacy metric for CMS time-distance standards and state regulatory filings."
-    - name: "pct_telehealth_enabled"
-      expr: ROUND(100.0 * SUM(CASE WHEN telehealth_enabled_flag = TRUE THEN 1 ELSE 0 END) / NULLIF(COUNT(DISTINCT facility_id), 0), 2)
-      comment: "Percentage of facilities with telehealth capabilities. Innovation and access metric used in product design and regulatory filings."
-    - name: "pct_accepting_new_patients"
-      expr: ROUND(100.0 * SUM(CASE WHEN accepting_new_patients_flag = TRUE THEN 1 ELSE 0 END) / NULLIF(COUNT(CASE WHEN participation_status = 'Active' THEN 1 END), 0), 2)
-      comment: "Percentage of active facilities accepting new patients. Member access metric — low rates trigger network adequacy interventions and member complaints."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_npi_registry_sync`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "KPIs measuring NPI registry synchronization quality, discrepancy rates, and directory accuracy risk. Used by Provider Data Management and Compliance teams to meet CMS directory accuracy mandates and reduce claims submission risk."
-  source: "`vibe_health_insurance_v1`.`provider`.`npi_registry_sync`"
-  dimensions:
-    - name: "sync_status"
-      expr: sync_status
-      comment: "Status of the NPI registry sync operation (e.g., Success, Failed, Pending Review)."
-    - name: "match_status"
-      expr: match_status
-      comment: "Match status between internal records and NPPES registry data."
-    - name: "manual_review_required_flag"
-      expr: manual_review_required_flag
-      comment: "Indicates whether the sync record requires manual review due to discrepancies."
-    - name: "directory_accuracy_impact_flag"
-      expr: directory_accuracy_impact_flag
-      comment: "Flags sync records where discrepancies impact directory accuracy, a CMS compliance concern."
-    - name: "claims_submission_risk_flag"
-      expr: claims_submission_risk_flag
-      comment: "Flags records where NPI discrepancies create claims submission risk."
-    - name: "sync_run_date_month"
-      expr: DATE_TRUNC('MONTH', sync_run_date)
-      comment: "Month of sync run date for trend analysis of data quality over time."
-  measures:
-    - name: "total_sync_records"
-      expr: COUNT(DISTINCT npi_registry_sync_id)
-      comment: "Total NPI registry sync records processed. Program coverage metric for provider data governance reporting."
-    - name: "records_with_discrepancies"
-      expr: COUNT(CASE WHEN address_discrepancy_flag = TRUE OR name_discrepancy_flag = TRUE OR taxonomy_discrepancy_flag = TRUE OR credential_discrepancy_flag = TRUE THEN npi_registry_sync_id END)
-      comment: "Count of sync records with any type of discrepancy. Data quality risk metric — high discrepancy counts indicate systemic provider data integrity issues."
-    - name: "pct_discrepancy_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN address_discrepancy_flag = TRUE OR name_discrepancy_flag = TRUE OR taxonomy_discrepancy_flag = TRUE OR credential_discrepancy_flag = TRUE THEN npi_registry_sync_id END) / NULLIF(COUNT(DISTINCT npi_registry_sync_id), 0), 2)
-      comment: "Percentage of sync records with discrepancies. CMS directory accuracy compliance KPI — rates above threshold trigger regulatory penalties under the No Surprises Act."
-    - name: "directory_accuracy_risk_records"
-      expr: COUNT(CASE WHEN directory_accuracy_impact_flag = TRUE THEN npi_registry_sync_id END)
-      comment: "Count of sync records with directory accuracy impact. Regulatory risk metric directly tied to CMS directory accuracy penalty exposure."
-    - name: "claims_submission_risk_records"
-      expr: COUNT(CASE WHEN claims_submission_risk_flag = TRUE THEN npi_registry_sync_id END)
-      comment: "Count of records flagged for claims submission risk due to NPI discrepancies. Financial risk metric — NPI errors cause claims rejections and revenue leakage."
-    - name: "pending_manual_review"
-      expr: COUNT(CASE WHEN manual_review_required_flag = TRUE AND manual_review_completed_date IS NULL THEN npi_registry_sync_id END)
-      comment: "Count of sync records requiring manual review that have not yet been completed. Operational backlog metric used to staff Provider Data Management teams."
-    - name: "pct_auto_applied_updates"
-      expr: ROUND(100.0 * SUM(CASE WHEN auto_applied_update_flag = TRUE THEN 1 ELSE 0 END) / NULLIF(COUNT(DISTINCT npi_registry_sync_id), 0), 2)
-      comment: "Percentage of sync updates automatically applied without manual intervention. Automation efficiency metric for provider data operations productivity."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_directory_verification`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "KPIs measuring provider directory verification program coverage, outcomes, and currency. Used by Provider Data Management and Compliance to meet CMS and state directory accuracy mandates."
-  source: "`vibe_health_insurance_v1`.`provider`.`provider_directory_verification`"
-  dimensions:
-    - name: "verification_status"
-      expr: verification_status
-      comment: "Status of the directory verification (e.g., Verified, Failed, Pending) for compliance tracking."
-    - name: "verification_outcome"
-      expr: verification_outcome
-      comment: "Outcome of the verification attempt (e.g., Confirmed, Updated, Unable to Reach) for quality analysis."
-    - name: "verification_method"
-      expr: verification_method
-      comment: "Method used for verification (e.g., Phone, Mail, Portal) for channel effectiveness analysis."
-    - name: "current_record_flag"
-      expr: current_record_flag
-      comment: "Flags the most current verification record for point-in-time accuracy reporting."
-    - name: "record_effective_date_month"
-      expr: DATE_TRUNC('MONTH', record_effective_date)
-      comment: "Month of verification effective date for trend analysis of verification program activity."
-  measures:
-    - name: "total_verifications"
-      expr: COUNT(DISTINCT provider_directory_verification_id)
-      comment: "Total directory verification records. Program coverage metric for CMS directory accuracy compliance reporting."
-    - name: "successful_verifications"
-      expr: COUNT(CASE WHEN verification_status = 'Verified' THEN provider_directory_verification_id END)
-      comment: "Count of successfully completed verifications. Core directory accuracy compliance metric required by CMS and state regulators."
-    - name: "pct_verification_success_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN verification_status = 'Verified' THEN provider_directory_verification_id END) / NULLIF(COUNT(DISTINCT provider_directory_verification_id), 0), 2)
-      comment: "Percentage of verification attempts resulting in successful verification. CMS directory accuracy compliance rate — below threshold triggers regulatory penalties."
-    - name: "overdue_verifications"
-      expr: COUNT(CASE WHEN next_verification_date < CURRENT_DATE() AND current_record_flag = TRUE THEN provider_directory_verification_id END)
-      comment: "Count of providers whose next directory verification is past due. Compliance gap metric — overdue verifications create CMS directory accuracy penalty exposure."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_outreach_campaign`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "KPIs measuring provider outreach campaign performance, budget efficiency, and audience reach. Used by Provider Relations and Network Development leadership to optimize outreach investment and campaign ROI."
-  source: "`vibe_health_insurance_v1`.`provider`.`outreach_campaign`"
-  dimensions:
-    - name: "campaign_type"
-      expr: campaign_type
-      comment: "Type of outreach campaign (e.g., Recruitment, Retention, Directory Verification) for portfolio analysis."
-    - name: "campaign_channel"
-      expr: campaign_channel
-      comment: "Communication channel used (e.g., Email, Phone, Mail) for channel effectiveness comparison."
-    - name: "campaign_approval_status"
-      expr: campaign_approval_status
-      comment: "Approval status of the campaign for governance and spend authorization tracking."
-    - name: "lifecycle_status"
-      expr: lifecycle_status
-      comment: "Current lifecycle stage of the campaign (e.g., Planning, Active, Completed) for pipeline management."
-    - name: "owner_department"
-      expr: owner_department
-      comment: "Department owning the campaign for cost allocation and accountability reporting."
-    - name: "campaign_currency"
-      expr: campaign_currency
-      comment: "Currency of campaign budget and spend for multi-currency financial reporting."
-    - name: "effective_from_month"
-      expr: DATE_TRUNC('MONTH', effective_from)
-      comment: "Month campaign became effective for trend analysis of outreach activity."
-  measures:
-    - name: "total_campaigns"
-      expr: COUNT(DISTINCT outreach_campaign_id)
-      comment: "Total number of provider outreach campaigns. Portfolio size metric for Provider Relations program management."
-    - name: "total_campaign_budget"
-      expr: SUM(CAST(campaign_budget AS DOUBLE))
-      comment: "Total budgeted spend across all outreach campaigns. Financial planning metric for Provider Relations budget management."
-    - name: "total_campaign_spend"
-      expr: SUM(CAST(campaign_spend AS DOUBLE))
-      comment: "Total actual spend across all outreach campaigns. Financial accountability metric compared against budget for variance analysis."
-    - name: "avg_campaign_budget"
-      expr: AVG(CAST(campaign_budget AS DOUBLE))
-      comment: "Average budget per outreach campaign. Benchmarking metric for campaign investment sizing decisions."
-    - name: "budget_utilization_rate"
-      expr: ROUND(100.0 * SUM(CAST(campaign_spend AS DOUBLE)) / NULLIF(SUM(CAST(campaign_budget AS DOUBLE)), 0), 2)
-      comment: "Percentage of campaign budget actually spent. Financial efficiency metric — significant under/over-spend triggers budget reallocation decisions."
-    - name: "total_target_audience_size"
-      expr: SUM(CAST(campaign_target_audience_size AS DOUBLE))
-      comment: "Total number of providers targeted across all campaigns. Reach metric for assessing outreach program scale and coverage."
-    - name: "avg_target_audience_income_range"
-      expr: AVG(CAST(campaign_target_audience_income_range AS DOUBLE))
-      comment: "Average income range of targeted provider audience. Segmentation metric for tailoring outreach messaging and channel strategy."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_audit_assignment`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "KPIs measuring provider audit assignment volume, completion rates, and outcome distribution. Used by Compliance and Network Operations leadership to manage audit program effectiveness and regulatory obligation fulfillment."
+  comment: "KPIs measuring provider audit program performance, completion rates, and corrective action outcomes. Used by Compliance and Network Management to oversee provider audit program effectiveness and regulatory risk remediation."
   source: "`vibe_health_insurance_v1`.`provider`.`audit_assignment`"
   dimensions:
+    - name: "audit_status_code"
+      expr: audit_status_code
+      comment: "Standardized audit status code (e.g., Assigned, In Progress, Completed, Overdue) — primary dimension for audit pipeline management."
     - name: "audit_type"
       expr: audit_type
-      comment: "Type of audit (e.g., Credentialing, Billing, Quality) for program-level analysis."
-    - name: "audit_status"
-      expr: audit_status
-      comment: "Current status of the audit (e.g., Assigned, In Progress, Completed) for workload management."
-    - name: "audit_outcome"
-      expr: audit_outcome
-      comment: "Outcome of the completed audit (e.g., Pass, Fail, Conditional) for quality trend analysis."
-    - name: "assignment_status"
-      expr: assignment_status
-      comment: "Assignment status of the audit task for operational pipeline management."
-    - name: "audit_scope"
-      expr: audit_scope
-      comment: "Scope of the audit for resource planning and risk stratification."
+      comment: "Type of audit (e.g., Credentialing, Billing, Quality, Compliance) — used to analyze audit outcomes by audit category."
+    - name: "corrective_action_required"
+      expr: corrective_action_required
+      comment: "Indicates whether a corrective action plan is required — used to track remediation workload from audit findings."
+    - name: "priority_level"
+      expr: priority_level
+      comment: "Priority level of the audit assignment — used to ensure high-priority audits are completed on time."
     - name: "assigned_date_month"
-      expr: DATE_TRUNC('MONTH', assigned_date)
-      comment: "Month of audit assignment for trend analysis of audit program activity."
+      expr: DATE_TRUNC('month', assigned_date)
+      comment: "Month of audit assignment — used to track audit program cadence and workload distribution."
+    - name: "is_active"
+      expr: is_active
+      comment: "Current active record flag — filters to current audit assignments."
   measures:
     - name: "total_audit_assignments"
-      expr: COUNT(DISTINCT audit_assignment_id)
-      comment: "Total number of provider audit assignments. Program volume metric for compliance program capacity planning."
-    - name: "completed_audits"
-      expr: COUNT(CASE WHEN is_completed = TRUE THEN audit_assignment_id END)
-      comment: "Count of completed audit assignments. Program throughput metric used to assess compliance team productivity."
-    - name: "pct_audit_completion_rate"
-      expr: ROUND(100.0 * SUM(CASE WHEN is_completed = TRUE THEN 1 ELSE 0 END) / NULLIF(COUNT(DISTINCT audit_assignment_id), 0), 2)
-      comment: "Percentage of audit assignments completed. Compliance program effectiveness KPI — low completion rates indicate resource gaps or process failures."
-    - name: "overdue_audits"
-      expr: COUNT(CASE WHEN due_date < CURRENT_DATE() AND is_completed = FALSE THEN audit_assignment_id END)
-      comment: "Count of audit assignments past their due date and not yet completed. Compliance risk metric — overdue audits create regulatory obligation gaps."
-    - name: "pct_overdue_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN due_date < CURRENT_DATE() AND is_completed = FALSE THEN audit_assignment_id END) / NULLIF(COUNT(DISTINCT audit_assignment_id), 0), 2)
-      comment: "Percentage of audit assignments that are overdue. Operational efficiency and compliance risk KPI monitored by Compliance leadership."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_obligation_compliance`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "KPIs measuring provider obligation compliance status, assessment currency, and remediation pipeline. Used by Compliance and Network Operations to manage provider regulatory obligation fulfillment and identify systemic compliance gaps."
-  source: "`vibe_health_insurance_v1`.`provider`.`obligation_compliance`"
-  dimensions:
-    - name: "obligation_type"
-      expr: obligation_type
-      comment: "Type of regulatory or contractual obligation (e.g., Credentialing, Reporting, Training) for compliance gap analysis."
-    - name: "compliance_status"
-      expr: compliance_status
-      comment: "Current compliance status (e.g., Compliant, Non-Compliant, Pending) for risk triage."
-    - name: "is_compliant"
-      expr: is_compliant
-      comment: "Boolean compliance indicator for quick dashboard filtering and alerting."
-    - name: "assessment_date_month"
-      expr: DATE_TRUNC('MONTH', assessment_date)
-      comment: "Month of compliance assessment for trend analysis of compliance program activity."
-  measures:
-    - name: "total_obligation_records"
-      expr: COUNT(DISTINCT obligation_compliance_id)
-      comment: "Total provider obligation compliance records. Baseline metric for compliance program scope and coverage."
-    - name: "compliant_obligations"
-      expr: COUNT(CASE WHEN is_compliant = TRUE THEN obligation_compliance_id END)
-      comment: "Count of obligations currently in compliance. Core compliance program health metric reported to executive leadership."
-    - name: "pct_compliance_rate"
-      expr: ROUND(100.0 * SUM(CASE WHEN is_compliant = TRUE THEN 1 ELSE 0 END) / NULLIF(COUNT(DISTINCT obligation_compliance_id), 0), 2)
-      comment: "Overall provider obligation compliance rate. Strategic compliance KPI — below-threshold rates trigger regulatory intervention and corrective action plans."
-    - name: "overdue_remediation"
-      expr: COUNT(CASE WHEN remediation_due_date < CURRENT_DATE() AND is_compliant = FALSE THEN obligation_compliance_id END)
-      comment: "Count of non-compliant obligations with overdue remediation deadlines. Escalation metric requiring immediate Compliance leadership attention."
-    - name: "obligations_due_for_review"
-      expr: COUNT(CASE WHEN next_review_date <= DATE_ADD(CURRENT_DATE(), 30) THEN obligation_compliance_id END)
-      comment: "Count of obligations due for review within 30 days. Proactive compliance management metric for workload planning."
+      expr: COUNT(1)
+      comment: "Total number of provider audit assignments. Baseline measure for audit program scope and workload."
+    - name: "completed_audit_count"
+      expr: COUNT(CASE WHEN audit_status_code = 'Completed' THEN audit_assignment_id END)
+      comment: "Number of completed provider audits. Core audit program throughput KPI used to assess program execution capacity."
+    - name: "audit_completion_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN audit_status_code = 'Completed' THEN audit_assignment_id END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of audit assignments completed. Low completion rates signal resource constraints or process failures in the audit program."
+    - name: "corrective_action_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN corrective_action_required = TRUE THEN audit_assignment_id END) / NULLIF(COUNT(CASE WHEN audit_status_code = 'Completed' THEN audit_assignment_id END), 0), 2)
+      comment: "Percentage of completed audits requiring corrective action. High rates indicate systemic provider compliance issues requiring strategic intervention."
+    - name: "overdue_audit_count"
+      expr: COUNT(CASE WHEN due_date < CURRENT_DATE AND audit_status_code != 'Completed' THEN audit_assignment_id END)
+      comment: "Number of audit assignments past their due date and not yet completed. Overdue audits create regulatory exposure — a key operational risk KPI."
+    - name: "avg_audit_score"
+      expr: AVG(CAST(audit_score AS DOUBLE))
+      comment: "Average audit score across completed provider audits. Composite provider quality indicator used in network retention and contracting decisions."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_directory_entry`
@@ -623,55 +52,563 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Provider directory entry metrics for directory accuracy, completeness, and compliance with CMS No Surprises Act and state directory accuracy requirements."
+  comment: "Provider directory entry metrics tracking verification status, attestation compliance, and directory accuracy for member access and regulatory compliance."
   source: "`vibe_health_insurance_v1`.`provider`.`directory_entry`"
   dimensions:
     - name: "participation_status"
       expr: participation_status
-      comment: "Directory participation status for active listing tracking."
+      comment: "Network participation status in the directory"
     - name: "attestation_status"
       expr: attestation_status
-      comment: "Provider attestation status for directory accuracy compliance."
-    - name: "provider_type"
-      expr: provider_type
-      comment: "Provider type in directory for composition analysis."
+      comment: "Status of provider attestation for directory accuracy"
+    - name: "attestation_method"
+      expr: attestation_method
+      comment: "Method used for provider attestation"
     - name: "network_tier"
       expr: network_tier
-      comment: "Network tier displayed in directory for tiered network reporting."
+      comment: "Network tier displayed in the directory"
+    - name: "provider_type"
+      expr: provider_type
+      comment: "Type of provider in the directory"
+    - name: "accepting_new_patients_flag"
+      expr: accepting_new_patients_flag
+      comment: "Whether the provider is accepting new patients"
+    - name: "pcp_flag"
+      expr: pcp_flag
+      comment: "Whether the provider is designated as a primary care provider"
+    - name: "telehealth_available_flag"
+      expr: telehealth_available_flag
+      comment: "Whether telehealth services are available"
     - name: "practice_state"
       expr: practice_state
-      comment: "State of practice location for geographic directory analysis."
+      comment: "State where the practice is located"
+    - name: "practice_county"
+      expr: practice_county
+      comment: "County where the practice is located"
     - name: "gender"
       expr: gender
-      comment: "Provider gender in directory for diversity and access reporting."
-    - name: "pcp_flag"
-      expr: CAST(pcp_flag AS STRING)
-      comment: "Whether listed as PCP for primary care directory accuracy."
-    - name: "telehealth_available_flag"
-      expr: CAST(telehealth_available_flag AS STRING)
-      comment: "Whether telehealth is available for virtual care directory accuracy."
-    - name: "accepting_new_patients_flag"
-      expr: CAST(accepting_new_patients_flag AS STRING)
-      comment: "Whether accepting new patients for member access accuracy."
+      comment: "Provider gender displayed in directory"
+    - name: "is_active"
+      expr: is_active
+      comment: "Whether the directory entry is currently active"
+    - name: "publication_year"
+      expr: YEAR(directory_publication_date)
+      comment: "Year the directory was published"
+    - name: "publication_month"
+      expr: DATE_TRUNC('MONTH', directory_publication_date)
+      comment: "Month the directory was published"
   measures:
     - name: "total_directory_entries"
-      expr: COUNT(1)
-      comment: "Total directory entries for directory size tracking."
+      expr: COUNT(DISTINCT directory_entry_id)
+      comment: "Total unique provider directory entries"
+    - name: "active_directory_entries"
+      expr: COUNT(DISTINCT CASE WHEN is_active = 'true' THEN directory_entry_id END)
+      comment: "Count of active directory entries available to members"
     - name: "accepting_new_patients_count"
-      expr: COUNT(CASE WHEN accepting_new_patients_flag = TRUE THEN 1 END)
-      comment: "Count of directory entries accepting new patients for access reporting."
-    - name: "telehealth_available_count"
-      expr: COUNT(CASE WHEN telehealth_available_flag = TRUE THEN 1 END)
-      comment: "Count of directory entries with telehealth for virtual care access."
+      expr: COUNT(DISTINCT CASE WHEN accepting_new_patients_flag = true THEN directory_entry_id END)
+      comment: "Count of providers accepting new patients, critical for member access and network adequacy"
     - name: "pcp_directory_count"
-      expr: COUNT(CASE WHEN pcp_flag = TRUE THEN 1 END)
-      comment: "Count of PCP directory entries for primary care access adequacy."
+      expr: COUNT(DISTINCT CASE WHEN pcp_flag = true THEN directory_entry_id END)
+      comment: "Count of primary care providers in directory, key metric for network adequacy"
+    - name: "telehealth_enabled_count"
+      expr: COUNT(DISTINCT CASE WHEN telehealth_available_flag = true THEN directory_entry_id END)
+      comment: "Count of providers offering telehealth, important for virtual care access"
     - name: "attested_entry_count"
-      expr: COUNT(CASE WHEN attestation_status = 'Attested' THEN 1 END)
-      comment: "Count of attested directory entries for compliance with directory accuracy rules."
-    - name: "distinct_practice_states"
-      expr: COUNT(DISTINCT practice_state)
-      comment: "Number of distinct states with directory entries for geographic coverage."
+      expr: COUNT(DISTINCT CASE WHEN attestation_status = 'Attested' THEN directory_entry_id END)
+      comment: "Count of directory entries with completed attestation, key compliance metric for directory accuracy"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_exclusion_screening`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "KPIs measuring provider exclusion screening outcomes, compliance rates, and regulatory risk exposure. Used by Compliance and Network Management to ensure no excluded providers are active in the network — a CMS and OIG mandatory requirement."
+  source: "`vibe_health_insurance_v1`.`provider`.`exclusion_screening`"
+  dimensions:
+    - name: "screening_result"
+      expr: screening_result
+      comment: "Outcome of the exclusion screening (e.g., Clear, Match Found, Pending Review) — primary dimension for risk segmentation."
+    - name: "exclusion_type"
+      expr: exclusion_type
+      comment: "Type of exclusion identified (e.g., OIG, SAM, State) — used to categorize regulatory risk by exclusion source."
+    - name: "compliance_status"
+      expr: compliance_status
+      comment: "Overall compliance status of the screening record — used to track resolution of identified exclusions."
+    - name: "cms_reporting_flag"
+      expr: cms_reporting_flag
+      comment: "Indicates whether the exclusion is reportable to CMS — critical for regulatory reporting compliance."
+    - name: "state_reporting_flag"
+      expr: state_reporting_flag
+      comment: "Indicates whether the exclusion is reportable to state regulators — used for state-level compliance tracking."
+    - name: "screening_date_month"
+      expr: DATE_TRUNC('month', screening_date)
+      comment: "Month of screening — enables trend analysis of screening volume and match rates over time."
+    - name: "screening_source"
+      expr: screening_source
+      comment: "Source database used for screening (e.g., OIG LEIE, SAM.gov) — used to assess coverage and completeness of screening program."
+    - name: "is_active"
+      expr: is_active
+      comment: "Current active record flag — filters to current screening records."
+  measures:
+    - name: "total_screenings"
+      expr: COUNT(1)
+      comment: "Total number of exclusion screening records. Baseline measure for screening program activity — regulators expect 100% coverage of active providers."
+    - name: "exclusion_match_count"
+      expr: COUNT(CASE WHEN screening_result = 'Match Found' THEN exclusion_screening_id END)
+      comment: "Number of screenings resulting in an exclusion match. Each match represents a critical compliance risk — excluded providers must be immediately removed from the network."
+    - name: "exclusion_match_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN screening_result = 'Match Found' THEN exclusion_screening_id END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of screenings resulting in an exclusion match. Tracks network contamination risk — any non-zero rate triggers immediate executive and legal review."
+    - name: "cms_reportable_exclusion_count"
+      expr: COUNT(CASE WHEN cms_reporting_flag = TRUE THEN exclusion_screening_id END)
+      comment: "Number of exclusions that must be reported to CMS. Directly measures regulatory reporting obligation volume — failure to report carries significant financial penalties."
+    - name: "unresolved_exclusion_count"
+      expr: COUNT(CASE WHEN screening_result = 'Match Found' AND compliance_status != 'Resolved' THEN exclusion_screening_id END)
+      comment: "Number of exclusion matches not yet resolved. Unresolved exclusions represent active regulatory liability — a key operational risk KPI for the Compliance Officer."
+    - name: "audit_flagged_count"
+      expr: COUNT(CASE WHEN audit_flag = TRUE THEN exclusion_screening_id END)
+      comment: "Number of screening records flagged for audit. Indicates the volume of cases requiring additional scrutiny — used to size compliance audit workload."
+    - name: "overdue_screening_count"
+      expr: COUNT(CASE WHEN next_screening_due_date < CURRENT_DATE AND is_active = TRUE THEN exclusion_screening_id END)
+      comment: "Number of providers with overdue exclusion screenings. Overdue screenings create regulatory exposure — CMS requires periodic re-screening of all network providers."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_facility`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Facility metrics tracking bed capacity, accreditation status, emergency services availability, and quality ratings for network adequacy and care delivery planning."
+  source: "`vibe_health_insurance_v1`.`provider`.`facility`"
+  dimensions:
+    - name: "facility_type"
+      expr: facility_type
+      comment: "Type of facility (e.g., hospital, clinic, surgery center)"
+    - name: "participation_status"
+      expr: participation_status
+      comment: "Network participation status of the facility"
+    - name: "credentialing_status"
+      expr: credentialing_status
+      comment: "Credentialing status of the facility"
+    - name: "state_code"
+      expr: state_code
+      comment: "State where the facility is located"
+    - name: "county_name"
+      expr: county_name
+      comment: "County where the facility is located"
+    - name: "network_tier"
+      expr: network_tier
+      comment: "Network tier assignment"
+    - name: "ownership_type"
+      expr: ownership_type
+      comment: "Ownership type of the facility"
+    - name: "emergency_services_flag"
+      expr: emergency_services_flag
+      comment: "Whether the facility provides emergency services"
+    - name: "teaching_hospital_flag"
+      expr: teaching_hospital_flag
+      comment: "Whether the facility is a teaching hospital"
+    - name: "critical_access_hospital_flag"
+      expr: critical_access_hospital_flag
+      comment: "Whether the facility is designated as a critical access hospital"
+    - name: "trauma_level"
+      expr: trauma_level
+      comment: "Trauma center designation level"
+    - name: "medicare_certified_flag"
+      expr: medicare_certified_flag
+      comment: "Whether the facility is Medicare certified"
+    - name: "medicaid_certified_flag"
+      expr: medicaid_certified_flag
+      comment: "Whether the facility is Medicaid certified"
+    - name: "is_active"
+      expr: is_active
+      comment: "Whether the facility record is currently active"
+  measures:
+    - name: "total_facilities"
+      expr: COUNT(DISTINCT facility_id)
+      comment: "Total unique facilities in the network"
+    - name: "active_facility_count"
+      expr: COUNT(DISTINCT CASE WHEN is_active = 'true' THEN facility_id END)
+      comment: "Count of active facilities available for member access"
+    - name: "emergency_services_facility_count"
+      expr: COUNT(DISTINCT CASE WHEN emergency_services_flag = true THEN facility_id END)
+      comment: "Count of facilities providing emergency services, critical for network adequacy"
+    - name: "total_bed_count"
+      expr: SUM(CAST(bed_count AS DOUBLE))
+      comment: "Total bed capacity across all facilities, key metric for utilization management and capacity planning"
+    - name: "avg_quality_rating"
+      expr: AVG(CAST(quality_rating AS DOUBLE))
+      comment: "Average quality rating across facilities, used for network quality assessment and steering"
+    - name: "critical_access_hospital_count"
+      expr: COUNT(DISTINCT CASE WHEN critical_access_hospital_flag = true THEN facility_id END)
+      comment: "Count of critical access hospitals, important for rural access and regulatory compliance"
+    - name: "teaching_hospital_count"
+      expr: COUNT(DISTINCT CASE WHEN teaching_hospital_flag = true THEN facility_id END)
+      comment: "Count of teaching hospitals, relevant for quality and academic affiliation strategies"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_license`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Provider license metrics tracking expiration risk, disciplinary actions, and primary source verification compliance for credentialing and regulatory risk management."
+  source: "`vibe_health_insurance_v1`.`provider`.`license`"
+  dimensions:
+    - name: "license_type"
+      expr: license_type
+      comment: "Type of professional license"
+    - name: "license_status"
+      expr: license_status
+      comment: "Current status of the license"
+    - name: "issuing_state"
+      expr: issuing_state
+      comment: "State that issued the license"
+    - name: "compact_type"
+      expr: compact_type
+      comment: "Type of interstate compact participation"
+    - name: "compact_participation_flag"
+      expr: compact_participation_flag
+      comment: "Whether the license participates in an interstate compact"
+    - name: "disciplinary_action_flag"
+      expr: disciplinary_action_flag
+      comment: "Whether there is a disciplinary action on record"
+    - name: "continuing_education_required_flag"
+      expr: continuing_education_required_flag
+      comment: "Whether continuing education is required for this license"
+    - name: "telemedicine_authorized_flag"
+      expr: telemedicine_authorized_flag
+      comment: "Whether the license authorizes telemedicine practice"
+    - name: "is_active"
+      expr: is_active
+      comment: "Whether the license record is currently active"
+    - name: "expiration_year"
+      expr: YEAR(expiration_date)
+      comment: "Year the license expires"
+    - name: "expiration_month"
+      expr: DATE_TRUNC('MONTH', expiration_date)
+      comment: "Month the license expires"
+  measures:
+    - name: "total_licenses"
+      expr: COUNT(DISTINCT license_id)
+      comment: "Total unique provider licenses on record"
+    - name: "active_license_count"
+      expr: COUNT(DISTINCT CASE WHEN license_status = 'Active' THEN license_id END)
+      comment: "Count of active licenses, critical for provider eligibility and claims adjudication"
+    - name: "disciplinary_action_count"
+      expr: COUNT(DISTINCT CASE WHEN disciplinary_action_flag = true THEN license_id END)
+      comment: "Count of licenses with disciplinary actions, key risk indicator for credentialing and compliance"
+    - name: "compact_license_count"
+      expr: COUNT(DISTINCT CASE WHEN compact_participation_flag = true THEN license_id END)
+      comment: "Count of licenses participating in interstate compacts, relevant for multi-state network strategies"
+    - name: "telemedicine_authorized_count"
+      expr: COUNT(DISTINCT CASE WHEN telemedicine_authorized_flag = true THEN license_id END)
+      comment: "Count of licenses authorized for telemedicine, critical for virtual care network adequacy"
+    - name: "avg_continuing_education_hours_required"
+      expr: AVG(CAST(continuing_education_hours_required AS DOUBLE))
+      comment: "Average continuing education hours required across licenses"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_license_management`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "KPIs measuring provider license status, expiration risk, and primary source verification compliance. Used by Credentialing and Network Management to prevent lapsed licenses from creating network adequacy and regulatory violations."
+  source: "`vibe_health_insurance_v1`.`provider`.`license`"
+  dimensions:
+    - name: "license_status"
+      expr: license_status
+      comment: "Current status of the provider license (e.g., Active, Expired, Suspended) — primary dimension for license health monitoring."
+    - name: "license_type"
+      expr: license_type
+      comment: "Type of license (e.g., MD, DO, NP, PA) — used to analyze credentialing requirements by provider type."
+    - name: "issuing_state"
+      expr: issuing_state
+      comment: "State that issued the license — used for geographic compliance analysis and compact privilege tracking."
+    - name: "compact_participation_flag"
+      expr: compact_participation_flag
+      comment: "Indicates participation in interstate compact (e.g., NLC, IMLC) — tracks multi-state practice eligibility."
+    - name: "disciplinary_action_flag"
+      expr: disciplinary_action_flag
+      comment: "Indicates whether a disciplinary action is on record — critical risk flag for credentialing decisions."
+    - name: "continuing_education_required_flag"
+      expr: continuing_education_required_flag
+      comment: "Indicates whether continuing education is required for renewal — used to track CE compliance risk."
+    - name: "expiration_date_month"
+      expr: DATE_TRUNC('month', expiration_date)
+      comment: "Month of license expiration — used to forecast upcoming renewal workload and prevent lapses."
+    - name: "is_active"
+      expr: is_active
+      comment: "Current active record flag — filters to current license records."
+  measures:
+    - name: "total_licenses"
+      expr: COUNT(1)
+      comment: "Total number of provider license records. Baseline measure for credentialing program scope."
+    - name: "active_license_count"
+      expr: COUNT(CASE WHEN license_status = 'Active' AND is_active = TRUE THEN license_id END)
+      comment: "Number of currently active provider licenses. Core credentialing KPI — active licenses are a prerequisite for network participation and claims payment."
+    - name: "expired_license_count"
+      expr: COUNT(CASE WHEN license_status = 'Expired' THEN license_id END)
+      comment: "Number of expired provider licenses. Expired licenses create immediate network adequacy and regulatory risk — triggers credentialing team intervention."
+    - name: "license_expiration_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN license_status = 'Expired' THEN license_id END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of licenses in expired status. A rising expiration rate signals credentialing process failures and regulatory exposure."
+    - name: "disciplinary_action_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN disciplinary_action_flag = TRUE THEN license_id END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of licenses with disciplinary actions on record. Disciplinary actions affect provider network eligibility and create liability — a key quality and risk KPI."
+    - name: "licenses_expiring_within_90_days"
+      expr: COUNT(CASE WHEN expiration_date BETWEEN CURRENT_DATE AND DATE_ADD(CURRENT_DATE, 90) AND license_status = 'Active' THEN license_id END)
+      comment: "Number of active licenses expiring within the next 90 days. Forward-looking risk metric used to prioritize renewal outreach and prevent network adequacy gaps."
+    - name: "primary_source_verification_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN primary_source_verification_date IS NOT NULL THEN license_id END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of licenses with completed primary source verification. NCQA and URAC credentialing standards require PSV — this KPI measures accreditation compliance."
+    - name: "avg_continuing_education_hours_required"
+      expr: AVG(CAST(continuing_education_hours_required AS DOUBLE))
+      comment: "Average continuing education hours required across licenses. Used to assess CE compliance burden and forecast renewal workload by provider type."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_npi_registry_sync`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "NPI registry synchronization metrics tracking NPPES data discrepancies, sync status, and data quality for provider directory accuracy and claims submission integrity."
+  source: "`vibe_health_insurance_v1`.`provider`.`npi_registry_sync`"
+  dimensions:
+    - name: "sync_status"
+      expr: sync_status
+      comment: "Status of NPI sync operation for pipeline monitoring."
+    - name: "match_status"
+      expr: match_status
+      comment: "NPI match status for data quality tracking."
+    - name: "sync_source"
+      expr: sync_source
+      comment: "Source of sync data for data lineage."
+    - name: "name_discrepancy_flag"
+      expr: CAST(name_discrepancy_flag AS STRING)
+      comment: "Whether name discrepancy exists for data quality flagging."
+    - name: "address_discrepancy_flag"
+      expr: CAST(address_discrepancy_flag AS STRING)
+      comment: "Whether address discrepancy exists for directory accuracy."
+    - name: "taxonomy_discrepancy_flag"
+      expr: CAST(taxonomy_discrepancy_flag AS STRING)
+      comment: "Whether taxonomy discrepancy exists for specialty accuracy."
+    - name: "credential_discrepancy_flag"
+      expr: CAST(credential_discrepancy_flag AS STRING)
+      comment: "Whether credential discrepancy exists for credentialing accuracy."
+    - name: "manual_review_required_flag"
+      expr: CAST(manual_review_required_flag AS STRING)
+      comment: "Whether manual review is required for workload tracking."
+    - name: "claims_submission_risk_flag"
+      expr: CAST(claims_submission_risk_flag AS STRING)
+      comment: "Whether claims submission risk exists for revenue cycle impact."
+    - name: "sync_run_year"
+      expr: YEAR(sync_run_date)
+      comment: "Year of sync run for trend analysis."
+  measures:
+    - name: "total_sync_records"
+      expr: COUNT(1)
+      comment: "Total NPI sync records for volume tracking."
+    - name: "distinct_synced_providers"
+      expr: COUNT(DISTINCT provider_id)
+      comment: "Distinct providers synced for coverage tracking."
+    - name: "name_discrepancy_count"
+      expr: COUNT(CASE WHEN name_discrepancy_flag = TRUE THEN 1 END)
+      comment: "Count of name discrepancies for data quality remediation."
+    - name: "address_discrepancy_count"
+      expr: COUNT(CASE WHEN address_discrepancy_flag = TRUE THEN 1 END)
+      comment: "Count of address discrepancies for directory accuracy remediation."
+    - name: "taxonomy_discrepancy_count"
+      expr: COUNT(CASE WHEN taxonomy_discrepancy_flag = TRUE THEN 1 END)
+      comment: "Count of taxonomy discrepancies for specialty accuracy."
+    - name: "manual_review_required_count"
+      expr: COUNT(CASE WHEN manual_review_required_flag = TRUE THEN 1 END)
+      comment: "Count of records requiring manual review for workload planning."
+    - name: "claims_risk_count"
+      expr: COUNT(CASE WHEN claims_submission_risk_flag = TRUE THEN 1 END)
+      comment: "Count of records with claims submission risk for revenue cycle protection."
+    - name: "any_discrepancy_count"
+      expr: COUNT(CASE WHEN name_discrepancy_flag = TRUE OR address_discrepancy_flag = TRUE OR taxonomy_discrepancy_flag = TRUE OR credential_discrepancy_flag = TRUE THEN 1 END)
+      comment: "Count of records with any discrepancy for overall data quality monitoring."
+    - name: "auto_applied_update_count"
+      expr: COUNT(CASE WHEN auto_applied_update_flag = TRUE THEN 1 END)
+      comment: "Count of auto-applied updates for automation effectiveness tracking."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_npi_sync_quality`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "KPIs measuring NPI registry synchronization quality, discrepancy rates, and data accuracy between internal provider records and NPPES. Used by Network Management and Data Governance to maintain directory accuracy and prevent claims submission failures."
+  source: "`vibe_health_insurance_v1`.`provider`.`npi_registry_sync`"
+  dimensions:
+    - name: "sync_status"
+      expr: sync_status
+      comment: "Status of the NPI registry sync (e.g., Matched, Discrepancy Found, Deactivated) — primary dimension for sync health monitoring."
+    - name: "match_status"
+      expr: match_status
+      comment: "Match status between internal records and NPPES (e.g., Exact Match, Partial Match, No Match) — used to assess data alignment quality."
+    - name: "address_discrepancy_flag"
+      expr: address_discrepancy_flag
+      comment: "Indicates an address discrepancy between internal records and NPPES — used to identify directory accuracy issues."
+    - name: "name_discrepancy_flag"
+      expr: name_discrepancy_flag
+      comment: "Indicates a name discrepancy between internal records and NPPES — used to identify credentialing data quality issues."
+    - name: "taxonomy_discrepancy_flag"
+      expr: taxonomy_discrepancy_flag
+      comment: "Indicates a taxonomy/specialty discrepancy between internal records and NPPES — used to identify specialty data quality issues."
+    - name: "manual_review_required_flag"
+      expr: manual_review_required_flag
+      comment: "Indicates whether manual review is required to resolve discrepancies — used to manage data quality workload."
+    - name: "claims_submission_risk_flag"
+      expr: claims_submission_risk_flag
+      comment: "Indicates whether the discrepancy creates claims submission risk — highest priority flag for revenue cycle protection."
+    - name: "sync_run_date_month"
+      expr: DATE_TRUNC('month', sync_run_date)
+      comment: "Month of NPI registry sync run — used to track sync program cadence and discrepancy trends over time."
+    - name: "is_active"
+      expr: is_active
+      comment: "Current active record flag — filters to current sync records."
+  measures:
+    - name: "total_npi_sync_records"
+      expr: COUNT(1)
+      comment: "Total number of NPI registry sync records. Baseline measure for sync program coverage."
+    - name: "discrepancy_count"
+      expr: COUNT(CASE WHEN address_discrepancy_flag = TRUE OR name_discrepancy_flag = TRUE OR taxonomy_discrepancy_flag = TRUE OR credential_discrepancy_flag = TRUE THEN npi_registry_sync_id END)
+      comment: "Number of NPI sync records with any type of discrepancy. Core data quality KPI — discrepancies create directory inaccuracy and claims risk."
+    - name: "overall_discrepancy_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN address_discrepancy_flag = TRUE OR name_discrepancy_flag = TRUE OR taxonomy_discrepancy_flag = TRUE OR credential_discrepancy_flag = TRUE THEN npi_registry_sync_id END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of NPI sync records with any discrepancy. Rising discrepancy rates signal data governance failures — a key data quality KPI for the CDO."
+    - name: "claims_submission_risk_count"
+      expr: COUNT(CASE WHEN claims_submission_risk_flag = TRUE THEN npi_registry_sync_id END)
+      comment: "Number of NPI discrepancies creating claims submission risk. Directly tied to revenue cycle risk — each unresolved case can result in claim denials."
+    - name: "manual_review_pending_count"
+      expr: COUNT(CASE WHEN manual_review_required_flag = TRUE AND manual_review_completed_date IS NULL THEN npi_registry_sync_id END)
+      comment: "Number of NPI sync records requiring manual review that have not yet been completed. Operational workload KPI for data quality team capacity planning."
+    - name: "auto_applied_update_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN auto_applied_update_flag = TRUE THEN npi_registry_sync_id END) / NULLIF(COUNT(CASE WHEN address_discrepancy_flag = TRUE OR name_discrepancy_flag = TRUE OR taxonomy_discrepancy_flag = TRUE THEN npi_registry_sync_id END), 0), 2)
+      comment: "Percentage of discrepancies resolved via automated update. Measures automation efficiency in the NPI sync process — higher rates reduce manual workload and resolution time."
+    - name: "directory_accuracy_impact_count"
+      expr: COUNT(CASE WHEN directory_accuracy_impact_flag = TRUE THEN npi_registry_sync_id END)
+      comment: "Number of NPI discrepancies with direct impact on directory accuracy. Directly tied to CMS directory accuracy compliance — a regulatory reporting KPI."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_credentialing_compliance`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "KPIs measuring provider regulatory obligation compliance status, remediation rates, and compliance scoring. Used by Compliance Officers and Network Management to manage provider credentialing obligations and regulatory risk."
+  source: "`vibe_health_insurance_v1`.`provider`.`obligation_compliance`"
+  dimensions:
+    - name: "compliance_status_code"
+      expr: compliance_status_code
+      comment: "Standardized compliance status code (e.g., Compliant, Non-Compliant, Pending) — primary dimension for compliance health segmentation."
+    - name: "obligation_type"
+      expr: obligation_type
+      comment: "Type of regulatory obligation (e.g., Credentialing, Licensing, Exclusion Screening) — used to identify which obligation categories drive non-compliance."
+    - name: "finding_severity_code"
+      expr: finding_severity_code
+      comment: "Severity of compliance finding (e.g., Critical, Major, Minor) — used to prioritize remediation efforts and escalation decisions."
+    - name: "corrective_action_required_flag"
+      expr: corrective_action_required_flag
+      comment: "Indicates whether a corrective action plan is required — used to track remediation workload and regulatory exposure."
+    - name: "is_active"
+      expr: is_active
+      comment: "Current active record flag — filters to current compliance assessments."
+    - name: "assessment_date_month"
+      expr: DATE_TRUNC('month', assessment_date)
+      comment: "Month of compliance assessment — enables trend analysis of compliance posture over time."
+    - name: "obligation_category"
+      expr: obligation_category
+      comment: "High-level category of the obligation — used for executive-level compliance reporting by category."
+  measures:
+    - name: "total_compliance_assessments"
+      expr: COUNT(1)
+      comment: "Total number of provider compliance assessments. Baseline measure for compliance program activity volume."
+    - name: "compliant_provider_obligations"
+      expr: COUNT(CASE WHEN compliance_status_code = 'Compliant' THEN obligation_compliance_id END)
+      comment: "Count of provider obligations assessed as compliant. Core compliance health KPI used by Compliance Officers to report regulatory standing."
+    - name: "non_compliant_provider_obligations"
+      expr: COUNT(CASE WHEN compliance_status_code = 'Non-Compliant' THEN obligation_compliance_id END)
+      comment: "Count of provider obligations assessed as non-compliant. Directly triggers regulatory risk escalation and corrective action planning."
+    - name: "compliance_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN compliance_status_code = 'Compliant' THEN obligation_compliance_id END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of provider obligations in compliant status. Primary compliance health KPI reported to the Board and regulators — a drop triggers immediate investigation."
+    - name: "corrective_action_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN corrective_action_required_flag = TRUE THEN obligation_compliance_id END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of assessments requiring corrective action. High rates signal systemic compliance failures requiring resource reallocation."
+    - name: "avg_compliance_score"
+      expr: AVG(CAST(compliance_score AS DOUBLE))
+      comment: "Average compliance score across all provider obligation assessments. Composite quality indicator used in provider performance scorecards and network retention decisions."
+    - name: "critical_finding_count"
+      expr: COUNT(CASE WHEN finding_severity_code = 'Critical' THEN obligation_compliance_id END)
+      comment: "Number of compliance assessments with critical severity findings. Critical findings carry regulatory penalty risk and require immediate executive attention."
+    - name: "penalty_imposed_count"
+      expr: COUNT(CASE WHEN penalty_imposed_flag = TRUE THEN obligation_compliance_id END)
+      comment: "Number of provider compliance cases where a regulatory penalty was imposed. Directly measures financial and reputational risk from provider non-compliance."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_participation_status`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "KPIs measuring provider network participation status distribution, panel capacity, and regulatory sanction impact. Used by Network Management and CMO to monitor network health, adequacy, and member access across plans and LOBs."
+  source: "`vibe_health_insurance_v1`.`provider`.`participation_status`"
+  dimensions:
+    - name: "participation_status_code"
+      expr: participation_status_code
+      comment: "Current participation status code (e.g., Active, Terminated, Suspended) — primary dimension for network health segmentation."
+    - name: "network_tier_code"
+      expr: network_tier_code
+      comment: "Network tier assignment — used to analyze participation distribution across tier levels for member steerage strategy."
+    - name: "lob_code"
+      expr: lob_code
+      comment: "Line of business — enables participation analysis by product line (Commercial, Medicare, Medicaid)."
+    - name: "pcp_flag"
+      expr: pcp_flag
+      comment: "Indicates whether the provider is a primary care provider — used for PCP panel adequacy analysis."
+    - name: "specialist_flag"
+      expr: specialist_flag
+      comment: "Indicates whether the provider is a specialist — used for specialist access adequacy analysis."
+    - name: "regulatory_sanction_flag"
+      expr: regulatory_sanction_flag
+      comment: "Indicates whether the provider has an active regulatory sanction — critical risk flag for network participation decisions."
+    - name: "accepting_new_patients_flag"
+      expr: accepting_new_patients_flag
+      comment: "Indicates whether the provider is accepting new patients — key member access metric for adequacy compliance."
+    - name: "telehealth_enabled_flag"
+      expr: telehealth_enabled_flag
+      comment: "Indicates whether the provider offers telehealth — used to track virtual care access across the network."
+    - name: "effective_date_month"
+      expr: DATE_TRUNC('month', effective_date)
+      comment: "Month of participation effective date — used to track network growth and attrition trends."
+  measures:
+    - name: "total_participation_records"
+      expr: COUNT(1)
+      comment: "Total number of provider participation status records. Baseline measure for network size."
+    - name: "active_provider_count"
+      expr: COUNT(CASE WHEN participation_status_code = 'Active' AND current_record_flag = TRUE THEN participation_status_id END)
+      comment: "Number of currently active providers in the network. Core network adequacy KPI — used in CMS and state adequacy filings."
+    - name: "sanctioned_active_provider_count"
+      expr: COUNT(CASE WHEN regulatory_sanction_flag = TRUE AND participation_status_code = 'Active' THEN participation_status_id END)
+      comment: "Number of active providers with regulatory sanctions. Sanctioned active providers represent immediate compliance risk — any non-zero count triggers executive escalation."
+    - name: "accepting_new_patients_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN accepting_new_patients_flag = TRUE AND participation_status_code = 'Active' THEN participation_status_id END) / NULLIF(COUNT(CASE WHEN participation_status_code = 'Active' THEN participation_status_id END), 0), 2)
+      comment: "Percentage of active providers accepting new patients. Critical member access KPI — regulators require minimum thresholds for network adequacy certification."
+    - name: "telehealth_enabled_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN telehealth_enabled_flag = TRUE AND participation_status_code = 'Active' THEN participation_status_id END) / NULLIF(COUNT(CASE WHEN participation_status_code = 'Active' THEN participation_status_id END), 0), 2)
+      comment: "Percentage of active providers offering telehealth services. Tracks virtual care access expansion — a strategic priority for member satisfaction and cost management."
+    - name: "termination_count"
+      expr: COUNT(CASE WHEN participation_status_code = 'Terminated' THEN participation_status_id END)
+      comment: "Number of provider terminations. Tracks network attrition — high termination counts signal network instability and adequacy risk."
+    - name: "pcp_active_count"
+      expr: COUNT(CASE WHEN pcp_flag = TRUE AND participation_status_code = 'Active' THEN participation_status_id END)
+      comment: "Number of active primary care providers. PCP supply is a core adequacy metric — regulators require minimum member-to-PCP ratios."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_practice_location`
@@ -742,58 +679,518 @@ AS $$
       comment: "Distinct providers with practice locations for network headcount."
 $$;
 
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Core provider master metrics tracking active provider counts, credentialing status distribution, and network participation rates."
+  source: "`vibe_health_insurance_v1`.`provider`.`provider`"
+  dimensions:
+    - name: "is_active"
+      expr: is_active
+      comment: "Whether the provider record is currently active"
+    - name: "effective_start_year"
+      expr: YEAR(effective_start_date)
+      comment: "Year the provider became effective"
+    - name: "effective_start_month"
+      expr: DATE_TRUNC('MONTH', effective_start_date)
+      comment: "Month the provider became effective"
+  measures:
+    - name: "total_providers"
+      expr: COUNT(DISTINCT provider_id)
+      comment: "Total unique providers in the system"
+    - name: "active_provider_count"
+      expr: COUNT(DISTINCT CASE WHEN is_active = 'true' THEN provider_id END)
+      comment: "Count of active providers available for network participation"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_directory_accuracy`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "KPIs measuring provider directory verification outcomes, accuracy rates, and verification currency. Used by Network Management and Compliance to meet CMS and state directory accuracy mandates (No Surprises Act, 21st Century Cures Act)."
+  source: "`vibe_health_insurance_v1`.`provider`.`provider_directory_verification`"
+  dimensions:
+    - name: "verification_status"
+      expr: verification_status
+      comment: "Current verification status (e.g., Verified, Failed, Pending) — primary dimension for directory accuracy health."
+    - name: "verification_method"
+      expr: verification_method
+      comment: "Method used for verification (e.g., Phone, Mail, Online Portal) — used to assess efficiency of verification channels."
+    - name: "verification_outcome"
+      expr: verification_outcome
+      comment: "Outcome of the verification attempt (e.g., Confirmed, Updated, Unable to Reach) — used to track data quality improvement actions."
+    - name: "is_active"
+      expr: is_active
+      comment: "Current active record flag — filters to current verification records."
+    - name: "verification_date_month"
+      expr: DATE_TRUNC('month', record_created_at)
+      comment: "Month of verification record creation — used to track verification program cadence and compliance with periodic re-verification requirements."
+  measures:
+    - name: "total_verification_records"
+      expr: COUNT(1)
+      comment: "Total number of directory verification records. Baseline measure for verification program coverage."
+    - name: "verified_provider_count"
+      expr: COUNT(CASE WHEN verification_status = 'Verified' THEN provider_directory_verification_id END)
+      comment: "Number of providers with verified directory information. Core directory accuracy KPI — CMS requires 90%+ verification rates to avoid penalties."
+    - name: "verification_success_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN verification_status = 'Verified' THEN provider_directory_verification_id END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of verification attempts resulting in confirmed accurate data. Primary directory compliance KPI — regulators use this to assess No Surprises Act adherence."
+    - name: "overdue_verification_count"
+      expr: COUNT(CASE WHEN next_verification_date < CURRENT_DATE AND is_active = TRUE THEN provider_directory_verification_id END)
+      comment: "Number of providers with overdue directory re-verification. Overdue verifications create regulatory non-compliance risk under CMS directory accuracy rules."
+    - name: "failed_verification_count"
+      expr: COUNT(CASE WHEN verification_status = 'Failed' THEN provider_directory_verification_id END)
+      comment: "Number of verification attempts that failed. Failed verifications indicate inaccurate directory data — a direct regulatory and member harm risk."
+    - name: "failed_verification_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN verification_status = 'Failed' THEN provider_directory_verification_id END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of verification attempts that failed. Rising failure rates signal systemic directory data quality issues requiring executive intervention."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_network_participation`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Strategic KPIs measuring provider network participation health, credentialing status distribution, and value-based care readiness across the provider network. Used by Network Management and CMO to steer adequacy and VBC strategy."
+  source: "`vibe_health_insurance_v1`.`provider`.`provider_network_participation2`"
+  dimensions:
+    - name: "participation_status_code"
+      expr: participation_status_code
+      comment: "Current participation status of the provider in the network (e.g., Active, Terminated, Pending) — primary segmentation for network health analysis."
+    - name: "credentialing_status_code"
+      expr: credentialing_status_code
+      comment: "Credentialing status of the provider at time of participation — used to identify credentialing bottlenecks affecting network adequacy."
+    - name: "network_tier"
+      expr: network_tier
+      comment: "Network tier assignment (e.g., Tier 1, Tier 2) — drives member cost-sharing and steerage strategy."
+    - name: "lob_code"
+      expr: lob_code
+      comment: "Line of business (e.g., Commercial, Medicare, Medicaid) — enables participation analysis by product line."
+    - name: "participation_effective_date_month"
+      expr: DATE_TRUNC('month', participation_effective_date)
+      comment: "Month of participation effective date — used to track network growth trends over time."
+    - name: "vbc_eligible_flag"
+      expr: vbc_eligible_flag
+      comment: "Indicates whether the provider is eligible for value-based care arrangements — key for VBC program expansion tracking."
+    - name: "capitation_eligible_flag"
+      expr: capitation_eligible_flag
+      comment: "Indicates whether the provider is eligible for capitation payment — used in risk-based contracting strategy."
+    - name: "par_indicator"
+      expr: par_indicator
+      comment: "Participating (PAR) indicator — distinguishes in-network from out-of-network providers for adequacy reporting."
+    - name: "is_active"
+      expr: is_active
+      comment: "Current active record flag — used to filter to current participation snapshot."
+  measures:
+    - name: "total_participation_records"
+      expr: COUNT(1)
+      comment: "Total number of provider network participation records. Baseline measure for network size tracking used in adequacy assessments."
+    - name: "active_participating_providers"
+      expr: COUNT(CASE WHEN participation_status_code = 'Active' AND is_active = TRUE THEN provider_network_participation2_id END)
+      comment: "Count of currently active participating providers. Core network adequacy KPI used by Network Management to ensure sufficient provider supply."
+    - name: "vbc_eligible_provider_count"
+      expr: COUNT(CASE WHEN vbc_eligible_flag = TRUE THEN provider_network_participation2_id END)
+      comment: "Number of providers eligible for value-based care arrangements. Tracks VBC program expansion potential — a strategic priority for cost and quality improvement."
+    - name: "capitation_eligible_provider_count"
+      expr: COUNT(CASE WHEN capitation_eligible_flag = TRUE THEN provider_network_participation2_id END)
+      comment: "Number of providers eligible for capitation payment. Informs risk-based contracting strategy and actuarial risk pool composition."
+    - name: "avg_quality_score"
+      expr: AVG(CAST(quality_score AS DOUBLE))
+      comment: "Average quality score across participating providers. Used by CMO and Network Management to assess overall network quality and identify underperforming segments."
+    - name: "termination_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN participation_status_code = 'Terminated' THEN provider_network_participation2_id END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of participation records with terminated status. High termination rates signal network instability and adequacy risk — triggers leadership intervention."
+    - name: "credentialing_pending_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN credentialing_status_code = 'Pending' THEN provider_network_participation2_id END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of participation records with pending credentialing status. Credentialing backlogs delay provider activation and create network adequacy gaps."
+    - name: "accepting_new_patients_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN accepting_new_patients = TRUE THEN provider_network_participation2_id END) / NULLIF(COUNT(CASE WHEN participation_status_code = 'Active' THEN provider_network_participation2_id END), 0), 2)
+      comment: "Percentage of active participating providers accepting new patients. Critical access metric for member assignment and network adequacy compliance."
+    - name: "vbc_penetration_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN vbc_eligible_flag = TRUE THEN provider_network_participation2_id END) / NULLIF(COUNT(CASE WHEN participation_status_code = 'Active' THEN provider_network_participation2_id END), 0), 2)
+      comment: "Percentage of active providers eligible for VBC arrangements. Tracks progress toward value-based care transformation goals — a board-level strategic KPI."
+$$;
+
 CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_outreach`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Provider outreach and directory verification metrics tracking contact success rates, data verification outcomes, and attestation compliance for CMS and state directory accuracy mandates."
+  comment: "Provider outreach metrics tracking contact success rates, verification completion, and attestation compliance for directory accuracy and regulatory compliance."
   source: "`vibe_health_insurance_v1`.`provider`.`provider_outreach`"
   dimensions:
-    - name: "outreach_method"
-      expr: outreach_method
-      comment: "Method of outreach (phone, email, fax, mail) for channel effectiveness analysis."
     - name: "outreach_type"
       expr: outreach_type
-      comment: "Type of outreach (verification, attestation, update) for purpose tracking."
+      comment: "Type of outreach performed"
+    - name: "outreach_method"
+      expr: outreach_method
+      comment: "Method used for outreach (e.g., phone, email, mail)"
     - name: "outreach_status"
       expr: outreach_status
-      comment: "Current status of outreach for pipeline tracking."
+      comment: "Current status of the outreach attempt"
     - name: "outcome"
       expr: outcome
-      comment: "Outreach outcome for success rate analysis."
+      comment: "Outcome of the outreach attempt"
     - name: "purpose"
       expr: purpose
-      comment: "Purpose of outreach for categorized analysis."
+      comment: "Purpose of the outreach"
+    - name: "attestation_method"
+      expr: attestation_method
+      comment: "Method used for provider attestation"
+    - name: "contact_reached_flag"
+      expr: contact_reached_flag
+      comment: "Whether the provider contact was successfully reached"
+    - name: "attestation_received_flag"
+      expr: attestation_received_flag
+      comment: "Whether attestation was received from the provider"
+    - name: "data_verified_flag"
+      expr: data_verified_flag
+      comment: "Whether provider data was verified during outreach"
+    - name: "follow_up_required_flag"
+      expr: follow_up_required_flag
+      comment: "Whether follow-up outreach is required"
+    - name: "directory_removal_flag"
+      expr: directory_removal_flag
+      comment: "Whether the provider should be removed from the directory"
     - name: "compliance_quarter"
       expr: compliance_quarter
-      comment: "Compliance quarter for regulatory period tracking."
-    - name: "current_record_flag"
-      expr: CAST(current_record_flag AS STRING)
-      comment: "Whether this is the current outreach record."
+      comment: "Compliance quarter for the outreach"
     - name: "outreach_year"
       expr: YEAR(outreach_date)
-      comment: "Year of outreach for trend analysis."
+      comment: "Year the outreach was performed"
+    - name: "outreach_month"
+      expr: DATE_TRUNC('MONTH', outreach_date)
+      comment: "Month the outreach was performed"
+  measures:
+    - name: "total_outreach_attempts"
+      expr: COUNT(DISTINCT provider_outreach_id)
+      comment: "Total unique provider outreach attempts"
+    - name: "successful_contact_count"
+      expr: COUNT(DISTINCT CASE WHEN contact_reached_flag = true THEN provider_outreach_id END)
+      comment: "Count of outreach attempts where provider was successfully contacted, key efficiency metric"
+    - name: "attestation_received_count"
+      expr: COUNT(DISTINCT CASE WHEN attestation_received_flag = true THEN provider_outreach_id END)
+      comment: "Count of outreach attempts resulting in attestation, critical compliance metric for directory accuracy"
+    - name: "data_verified_count"
+      expr: COUNT(DISTINCT CASE WHEN data_verified_flag = true THEN provider_outreach_id END)
+      comment: "Count of outreach attempts resulting in data verification, key quality metric"
+    - name: "follow_up_required_count"
+      expr: COUNT(DISTINCT CASE WHEN follow_up_required_flag = true THEN provider_outreach_id END)
+      comment: "Count of outreach attempts requiring follow-up, workload indicator"
+    - name: "directory_removal_count"
+      expr: COUNT(DISTINCT CASE WHEN directory_removal_flag = true THEN provider_outreach_id END)
+      comment: "Count of providers flagged for directory removal, data quality indicator"
+    - name: "providers_contacted"
+      expr: COUNT(DISTINCT provider_id)
+      comment: "Unique providers contacted during outreach campaigns"
+    - name: "total_attempt_count"
+      expr: SUM(CAST(attempt_count AS DOUBLE))
+      comment: "Total number of contact attempts across all outreach records"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_outreach_effectiveness`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "KPIs measuring provider outreach program effectiveness, contact rates, and directory data update outcomes. Used by Network Management to optimize outreach strategies and meet CMS directory accuracy requirements."
+  source: "`vibe_health_insurance_v1`.`provider`.`provider_outreach`"
+  dimensions:
+    - name: "outreach_type"
+      expr: outreach_type
+      comment: "Type of outreach activity (e.g., Directory Verification, Credentialing, Recruitment) — used to analyze effectiveness by outreach purpose."
+    - name: "outreach_method"
+      expr: outreach_method
+      comment: "Channel used for outreach (e.g., Phone, Email, Mail, Portal) — used to identify highest-performing contact channels."
+    - name: "outreach_status"
+      expr: outreach_status
+      comment: "Current status of the outreach attempt (e.g., Completed, Pending, Failed) — primary dimension for outreach pipeline management."
+    - name: "contact_reached_flag"
+      expr: contact_reached_flag
+      comment: "Indicates whether the provider contact was successfully reached — key effectiveness indicator."
+    - name: "attestation_received_flag"
+      expr: attestation_received_flag
+      comment: "Indicates whether a directory attestation was received — measures outreach conversion to compliance outcome."
+    - name: "data_updated_flag"
+      expr: data_updated_flag
+      comment: "Indicates whether provider data was updated as a result of outreach — measures data quality improvement yield."
+    - name: "outreach_date_month"
+      expr: DATE_TRUNC('month', outreach_date)
+      comment: "Month of outreach activity — used to track outreach program cadence and seasonal patterns."
+    - name: "follow_up_required_flag"
+      expr: follow_up_required_flag
+      comment: "Indicates whether follow-up is required — used to manage outreach workload and prioritize unresolved contacts."
   measures:
     - name: "total_outreach_attempts"
       expr: COUNT(1)
-      comment: "Total outreach attempts for volume and effort tracking."
+      comment: "Total number of provider outreach attempts. Baseline measure for outreach program activity volume."
     - name: "contact_reached_count"
-      expr: COUNT(CASE WHEN contact_reached_flag = TRUE THEN 1 END)
-      comment: "Count of outreach where contact was reached for success rate."
-    - name: "data_verified_count"
-      expr: COUNT(CASE WHEN data_verified_flag = TRUE THEN 1 END)
-      comment: "Count of outreach where data was verified for accuracy compliance."
-    - name: "attestation_received_count"
-      expr: COUNT(CASE WHEN attestation_received_flag = TRUE THEN 1 END)
-      comment: "Count of outreach with attestation received for compliance tracking."
-    - name: "follow_up_required_count"
-      expr: COUNT(CASE WHEN follow_up_required_flag = TRUE THEN 1 END)
-      comment: "Count of outreach requiring follow-up for workload planning."
-    - name: "directory_removal_flagged_count"
-      expr: COUNT(CASE WHEN directory_removal_flag = TRUE THEN 1 END)
-      comment: "Count of outreach flagging directory removal for data quality action."
-    - name: "data_updated_count"
-      expr: COUNT(CASE WHEN data_updated_flag = TRUE THEN 1 END)
-      comment: "Count of outreach resulting in data updates for directory improvement tracking."
+      expr: COUNT(CASE WHEN contact_reached_flag = TRUE THEN provider_outreach_id END)
+      comment: "Number of outreach attempts where the provider contact was successfully reached. Core outreach effectiveness KPI."
+    - name: "contact_reach_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN contact_reached_flag = TRUE THEN provider_outreach_id END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of outreach attempts resulting in successful contact. Primary outreach efficiency KPI — low rates indicate need to change channels or timing strategy."
+    - name: "attestation_conversion_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN attestation_received_flag = TRUE THEN provider_outreach_id END) / NULLIF(COUNT(CASE WHEN contact_reached_flag = TRUE THEN provider_outreach_id END), 0), 2)
+      comment: "Percentage of successful contacts that resulted in a directory attestation. Measures outreach-to-compliance conversion — directly tied to CMS directory accuracy requirements."
+    - name: "data_update_yield_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN data_updated_flag = TRUE THEN provider_outreach_id END) / NULLIF(COUNT(CASE WHEN contact_reached_flag = TRUE THEN provider_outreach_id END), 0), 2)
+      comment: "Percentage of successful contacts that resulted in a data update. Measures the data quality improvement yield of the outreach program."
+    - name: "pending_follow_up_count"
+      expr: COUNT(CASE WHEN follow_up_required_flag = TRUE AND outreach_status != 'Completed' THEN provider_outreach_id END)
+      comment: "Number of outreach records requiring follow-up that are not yet completed. Operational workload KPI for outreach team capacity planning."
+    - name: "directory_removal_count"
+      expr: COUNT(CASE WHEN directory_removal_flag = TRUE THEN provider_outreach_id END)
+      comment: "Number of outreach outcomes resulting in provider directory removal. Tracks network attrition from outreach — informs adequacy impact assessment."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_sanction`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Provider sanction metrics tracking sanction types, severity, resolution rates, and regulatory reporting requirements for compliance and risk management."
+  source: "`vibe_health_insurance_v1`.`provider`.`sanction`"
+  dimensions:
+    - name: "sanction_type"
+      expr: sanction_type
+      comment: "Type of sanction imposed"
+    - name: "severity_level"
+      expr: severity_level
+      comment: "Severity level of the sanction"
+    - name: "screening_result"
+      expr: screening_result
+      comment: "Result of the screening that identified the sanction"
+    - name: "screening_source"
+      expr: screening_source
+      comment: "Source that identified the sanction"
+    - name: "participation_impact"
+      expr: participation_impact
+      comment: "Impact of the sanction on network participation"
+    - name: "cms_reportable_flag"
+      expr: cms_reportable_flag
+      comment: "Whether the sanction requires CMS reporting"
+    - name: "ncqa_reportable_flag"
+      expr: ncqa_reportable_flag
+      comment: "Whether the sanction requires NCQA reporting"
+    - name: "exclusion_waiver_flag"
+      expr: exclusion_waiver_flag
+      comment: "Whether an exclusion waiver was granted"
+    - name: "notification_sent_flag"
+      expr: notification_sent_flag
+      comment: "Whether notification was sent regarding the sanction"
+    - name: "sanction_year"
+      expr: YEAR(sanction_date)
+      comment: "Year the sanction was imposed"
+    - name: "sanction_month"
+      expr: DATE_TRUNC('MONTH', sanction_date)
+      comment: "Month the sanction was imposed"
+  measures:
+    - name: "total_sanctions"
+      expr: COUNT(DISTINCT sanction_id)
+      comment: "Total unique sanctions on record, critical risk indicator for compliance and network quality"
+    - name: "active_sanction_count"
+      expr: COUNT(DISTINCT CASE WHEN is_active = 'true' THEN sanction_id END)
+      comment: "Count of currently active sanctions requiring ongoing monitoring"
+    - name: "cms_reportable_sanction_count"
+      expr: COUNT(DISTINCT CASE WHEN cms_reportable_flag = true THEN sanction_id END)
+      comment: "Count of sanctions requiring CMS reporting, key compliance metric"
+    - name: "ncqa_reportable_sanction_count"
+      expr: COUNT(DISTINCT CASE WHEN ncqa_reportable_flag = true THEN sanction_id END)
+      comment: "Count of sanctions requiring NCQA reporting, key accreditation metric"
+    - name: "sanctioned_providers"
+      expr: COUNT(DISTINCT provider_id)
+      comment: "Unique providers with sanctions, critical for network quality and risk assessment"
+    - name: "resolved_sanction_count"
+      expr: COUNT(DISTINCT CASE WHEN resolution_date IS NOT NULL THEN sanction_id END)
+      comment: "Count of sanctions that have been resolved"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_sanction_risk`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "KPIs measuring provider sanction activity, CMS/NCQA reportability, and network impact. Used by Compliance, Legal, and Network Management to manage regulatory risk from sanctioned providers and ensure timely reporting obligations are met."
+  source: "`vibe_health_insurance_v1`.`provider`.`sanction`"
+  dimensions:
+    - name: "sanction_type"
+      expr: sanction_type
+      comment: "Type of sanction imposed (e.g., Exclusion, Suspension, Civil Monetary Penalty) — used to categorize regulatory risk severity."
+    - name: "severity_level"
+      expr: severity_level
+      comment: "Severity level of the sanction — used to prioritize response and escalation actions."
+    - name: "cms_reportable_flag"
+      expr: cms_reportable_flag
+      comment: "Indicates whether the sanction must be reported to CMS — tracks mandatory federal reporting obligations."
+    - name: "ncqa_reportable_flag"
+      expr: ncqa_reportable_flag
+      comment: "Indicates whether the sanction must be reported to NCQA — tracks accreditation reporting obligations."
+    - name: "notification_sent_flag"
+      expr: notification_sent_flag
+      comment: "Indicates whether required notifications have been sent — used to track compliance with notification timelines."
+    - name: "sanction_date_month"
+      expr: DATE_TRUNC('month', sanction_date)
+      comment: "Month of sanction — used to trend sanction activity and identify spikes requiring investigation."
+    - name: "is_active"
+      expr: is_active
+      comment: "Current active record flag — filters to current sanction records."
+  measures:
+    - name: "total_sanctions"
+      expr: COUNT(1)
+      comment: "Total number of provider sanction records. Baseline measure for sanction program activity volume."
+    - name: "active_sanction_count"
+      expr: COUNT(CASE WHEN is_active = TRUE AND current_record_flag = TRUE THEN sanction_id END)
+      comment: "Number of currently active provider sanctions. Active sanctions require immediate network action — sanctioned providers cannot participate in federal programs."
+    - name: "cms_reportable_sanction_count"
+      expr: COUNT(CASE WHEN cms_reportable_flag = TRUE THEN sanction_id END)
+      comment: "Number of sanctions requiring CMS reporting. Failure to report CMS-reportable sanctions carries significant financial penalties — a critical compliance KPI."
+    - name: "notification_compliance_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN notification_sent_flag = TRUE THEN sanction_id END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of sanctions where required notifications were sent. Notification failures create regulatory liability — this KPI measures process compliance."
+    - name: "unresolved_sanction_count"
+      expr: COUNT(CASE WHEN resolution_date IS NULL AND is_active = TRUE THEN sanction_id END)
+      comment: "Number of sanctions without a resolution date. Unresolved sanctions represent ongoing network risk and regulatory exposure requiring leadership attention."
+    - name: "exclusion_waiver_count"
+      expr: COUNT(CASE WHEN exclusion_waiver_flag = TRUE THEN sanction_id END)
+      comment: "Number of sanctions where an exclusion waiver was granted. Waivers require regulatory approval — tracking volume ensures waiver program is properly managed."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_specialty`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Provider specialty metrics tracking board certification rates, PCP eligibility, and specialty distribution for network adequacy and care delivery planning."
+  source: "`vibe_health_insurance_v1`.`provider`.`specialty`"
+  dimensions:
+    - name: "specialty_name"
+      expr: specialty_name
+      comment: "Name of the provider specialty"
+    - name: "specialty_code"
+      expr: specialty_code
+      comment: "Code identifying the specialty"
+    - name: "specialty_category"
+      expr: specialty_category
+      comment: "Category of the specialty"
+    - name: "specialty_type"
+      expr: specialty_type
+      comment: "Type of specialty (e.g., primary, specialty)"
+    - name: "subspecialty_name"
+      expr: subspecialty_name
+      comment: "Name of the subspecialty if applicable"
+    - name: "credentialing_status"
+      expr: credentialing_status
+      comment: "Credentialing status for this specialty"
+    - name: "board_certified_flag"
+      expr: board_certified_flag
+      comment: "Whether the provider is board certified in this specialty"
+    - name: "pcp_eligible_flag"
+      expr: pcp_eligible_flag
+      comment: "Whether this specialty is eligible for PCP designation"
+    - name: "hedis_specialty_flag"
+      expr: hedis_specialty_flag
+      comment: "Whether this specialty is relevant for HEDIS reporting"
+    - name: "accepting_new_patients_flag"
+      expr: accepting_new_patients_flag
+      comment: "Whether the provider is accepting new patients in this specialty"
+    - name: "telehealth_enabled_flag"
+      expr: telehealth_enabled_flag
+      comment: "Whether telehealth is enabled for this specialty"
+    - name: "specialist_referral_required_flag"
+      expr: specialist_referral_required_flag
+      comment: "Whether a referral is required for this specialty"
+    - name: "fellowship_completed_flag"
+      expr: fellowship_completed_flag
+      comment: "Whether the provider completed a fellowship in this specialty"
+    - name: "network_adequacy_category"
+      expr: network_adequacy_category
+      comment: "Network adequacy category for this specialty"
+    - name: "is_active"
+      expr: is_active
+      comment: "Whether the specialty record is currently active"
+  measures:
+    - name: "total_specialty_records"
+      expr: COUNT(DISTINCT specialty_id)
+      comment: "Total unique provider-specialty records"
+    - name: "board_certified_count"
+      expr: COUNT(DISTINCT CASE WHEN board_certified_flag = true THEN specialty_id END)
+      comment: "Count of board-certified specialty records, key quality indicator for network credentialing"
+    - name: "pcp_eligible_specialty_count"
+      expr: COUNT(DISTINCT CASE WHEN pcp_eligible_flag = true THEN specialty_id END)
+      comment: "Count of PCP-eligible specialty records, critical for primary care network adequacy"
+    - name: "hedis_specialty_count"
+      expr: COUNT(DISTINCT CASE WHEN hedis_specialty_flag = true THEN specialty_id END)
+      comment: "Count of HEDIS-relevant specialty records, important for quality reporting"
+    - name: "accepting_new_patients_specialty_count"
+      expr: COUNT(DISTINCT CASE WHEN accepting_new_patients_flag = true THEN specialty_id END)
+      comment: "Count of specialty records accepting new patients, key access metric"
+    - name: "telehealth_enabled_specialty_count"
+      expr: COUNT(DISTINCT CASE WHEN telehealth_enabled_flag = true THEN specialty_id END)
+      comment: "Count of telehealth-enabled specialty records, important for virtual care access"
+    - name: "providers_with_specialty"
+      expr: COUNT(DISTINCT provider_id)
+      comment: "Unique providers with specialty records"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_specialty_credentialing`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "KPIs measuring provider specialty credentialing status, board certification rates, and recredentialing compliance. Used by Credentialing and Network Management to ensure specialty coverage meets NCQA standards and network adequacy requirements."
+  source: "`vibe_health_insurance_v1`.`provider`.`specialty`"
+  dimensions:
+    - name: "specialty_category"
+      expr: specialty_category
+      comment: "High-level specialty category (e.g., Primary Care, Cardiology, Behavioral Health) — used for specialty mix analysis and adequacy gap identification."
+    - name: "specialty_type"
+      expr: specialty_type
+      comment: "Specific specialty type — used for granular specialty coverage analysis."
+    - name: "credentialing_status"
+      expr: credentialing_status
+      comment: "Current credentialing status for this specialty (e.g., Approved, Pending, Denied) — primary dimension for credentialing pipeline management."
+    - name: "board_certified_flag"
+      expr: board_certified_flag
+      comment: "Indicates whether the provider is board certified in this specialty — key quality indicator for network composition."
+    - name: "primary_specialty_flag"
+      expr: primary_specialty_flag
+      comment: "Indicates whether this is the providers primary specialty — used to analyze primary specialty distribution across the network."
+    - name: "pcp_eligible_flag"
+      expr: pcp_eligible_flag
+      comment: "Indicates whether this specialty qualifies for PCP designation — used in PCP panel adequacy analysis."
+    - name: "hedis_specialty_flag"
+      expr: hedis_specialty_flag
+      comment: "Indicates whether this specialty is relevant to HEDIS measure reporting — used to ensure adequate HEDIS-relevant specialist supply."
+    - name: "telehealth_enabled_flag"
+      expr: telehealth_enabled_flag
+      comment: "Indicates whether the provider offers telehealth for this specialty — tracks virtual specialty access."
+    - name: "is_active"
+      expr: is_active
+      comment: "Current active record flag — filters to current specialty credentialing records."
+  measures:
+    - name: "total_specialty_records"
+      expr: COUNT(1)
+      comment: "Total number of provider specialty credentialing records. Baseline measure for specialty credentialing program scope."
+    - name: "board_certified_count"
+      expr: COUNT(CASE WHEN board_certified_flag = TRUE AND is_active = TRUE THEN specialty_id END)
+      comment: "Number of active specialty records with board certification. Board certification is a key quality indicator — used in network quality scorecards and NCQA reporting."
+    - name: "board_certification_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN board_certified_flag = TRUE AND is_active = TRUE THEN specialty_id END) / NULLIF(COUNT(CASE WHEN is_active = TRUE THEN specialty_id END), 0), 2)
+      comment: "Percentage of active specialty records with board certification. NCQA and CMS use board certification rates as a network quality benchmark."
+    - name: "credentialing_approved_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN credentialing_status = 'Approved' THEN specialty_id END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of specialty credentialing records with approved status. Measures credentialing program throughput and approval efficiency."
+    - name: "certifications_expiring_within_90_days"
+      expr: COUNT(CASE WHEN certification_expiration_date BETWEEN CURRENT_DATE AND DATE_ADD(CURRENT_DATE, 90) AND board_certified_flag = TRUE THEN specialty_id END)
+      comment: "Number of board certifications expiring within 90 days. Forward-looking risk metric — expired certifications affect network quality scores and NCQA accreditation."
+    - name: "recredentialing_required_count"
+      expr: COUNT(CASE WHEN recertification_required_flag = TRUE AND is_active = TRUE THEN specialty_id END)
+      comment: "Number of active specialty records requiring recertification. Tracks upcoming recredentialing workload — used for credentialing team capacity planning."
+    - name: "fellowship_completed_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN fellowship_completed_flag = TRUE THEN specialty_id END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of specialty records where fellowship training was completed. Fellowship completion is a quality differentiator for specialist network composition."
 $$;

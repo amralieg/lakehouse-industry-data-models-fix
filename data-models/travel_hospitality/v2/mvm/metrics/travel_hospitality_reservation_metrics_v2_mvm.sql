@@ -1,92 +1,86 @@
--- Metric views for domain: reservation | Business: Travel_Hospitality | Version: 2 | Generated on: 2026-06-22 19:35:58
+-- Metric views for domain: reservation | Business: Travel_Hospitality | Version: 2 | Generated on: 2026-06-27 02:47:23
 
 CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`reservation_booking`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Core reservation booking KPIs covering revenue performance, booking velocity, ADR, length-of-stay economics, and cancellation exposure. Primary steering dashboard for Revenue Management and Front Office leadership."
+  comment: "Core reservation booking KPIs covering revenue performance, booking volume, average daily rate, cancellation exposure, and loyalty engagement. Primary steering dashboard for Revenue Management and Front Office leadership."
   source: "`vibe_travel_hospitality_v1`.`reservation`.`reservation_booking`"
   dimensions:
     - name: "booking_status"
       expr: booking_status
-      comment: "Current lifecycle status of the reservation (e.g. CONFIRMED, CANCELLED, NO_SHOW, CHECKED_OUT). Enables status-based segmentation of all KPIs."
+      comment: "Current status of the reservation (e.g., confirmed, cancelled, checked-in, no-show). Enables segmentation of active vs. lost bookings."
     - name: "booking_date"
-      expr: DATE_TRUNC('DAY', booking_date)
-      comment: "Calendar day the reservation was created. Used for booking-pace and lead-time trend analysis."
-    - name: "booking_month"
-      expr: DATE_TRUNC('MONTH', booking_date)
-      comment: "Calendar month the reservation was created. Supports monthly booking-volume and revenue trend reporting."
+      expr: booking_date
+      comment: "Calendar date the reservation was created. Used for booking pace and lead-time trend analysis."
     - name: "arrival_date"
-      expr: DATE_TRUNC('DAY', arrival_date)
-      comment: "Guest arrival date. Used to align revenue and occupancy KPIs to the stay period."
-    - name: "arrival_month"
-      expr: DATE_TRUNC('MONTH', arrival_date)
-      comment: "Arrival month bucket for seasonal demand and revenue forecasting."
+      expr: arrival_date
+      comment: "Scheduled guest arrival date. Drives occupancy forecasting and revenue projection by stay date."
     - name: "departure_date"
-      expr: DATE_TRUNC('DAY', departure_date)
-      comment: "Guest departure date. Combined with arrival_date to derive stay-window analysis."
+      expr: departure_date
+      comment: "Scheduled guest departure date. Used alongside arrival_date to compute stay windows."
     - name: "currency_code"
       expr: currency_code
-      comment: "Transaction currency of the booking. Required for multi-currency revenue reporting and FX normalisation."
+      comment: "Currency in which the booking was transacted. Required for multi-currency revenue normalization."
     - name: "guarantee_method"
       expr: guarantee_method
-      comment: "Payment guarantee type (e.g. CREDIT_CARD, DEPOSIT, CORPORATE). Informs risk and no-show exposure segmentation."
+      comment: "Payment guarantee type (e.g., credit card, deposit, corporate). Indicates financial risk exposure per booking."
+    - name: "payment_method"
+      expr: payment_method
+      comment: "Method of payment used for the reservation. Supports payment mix and fraud risk analysis."
     - name: "package_code"
       expr: package_code
-      comment: "Package or rate bundle code attached to the booking. Enables package-revenue contribution analysis."
+      comment: "Package or bundle code associated with the booking. Enables package revenue contribution analysis."
     - name: "vip_status_flag"
       expr: vip_status_flag
-      comment: "Indicates whether the guest holds VIP status. Used to segment high-value guest KPIs."
+      comment: "Indicates whether the guest holds VIP status. Used to segment high-value guest bookings for service prioritization."
     - name: "accessibility_required_flag"
       expr: accessibility_required_flag
-      comment: "Flags bookings requiring accessible accommodation. Supports compliance and inventory planning."
+      comment: "Flags bookings requiring accessible accommodations. Supports compliance and room inventory planning."
     - name: "early_checkin_requested_flag"
       expr: early_checkin_requested_flag
-      comment: "Indicates an early check-in request. Used to measure ancillary demand and operational load."
+      comment: "Indicates early check-in was requested. Drives front-office operational planning and upsell opportunity tracking."
     - name: "late_checkout_requested_flag"
       expr: late_checkout_requested_flag
-      comment: "Indicates a late check-out request. Used to measure ancillary demand and housekeeping scheduling impact."
-    - name: "pms_reservation_code"
-      expr: pms_reservation_code
-      comment: "Property Management System reservation code. Enables cross-system reconciliation and audit."
+      comment: "Indicates late check-out was requested. Supports housekeeping scheduling and ancillary revenue tracking."
   measures:
-    - name: "total_confirmed_bookings"
-      expr: COUNT(CASE WHEN booking_status = 'CONFIRMED' THEN reservation_booking_id END)
-      comment: "Count of reservations currently in CONFIRMED status. Core volume KPI for demand forecasting and capacity planning."
-    - name: "total_cancelled_bookings"
-      expr: COUNT(CASE WHEN booking_status = 'CANCELLED' THEN reservation_booking_id END)
-      comment: "Count of cancelled reservations. Drives cancellation-rate calculation and revenue-at-risk assessment."
-    - name: "total_no_show_bookings"
-      expr: COUNT(CASE WHEN booking_status = 'NO_SHOW' THEN reservation_booking_id END)
-      comment: "Count of no-show reservations. Critical for overbooking strategy and penalty-revenue tracking."
-    - name: "total_bookings"
-      expr: COUNT(reservation_booking_id)
-      comment: "Total reservation count across all statuses. Baseline denominator for rate and ratio KPIs."
+    - name: "total_reservations"
+      expr: COUNT(1)
+      comment: "Total number of reservation bookings. Baseline volume KPI for booking pace and demand tracking."
     - name: "total_room_revenue"
       expr: SUM(CAST(total_room_revenue AS DOUBLE))
-      comment: "Sum of total room revenue across all bookings. Primary top-line revenue KPI for Revenue Management."
+      comment: "Total room revenue across all bookings. Primary top-line revenue KPI for Revenue Management and Finance."
     - name: "avg_daily_rate"
       expr: AVG(CAST(average_daily_rate AS DOUBLE))
-      comment: "Average Daily Rate (ADR) across bookings. Fundamental hotel revenue KPI used in RevPAR and yield management."
+      comment: "Average Daily Rate (ADR) across bookings. Core hotel revenue performance indicator used in every QBR and board deck."
     - name: "total_commission_amount"
       expr: SUM(CAST(commission_amount AS DOUBLE))
-      comment: "Total commission paid to booking channels and travel agents. Directly impacts net revenue and distribution cost management."
-    - name: "cancellation_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN booking_status = 'CANCELLED' THEN reservation_booking_id END) / NULLIF(COUNT(reservation_booking_id), 0), 2)
-      comment: "Percentage of all bookings that were cancelled. Key risk and demand-quality KPI; high rates trigger overbooking or policy review."
-    - name: "no_show_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN booking_status = 'NO_SHOW' THEN reservation_booking_id END) / NULLIF(COUNT(reservation_booking_id), 0), 2)
-      comment: "Percentage of bookings resulting in a no-show. Informs overbooking levels and guarantee-policy effectiveness."
-    - name: "vip_booking_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN vip_status_flag = TRUE THEN reservation_booking_id END) / NULLIF(COUNT(reservation_booking_id), 0), 2)
-      comment: "Percentage of bookings flagged as VIP. Tracks high-value guest mix and informs loyalty and service investment decisions."
-    - name: "avg_revenue_per_booking"
-      expr: AVG(CAST(total_room_revenue AS DOUBLE))
-      comment: "Average room revenue per booking record. Proxy for booking quality and yield; used alongside ADR for revenue mix analysis."
-    - name: "total_points_earned"
-      expr: SUM(CAST(points_earned AS DOUBLE))
-      comment: "Total loyalty points earned across bookings. Measures loyalty programme engagement and liability accrual."
+      comment: "Total commission paid to travel agents and OTA channels. Directly impacts net revenue and distribution cost management."
+    - name: "avg_commission_amount"
+      expr: AVG(CAST(commission_amount AS DOUBLE))
+      comment: "Average commission per booking. Benchmarks distribution cost efficiency across channels and agent relationships."
+    - name: "cancelled_reservations"
+      expr: COUNT(CASE WHEN booking_status = 'cancelled' THEN 1 END)
+      comment: "Count of cancelled reservations. Tracks cancellation volume for revenue risk and demand forecasting."
+    - name: "cancellation_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN booking_status = 'cancelled' THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of reservations that were cancelled. Critical KPI for revenue leakage and demand reliability assessment."
+    - name: "vip_booking_count"
+      expr: COUNT(CASE WHEN vip_status_flag = TRUE THEN 1 END)
+      comment: "Number of bookings flagged as VIP. Tracks high-value guest volume for service resource allocation and loyalty program ROI."
+    - name: "vip_booking_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN vip_status_flag = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of total bookings that are VIP. Measures penetration of high-value guest segment in overall booking mix."
+    - name: "avg_room_revenue_per_booking"
+      expr: ROUND(SUM(CAST(total_room_revenue AS DOUBLE)) / NULLIF(COUNT(1), 0), 2)
+      comment: "Average room revenue generated per reservation. Compound KPI combining volume and value to assess booking quality."
+    - name: "distinct_properties_booked"
+      expr: COUNT(DISTINCT property_id)
+      comment: "Number of distinct properties with active bookings. Measures portfolio utilization and demand distribution across the estate."
+    - name: "distinct_guests_booked"
+      expr: COUNT(DISTINCT profile_id)
+      comment: "Number of unique guest profiles with reservations. Tracks new vs. returning guest demand and loyalty program reach."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`reservation_cancellation`
@@ -94,82 +88,79 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Cancellation analytics covering penalty revenue, refund exposure, OTA chargeback risk, waiver rates, and revenue loss. Used by Revenue Management, Finance, and Guest Experience teams to manage cancellation policy effectiveness."
+  comment: "Cancellation financial impact and operational KPIs covering penalty recovery, refund exposure, revenue loss, OTA chargeback risk, and waiver behavior. Essential for Revenue Management, Legal, and Finance steering."
   source: "`vibe_travel_hospitality_v1`.`reservation`.`cancellation`"
   dimensions:
-    - name: "event_type"
-      expr: event_type
-      comment: "Type of cancellation event (e.g. GUEST_CANCEL, NO_SHOW, FORCE_CANCEL). Enables event-type segmentation of cancellation KPIs."
     - name: "reason_code"
       expr: reason_code
-      comment: "Standardised cancellation reason code. Drives root-cause analysis of cancellation patterns."
+      comment: "Standardized code describing the cancellation reason. Enables root-cause analysis of cancellation drivers."
+    - name: "event_type"
+      expr: event_type
+      comment: "Type of cancellation event (e.g., guest-initiated, no-show, force majeure). Supports policy and operational segmentation."
     - name: "posting_status"
       expr: posting_status
-      comment: "Financial posting status of the cancellation (e.g. POSTED, PENDING, REVERSED). Required for revenue recognition accuracy."
-    - name: "processing_channel"
-      expr: processing_channel
-      comment: "Channel through which the cancellation was processed. Identifies channel-specific cancellation behaviour."
+      comment: "Financial posting status of the cancellation (e.g., posted, pending, reversed). Tracks revenue recognition readiness."
     - name: "dispute_flag"
       expr: dispute_flag
-      comment: "Indicates whether the cancellation is under dispute. Segments disputed vs. clean cancellations for risk reporting."
+      comment: "Indicates whether the cancellation is under dispute. Flags financial and legal risk exposure."
     - name: "dispute_resolution_status"
       expr: dispute_resolution_status
-      comment: "Current resolution status of a disputed cancellation. Tracks dispute pipeline and financial exposure."
-    - name: "penalty_applicable_flag"
-      expr: penalty_applicable_flag
-      comment: "Indicates whether a cancellation penalty applies. Segments penalty-eligible cancellations for revenue recovery analysis."
-    - name: "refund_eligible_flag"
-      expr: refund_eligible_flag
-      comment: "Indicates whether the guest is eligible for a refund. Drives refund liability forecasting."
+      comment: "Current resolution status of disputed cancellations. Tracks legal and financial resolution pipeline."
     - name: "waiver_flag"
       expr: waiver_flag
-      comment: "Indicates whether a penalty waiver was granted. Tracks waiver frequency and its revenue impact."
-    - name: "reversal_flag"
-      expr: reversal_flag
-      comment: "Indicates whether the cancellation was reversed (re-instated). Measures booking reinstatement rate."
+      comment: "Indicates whether a penalty waiver was granted. Measures waiver frequency and its revenue impact."
+    - name: "refund_eligible_flag"
+      expr: refund_eligible_flag
+      comment: "Indicates whether the cancellation qualifies for a refund. Drives refund liability forecasting."
     - name: "ota_chargeback_eligible_flag"
       expr: ota_chargeback_eligible_flag
-      comment: "Indicates OTA chargeback eligibility. Critical for OTA contract compliance and chargeback revenue recovery."
+      comment: "Flags cancellations eligible for OTA chargeback. Supports OTA contract compliance and revenue recovery tracking."
+    - name: "penalty_applicable_flag"
+      expr: penalty_applicable_flag
+      comment: "Indicates whether a cancellation penalty applies. Segments cancellations by financial consequence."
     - name: "original_arrival_date"
-      expr: DATE_TRUNC('MONTH', original_arrival_date)
-      comment: "Month of the originally planned arrival. Aligns cancellation revenue loss to the intended stay period."
-    - name: "created_month"
-      expr: DATE_TRUNC('MONTH', created_timestamp)
-      comment: "Month the cancellation record was created. Supports trend analysis of cancellation volumes over time."
-    - name: "penalty_currency_code"
-      expr: penalty_currency_code
-      comment: "Currency of the penalty charge. Required for multi-currency penalty revenue reporting."
+      expr: original_arrival_date
+      comment: "Original intended arrival date of the cancelled booking. Enables stay-date-level revenue loss analysis."
+    - name: "reversal_flag"
+      expr: reversal_flag
+      comment: "Indicates whether the cancellation was subsequently reversed. Tracks reinstatement activity and net cancellation impact."
+    - name: "guarantee_method"
+      expr: guarantee_method
+      comment: "Guarantee method on the cancelled booking. Assesses penalty collectability by payment type."
   measures:
     - name: "total_cancellations"
-      expr: COUNT(cancellation_id)
-      comment: "Total number of cancellation events. Baseline volume KPI for cancellation trend and policy impact analysis."
-    - name: "total_penalty_amount"
-      expr: SUM(CAST(penalty_amount AS DOUBLE))
-      comment: "Total penalty fees charged on cancellations. Measures revenue recovered through cancellation policy enforcement."
-    - name: "total_refund_amount"
-      expr: SUM(CAST(refund_amount AS DOUBLE))
-      comment: "Total refunds issued on cancellations. Tracks cash outflow from cancellation refunds; key liability metric for Finance."
+      expr: COUNT(1)
+      comment: "Total number of cancellation events. Baseline volume KPI for cancellation trend monitoring."
     - name: "total_revenue_lost"
       expr: SUM(CAST(revenue_lost_amount AS DOUBLE))
-      comment: "Total room revenue lost due to cancellations. Primary financial impact KPI for Revenue Management and forecasting."
+      comment: "Total room revenue lost due to cancellations. Top-line financial impact KPI for Revenue Management and Finance."
+    - name: "total_penalty_amount"
+      expr: SUM(CAST(penalty_amount AS DOUBLE))
+      comment: "Total cancellation penalties assessed. Measures revenue recovery from cancellation policy enforcement."
+    - name: "total_refund_amount"
+      expr: SUM(CAST(refund_amount AS DOUBLE))
+      comment: "Total refunds issued on cancellations. Tracks cash outflow and refund liability for Finance."
     - name: "total_ota_chargeback_amount"
       expr: SUM(CAST(ota_chargeback_amount AS DOUBLE))
-      comment: "Total OTA chargeback amounts on cancellations. Tracks OTA-channel financial exposure and contract compliance."
-    - name: "penalty_recovery_rate_pct"
+      comment: "Total OTA chargeback amounts on cancellations. Monitors OTA channel financial risk and contract compliance."
+    - name: "penalty_recovery_rate"
       expr: ROUND(100.0 * SUM(CAST(penalty_amount AS DOUBLE)) / NULLIF(SUM(CAST(revenue_lost_amount AS DOUBLE)), 0), 2)
-      comment: "Percentage of lost revenue recovered via cancellation penalties. Measures cancellation policy effectiveness in protecting revenue."
-    - name: "waiver_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN waiver_flag = TRUE THEN cancellation_id END) / NULLIF(COUNT(cancellation_id), 0), 2)
-      comment: "Percentage of cancellations where a penalty waiver was granted. High waiver rates signal policy enforcement gaps or guest-service trade-offs."
-    - name: "dispute_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN dispute_flag = TRUE THEN cancellation_id END) / NULLIF(COUNT(cancellation_id), 0), 2)
-      comment: "Percentage of cancellations that are disputed. Elevated dispute rates indicate policy clarity issues or guest dissatisfaction."
-    - name: "avg_penalty_per_cancellation"
-      expr: AVG(CAST(penalty_amount AS DOUBLE))
-      comment: "Average penalty amount per cancellation event. Benchmarks penalty yield and informs policy tier calibration."
-    - name: "net_cancellation_revenue_impact"
-      expr: SUM(CAST(penalty_amount AS DOUBLE) - CAST(refund_amount AS DOUBLE))
-      comment: "Net financial impact of cancellations (penalties collected minus refunds issued). Summarises the true P&L effect of cancellation activity."
+      comment: "Percentage of lost revenue recovered through cancellation penalties. Measures policy enforcement effectiveness."
+    - name: "waiver_count"
+      expr: COUNT(CASE WHEN waiver_flag = TRUE THEN 1 END)
+      comment: "Number of cancellations where a penalty waiver was granted. Tracks waiver frequency for policy governance."
+    - name: "waiver_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN waiver_flag = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of cancellations receiving a penalty waiver. High waiver rates signal policy enforcement gaps or guest service trade-offs."
+    - name: "disputed_cancellation_count"
+      expr: COUNT(CASE WHEN dispute_flag = TRUE THEN 1 END)
+      comment: "Number of cancellations under dispute. Tracks legal and financial risk pipeline requiring resolution."
+    - name: "avg_revenue_lost_per_cancellation"
+      expr: ROUND(SUM(CAST(revenue_lost_amount AS DOUBLE)) / NULLIF(COUNT(1), 0), 2)
+      comment: "Average revenue lost per cancellation event. Compound KPI measuring the financial severity of individual cancellations."
+    - name: "net_cancellation_financial_impact"
+      expr: SUM(CAST(revenue_lost_amount AS DOUBLE) - CAST(penalty_amount AS DOUBLE))
+      comment: "Net financial impact of cancellations after penalty recovery (revenue lost minus penalties collected). True bottom-line cancellation cost."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`reservation_deposit_ledger`
@@ -177,52 +168,58 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Deposit lifecycle KPIs covering deposit collection, forfeiture, refund activity, and revenue recognition timing. Used by Finance and Revenue Management to manage cash flow, forfeiture revenue, and deposit compliance."
+  comment: "Deposit lifecycle KPIs covering deposit collection, forfeiture, refund activity, and revenue recognition timing. Critical for Finance, Treasury, and Revenue Accounting governance."
   source: "`vibe_travel_hospitality_v1`.`reservation`.`deposit_ledger`"
   dimensions:
-    - name: "booking_source"
-      expr: booking_source
-      comment: "Source channel of the booking associated with the deposit. Enables channel-level deposit performance analysis."
+    - name: "deposit_status"
+      expr: deposit_status
+      comment: "Current status of the deposit (e.g., received, pending, forfeited, refunded). Drives deposit pipeline and liability reporting."
+    - name: "deposit_type"
+      expr: deposit_type
+      comment: "Type of deposit (e.g., advance deposit, guarantee deposit). Segments deposit mix for policy and risk analysis."
     - name: "currency_code"
       expr: currency_code
-      comment: "Currency of the deposit transaction. Required for multi-currency deposit reporting."
+      comment: "Currency of the deposit transaction. Required for multi-currency treasury and revenue recognition reporting."
+    - name: "booking_source"
+      expr: booking_source
+      comment: "Source channel of the booking associated with the deposit. Enables channel-level deposit collection performance analysis."
+    - name: "deposit_due_date"
+      expr: deposit_due_date
+      comment: "Date by which the deposit was due. Used for overdue deposit tracking and cash flow forecasting."
+    - name: "payment_received_date"
+      expr: payment_received_date
+      comment: "Date the deposit payment was actually received. Enables on-time payment rate and collection lag analysis."
+    - name: "revenue_recognition_date"
+      expr: revenue_recognition_date
+      comment: "Date the deposit was recognized as revenue. Supports revenue accounting period alignment and audit compliance."
     - name: "forfeiture_reason"
       expr: forfeiture_reason
-      comment: "Reason the deposit was forfeited. Drives root-cause analysis of forfeiture events."
-    - name: "deposit_due_date_month"
-      expr: DATE_TRUNC('MONTH', deposit_due_date)
-      comment: "Month the deposit was due. Supports cash-flow forecasting and collection compliance tracking."
-    - name: "payment_received_date_month"
-      expr: DATE_TRUNC('MONTH', payment_received_date)
-      comment: "Month the deposit payment was actually received. Used to measure collection timeliness vs. due date."
-    - name: "revenue_recognition_date_month"
-      expr: DATE_TRUNC('MONTH', revenue_recognition_date)
-      comment: "Month deposit revenue was recognised. Aligns deposit cash to accounting periods for Finance reporting."
-    - name: "forfeiture_date_month"
-      expr: DATE_TRUNC('MONTH', forfeiture_date)
-      comment: "Month the deposit was forfeited. Tracks forfeiture revenue timing for Finance."
+      comment: "Reason the deposit was forfeited. Enables root-cause analysis of forfeiture events for policy refinement."
   measures:
-    - name: "total_deposit_amount_collected"
+    - name: "total_deposit_amount"
       expr: SUM(CAST(deposit_amount AS DOUBLE))
-      comment: "Total deposit amounts collected. Primary cash-inflow KPI for deposit programme performance and working-capital management."
+      comment: "Total deposit amounts collected or outstanding. Primary cash flow and liability KPI for Treasury and Finance."
     - name: "total_forfeiture_amount"
       expr: SUM(CAST(forfeiture_amount AS DOUBLE))
-      comment: "Total deposit amounts forfeited (retained as revenue). Measures revenue captured from non-refundable deposit forfeitures."
+      comment: "Total deposit amounts forfeited. Measures revenue captured from non-refundable deposit enforcement."
     - name: "total_refund_amount"
       expr: SUM(CAST(refund_amount AS DOUBLE))
-      comment: "Total deposit refunds issued. Tracks cash outflow from deposit refunds; key liability metric for Finance."
-    - name: "net_deposit_revenue"
-      expr: SUM(CAST(forfeiture_amount AS DOUBLE) - CAST(refund_amount AS DOUBLE))
-      comment: "Net deposit revenue retained (forfeitures minus refunds). Summarises the true P&L contribution of the deposit programme."
-    - name: "forfeiture_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN forfeiture_amount > 0 THEN deposit_ledger_id END) / NULLIF(COUNT(deposit_ledger_id), 0), 2)
-      comment: "Percentage of deposit records with a forfeiture amount. Measures how frequently deposits are forfeited; informs policy and guest communication strategy."
+      comment: "Total deposit refunds issued. Tracks cash outflow from deposit reversals for treasury management."
+    - name: "forfeiture_rate"
+      expr: ROUND(100.0 * SUM(CAST(forfeiture_amount AS DOUBLE)) / NULLIF(SUM(CAST(deposit_amount AS DOUBLE)), 0), 2)
+      comment: "Percentage of total deposit value forfeited. Measures deposit policy enforcement effectiveness and revenue retention."
+    - name: "refund_rate"
+      expr: ROUND(100.0 * SUM(CAST(refund_amount AS DOUBLE)) / NULLIF(SUM(CAST(deposit_amount AS DOUBLE)), 0), 2)
+      comment: "Percentage of total deposit value refunded. Tracks refund liability exposure relative to deposits collected."
     - name: "avg_deposit_amount"
       expr: AVG(CAST(deposit_amount AS DOUBLE))
-      comment: "Average deposit amount per ledger record. Benchmarks deposit sizing relative to booking value and policy tiers."
-    - name: "total_deposit_records"
-      expr: COUNT(deposit_ledger_id)
-      comment: "Total number of deposit ledger entries. Baseline volume metric for deposit programme scale and audit completeness."
+      comment: "Average deposit amount per transaction. Benchmarks deposit sizing across booking sources and property types."
+    - name: "net_deposit_retained"
+      expr: SUM(CAST(deposit_amount AS DOUBLE) - CAST(refund_amount AS DOUBLE))
+      comment: "Net deposit value retained after refunds. True cash retained from deposit program for Finance reporting."
+    - name: "total_deposit_transactions"
+      expr: COUNT(1)
+      comment: "Total number of deposit ledger entries. Baseline volume KPI for deposit activity monitoring."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`reservation_group_block`
@@ -230,64 +227,67 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Group block performance KPIs covering pickup rate, attrition risk, revenue forecast, and block utilisation. Used by Group Sales and Revenue Management to manage group business and attrition exposure."
-  source: "`vibe_travel_hospitality_v1`.`reservation`.`reservation_group_block`"
+  comment: "Group block performance KPIs covering contracted vs. pickup room utilization, attrition risk, revenue forecast, and commission exposure. Essential for Group Sales, Revenue Management, and Event Operations leadership."
+  source: "`vibe_travel_hospitality_v1`.`reservation`.`group_block`"
   dimensions:
     - name: "block_status"
       expr: block_status
-      comment: "Current status of the group block (e.g. TENTATIVE, DEFINITE, CANCELLED). Primary segmentation dimension for group pipeline reporting."
+      comment: "Current status of the group block (e.g., tentative, definite, cancelled, consumed). Drives group pipeline and conversion reporting."
     - name: "block_type"
       expr: block_type
-      comment: "Type of group block (e.g. CORPORATE, WEDDING, CONFERENCE). Enables segment-level group performance analysis."
+      comment: "Type of group block (e.g., corporate, leisure, SMERF, tour). Enables segment-level group performance analysis."
     - name: "currency_code"
       expr: currency_code
       comment: "Currency of the group block contract. Required for multi-currency group revenue reporting."
+    - name: "arrival_date"
+      expr: arrival_date
+      comment: "Group arrival date. Drives occupancy and revenue forecasting by stay period."
+    - name: "departure_date"
+      expr: departure_date
+      comment: "Group departure date. Used with arrival_date for group stay window and room-night calculations."
+    - name: "cutoff_date"
+      expr: cutoff_date
+      comment: "Date by which rooms must be picked up or released. Critical for inventory management and attrition risk monitoring."
     - name: "attrition_clause_flag"
       expr: attrition_clause_flag
-      comment: "Indicates whether an attrition clause is in the group contract. Segments blocks with financial attrition exposure."
+      comment: "Indicates whether the group contract includes an attrition clause. Flags blocks with contractual room-night minimums."
     - name: "deposit_required_flag"
       expr: deposit_required_flag
-      comment: "Indicates whether a deposit is required for the group block. Tracks deposit compliance and cash-flow planning."
+      comment: "Indicates whether a deposit is required for the group block. Tracks financial commitment and cash flow exposure."
     - name: "lra_flag"
       expr: lra_flag
-      comment: "Last Room Available flag. Identifies blocks with LRA rate obligations, which affect yield management decisions."
-    - name: "arrival_month"
-      expr: DATE_TRUNC('MONTH', arrival_date)
-      comment: "Month of group arrival. Aligns group block KPIs to the stay period for demand and revenue forecasting."
-    - name: "cutoff_date_month"
-      expr: DATE_TRUNC('MONTH', cutoff_date)
-      comment: "Month of the block cutoff date. Used to track blocks approaching release and manage inventory reallocation timing."
-    - name: "contract_signed_date_month"
-      expr: DATE_TRUNC('MONTH', contract_signed_date)
-      comment: "Month the group contract was signed. Supports group sales pipeline and booking-pace analysis."
+      comment: "Last Room Availability flag. Indicates whether the group rate applies to all remaining inventory, impacting yield management."
   measures:
     - name: "total_group_blocks"
-      expr: COUNT(reservation_group_block_id)
-      comment: "Total number of group blocks. Baseline volume KPI for group sales pipeline and capacity planning."
+      expr: COUNT(1)
+      comment: "Total number of group blocks. Baseline volume KPI for group sales pipeline tracking."
     - name: "total_revenue_forecast"
       expr: SUM(CAST(revenue_forecast_amount AS DOUBLE))
-      comment: "Total forecasted revenue from group blocks. Primary group revenue pipeline KPI used in financial forecasting and sales target tracking."
-    - name: "total_group_rate_revenue"
-      expr: SUM(CAST(group_rate_amount AS DOUBLE))
-      comment: "Sum of contracted group room rates across all blocks. Measures the rate-level revenue commitment from group business."
+      comment: "Total forecasted revenue from group blocks. Primary group revenue pipeline KPI for Revenue Management and Finance."
     - name: "total_deposit_amount"
       expr: SUM(CAST(deposit_amount AS DOUBLE))
-      comment: "Total deposit amounts required across group blocks. Tracks cash-flow obligations and deposit collection compliance."
+      comment: "Total deposit amounts committed across group blocks. Tracks financial commitment and cash flow from group segment."
+    - name: "total_commission_cost"
+      expr: SUM(CAST(group_rate_amount AS DOUBLE) * CAST(commission_percentage AS DOUBLE) / 100.0)
+      comment: "Estimated total commission cost across group blocks based on group rate and commission percentage. Measures distribution cost for group channel."
+    - name: "avg_group_rate"
+      expr: AVG(CAST(group_rate_amount AS DOUBLE))
+      comment: "Average group room rate across all blocks. Benchmarks group pricing against transient ADR for yield management decisions."
     - name: "avg_attrition_threshold_pct"
       expr: AVG(CAST(attrition_threshold_percentage AS DOUBLE))
-      comment: "Average attrition threshold percentage across group contracts. Benchmarks contractual attrition exposure and informs negotiation strategy."
-    - name: "avg_commission_percentage"
-      expr: AVG(CAST(commission_percentage AS DOUBLE))
-      comment: "Average commission percentage across group blocks. Tracks distribution cost of group business and informs channel profitability."
+      comment: "Average attrition threshold percentage across group contracts. Measures contractual room-night commitment levels for risk assessment."
     - name: "attrition_risk_block_count"
-      expr: COUNT(CASE WHEN attrition_clause_flag = TRUE THEN reservation_group_block_id END)
-      comment: "Number of group blocks with an active attrition clause. Quantifies the volume of blocks carrying financial attrition risk."
-    - name: "cancelled_block_count"
-      expr: COUNT(CASE WHEN block_status = 'CANCELLED' THEN reservation_group_block_id END)
-      comment: "Number of cancelled group blocks. Tracks group cancellation volume and its impact on revenue pipeline."
-    - name: "group_cancellation_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN block_status = 'CANCELLED' THEN reservation_group_block_id END) / NULLIF(COUNT(reservation_group_block_id), 0), 2)
-      comment: "Percentage of group blocks that were cancelled. Key risk KPI for group sales; high rates trigger contract or deposit policy review."
+      expr: COUNT(CASE WHEN attrition_clause_flag = TRUE THEN 1 END)
+      comment: "Number of group blocks with attrition clauses. Quantifies the volume of blocks carrying contractual room-night risk."
+    - name: "avg_revenue_forecast_per_block"
+      expr: ROUND(SUM(CAST(revenue_forecast_amount AS DOUBLE)) / NULLIF(COUNT(1), 0), 2)
+      comment: "Average forecasted revenue per group block. Compound KPI measuring group booking quality and deal size."
+    - name: "cancelled_group_blocks"
+      expr: COUNT(CASE WHEN block_status = 'cancelled' THEN 1 END)
+      comment: "Number of cancelled group blocks. Tracks group cancellation volume for revenue risk and sales pipeline management."
+    - name: "group_cancellation_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN block_status = 'cancelled' THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of group blocks that were cancelled. Measures group segment reliability and revenue risk exposure."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`reservation_room_assignment`
@@ -295,70 +295,70 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Room assignment quality and upgrade KPIs covering upgrade rates, reassignment frequency, guest preference match, and accessibility compliance. Used by Front Office and Guest Experience leadership to optimise room assignment operations."
+  comment: "Room assignment quality and operational KPIs covering upgrade rates, guest preference fulfillment, early/late service requests, and reassignment frequency. Drives Front Office, Housekeeping, and Guest Experience operational decisions."
   source: "`vibe_travel_hospitality_v1`.`reservation`.`room_assignment`"
   dimensions:
     - name: "assignment_status"
       expr: assignment_status
-      comment: "Current status of the room assignment (e.g. ASSIGNED, CHECKED_IN, VACATED). Primary segmentation for assignment lifecycle analysis."
+      comment: "Current status of the room assignment (e.g., assigned, checked-in, checked-out, reassigned). Tracks assignment lifecycle."
     - name: "assignment_method"
       expr: assignment_method
-      comment: "Method used to assign the room (e.g. AUTO, MANUAL, GUEST_REQUEST). Enables analysis of assignment automation effectiveness."
+      comment: "Method used to assign the room (e.g., auto-assigned, manually assigned, guest-requested). Measures automation vs. manual intervention rates."
+    - name: "assignment_date"
+      expr: assignment_date
+      comment: "Date the room was assigned. Enables lead-time analysis between assignment and arrival."
     - name: "is_upgrade"
       expr: is_upgrade
-      comment: "Indicates whether the assignment was an upgrade. Segments upgrade activity for revenue and guest satisfaction analysis."
+      comment: "Indicates whether the assignment was an upgrade from the booked room type. Tracks upgrade program volume and revenue impact."
     - name: "upgrade_category"
       expr: upgrade_category
-      comment: "Category of the room upgrade (e.g. COMPLIMENTARY, PAID, LOYALTY). Enables upgrade revenue and loyalty benefit tracking."
-    - name: "upgrade_reason_code"
-      expr: upgrade_reason_code
-      comment: "Reason code for the upgrade. Supports root-cause analysis of upgrade drivers (e.g. VIP, OVERBOOKING, LOYALTY)."
-    - name: "is_accessible_room"
-      expr: is_accessible_room
-      comment: "Indicates whether the assigned room is accessible. Tracks accessibility compliance and inventory utilisation."
-    - name: "is_guest_requested"
-      expr: is_guest_requested
-      comment: "Indicates whether the room was specifically requested by the guest. Measures guest preference fulfilment rate."
+      comment: "Category of upgrade granted (e.g., room type, floor, view). Enables upgrade mix analysis for loyalty and revenue programs."
     - name: "early_checkin_flag"
       expr: early_checkin_flag
-      comment: "Indicates an early check-in was performed. Tracks early check-in volume for ancillary revenue and housekeeping planning."
+      comment: "Indicates early check-in was provided. Tracks early check-in fulfillment rate for guest satisfaction and operational planning."
     - name: "late_checkout_flag"
       expr: late_checkout_flag
-      comment: "Indicates a late check-out was performed. Tracks late check-out volume for ancillary revenue and housekeeping scheduling."
-    - name: "assignment_date_month"
-      expr: DATE_TRUNC('MONTH', assignment_date)
-      comment: "Month of room assignment. Supports trend analysis of assignment volumes and upgrade rates over time."
+      comment: "Indicates late check-out was provided. Tracks late check-out fulfillment rate for housekeeping scheduling."
+    - name: "is_accessible_room"
+      expr: is_accessible_room
+      comment: "Indicates the assigned room is ADA/accessibility compliant. Supports compliance reporting and accessible inventory utilization."
+    - name: "is_guest_requested"
+      expr: is_guest_requested
+      comment: "Indicates the guest specifically requested this room. Measures guest preference fulfillment rate."
     - name: "view_type"
       expr: view_type
-      comment: "View type of the assigned room (e.g. OCEAN, CITY, GARDEN). Enables preference-match and upsell analysis by view category."
-    - name: "bed_configuration"
-      expr: bed_configuration
-      comment: "Bed configuration of the assigned room (e.g. KING, DOUBLE, TWIN). Supports preference fulfilment and inventory mix analysis."
+      comment: "View type of the assigned room (e.g., ocean, city, garden). Enables view preference fulfillment and upsell analysis."
+    - name: "smoking_preference"
+      expr: smoking_preference
+      comment: "Smoking preference of the assigned room. Tracks preference fulfillment compliance."
   measures:
-    - name: "total_assignments"
-      expr: COUNT(room_assignment_id)
-      comment: "Total number of room assignments. Baseline volume KPI for Front Office operational throughput."
-    - name: "upgrade_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN is_upgrade = TRUE THEN room_assignment_id END) / NULLIF(COUNT(room_assignment_id), 0), 2)
-      comment: "Percentage of room assignments that were upgrades. Key guest experience and revenue KPI; tracks upgrade programme effectiveness."
-    - name: "guest_requested_fulfilment_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN is_guest_requested = TRUE THEN room_assignment_id END) / NULLIF(COUNT(room_assignment_id), 0), 2)
-      comment: "Percentage of assignments fulfilling a specific guest room request. Measures guest preference satisfaction and service quality."
-    - name: "avg_guest_preference_match_score"
+    - name: "total_room_assignments"
+      expr: COUNT(1)
+      comment: "Total number of room assignments. Baseline operational volume KPI for Front Office capacity planning."
+    - name: "upgrade_count"
+      expr: COUNT(CASE WHEN is_upgrade = TRUE THEN 1 END)
+      comment: "Total number of room upgrades granted. Tracks upgrade program volume for loyalty and revenue management."
+    - name: "upgrade_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN is_upgrade = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of room assignments that resulted in an upgrade. Key loyalty and guest satisfaction KPI used in brand standard reviews."
+    - name: "guest_requested_fulfillment_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN is_guest_requested = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of assignments where the guest's specific room request was fulfilled. Directly linked to guest satisfaction scores."
+    - name: "avg_preference_match_score"
       expr: AVG(CAST(guest_preference_match_score AS DOUBLE))
-      comment: "Average guest preference match score across all assignments. Composite quality score for room assignment personalisation; directly linked to guest satisfaction outcomes."
-    - name: "reassignment_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN reassignment_count > 0 THEN room_assignment_id END) / NULLIF(COUNT(room_assignment_id), 0), 2)
-      comment: "Percentage of assignments that required at least one reassignment. High rates indicate inventory or operational issues impacting guest experience."
-    - name: "early_checkin_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN early_checkin_flag = TRUE THEN room_assignment_id END) / NULLIF(COUNT(room_assignment_id), 0), 2)
-      comment: "Percentage of assignments with an early check-in. Measures early check-in demand for ancillary revenue and housekeeping resource planning."
-    - name: "late_checkout_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN late_checkout_flag = TRUE THEN room_assignment_id END) / NULLIF(COUNT(room_assignment_id), 0), 2)
-      comment: "Percentage of assignments with a late check-out. Measures late check-out demand for ancillary revenue and housekeeping scheduling impact."
-    - name: "accessible_room_assignment_count"
-      expr: COUNT(CASE WHEN is_accessible_room = TRUE THEN room_assignment_id END)
-      comment: "Number of assignments to accessible rooms. Tracks accessibility inventory utilisation and ADA/regulatory compliance."
+      comment: "Average guest preference match score across all room assignments. Compound quality KPI measuring how well assignments align with guest profiles."
+    - name: "reassignment_count"
+      expr: COUNT(CASE WHEN reassignment_count > '0' THEN 1 END)
+      comment: "Number of assignments that required at least one reassignment. Tracks operational disruption and guest experience risk."
+    - name: "early_checkin_fulfillment_count"
+      expr: COUNT(CASE WHEN early_checkin_flag = TRUE THEN 1 END)
+      comment: "Number of early check-ins fulfilled. Measures early check-in service delivery volume for operational and revenue reporting."
+    - name: "late_checkout_fulfillment_count"
+      expr: COUNT(CASE WHEN late_checkout_flag = TRUE THEN 1 END)
+      comment: "Number of late check-outs fulfilled. Measures late check-out service delivery volume impacting housekeeping scheduling."
+    - name: "distinct_rooms_assigned"
+      expr: COUNT(DISTINCT room_id)
+      comment: "Number of distinct rooms assigned. Measures room inventory utilization breadth across the property."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`reservation_special_request`
@@ -366,135 +366,73 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Special request fulfilment KPIs covering fulfilment rates, cost accuracy, VIP request handling, and guest satisfaction. Used by Guest Experience, Operations, and Loyalty teams to measure service delivery quality."
+  comment: "Special request fulfillment KPIs covering fulfillment rates, failure analysis, charge revenue, VIP request handling, and guest satisfaction. Drives Guest Experience, Operations, and Loyalty program management decisions."
   source: "`vibe_travel_hospitality_v1`.`reservation`.`special_request`"
   dimensions:
     - name: "request_type"
       expr: request_type
-      comment: "Type of special request (e.g. AMENITY, TRANSPORT, DIETARY). Enables category-level fulfilment and cost analysis."
+      comment: "Type of special request (e.g., amenity, accessibility, dietary, transport). Enables category-level fulfillment performance analysis."
     - name: "request_category"
       expr: request_category
-      comment: "Broader category grouping of the request. Supports department-level workload and fulfilment reporting."
+      comment: "Broader category grouping of the request. Supports operational routing and resource allocation by request category."
     - name: "fulfillment_status"
       expr: fulfillment_status
-      comment: "Current fulfilment status of the request (e.g. FULFILLED, PENDING, FAILED). Primary KPI segmentation dimension."
-    - name: "assigned_department"
-      expr: assigned_department
-      comment: "Department responsible for fulfilling the request. Enables department-level performance and workload analysis."
+      comment: "Current fulfillment status of the request (e.g., fulfilled, pending, failed, partial). Core operational KPI dimension."
+    - name: "priority_level"
+      expr: priority_level
+      comment: "Priority assigned to the request (e.g., high, medium, low). Enables SLA compliance analysis by priority tier."
     - name: "is_vip_request"
       expr: is_vip_request
-      comment: "Indicates whether the request is for a VIP guest. Segments VIP service delivery for high-value guest experience management."
+      comment: "Indicates the request is from a VIP guest. Enables VIP-specific fulfillment rate and failure analysis."
     - name: "is_pre_arrival"
       expr: is_pre_arrival
-      comment: "Indicates whether the request was made pre-arrival. Enables pre-arrival vs. in-stay fulfilment performance comparison."
+      comment: "Indicates the request was made before arrival. Supports pre-arrival vs. in-stay fulfillment performance comparison."
     - name: "requires_charge"
       expr: requires_charge
-      comment: "Indicates whether the request incurs a charge. Segments chargeable vs. complimentary requests for revenue and cost analysis."
-    - name: "impacts_loyalty_points"
-      expr: impacts_loyalty_points
-      comment: "Indicates whether the request affects loyalty point accrual. Tracks loyalty-linked service interactions."
-    - name: "notification_method"
-      expr: notification_method
-      comment: "Method used to notify the guest about their request (e.g. EMAIL, SMS, IN_PERSON). Supports communication channel effectiveness analysis."
-    - name: "request_month"
-      expr: DATE_TRUNC('MONTH', request_timestamp)
-      comment: "Month the special request was submitted. Supports trend analysis of request volumes and fulfilment rates over time."
+      comment: "Indicates whether the request incurs a charge. Segments chargeable vs. complimentary requests for revenue tracking."
+    - name: "request_source"
+      expr: request_source
+      comment: "Channel through which the request was submitted (e.g., app, front desk, concierge). Enables channel-level request volume and fulfillment analysis."
     - name: "failure_category"
       expr: failure_category
-      comment: "Category of fulfilment failure. Enables root-cause analysis of service failures and targeted operational improvements."
+      comment: "Category of failure for unfulfilled requests. Drives root-cause analysis and operational improvement initiatives."
+    - name: "impacts_loyalty_points"
+      expr: impacts_loyalty_points
+      comment: "Indicates whether the request impacts loyalty point accrual. Tracks loyalty program touchpoints through service delivery."
+    - name: "target_fulfillment_date"
+      expr: target_fulfillment_date
+      comment: "Target date for fulfilling the request. Enables on-time fulfillment rate and SLA compliance analysis."
   measures:
     - name: "total_special_requests"
-      expr: COUNT(special_request_id)
-      comment: "Total number of special requests submitted. Baseline volume KPI for operational workload and service demand planning."
-    - name: "fulfilment_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN fulfillment_status = 'FULFILLED' THEN special_request_id END) / NULLIF(COUNT(special_request_id), 0), 2)
-      comment: "Percentage of special requests successfully fulfilled. Primary service quality KPI; directly linked to guest satisfaction and loyalty outcomes."
-    - name: "vip_fulfilment_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN is_vip_request = TRUE AND fulfillment_status = 'FULFILLED' THEN special_request_id END) / NULLIF(COUNT(CASE WHEN is_vip_request = TRUE THEN special_request_id END), 0), 2)
-      comment: "Fulfilment rate specifically for VIP guest requests. Critical KPI for high-value guest retention and loyalty programme performance."
-    - name: "total_charge_amount"
+      expr: COUNT(1)
+      comment: "Total number of special requests submitted. Baseline volume KPI for guest services demand planning."
+    - name: "fulfilled_request_count"
+      expr: COUNT(CASE WHEN fulfillment_status = 'fulfilled' THEN 1 END)
+      comment: "Number of special requests successfully fulfilled. Core guest experience delivery KPI."
+    - name: "fulfillment_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN fulfillment_status = 'fulfilled' THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of special requests successfully fulfilled. Primary guest experience quality KPI used in brand standard and satisfaction reviews."
+    - name: "vip_fulfillment_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN is_vip_request = TRUE AND fulfillment_status = 'fulfilled' THEN 1 END) / NULLIF(COUNT(CASE WHEN is_vip_request = TRUE THEN 1 END), 0), 2)
+      comment: "Fulfillment rate specifically for VIP guest requests. Critical loyalty and brand standard KPI — VIP failures directly impact retention."
+    - name: "total_charge_revenue"
       expr: SUM(CAST(charge_amount AS DOUBLE))
-      comment: "Total revenue charged for special requests. Measures ancillary revenue contribution from chargeable guest services."
+      comment: "Total revenue generated from chargeable special requests. Measures ancillary revenue contribution from guest services."
     - name: "total_actual_cost"
       expr: SUM(CAST(actual_cost AS DOUBLE))
-      comment: "Total actual cost incurred to fulfil special requests. Tracks operational cost of service delivery for margin management."
-    - name: "cost_vs_estimate_variance"
-      expr: SUM(CAST(actual_cost AS DOUBLE) - CAST(estimated_cost AS DOUBLE))
-      comment: "Total variance between actual and estimated fulfilment costs. Measures cost estimation accuracy and budget adherence for guest services operations."
-    - name: "failure_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN fulfillment_status = 'FAILED' THEN special_request_id END) / NULLIF(COUNT(special_request_id), 0), 2)
-      comment: "Percentage of special requests that failed to be fulfilled. Tracks service failure rate; high values trigger operational investigation and process improvement."
-    - name: "pre_arrival_request_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN is_pre_arrival = TRUE THEN special_request_id END) / NULLIF(COUNT(special_request_id), 0), 2)
-      comment: "Percentage of requests submitted pre-arrival. Measures pre-arrival engagement and enables proactive service planning."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`reservation_cancellation_policy`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Cancellation policy portfolio KPIs covering policy mix, non-refundable rate, deposit requirements, and guarantee coverage. Used by Revenue Management and Legal to govern policy design and compliance."
-  source: "`vibe_travel_hospitality_v1`.`reservation`.`cancellation_policy`"
-  dimensions:
-    - name: "policy_status"
-      expr: policy_status
-      comment: "Lifecycle status of the cancellation policy (e.g. ACTIVE, INACTIVE, DRAFT). Segments active vs. retired policies."
-    - name: "policy_tier"
-      expr: policy_tier
-      comment: "Tier classification of the policy (e.g. STANDARD, PREMIUM, FLEXIBLE). Enables tier-level policy mix and coverage analysis."
-    - name: "penalty_type"
-      expr: penalty_type
-      comment: "Type of penalty structure (e.g. FLAT_FEE, PERCENTAGE, NIGHTS). Supports penalty design benchmarking."
-    - name: "no_show_penalty_type"
-      expr: no_show_penalty_type
-      comment: "Type of no-show penalty (e.g. FLAT_FEE, PERCENTAGE). Enables no-show policy design analysis."
-    - name: "is_non_refundable"
-      expr: is_non_refundable
-      comment: "Indicates whether the policy is fully non-refundable. Key dimension for revenue certainty and refund liability analysis."
-    - name: "deposit_required"
-      expr: deposit_required
-      comment: "Indicates whether a deposit is required under this policy. Tracks deposit-backed policy coverage."
-    - name: "guarantee_required"
-      expr: guarantee_required
-      comment: "Indicates whether a payment guarantee is required. Measures guarantee coverage across the policy portfolio."
-    - name: "applies_to_corporate_bookings"
-      expr: applies_to_corporate_bookings
-      comment: "Indicates whether the policy applies to corporate bookings. Enables corporate vs. leisure policy segmentation."
-    - name: "applies_to_group_bookings"
-      expr: applies_to_group_bookings
-      comment: "Indicates whether the policy applies to group bookings. Enables group vs. transient policy segmentation."
-    - name: "allows_modification"
-      expr: allows_modification
-      comment: "Indicates whether the policy permits booking modifications. Tracks flexibility vs. rigidity in the policy portfolio."
-    - name: "effective_start_month"
-      expr: DATE_TRUNC('MONTH', effective_start_date)
-      comment: "Month the policy became effective. Supports policy lifecycle and version management analysis."
-  measures:
-    - name: "total_active_policies"
-      expr: COUNT(CASE WHEN policy_status = 'ACTIVE' THEN cancellation_policy_id END)
-      comment: "Number of currently active cancellation policies. Tracks policy portfolio size and governance coverage."
-    - name: "non_refundable_policy_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN is_non_refundable = TRUE THEN cancellation_policy_id END) / NULLIF(COUNT(cancellation_policy_id), 0), 2)
-      comment: "Percentage of policies that are fully non-refundable. Measures revenue certainty strategy; higher rates reduce refund liability but may impact booking conversion."
-    - name: "deposit_required_policy_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN deposit_required = TRUE THEN cancellation_policy_id END) / NULLIF(COUNT(cancellation_policy_id), 0), 2)
-      comment: "Percentage of policies requiring a deposit. Tracks deposit-backed policy coverage and cash-flow protection strategy."
-    - name: "guarantee_required_policy_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN guarantee_required = TRUE THEN cancellation_policy_id END) / NULLIF(COUNT(cancellation_policy_id), 0), 2)
-      comment: "Percentage of policies requiring a payment guarantee. Measures no-show and cancellation risk mitigation coverage across the policy portfolio."
-    - name: "avg_penalty_percentage"
-      expr: AVG(CAST(penalty_percentage AS DOUBLE))
-      comment: "Average penalty percentage across all policies. Benchmarks penalty severity and informs policy calibration relative to industry norms."
-    - name: "avg_deposit_percentage"
-      expr: AVG(CAST(deposit_percentage AS DOUBLE))
-      comment: "Average deposit percentage required across deposit-bearing policies. Benchmarks deposit sizing strategy and its impact on booking conversion."
-    - name: "avg_no_show_penalty_amount"
-      expr: AVG(CAST(no_show_penalty_amount AS DOUBLE))
-      comment: "Average flat no-show penalty amount across policies. Benchmarks no-show penalty levels and informs policy design for revenue protection."
-    - name: "modification_allowed_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN allows_modification = TRUE THEN cancellation_policy_id END) / NULLIF(COUNT(cancellation_policy_id), 0), 2)
-      comment: "Percentage of policies that allow booking modifications. Tracks flexibility in the policy portfolio; informs guest experience and conversion strategy."
+      comment: "Total actual cost incurred to fulfill special requests. Enables margin analysis on guest services delivery."
+    - name: "avg_guest_satisfaction_rating"
+      expr: AVG(CAST(guest_satisfaction_rating AS DOUBLE))
+      comment: "Average guest satisfaction rating for fulfilled special requests. Direct guest experience quality indicator linked to NPS and loyalty outcomes."
+    - name: "failed_request_count"
+      expr: COUNT(CASE WHEN fulfillment_status = 'failed' THEN 1 END)
+      comment: "Number of special requests that failed to be fulfilled. Tracks service failure volume for operational improvement and guest recovery programs."
+    - name: "request_failure_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN fulfillment_status = 'failed' THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of special requests that failed. Measures service delivery risk and operational gap for management intervention."
+    - name: "charge_to_cost_ratio"
+      expr: ROUND(SUM(CAST(charge_amount AS DOUBLE)) / NULLIF(SUM(CAST(actual_cost AS DOUBLE)), 0), 2)
+      comment: "Ratio of charge revenue to actual fulfillment cost for chargeable requests. Measures profitability of the paid guest services program."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`reservation_travel_agent`
@@ -502,52 +440,61 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Travel agent and agency performance KPIs covering revenue contribution, booking volume, credit exposure, and contract health. Used by Distribution and Sales leadership to manage the travel agent channel."
+  comment: "Travel agent and agency performance KPIs covering revenue generation, commission rates, booking volume tiers, and contract health. Drives Distribution, Sales, and Finance decisions on agency partnerships."
   source: "`vibe_travel_hospitality_v1`.`reservation`.`travel_agent`"
   dimensions:
+    - name: "travel_agent_status"
+      expr: travel_agent_status
+      comment: "Current status of the travel agent (e.g., active, inactive, suspended). Segments active vs. inactive agency relationships."
     - name: "agency_type"
       expr: agency_type
-      comment: "Type of travel agency (e.g. LEISURE, CORPORATE, WHOLESALE). Enables segment-level agency performance analysis."
+      comment: "Type of travel agency (e.g., OTA, brick-and-mortar, corporate TMC, wholesale). Enables channel-type performance benchmarking."
+    - name: "booking_volume_tier"
+      expr: booking_volume_tier
+      comment: "Volume tier classification of the agency (e.g., platinum, gold, silver). Supports tiered commission and partnership management."
     - name: "country_code"
       expr: country_code
-      comment: "Country of the travel agency. Supports geographic distribution and market penetration analysis."
-    - name: "preferred_language"
-      expr: preferred_language
-      comment: "Preferred communication language of the agency. Supports localisation and relationship management segmentation."
+      comment: "Country of the travel agency. Enables geographic distribution analysis of booking sources."
     - name: "currency_code"
       expr: currency_code
-      comment: "Preferred currency of the travel agent. Required for multi-currency revenue and commission reporting."
-    - name: "contract_start_date_month"
-      expr: DATE_TRUNC('MONTH', contract_start_date)
-      comment: "Month the agency contract started. Supports contract cohort and tenure analysis."
-    - name: "contract_end_date_month"
-      expr: DATE_TRUNC('MONTH', contract_end_date)
-      comment: "Month the agency contract expires. Enables proactive contract renewal pipeline management."
-    - name: "last_booking_date_month"
-      expr: DATE_TRUNC('MONTH', last_booking_date)
-      comment: "Month of the agency's most recent booking. Supports recency analysis and identification of lapsing agents."
+      comment: "Currency used by the travel agent. Required for multi-currency commission and revenue reporting."
+    - name: "preferred_payment_method"
+      expr: preferred_payment_method
+      comment: "Preferred payment method of the agency. Supports payment operations and settlement planning."
+    - name: "contract_start_date"
+      expr: contract_start_date
+      comment: "Start date of the agency contract. Enables contract tenure and renewal cycle analysis."
+    - name: "contract_end_date"
+      expr: contract_end_date
+      comment: "End date of the agency contract. Tracks upcoming contract expirations for renewal pipeline management."
+    - name: "last_booking_date"
+      expr: last_booking_date
+      comment: "Date of the most recent booking from this agent. Identifies dormant agencies for reactivation campaigns."
   measures:
+    - name: "total_active_agents"
+      expr: COUNT(CASE WHEN travel_agent_status = 'active' THEN 1 END)
+      comment: "Number of active travel agents in the distribution network. Tracks active channel partner count for distribution strategy."
     - name: "total_revenue_generated"
       expr: SUM(CAST(total_revenue_generated AS DOUBLE))
-      comment: "Total revenue generated by travel agents. Primary channel revenue KPI for distribution strategy and agent tier management."
+      comment: "Total revenue generated across all travel agents. Primary distribution channel revenue KPI for Sales and Finance."
+    - name: "avg_commission_rate"
+      expr: AVG(CAST(commission_rate AS DOUBLE))
+      comment: "Average commission rate across travel agents. Benchmarks distribution cost and informs commission structure negotiations."
     - name: "avg_revenue_per_agent"
-      expr: AVG(CAST(total_revenue_generated AS DOUBLE))
-      comment: "Average revenue generated per travel agent. Benchmarks agent productivity and informs tiering and incentive programme design."
+      expr: ROUND(SUM(CAST(total_revenue_generated AS DOUBLE)) / NULLIF(COUNT(DISTINCT travel_agent_id), 0), 2)
+      comment: "Average revenue generated per travel agent. Compound KPI measuring agency productivity and partnership value."
     - name: "total_credit_limit_exposure"
       expr: SUM(CAST(credit_limit AS DOUBLE))
-      comment: "Total credit limit extended across all travel agents. Measures aggregate financial exposure in the agent channel; key risk metric for Finance."
+      comment: "Total credit limit extended across all travel agents. Measures financial exposure and credit risk in the distribution network."
     - name: "avg_credit_limit"
       expr: AVG(CAST(credit_limit AS DOUBLE))
-      comment: "Average credit limit per travel agent. Benchmarks credit policy and informs risk-adjusted agent onboarding decisions."
-    - name: "active_agent_count"
-      expr: COUNT(CASE WHEN travel_agent_status = 1 THEN travel_agent_id END)
-      comment: "Number of active travel agents. Tracks the size of the active distribution network; declining counts signal channel health issues."
-    - name: "total_agents"
-      expr: COUNT(travel_agent_id)
-      comment: "Total number of travel agent records. Baseline portfolio size metric for distribution channel management."
-    - name: "revenue_concentration_top_agent_share_pct"
-      expr: ROUND(100.0 * MAX(CAST(total_revenue_generated AS DOUBLE)) / NULLIF(SUM(CAST(total_revenue_generated AS DOUBLE)), 0), 2)
-      comment: "Percentage of total agent-channel revenue attributable to the single highest-revenue agent. Measures revenue concentration risk; high values indicate over-dependence on a single agent."
+      comment: "Average credit limit per travel agent. Benchmarks credit exposure by agency tier for risk management."
+    - name: "distinct_active_agents"
+      expr: COUNT(DISTINCT CASE WHEN travel_agent_status = 'active' THEN travel_agent_id END)
+      comment: "Count of distinct active travel agent IDs. Precise active network size metric for distribution coverage analysis."
+    - name: "revenue_concentration_top_agent"
+      expr: MAX(CAST(total_revenue_generated AS DOUBLE))
+      comment: "Revenue generated by the single highest-producing travel agent. Measures revenue concentration risk in the distribution network."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`reservation_booking_status_history`
@@ -555,62 +502,62 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Booking status change event KPIs covering modification patterns, penalty fee recovery, revenue impact of changes, SLA compliance, and dispute activity. Used by Revenue Management, Operations, and Compliance teams."
+  comment: "Booking status change event KPIs covering modification patterns, SLA compliance, penalty fee recovery, revenue impact of changes, and dispute tracking. Drives Revenue Management, Operations, and Compliance governance."
   source: "`vibe_travel_hospitality_v1`.`reservation`.`booking_status_history`"
   dimensions:
     - name: "event_type"
       expr: event_type
-      comment: "Type of booking status event (e.g. MODIFICATION, CANCELLATION, REINSTATEMENT). Primary segmentation for change-event analysis."
+      comment: "Type of booking status event (e.g., modification, cancellation, no-show). Segments event volume by operational category."
     - name: "modification_type"
       expr: modification_type
-      comment: "Type of modification applied (e.g. DATE_CHANGE, ROOM_CHANGE, RATE_CHANGE). Enables modification pattern analysis."
+      comment: "Type of modification applied (e.g., date change, rate change, room type change). Enables modification pattern analysis."
     - name: "new_status"
       expr: new_status
-      comment: "Status the booking transitioned to. Tracks status flow and transition patterns across the booking lifecycle."
+      comment: "Status the booking transitioned to. Tracks booking lifecycle state transitions."
     - name: "previous_status"
       expr: previous_status
-      comment: "Status the booking held before the event. Combined with new_status to analyse status transition paths."
-    - name: "dispute_flag"
-      expr: dispute_flag
-      comment: "Indicates whether the status change event is under dispute. Segments disputed events for risk and compliance reporting."
+      comment: "Status the booking held before the event. Enables transition-pair analysis (e.g., confirmed → cancelled)."
     - name: "sla_compliance_flag"
       expr: sla_compliance_flag
-      comment: "Indicates whether the event was processed within SLA. Tracks operational SLA adherence for booking change processing."
+      comment: "Indicates whether the event was processed within SLA. Tracks operational compliance with service level agreements."
+    - name: "dispute_flag"
+      expr: dispute_flag
+      comment: "Indicates whether the status change event is under dispute. Flags events with financial or legal risk."
     - name: "guest_notification_sent_flag"
       expr: guest_notification_sent_flag
       comment: "Indicates whether the guest was notified of the status change. Tracks communication compliance and guest experience quality."
-    - name: "currency_code"
-      expr: currency_code
-      comment: "Currency of financial amounts in the event record. Required for multi-currency financial impact reporting."
-    - name: "event_month"
-      expr: DATE_TRUNC('MONTH', event_timestamp)
-      comment: "Month the booking status event occurred. Supports trend analysis of modification and cancellation event volumes."
     - name: "system_source"
       expr: system_source
-      comment: "Source system that generated the event (e.g. PMS, CRS, OTA). Enables system-level event volume and error analysis."
+      comment: "Source system that generated the event (e.g., PMS, CRS, OTA). Enables system-level event volume and error analysis."
+    - name: "event_date"
+      expr: event_date
+      comment: "Date of the booking status event. Enables time-series trend analysis of modification and cancellation activity."
+    - name: "cancellation_reason_code"
+      expr: cancellation_reason_code
+      comment: "Reason code for cancellation events. Supports root-cause analysis of cancellation drivers."
   measures:
-    - name: "total_status_change_events"
-      expr: COUNT(booking_status_history_id)
-      comment: "Total number of booking status change events. Baseline volume KPI for operational change activity and system load analysis."
-    - name: "total_penalty_fee_amount"
+    - name: "total_status_events"
+      expr: COUNT(1)
+      comment: "Total number of booking status change events. Baseline operational volume KPI for change management and audit tracking."
+    - name: "total_penalty_fees_assessed"
       expr: SUM(CAST(penalty_fee_amount AS DOUBLE))
-      comment: "Total penalty fees charged across all booking change events. Measures revenue recovered through change and cancellation penalties."
+      comment: "Total penalty fees assessed across all status change events. Measures revenue recovery from policy enforcement on modifications and cancellations."
     - name: "total_revenue_impact"
       expr: SUM(CAST(revenue_impact_amount AS DOUBLE))
-      comment: "Total revenue impact (positive or negative) from booking status changes. Quantifies the net financial effect of all booking modifications and cancellations."
+      comment: "Total revenue impact (positive or negative) from booking status changes. Measures net financial effect of all booking modifications."
     - name: "total_rate_difference_amount"
       expr: SUM(CAST(rate_difference_amount AS DOUBLE))
-      comment: "Total rate difference amounts from booking modifications. Measures revenue uplift or dilution from rate changes on modified bookings."
-    - name: "sla_compliance_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN sla_compliance_flag = TRUE THEN booking_status_history_id END) / NULLIF(COUNT(booking_status_history_id), 0), 2)
-      comment: "Percentage of booking change events processed within SLA. Operational quality KPI; low compliance rates trigger process and staffing reviews."
-    - name: "guest_notification_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN guest_notification_sent_flag = TRUE THEN booking_status_history_id END) / NULLIF(COUNT(booking_status_history_id), 0), 2)
-      comment: "Percentage of status change events where the guest was notified. Tracks communication compliance; low rates indicate guest experience and regulatory risk."
-    - name: "dispute_event_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN dispute_flag = TRUE THEN booking_status_history_id END) / NULLIF(COUNT(booking_status_history_id), 0), 2)
-      comment: "Percentage of booking change events that are disputed. Elevated rates signal policy clarity issues or systemic processing errors."
+      comment: "Total rate difference amounts from booking modifications. Tracks revenue uplift or dilution from rate changes on modified bookings."
+    - name: "sla_compliance_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN sla_compliance_flag = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of booking status events processed within SLA. Operational compliance KPI for process governance and vendor management."
+    - name: "guest_notification_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN guest_notification_sent_flag = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of status change events where the guest was notified. Measures communication compliance and guest experience quality."
+    - name: "disputed_event_count"
+      expr: COUNT(CASE WHEN dispute_flag = TRUE THEN 1 END)
+      comment: "Number of booking status events under dispute. Tracks dispute volume for legal and financial risk management."
     - name: "avg_revenue_impact_per_event"
-      expr: AVG(CAST(revenue_impact_amount AS DOUBLE))
-      comment: "Average revenue impact per booking status change event. Benchmarks the financial materiality of booking changes and informs change-fee policy calibration."
+      expr: ROUND(SUM(CAST(revenue_impact_amount AS DOUBLE)) / NULLIF(COUNT(1), 0), 2)
+      comment: "Average revenue impact per booking status change event. Compound KPI measuring the financial materiality of individual booking changes."
 $$;

@@ -1,347 +1,207 @@
--- Metric views for domain: provider | Business: Health_Insurance | Version: 2 | Generated on: 2026-06-23 01:44:05
+-- Metric views for domain: provider | Business: Health_Insurance | Version: 2 | Generated on: 2026-06-27 10:36:42
 
 CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_network_participation`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Strategic KPIs measuring provider network participation health, panel capacity utilization, quality scoring, reimbursement economics, and credentialing compliance. Primary steering dashboard for network adequacy and value-based care program management."
-  source: "`vibe_health_insurance_v1`.`provider`.`provider_network_participation`"
-  dimensions:
-    - name: "network_tier"
-      expr: network_tier
-      comment: "Network tier assignment (e.g., Tier 1, Tier 2) used to segment providers by cost and quality for member steerage and benefit design decisions."
-    - name: "participation_status"
-      expr: participation_status
-      comment: "Current participation status of the provider (e.g., Active, Terminated, Pending) for filtering active network members."
-    - name: "participation_type"
-      expr: participation_type
-      comment: "Type of participation arrangement (e.g., PAR, Non-PAR, Capitated) used to analyze network composition and reimbursement model mix."
-    - name: "contracted_reimbursement_model"
-      expr: contracted_reimbursement_model
-      comment: "Reimbursement model under which the provider is contracted (e.g., FFS, Capitation, VBC) for financial modeling and network strategy."
-    - name: "credentialing_status"
-      expr: credentialing_status
-      comment: "Current credentialing status of the provider network participation record, used to monitor compliance and identify credentialing gaps."
-    - name: "par_status"
-      expr: par_status
-      comment: "Participating vs. non-participating indicator for claims adjudication and member cost-sharing analysis."
-    - name: "network_adequacy_role"
-      expr: network_adequacy_role
-      comment: "Role the provider plays in satisfying network adequacy requirements (e.g., PCP, Specialist, OB) for regulatory compliance reporting."
-    - name: "is_pcp"
-      expr: is_pcp
-      comment: "Flag indicating whether the provider serves as a Primary Care Provider, used to segment PCP vs. specialist network metrics."
-    - name: "telehealth_available"
-      expr: telehealth_available
-      comment: "Indicates whether the provider offers telehealth services, used to measure virtual care network coverage."
-    - name: "is_essential_community_provider"
-      expr: is_essential_community_provider
-      comment: "Flag for Essential Community Provider designation, critical for ACA marketplace regulatory compliance reporting."
-    - name: "vbc_participation_flag"
-      expr: vbc_participation_flag
-      comment: "Indicates provider participation in value-based care arrangements, used to track VBC program penetration."
-    - name: "contract_effective_date_month"
-      expr: DATE_TRUNC('MONTH', contract_effective_date)
-      comment: "Month of contract effective date for trending new provider contracting activity over time."
-    - name: "credentialing_expiration_month"
-      expr: DATE_TRUNC('MONTH', credentialing_expiration_date)
-      comment: "Month when credentialing expires, used to proactively identify providers requiring recredentialing to avoid network gaps."
-    - name: "geo_access_flag"
-      expr: geo_access_flag
-      comment: "Indicates whether the provider satisfies geographic access standards, used for time-distance compliance and network adequacy analysis."
-    - name: "time_distance_compliant"
-      expr: time_distance_compliant
-      comment: "Flag indicating the provider meets time-and-distance access standards required by state and federal regulators."
-  measures:
-    - name: "total_active_participations"
-      expr: COUNT(CASE WHEN participation_status = 'Active' THEN provider_network_participation_id END)
-      comment: "Total count of active provider network participation records. Core network size KPI used by network management to assess adequacy and coverage."
-    - name: "total_par_providers"
-      expr: COUNT(CASE WHEN par_status_flag = TRUE THEN provider_network_participation_id END)
-      comment: "Count of participating (PAR) providers in the network. Drives claims adjudication strategy and member benefit design decisions."
-    - name: "total_pcp_providers"
-      expr: COUNT(CASE WHEN is_pcp = TRUE THEN provider_network_participation_id END)
-      comment: "Count of providers designated as Primary Care Providers. Critical for PCP network adequacy compliance and member attribution."
-    - name: "total_telehealth_enabled_providers"
-      expr: COUNT(CASE WHEN telehealth_available = TRUE THEN provider_network_participation_id END)
-      comment: "Count of providers offering telehealth services. Measures virtual care network capacity for member access and digital health strategy."
-    - name: "total_vbc_participating_providers"
-      expr: COUNT(CASE WHEN vbc_participation_flag = TRUE THEN provider_network_participation_id END)
-      comment: "Count of providers enrolled in value-based care arrangements. Tracks VBC program penetration and population health management reach."
-    - name: "total_essential_community_providers"
-      expr: COUNT(CASE WHEN is_essential_community_provider = TRUE THEN provider_network_participation_id END)
-      comment: "Count of Essential Community Providers in the network. Required for ACA marketplace plan certification and regulatory compliance."
-    - name: "total_geo_access_compliant_providers"
-      expr: COUNT(CASE WHEN geo_access_flag = TRUE THEN provider_network_participation_id END)
-      comment: "Count of providers meeting geographic access standards. Used to demonstrate network adequacy to regulators and identify access gaps."
-    - name: "total_time_distance_compliant_providers"
-      expr: COUNT(CASE WHEN time_distance_compliant = TRUE THEN provider_network_participation_id END)
-      comment: "Count of providers satisfying time-and-distance access requirements. Core metric for state and federal network adequacy filings."
-    - name: "pcp_participation_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN is_pcp = TRUE THEN provider_network_participation_id END) / NULLIF(COUNT(provider_network_participation_id), 0), 2)
-      comment: "Percentage of network participations that are PCP-designated. Benchmarked against adequacy standards to ensure sufficient primary care access."
-    - name: "telehealth_penetration_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN telehealth_available = TRUE THEN provider_network_participation_id END) / NULLIF(COUNT(provider_network_participation_id), 0), 2)
-      comment: "Percentage of network providers offering telehealth. Tracks digital care access expansion and informs virtual-first network strategy."
-    - name: "vbc_penetration_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN vbc_participation_flag = TRUE THEN provider_network_participation_id END) / NULLIF(COUNT(provider_network_participation_id), 0), 2)
-      comment: "Percentage of network providers in value-based care arrangements. Key executive KPI for tracking the shift from fee-for-service to value-based models."
-    - name: "geo_access_compliance_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN geo_access_flag = TRUE THEN provider_network_participation_id END) / NULLIF(COUNT(provider_network_participation_id), 0), 2)
-      comment: "Percentage of providers meeting geographic access standards. Regulatory compliance KPI reported to state insurance departments and CMS."
-    - name: "credentialing_expiring_within_90_days"
-      expr: COUNT(CASE WHEN credentialing_expiration_date BETWEEN CURRENT_DATE AND DATE_ADD(CURRENT_DATE, 90) THEN provider_network_participation_id END)
-      comment: "Count of providers whose credentialing expires within 90 days. Operational risk KPI that triggers recredentialing workflows to prevent network disruption."
-    - name: "avg_quality_score"
-      expr: AVG(CAST(quality_score AS DOUBLE))
-      comment: "Average quality score across network providers. Executive KPI for monitoring overall network quality and informing tiering and incentive program decisions."
-    - name: "avg_capitation_rate"
-      expr: AVG(CAST(capitation_rate AS DOUBLE))
-      comment: "Average capitation rate across capitated provider arrangements. Financial KPI used by actuarial and finance teams to monitor per-member cost trends."
-    - name: "total_capitation_spend"
-      expr: SUM(CAST(capitation_rate AS DOUBLE))
-      comment: "Total capitation rate commitment across all capitated providers. Proxy for capitation budget exposure used in financial planning and risk management."
-    - name: "avg_reimbursement_rate"
-      expr: AVG(CAST(reimbursement_rate AS DOUBLE))
-      comment: "Average contracted reimbursement rate across network providers. Used by contracting and finance teams to benchmark rates and manage unit cost trends."
-    - name: "accepting_new_patients_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN accepting_new_patients_flag = TRUE THEN provider_network_participation_id END) / NULLIF(COUNT(provider_network_participation_id), 0), 2)
-      comment: "Percentage of network providers currently accepting new patients. Member access KPI that drives provider directory accuracy and member assignment capacity."
-    - name: "total_accepting_new_patients"
-      expr: COUNT(CASE WHEN accepting_new_patients_flag = TRUE THEN provider_network_participation_id END)
-      comment: "Absolute count of providers accepting new patients. Used alongside capacity metrics to assess member access and identify panel closure hotspots."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_participation_status`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Operational and compliance KPIs for provider participation status management, including panel status, credentialing compliance, sanction monitoring, and network tier distribution. Used by network operations, compliance, and regulatory affairs teams."
+  comment: "Tracks provider network participation health, panel status, credentialing pipeline, and telehealth enablement across health plans and lines of business. Core KPI surface for network adequacy and access management."
   source: "`vibe_health_insurance_v1`.`provider`.`participation_status`"
   dimensions:
-    - name: "participation_category"
-      expr: participation_category
-      comment: "Category of participation (e.g., Individual, Group, Facility) for segmenting network composition analysis."
-    - name: "network_tier_code"
-      expr: network_tier_code
-      comment: "Network tier code assigned to the provider participation record, used for benefit design and member steerage analytics."
-    - name: "credentialing_status"
-      expr: credentialing_status
-      comment: "Current credentialing status (e.g., Approved, Pending, Expired) for compliance monitoring and credentialing pipeline management."
-    - name: "panel_status"
-      expr: panel_status
-      comment: "Panel open/closed status indicating whether the provider is accepting new patient assignments."
     - name: "lob_code"
       expr: lob_code
-      comment: "Line of business code (e.g., Commercial, Medicare, Medicaid) for segmenting participation metrics by product line."
+      comment: "Line of business code (e.g., Commercial, Medicare, Medicaid) enabling participation analysis by product line."
+    - name: "participation_category"
+      expr: participation_category
+      comment: "Broad category of participation (e.g., in-network, out-of-network, preferred) for network tier analysis."
+    - name: "panel_status"
+      expr: panel_status
+      comment: "Provider panel status (open, closed, restricted) — key driver of member access and network adequacy."
+    - name: "credentialing_status"
+      expr: credentialing_status
+      comment: "Current credentialing status of the participation record, used to track pipeline and compliance."
     - name: "pcp_flag"
       expr: pcp_flag
-      comment: "Indicates whether the participation record is for a Primary Care Provider, used for PCP adequacy and attribution analysis."
+      comment: "Indicates whether the participation record is for a Primary Care Provider, enabling PCP vs specialist segmentation."
     - name: "specialist_flag"
       expr: specialist_flag
-      comment: "Indicates specialist designation for network adequacy specialty coverage analysis."
+      comment: "Indicates specialist participation, enabling specialist network adequacy analysis."
     - name: "telehealth_enabled_flag"
       expr: telehealth_enabled_flag
-      comment: "Indicates telehealth capability for virtual care network coverage reporting."
-    - name: "regulatory_sanction_flag"
-      expr: regulatory_sanction_flag
-      comment: "Flags providers under regulatory sanction, critical for compliance monitoring and risk management."
-    - name: "current_record_flag"
-      expr: current_record_flag
-      comment: "Indicates the current active record for SCD-style participation status tables, used to filter to point-in-time snapshots."
-    - name: "effective_date_month"
-      expr: DATE_TRUNC('MONTH', effective_date)
-      comment: "Month of participation effective date for trending new participation activations over time."
-    - name: "termination_date_month"
-      expr: DATE_TRUNC('MONTH', termination_date)
-      comment: "Month of participation termination for trending provider attrition and network churn analysis."
+      comment: "Whether the provider has telehealth enabled under this participation record."
+    - name: "termination_reason_code"
+      expr: termination_reason_code
+      comment: "Reason code for participation termination, used to analyze voluntary vs involuntary attrition."
     - name: "risk_arrangement_code"
       expr: risk_arrangement_code
-      comment: "Risk arrangement type (e.g., Global Cap, Shared Savings) for segmenting value-based payment model participation."
+      comment: "Risk arrangement type (e.g., FFS, capitation, value-based) for financial model segmentation."
+    - name: "effective_start_date"
+      expr: DATE_TRUNC('month', effective_start_date)
+      comment: "Month of participation effective start date for trend analysis of network growth."
+    - name: "termination_date"
+      expr: DATE_TRUNC('month', termination_date)
+      comment: "Month of participation termination for attrition trend analysis."
   measures:
-    - name: "total_active_participation_records"
-      expr: COUNT(CASE WHEN current_record_flag = TRUE THEN participation_status_id END)
-      comment: "Total current active participation status records. Baseline network size KPI for network operations and adequacy reporting."
-    - name: "total_sanctioned_providers"
-      expr: COUNT(CASE WHEN regulatory_sanction_flag = TRUE AND current_record_flag = TRUE THEN participation_status_id END)
-      comment: "Count of providers currently under regulatory sanction. Critical compliance KPI monitored by legal, compliance, and network integrity teams."
-    - name: "sanction_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN regulatory_sanction_flag = TRUE AND current_record_flag = TRUE THEN participation_status_id END) / NULLIF(COUNT(CASE WHEN current_record_flag = TRUE THEN participation_status_id END), 0), 2)
-      comment: "Percentage of active providers under regulatory sanction. Executive risk KPI that triggers compliance review and potential network removal actions."
-    - name: "total_open_panel_providers"
-      expr: COUNT(CASE WHEN panel_status = 'Open' AND current_record_flag = TRUE THEN participation_status_id END)
-      comment: "Count of providers with open panels accepting new patients. Member access KPI used to assess assignment capacity and identify access gaps."
-    - name: "panel_open_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN panel_status = 'Open' AND current_record_flag = TRUE THEN participation_status_id END) / NULLIF(COUNT(CASE WHEN current_record_flag = TRUE THEN participation_status_id END), 0), 2)
-      comment: "Percentage of active providers with open panels. Tracks member access capacity and informs network expansion decisions when rates fall below thresholds."
-    - name: "total_credentialing_approved"
-      expr: COUNT(CASE WHEN credentialing_status = 'Approved' AND current_record_flag = TRUE THEN participation_status_id END)
-      comment: "Count of providers with approved credentialing status. Compliance KPI ensuring only credentialed providers are active in the network."
-    - name: "credentialing_approval_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN credentialing_status = 'Approved' AND current_record_flag = TRUE THEN participation_status_id END) / NULLIF(COUNT(CASE WHEN current_record_flag = TRUE THEN participation_status_id END), 0), 2)
-      comment: "Percentage of active providers with approved credentialing. Regulatory compliance KPI; low rates signal credentialing backlog risk and potential claims payment issues."
-    - name: "total_terminations"
-      expr: COUNT(CASE WHEN termination_date IS NOT NULL AND termination_date <= CURRENT_DATE THEN participation_status_id END)
-      comment: "Total count of provider participation terminations. Network attrition KPI used to monitor churn and trigger retention or replacement recruitment."
-    - name: "recredentialing_due_within_90_days"
-      expr: COUNT(CASE WHEN next_recredentialing_date BETWEEN CURRENT_DATE AND DATE_ADD(CURRENT_DATE, 90) AND current_record_flag = TRUE THEN participation_status_id END)
-      comment: "Count of providers due for recredentialing within 90 days. Operational risk KPI that drives credentialing team workload planning and prevents lapses."
-    - name: "directory_display_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN directory_display_flag = TRUE AND current_record_flag = TRUE THEN participation_status_id END) / NULLIF(COUNT(CASE WHEN current_record_flag = TRUE THEN participation_status_id END), 0), 2)
-      comment: "Percentage of active providers displayed in the member-facing provider directory. Regulatory compliance KPI for No Surprises Act and CMS directory accuracy requirements."
+    - name: "total_participation_records"
+      expr: COUNT(1)
+      comment: "Total number of provider participation records. Baseline volume metric for network size tracking."
+    - name: "active_participation_count"
+      expr: COUNT(CASE WHEN is_active = TRUE THEN participation_status_id END)
+      comment: "Count of currently active provider participation records. Core network adequacy KPI — tracks live in-network provider count."
+    - name: "open_panel_provider_count"
+      expr: COUNT(CASE WHEN panel_status = 'open' AND is_active = TRUE THEN participation_status_id END)
+      comment: "Count of providers with open panels accepting new patients. Directly measures member access capacity."
+    - name: "pcp_active_count"
+      expr: COUNT(CASE WHEN pcp_flag = TRUE AND is_active = TRUE THEN participation_status_id END)
+      comment: "Count of active Primary Care Provider participation records. Critical for PCP network adequacy and member-to-PCP ratio reporting."
+    - name: "telehealth_enabled_count"
+      expr: COUNT(CASE WHEN telehealth_enabled_flag = TRUE AND is_active = TRUE THEN participation_status_id END)
+      comment: "Count of active providers with telehealth enabled. Tracks virtual care network capacity — a strategic access and cost KPI."
+    - name: "terminated_participation_count"
+      expr: COUNT(CASE WHEN termination_date IS NOT NULL THEN participation_status_id END)
+      comment: "Count of terminated participation records. Tracks network attrition volume for retention and adequacy risk management."
+    - name: "credentialing_pending_count"
+      expr: COUNT(CASE WHEN credentialing_status NOT IN ('approved', 'active') AND is_active = TRUE THEN participation_status_id END)
+      comment: "Count of active participation records with non-approved credentialing status. Flags compliance risk and pipeline bottlenecks."
+    - name: "regulatory_sanction_count"
+      expr: COUNT(CASE WHEN regulatory_sanction_flag = TRUE THEN participation_status_id END)
+      comment: "Count of participation records with active regulatory sanctions. Critical compliance and risk KPI for regulatory reporting."
+    - name: "accepting_new_patients_count"
+      expr: COUNT(CASE WHEN accepting_new_patients_flag = TRUE AND is_active = TRUE THEN participation_status_id END)
+      comment: "Count of active providers accepting new patients. Directly measures member access availability across the network."
+    - name: "distinct_providers_in_network"
+      expr: COUNT(DISTINCT provider_id)
+      comment: "Count of distinct providers with at least one participation record. True network size metric used in adequacy filings."
 $$;
 
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_directory_entry`
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_directory`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Provider directory accuracy, completeness, and attestation compliance KPIs. Used by network operations, compliance, and member experience teams to ensure directory data meets CMS and No Surprises Act accuracy standards."
+  comment: "Measures provider directory accuracy, completeness, telehealth availability, and attestation compliance. Supports CMS directory accuracy mandates and member-facing access transparency."
   source: "`vibe_health_insurance_v1`.`provider`.`directory_entry`"
   dimensions:
     - name: "provider_type"
       expr: provider_type
-      comment: "Type of provider (e.g., MD, DO, NP, PA) for segmenting directory completeness and attestation metrics by provider category."
-    - name: "attestation_status"
-      expr: attestation_status
-      comment: "Current attestation status of the directory entry (e.g., Attested, Pending, Overdue) for compliance monitoring."
-    - name: "attestation_method"
-      expr: attestation_method
-      comment: "Method used for directory attestation (e.g., Online Portal, Phone, Mail) for process efficiency analysis."
-    - name: "practice_state"
-      expr: practice_state
-      comment: "State where the provider practices, used for geographic network adequacy and state-level regulatory compliance reporting."
+      comment: "Type of provider (e.g., MD, DO, NP, PA) for directory composition analysis."
     - name: "gender"
       expr: gender
-      comment: "Provider gender for diversity and member preference matching analytics."
+      comment: "Provider gender for member preference matching and diversity reporting."
     - name: "pcp_flag"
       expr: pcp_flag
-      comment: "Indicates PCP designation in the directory for PCP-specific directory accuracy and adequacy reporting."
-    - name: "accepting_new_patients_flag"
-      expr: accepting_new_patients_flag
-      comment: "Directory-published accepting new patients status for member access and directory accuracy analysis."
+      comment: "Indicates PCP designation in the directory — key for member PCP assignment workflows."
     - name: "telehealth_available_flag"
       expr: telehealth_available_flag
-      comment: "Telehealth availability as published in the directory for virtual care access reporting."
-    - name: "vreq_validated"
-      expr: vreq_validated
-      comment: "Indicates whether the directory entry has passed validation requirements, used for data quality and compliance reporting."
-    - name: "directory_publication_date_month"
-      expr: DATE_TRUNC('MONTH', directory_publication_date)
-      comment: "Month of directory publication for trending directory update frequency and freshness."
-    - name: "last_verified_date_month"
-      expr: DATE_TRUNC('MONTH', last_verified_date)
-      comment: "Month of last verification for identifying stale directory records requiring re-attestation."
-    - name: "source_system_code"
-      expr: source_system_code
-      comment: "Source system that originated the directory entry for data lineage and quality root-cause analysis."
+      comment: "Whether the provider offers telehealth services as listed in the directory."
+    - name: "attestation_status"
+      expr: attestation_status
+      comment: "Current attestation status of the directory entry — drives CMS directory accuracy compliance."
+    - name: "accepting_new_patients_flag"
+      expr: accepting_new_patients_flag
+      comment: "Whether the provider is accepting new patients per the directory listing."
+    - name: "directory_publication_date"
+      expr: DATE_TRUNC('month', directory_publication_date)
+      comment: "Month the directory entry was published, for freshness and update cadence analysis."
+    - name: "last_verified_date"
+      expr: DATE_TRUNC('month', last_verified_date)
+      comment: "Month of last directory verification, used to identify stale entries requiring re-attestation."
   measures:
     - name: "total_directory_entries"
-      expr: COUNT(directory_entry_id)
-      comment: "Total provider directory entries. Baseline KPI for directory size and coverage used in network adequacy and member access reporting."
-    - name: "total_attested_entries"
-      expr: COUNT(CASE WHEN attestation_status = 'Attested' THEN directory_entry_id END)
-      comment: "Count of directory entries with confirmed attestation. CMS and No Surprises Act compliance KPI; unattested entries create regulatory and member harm risk."
-    - name: "attestation_compliance_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN attestation_status = 'Attested' THEN directory_entry_id END) / NULLIF(COUNT(directory_entry_id), 0), 2)
-      comment: "Percentage of directory entries with valid attestation. Primary regulatory compliance KPI for CMS directory accuracy rules; below 95% triggers corrective action."
-    - name: "total_validated_entries"
-      expr: COUNT(CASE WHEN vreq_validated = TRUE THEN directory_entry_id END)
-      comment: "Count of directory entries passing validation requirements. Data quality KPI ensuring directory accuracy and reducing member misdirection."
-    - name: "validation_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN vreq_validated = TRUE THEN directory_entry_id END) / NULLIF(COUNT(directory_entry_id), 0), 2)
-      comment: "Percentage of directory entries that have passed validation. Tracks data quality program effectiveness and regulatory readiness."
-    - name: "total_accepting_new_patients"
-      expr: COUNT(CASE WHEN accepting_new_patients_flag = TRUE THEN directory_entry_id END)
-      comment: "Count of directory-published providers accepting new patients. Member access KPI used to assess network capacity and identify access deserts."
-    - name: "accepting_new_patients_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN accepting_new_patients_flag = TRUE THEN directory_entry_id END) / NULLIF(COUNT(directory_entry_id), 0), 2)
-      comment: "Percentage of directory providers accepting new patients. Member access and network adequacy KPI monitored against regulatory thresholds."
-    - name: "stale_directory_entries"
-      expr: COUNT(CASE WHEN next_verification_due_date < CURRENT_DATE THEN directory_entry_id END)
-      comment: "Count of directory entries past their verification due date. Compliance risk KPI; stale entries violate CMS directory accuracy requirements and expose the plan to penalties."
-    - name: "stale_entry_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN next_verification_due_date < CURRENT_DATE THEN directory_entry_id END) / NULLIF(COUNT(directory_entry_id), 0), 2)
-      comment: "Percentage of directory entries that are overdue for verification. Executive compliance KPI directly tied to CMS audit risk and potential civil monetary penalties."
-    - name: "total_telehealth_listed_providers"
-      expr: COUNT(CASE WHEN telehealth_available_flag = TRUE THEN directory_entry_id END)
-      comment: "Count of providers listed in the directory as telehealth-enabled. Tracks virtual care network visibility and member access to digital health services."
-    - name: "telehealth_directory_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN telehealth_available_flag = TRUE THEN directory_entry_id END) / NULLIF(COUNT(directory_entry_id), 0), 2)
-      comment: "Percentage of directory entries with telehealth availability. Informs digital health strategy and member communication about virtual care options."
+      expr: COUNT(1)
+      comment: "Total directory entries. Baseline for directory size and coverage reporting."
+    - name: "active_directory_entries"
+      expr: COUNT(CASE WHEN is_active = TRUE THEN directory_entry_id END)
+      comment: "Count of active directory entries. Core metric for live directory size reported to CMS and members."
+    - name: "attested_entry_count"
+      expr: COUNT(CASE WHEN attestation_status = 'attested' AND is_active = TRUE THEN directory_entry_id END)
+      comment: "Count of directory entries with confirmed attestation. Measures compliance with CMS provider directory accuracy rules."
+    - name: "telehealth_listed_count"
+      expr: COUNT(CASE WHEN telehealth_available_flag = TRUE AND is_active = TRUE THEN directory_entry_id END)
+      comment: "Count of directory entries listing telehealth availability. Tracks virtual care access transparency for members."
+    - name: "accepting_new_patients_directory_count"
+      expr: COUNT(CASE WHEN accepting_new_patients_flag = TRUE AND is_active = TRUE THEN directory_entry_id END)
+      comment: "Count of active directory entries where provider is accepting new patients. Directly informs member access and PCP assignment capacity."
+    - name: "pcp_directory_count"
+      expr: COUNT(CASE WHEN pcp_flag = TRUE AND is_active = TRUE THEN directory_entry_id END)
+      comment: "Count of active PCP directory entries. Used in PCP network adequacy and member-to-PCP ratio calculations."
+    - name: "overdue_verification_count"
+      expr: COUNT(CASE WHEN next_verification_due_date < CURRENT_DATE() AND is_active = TRUE THEN directory_entry_id END)
+      comment: "Count of active directory entries past their verification due date. Flags directory accuracy risk and CMS compliance exposure."
+    - name: "distinct_providers_in_directory"
+      expr: COUNT(DISTINCT provider_id)
+      comment: "Count of distinct providers with active directory listings. True directory breadth metric for network transparency reporting."
 $$;
 
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_license`
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_credentialing`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Provider licensure compliance KPIs tracking license status, expiration risk, disciplinary actions, and continuing education requirements. Used by credentialing, compliance, and network integrity teams to ensure only properly licensed providers are active in the network."
-  source: "`vibe_health_insurance_v1`.`provider`.`license`"
+  comment: "Tracks provider specialty credentialing status, board certification rates, fellowship completion, and recredentialing pipeline. Supports quality, compliance, and network adequacy governance."
+  source: "`vibe_health_insurance_v1`.`provider`.`specialty`"
   dimensions:
-    - name: "license_type"
-      expr: license_type
-      comment: "Type of license (e.g., MD, RN, LCSW) for segmenting compliance metrics by provider credential category."
-    - name: "license_status"
-      expr: license_status
-      comment: "Current status of the license (e.g., Active, Expired, Suspended, Revoked) for compliance monitoring and network integrity."
-    - name: "issuing_state"
-      expr: issuing_state
-      comment: "State that issued the license for geographic compliance analysis and multi-state practice monitoring."
-    - name: "issuing_authority"
-      expr: issuing_authority
-      comment: "Licensing authority (e.g., State Medical Board) for tracking verification sources and regulatory body relationships."
-    - name: "disciplinary_action_flag"
-      expr: disciplinary_action_flag
-      comment: "Indicates whether a disciplinary action has been recorded against this license, critical for network integrity and compliance risk management."
-    - name: "compact_participation_flag"
-      expr: compact_participation_flag
-      comment: "Indicates participation in interstate compact (e.g., Nurse Licensure Compact) for multi-state practice and telehealth eligibility analysis."
-    - name: "telemedicine_authorized_flag"
-      expr: telemedicine_authorized_flag
-      comment: "Indicates whether the license authorizes telemedicine practice, used for virtual care network eligibility verification."
-    - name: "continuing_education_required_flag"
-      expr: continuing_education_required_flag
-      comment: "Indicates whether continuing education is required for license renewal, used for compliance tracking and provider education program planning."
-    - name: "record_current_flag"
-      expr: record_current_flag
-      comment: "Indicates the current active license record for SCD-style license tables, used to filter to current licensure state."
-    - name: "expiration_date_month"
-      expr: DATE_TRUNC('MONTH', expiration_date)
-      comment: "Month of license expiration for trending upcoming expirations and planning renewal outreach campaigns."
-    - name: "issue_date_year"
-      expr: DATE_TRUNC('YEAR', issue_date)
-      comment: "Year of license issuance for cohort analysis of provider tenure and license vintage."
+    - name: "specialty_type"
+      expr: specialty_type
+      comment: "Broad specialty type (e.g., primary care, surgical, behavioral health) for network composition analysis."
+    - name: "category"
+      expr: category
+      comment: "Specialty category for grouping related specialties in adequacy and quality reporting."
+    - name: "credentialing_status"
+      expr: credentialing_status
+      comment: "Current credentialing status of the specialty record — core compliance dimension."
+    - name: "network_adequacy_category"
+      expr: network_adequacy_category
+      comment: "Network adequacy classification for the specialty — used in state and federal adequacy filings."
+    - name: "pcp_eligible_flag"
+      expr: pcp_eligible_flag
+      comment: "Whether this specialty qualifies the provider as a PCP — key for member assignment and adequacy."
+    - name: "board_certified_flag"
+      expr: board_certified_flag
+      comment: "Whether the provider is board certified in this specialty — quality and credentialing KPI."
+    - name: "primary_specialty_flag"
+      expr: primary_specialty_flag
+      comment: "Indicates the primary specialty designation for multi-specialty providers."
+    - name: "telehealth_enabled_flag"
+      expr: telehealth_enabled_flag
+      comment: "Whether telehealth is enabled for this specialty — virtual care network composition."
+    - name: "hedis_specialty_flag"
+      expr: hedis_specialty_flag
+      comment: "Whether this specialty is relevant to HEDIS measure reporting — quality program alignment."
+    - name: "credentialing_review_date"
+      expr: DATE_TRUNC('month', credentialing_review_date)
+      comment: "Month of credentialing review for pipeline and workload trend analysis."
+    - name: "next_credentialing_review_date"
+      expr: DATE_TRUNC('month', next_credentialing_review_date)
+      comment: "Month of next scheduled credentialing review — used to forecast credentialing workload."
   measures:
-    - name: "total_active_licenses"
-      expr: COUNT(CASE WHEN license_status = 'Active' AND record_current_flag = TRUE THEN license_id END)
-      comment: "Total count of active provider licenses. Baseline credentialing compliance KPI ensuring network providers maintain valid licensure."
-    - name: "total_expired_licenses"
-      expr: COUNT(CASE WHEN license_status = 'Expired' AND record_current_flag = TRUE THEN license_id END)
-      comment: "Count of expired licenses among current records. Critical compliance risk KPI; expired licenses require immediate network suspension to avoid regulatory penalties."
-    - name: "license_expiration_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN license_status = 'Expired' AND record_current_flag = TRUE THEN license_id END) / NULLIF(COUNT(CASE WHEN record_current_flag = TRUE THEN license_id END), 0), 2)
-      comment: "Percentage of current licenses that are expired. Executive compliance KPI; elevated rates signal credentialing process failures and regulatory audit risk."
-    - name: "licenses_expiring_within_90_days"
-      expr: COUNT(CASE WHEN expiration_date BETWEEN CURRENT_DATE AND DATE_ADD(CURRENT_DATE, 90) AND license_status = 'Active' AND record_current_flag = TRUE THEN license_id END)
-      comment: "Count of active licenses expiring within 90 days. Operational risk KPI that drives proactive renewal outreach to prevent network disruption."
-    - name: "total_disciplinary_actions"
-      expr: COUNT(CASE WHEN disciplinary_action_flag = TRUE AND record_current_flag = TRUE THEN license_id END)
-      comment: "Count of licenses with recorded disciplinary actions. Network integrity KPI monitored by compliance and legal teams; triggers provider review and potential termination."
-    - name: "disciplinary_action_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN disciplinary_action_flag = TRUE AND record_current_flag = TRUE THEN license_id END) / NULLIF(COUNT(CASE WHEN record_current_flag = TRUE THEN license_id END), 0), 2)
-      comment: "Percentage of current licenses with disciplinary actions. Risk management KPI used to benchmark network quality and identify high-risk provider concentrations."
-    - name: "total_telemedicine_authorized_licenses"
-      expr: COUNT(CASE WHEN telemedicine_authorized_flag = TRUE AND license_status = 'Active' AND record_current_flag = TRUE THEN license_id END)
-      comment: "Count of active licenses with telemedicine authorization. Tracks the licensed capacity for virtual care delivery across the provider network."
-    - name: "avg_continuing_education_hours_required"
-      expr: AVG(CAST(continuing_education_hours_required AS DOUBLE))
-      comment: "Average continuing education hours required per license. Used by provider relations teams to understand CE burden and design support programs."
-    - name: "total_compact_participating_licenses"
-      expr: COUNT(CASE WHEN compact_participation_flag = TRUE AND record_current_flag = TRUE THEN license_id END)
-      comment: "Count of licenses participating in interstate compact arrangements. Tracks multi-state practice capacity relevant to telehealth and border-area network adequacy."
+    - name: "total_specialty_records"
+      expr: COUNT(1)
+      comment: "Total specialty credentialing records. Baseline for credentialing pipeline volume."
+    - name: "active_specialty_count"
+      expr: COUNT(CASE WHEN is_active = TRUE THEN specialty_id END)
+      comment: "Count of active specialty records. Measures live credentialed specialty coverage across the network."
+    - name: "board_certified_count"
+      expr: COUNT(CASE WHEN board_certified_flag = TRUE AND is_active = TRUE THEN specialty_id END)
+      comment: "Count of active specialties with board certification. Key quality and credentialing KPI for network quality reporting."
+    - name: "credentialing_approved_count"
+      expr: COUNT(CASE WHEN credentialing_status = 'approved' AND is_active = TRUE THEN specialty_id END)
+      comment: "Count of active specialties with approved credentialing status. Measures compliant credentialing pipeline throughput."
+    - name: "credentialing_pending_count"
+      expr: COUNT(CASE WHEN credentialing_status NOT IN ('approved', 'active') AND is_active = TRUE THEN specialty_id END)
+      comment: "Count of active specialties with non-approved credentialing. Flags pipeline backlog and compliance risk."
+    - name: "overdue_recredentialing_count"
+      expr: COUNT(CASE WHEN next_credentialing_review_date < CURRENT_DATE() AND is_active = TRUE THEN specialty_id END)
+      comment: "Count of active specialties past their recredentialing due date. Critical compliance KPI — overdue recredentialing creates regulatory and liability exposure."
+    - name: "fellowship_completed_count"
+      expr: COUNT(CASE WHEN fellowship_completed_flag = TRUE AND is_active = TRUE THEN specialty_id END)
+      comment: "Count of active specialties where provider completed a fellowship. Quality indicator for subspecialty network depth."
+    - name: "hedis_relevant_specialty_count"
+      expr: COUNT(CASE WHEN hedis_specialty_flag = TRUE AND is_active = TRUE THEN specialty_id END)
+      comment: "Count of active HEDIS-relevant specialty records. Tracks quality program provider coverage for HEDIS measure performance."
+    - name: "distinct_credentialed_providers"
+      expr: COUNT(DISTINCT provider_id)
+      comment: "Count of distinct providers with at least one specialty record. True credentialed provider headcount for network adequacy filings."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_facility`
@@ -349,82 +209,138 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Facility network quality, accreditation, certification, and access KPIs. Used by network management, quality, and regulatory teams to monitor facility network composition, quality ratings, and compliance status."
+  comment: "Measures facility network composition, quality ratings, credentialing status, and service capability (emergency, telehealth, trauma). Supports network adequacy, quality contracting, and regulatory compliance for facility providers."
   source: "`vibe_health_insurance_v1`.`provider`.`facility`"
   dimensions:
     - name: "facility_type"
       expr: facility_type
-      comment: "Type of facility (e.g., Hospital, Urgent Care, SNF, ASC) for segmenting network composition and adequacy metrics by facility category."
-    - name: "participation_status"
-      expr: participation_status
-      comment: "Current participation status of the facility (e.g., Active, Terminated) for filtering active network facilities."
-    - name: "network_tier"
-      expr: network_tier
-      comment: "Network tier assignment for the facility, used for benefit design, member steerage, and cost management analytics."
-    - name: "credentialing_status"
-      expr: credentialing_status
-      comment: "Credentialing status of the facility for compliance monitoring and network integrity."
-    - name: "accreditation_body"
-      expr: accreditation_body
-      comment: "Accrediting body (e.g., The Joint Commission, DNV) for quality benchmarking and accreditation compliance tracking."
-    - name: "ownership_type"
-      expr: ownership_type
-      comment: "Facility ownership type (e.g., Non-Profit, For-Profit, Government) for network composition and strategic partnership analysis."
+      comment: "Type of facility (e.g., hospital, ASC, SNF, urgent care) for network composition and adequacy analysis."
     - name: "state_code"
       expr: state_code
-      comment: "State where the facility is located for geographic network adequacy and state-level regulatory reporting."
+      comment: "State where the facility is located — essential for geographic network adequacy and regulatory reporting."
+    - name: "credentialing_status"
+      expr: credentialing_status
+      comment: "Current credentialing status of the facility — compliance and contracting pipeline dimension."
+    - name: "participation_status"
+      expr: participation_status
+      comment: "Network participation status of the facility (in-network, out-of-network, etc.)."
+    - name: "network_tier"
+      expr: network_tier
+      comment: "Network tier designation for the facility — drives member cost-sharing and benefit design."
+    - name: "ownership_type"
+      expr: ownership_type
+      comment: "Facility ownership type (e.g., for-profit, non-profit, government) for contracting and quality analysis."
+    - name: "trauma_level"
+      expr: trauma_level
+      comment: "Trauma center designation level — critical for network adequacy in emergency and high-acuity care."
     - name: "teaching_hospital_flag"
       expr: teaching_hospital_flag
-      comment: "Indicates teaching hospital designation for academic medical center network analysis and graduate medical education tracking."
+      comment: "Whether the facility is a teaching hospital — quality and academic medical center network tracking."
     - name: "critical_access_hospital_flag"
       expr: critical_access_hospital_flag
-      comment: "Indicates Critical Access Hospital designation for rural access and CMS reimbursement compliance analysis."
-    - name: "emergency_services_flag"
-      expr: emergency_services_flag
-      comment: "Indicates availability of emergency services for network adequacy and No Surprises Act compliance analysis."
-    - name: "telehealth_enabled_flag"
-      expr: telehealth_enabled_flag
-      comment: "Indicates telehealth capability for virtual care facility network coverage reporting."
+      comment: "Whether the facility is a Critical Access Hospital — rural network adequacy and CMS compliance dimension."
     - name: "medicare_certified_flag"
       expr: medicare_certified_flag
-      comment: "Indicates Medicare certification for dual-eligible program eligibility and Medicare Advantage network compliance."
-    - name: "medicaid_certified_flag"
-      expr: medicaid_certified_flag
-      comment: "Indicates Medicaid certification for Medicaid managed care network adequacy and compliance reporting."
-    - name: "effective_date_year"
-      expr: DATE_TRUNC('YEAR', effective_date)
-      comment: "Year the facility became effective in the network for trending network growth and facility contracting activity."
+      comment: "Whether the facility is Medicare certified — required for Medicare Advantage network adequacy."
+    - name: "effective_start_date"
+      expr: DATE_TRUNC('month', effective_start_date)
+      comment: "Month the facility became effective in the network — for network growth trend analysis."
   measures:
-    - name: "total_active_facilities"
-      expr: COUNT(CASE WHEN participation_status = 'Active' THEN facility_id END)
-      comment: "Total active facilities in the network. Baseline facility network size KPI for adequacy reporting and member access analysis."
-    - name: "total_accredited_facilities"
-      expr: COUNT(CASE WHEN accreditation_body IS NOT NULL AND participation_status = 'Active' THEN facility_id END)
-      comment: "Count of active facilities with accreditation. Quality KPI used in network tiering, member communications, and plan quality ratings."
-    - name: "accreditation_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN accreditation_body IS NOT NULL AND participation_status = 'Active' THEN facility_id END) / NULLIF(COUNT(CASE WHEN participation_status = 'Active' THEN facility_id END), 0), 2)
-      comment: "Percentage of active facilities that are accredited. Network quality KPI benchmarked against industry standards and used in NCQA and URAC accreditation submissions."
-    - name: "avg_quality_rating"
+    - name: "total_facility_count"
+      expr: COUNT(1)
+      comment: "Total facility records. Baseline for facility network size reporting."
+    - name: "active_facility_count"
+      expr: COUNT(CASE WHEN is_active = TRUE THEN facility_id END)
+      comment: "Count of currently active facilities in the network. Core network adequacy KPI for facility access."
+    - name: "emergency_services_facility_count"
+      expr: COUNT(CASE WHEN emergency_services_flag = TRUE AND is_active = TRUE THEN facility_id END)
+      comment: "Count of active facilities with emergency services. Critical network adequacy metric for emergency care access."
+    - name: "telehealth_enabled_facility_count"
+      expr: COUNT(CASE WHEN telehealth_enabled_flag = TRUE AND is_active = TRUE THEN facility_id END)
+      comment: "Count of active facilities with telehealth enabled. Tracks virtual care infrastructure across the facility network."
+    - name: "medicare_certified_facility_count"
+      expr: COUNT(CASE WHEN medicare_certified_flag = TRUE AND is_active = TRUE THEN facility_id END)
+      comment: "Count of Medicare-certified active facilities. Required for Medicare Advantage network adequacy filings."
+    - name: "credentialing_approved_facility_count"
+      expr: COUNT(CASE WHEN credentialing_status = 'approved' AND is_active = TRUE THEN facility_id END)
+      comment: "Count of active facilities with approved credentialing. Measures compliant facility credentialing pipeline."
+    - name: "credentialing_expiring_soon_count"
+      expr: COUNT(CASE WHEN credentialing_expiration_date BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), 90) AND is_active = TRUE THEN facility_id END)
+      comment: "Count of active facilities with credentialing expiring within 90 days. Proactive compliance risk KPI for credentialing renewal management."
+    - name: "avg_facility_quality_rating"
       expr: AVG(CAST(quality_rating AS DOUBLE))
-      comment: "Average quality rating across network facilities. Executive quality KPI used to monitor overall facility network quality and inform tiering and incentive decisions."
-    - name: "total_emergency_services_facilities"
-      expr: COUNT(CASE WHEN emergency_services_flag = TRUE AND participation_status = 'Active' THEN facility_id END)
-      comment: "Count of active facilities offering emergency services. Network adequacy KPI for emergency access compliance and No Surprises Act readiness."
-    - name: "total_critical_access_hospitals"
-      expr: COUNT(CASE WHEN critical_access_hospital_flag = TRUE AND participation_status = 'Active' THEN facility_id END)
-      comment: "Count of active Critical Access Hospitals in the network. Rural access KPI critical for CMS network adequacy standards and Medicaid managed care contracts."
-    - name: "total_teaching_hospitals"
-      expr: COUNT(CASE WHEN teaching_hospital_flag = TRUE AND participation_status = 'Active' THEN facility_id END)
-      comment: "Count of active teaching hospitals in the network. Strategic KPI for academic medical center relationships and complex care access."
-    - name: "total_telehealth_enabled_facilities"
-      expr: COUNT(CASE WHEN telehealth_enabled_flag = TRUE AND participation_status = 'Active' THEN facility_id END)
-      comment: "Count of active facilities with telehealth capability. Tracks virtual care infrastructure across the facility network."
-    - name: "accreditation_expiring_within_90_days"
-      expr: COUNT(CASE WHEN accreditation_expiration_date BETWEEN CURRENT_DATE AND DATE_ADD(CURRENT_DATE, 90) AND participation_status = 'Active' THEN facility_id END)
-      comment: "Count of active facilities with accreditation expiring within 90 days. Compliance risk KPI that triggers renewal outreach to prevent quality designation lapses."
-    - name: "medicare_certified_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN medicare_certified_flag = TRUE AND participation_status = 'Active' THEN facility_id END) / NULLIF(COUNT(CASE WHEN participation_status = 'Active' THEN facility_id END), 0), 2)
-      comment: "Percentage of active facilities with Medicare certification. Compliance KPI for Medicare Advantage network adequacy and dual-eligible program management."
+      comment: "Average quality rating across facilities. Strategic KPI for network quality management and value-based contracting decisions."
+    - name: "accepting_new_patients_facility_count"
+      expr: COUNT(CASE WHEN accepting_new_patients_flag = TRUE AND is_active = TRUE THEN facility_id END)
+      comment: "Count of active facilities accepting new patients. Measures facility-level access capacity for member assignment."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_license`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Tracks provider license compliance, expiration risk, disciplinary actions, and telemedicine authorization across states. Supports credentialing, regulatory compliance, and multi-state practice governance."
+  source: "`vibe_health_insurance_v1`.`provider`.`license`"
+  dimensions:
+    - name: "license_type"
+      expr: license_type
+      comment: "Type of license (e.g., MD, RN, LCSW) for license portfolio composition analysis."
+    - name: "license_status"
+      expr: license_status
+      comment: "Current status of the license (active, expired, suspended, revoked) — core compliance dimension."
+    - name: "issuing_state"
+      expr: issuing_state
+      comment: "State that issued the license — essential for multi-state practice and network adequacy by state."
+    - name: "issuing_authority"
+      expr: issuing_authority
+      comment: "Licensing authority (e.g., state medical board) for regulatory source tracking."
+    - name: "telemedicine_authorized_flag"
+      expr: telemedicine_authorized_flag
+      comment: "Whether the license authorizes telemedicine practice — critical for virtual care network compliance."
+    - name: "compact_participation_flag"
+      expr: compact_participation_flag
+      comment: "Whether the license participates in an interstate compact (e.g., NLC, IMLC) — enables multi-state practice tracking."
+    - name: "disciplinary_action_flag"
+      expr: disciplinary_action_flag
+      comment: "Whether a disciplinary action is on record for this license — key risk and compliance dimension."
+    - name: "continuing_education_required_flag"
+      expr: continuing_education_required_flag
+      comment: "Whether continuing education is required for license renewal — compliance pipeline dimension."
+    - name: "expiration_date"
+      expr: DATE_TRUNC('month', expiration_date)
+      comment: "Month of license expiration for renewal pipeline and compliance risk forecasting."
+    - name: "issue_date"
+      expr: DATE_TRUNC('year', issue_date)
+      comment: "Year of license issuance for license tenure and cohort analysis."
+  measures:
+    - name: "total_license_count"
+      expr: COUNT(1)
+      comment: "Total license records. Baseline for license portfolio size and multi-state coverage reporting."
+    - name: "active_license_count"
+      expr: COUNT(CASE WHEN is_active = TRUE AND license_status = 'active' THEN license_id END)
+      comment: "Count of currently active licenses. Core compliance KPI — active license count must meet network adequacy thresholds."
+    - name: "expiring_within_90_days_count"
+      expr: COUNT(CASE WHEN expiration_date BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), 90) AND is_active = TRUE THEN license_id END)
+      comment: "Count of active licenses expiring within 90 days. Proactive compliance risk KPI — drives renewal outreach and credentialing action."
+    - name: "expired_license_count"
+      expr: COUNT(CASE WHEN expiration_date < CURRENT_DATE() AND is_active = TRUE THEN license_id END)
+      comment: "Count of licenses that have expired but remain active in the system. Critical compliance gap metric — expired licenses create regulatory and liability risk."
+    - name: "disciplinary_action_count"
+      expr: COUNT(CASE WHEN disciplinary_action_flag = TRUE THEN license_id END)
+      comment: "Count of licenses with disciplinary actions on record. Risk and quality KPI — disciplinary actions trigger credentialing review and potential network removal."
+    - name: "telemedicine_authorized_license_count"
+      expr: COUNT(CASE WHEN telemedicine_authorized_flag = TRUE AND is_active = TRUE THEN license_id END)
+      comment: "Count of active licenses with telemedicine authorization. Measures virtual care practice compliance capacity across the network."
+    - name: "compact_participation_license_count"
+      expr: COUNT(CASE WHEN compact_participation_flag = TRUE AND is_active = TRUE THEN license_id END)
+      comment: "Count of active licenses participating in interstate compacts. Tracks multi-state practice enablement — strategic for telehealth and cross-state network expansion."
+    - name: "distinct_licensed_providers"
+      expr: COUNT(DISTINCT provider_id)
+      comment: "Count of distinct providers with at least one license record. True licensed provider headcount for network compliance reporting."
+    - name: "avg_continuing_education_hours_required"
+      expr: AVG(CAST(continuing_education_hours_required AS DOUBLE))
+      comment: "Average continuing education hours required per license. Informs CE compliance program design and provider education investment."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_practice_location`
@@ -432,74 +348,130 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Practice location access, geographic coverage, and accessibility KPIs. Used by network adequacy, member experience, and regulatory teams to monitor physical access points, ADA compliance, and geographic distribution of the provider network."
+  comment: "Measures practice location network coverage, accessibility, geographic distribution, and telehealth availability. Supports network adequacy filings, member access analysis, and ADA compliance reporting."
   source: "`vibe_health_insurance_v1`.`provider`.`practice_location`"
   dimensions:
-    - name: "location_type"
-      expr: location_type
-      comment: "Type of practice location (e.g., Office, Hospital, Clinic) for segmenting access metrics by care setting."
     - name: "state_code"
       expr: state_code
-      comment: "State of the practice location for geographic network adequacy analysis and state-level regulatory reporting."
+      comment: "State of the practice location — primary geographic dimension for network adequacy by state."
+    - name: "location_type"
+      expr: location_type
+      comment: "Type of practice location (e.g., office, hospital outpatient, urgent care) for access point composition."
     - name: "participation_status"
       expr: participation_status
-      comment: "Participation status of the practice location for filtering active access points."
+      comment: "Network participation status of the practice location."
     - name: "accepting_new_patients_flag"
       expr: accepting_new_patients_flag
-      comment: "Indicates whether the location is accepting new patients for member access and panel capacity analysis."
+      comment: "Whether the location is accepting new patients — direct member access capacity indicator."
     - name: "telehealth_available_flag"
       expr: telehealth_available_flag
-      comment: "Indicates telehealth availability at this location for virtual care access reporting."
+      comment: "Whether telehealth is available at this location — virtual care access point tracking."
     - name: "wheelchair_accessible_flag"
       expr: wheelchair_accessible_flag
-      comment: "Indicates wheelchair accessibility for ADA compliance and member accessibility reporting."
+      comment: "Whether the location is wheelchair accessible — ADA compliance and member accessibility reporting."
     - name: "ada_compliant_flag"
       expr: ada_compliant_flag
-      comment: "Indicates full ADA compliance for regulatory accessibility reporting and member accommodation analysis."
-    - name: "directory_display_flag"
-      expr: directory_display_flag
-      comment: "Indicates whether the location is published in the member-facing directory for directory accuracy compliance."
+      comment: "Whether the location is ADA compliant — regulatory compliance and member accessibility KPI."
     - name: "public_transportation_access_flag"
       expr: public_transportation_access_flag
-      comment: "Indicates public transportation access for member accessibility and health equity analysis."
-    - name: "vreq_validated"
-      expr: vreq_validated
-      comment: "Indicates whether the location record has passed validation for data quality monitoring."
-    - name: "effective_date_month"
-      expr: DATE_TRUNC('MONTH', effective_date)
-      comment: "Month the practice location became effective for trending network location growth."
+      comment: "Whether the location is accessible by public transportation — social determinants of health and access equity dimension."
+    - name: "zip_code"
+      expr: zip_code
+      comment: "ZIP code of the practice location for sub-state geographic access analysis."
+    - name: "effective_start_date"
+      expr: DATE_TRUNC('month', effective_start_date)
+      comment: "Month the practice location became effective — for network growth trend analysis."
   measures:
-    - name: "total_active_locations"
-      expr: COUNT(CASE WHEN participation_status = 'Active' THEN practice_location_id END)
-      comment: "Total active practice locations in the network. Baseline access point KPI for network adequacy and geographic coverage analysis."
-    - name: "total_accepting_new_patients_locations"
-      expr: COUNT(CASE WHEN accepting_new_patients_flag = TRUE AND participation_status = 'Active' THEN practice_location_id END)
-      comment: "Count of active locations accepting new patients. Member access KPI used to identify capacity and geographic access gaps."
-    - name: "accepting_new_patients_location_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN accepting_new_patients_flag = TRUE AND participation_status = 'Active' THEN practice_location_id END) / NULLIF(COUNT(CASE WHEN participation_status = 'Active' THEN practice_location_id END), 0), 2)
-      comment: "Percentage of active locations accepting new patients. Network access KPI monitored against adequacy thresholds to ensure member assignment capacity."
-    - name: "total_ada_compliant_locations"
-      expr: COUNT(CASE WHEN ada_compliant_flag = TRUE AND participation_status = 'Active' THEN practice_location_id END)
-      comment: "Count of active ADA-compliant practice locations. Regulatory compliance and health equity KPI ensuring accessible care for members with disabilities."
-    - name: "ada_compliance_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN ada_compliant_flag = TRUE AND participation_status = 'Active' THEN practice_location_id END) / NULLIF(COUNT(CASE WHEN participation_status = 'Active' THEN practice_location_id END), 0), 2)
-      comment: "Percentage of active locations that are ADA compliant. Regulatory and health equity KPI; low rates signal accessibility gaps and potential ADA compliance risk."
-    - name: "total_telehealth_locations"
-      expr: COUNT(CASE WHEN telehealth_available_flag = TRUE AND participation_status = 'Active' THEN practice_location_id END)
-      comment: "Count of active locations offering telehealth services. Virtual care access KPI for network digital health strategy and member access reporting."
-    - name: "telehealth_location_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN telehealth_available_flag = TRUE AND participation_status = 'Active' THEN practice_location_id END) / NULLIF(COUNT(CASE WHEN participation_status = 'Active' THEN practice_location_id END), 0), 2)
-      comment: "Percentage of active locations with telehealth availability. Tracks virtual care infrastructure penetration across the physical network."
-    - name: "stale_verification_locations"
-      expr: COUNT(CASE WHEN last_verified_date < DATE_ADD(CURRENT_DATE, -180) AND participation_status = 'Active' THEN practice_location_id END)
-      comment: "Count of active locations not verified in the past 180 days. Directory accuracy and compliance risk KPI for CMS and No Surprises Act requirements."
-    - name: "stale_verification_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN last_verified_date < DATE_ADD(CURRENT_DATE, -180) AND participation_status = 'Active' THEN practice_location_id END) / NULLIF(COUNT(CASE WHEN participation_status = 'Active' THEN practice_location_id END), 0), 2)
-      comment: "Percentage of active locations with stale verification data. Regulatory compliance KPI directly tied to CMS directory accuracy audit risk."
+    - name: "total_practice_location_count"
+      expr: COUNT(1)
+      comment: "Total practice location records. Baseline for network access point volume."
+    - name: "active_practice_location_count"
+      expr: COUNT(CASE WHEN is_active = TRUE THEN practice_location_id END)
+      comment: "Count of currently active practice locations. Core network adequacy KPI — measures live access points for member care."
+    - name: "accepting_new_patients_location_count"
+      expr: COUNT(CASE WHEN accepting_new_patients_flag = TRUE AND is_active = TRUE THEN practice_location_id END)
+      comment: "Count of active locations accepting new patients. Directly measures member access capacity across the network."
+    - name: "telehealth_available_location_count"
+      expr: COUNT(CASE WHEN telehealth_available_flag = TRUE AND is_active = TRUE THEN practice_location_id END)
+      comment: "Count of active locations offering telehealth. Tracks virtual care access point density for member convenience and cost management."
+    - name: "ada_compliant_location_count"
+      expr: COUNT(CASE WHEN ada_compliant_flag = TRUE AND is_active = TRUE THEN practice_location_id END)
+      comment: "Count of ADA-compliant active locations. Regulatory compliance KPI — ADA compliance is a federal requirement for network adequacy."
+    - name: "wheelchair_accessible_location_count"
+      expr: COUNT(CASE WHEN wheelchair_accessible_flag = TRUE AND is_active = TRUE THEN practice_location_id END)
+      comment: "Count of wheelchair-accessible active locations. Member accessibility and equity KPI for disability access reporting."
+    - name: "public_transit_accessible_location_count"
+      expr: COUNT(CASE WHEN public_transportation_access_flag = TRUE AND is_active = TRUE THEN practice_location_id END)
+      comment: "Count of active locations accessible by public transit. Social determinants of health access equity metric."
+    - name: "overdue_verification_location_count"
+      expr: COUNT(CASE WHEN last_verified_date < DATE_ADD(CURRENT_DATE(), -180) AND is_active = TRUE THEN practice_location_id END)
+      comment: "Count of active locations not verified in the last 180 days. Directory accuracy and CMS compliance risk KPI."
+    - name: "avg_latitude"
+      expr: AVG(CAST(latitude AS DOUBLE))
+      comment: "Average latitude of active practice locations. Used as a geographic centroid proxy for network distribution analysis."
     - name: "distinct_states_covered"
       expr: COUNT(DISTINCT state_code)
-      comment: "Count of distinct states with active practice locations. Geographic coverage KPI used in network adequacy filings and multi-state plan management."
-    - name: "validated_location_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN vreq_validated = TRUE AND participation_status = 'Active' THEN practice_location_id END) / NULLIF(COUNT(CASE WHEN participation_status = 'Active' THEN practice_location_id END), 0), 2)
-      comment: "Percentage of active locations passing validation requirements. Data quality KPI ensuring location data accuracy for directory and claims adjudication."
+      comment: "Count of distinct states with active practice locations. Measures geographic network breadth for multi-state plan adequacy."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`provider_affiliation`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Tracks provider-facility and provider-group affiliations, credentialing verification status, and network participation linkages. Supports network integrity, directory accuracy, and credentialing governance."
+  source: "`vibe_health_insurance_v1`.`provider`.`affiliation`"
+  dimensions:
+    - name: "affiliation_type"
+      expr: affiliation_type
+      comment: "Type of affiliation (e.g., admitting, consulting, employed, contracted) for network relationship analysis."
+    - name: "affiliation_status"
+      expr: affiliation_status
+      comment: "Current status of the affiliation record — active, terminated, pending — for pipeline and compliance tracking."
+    - name: "medical_staff_category"
+      expr: medical_staff_category
+      comment: "Medical staff category (e.g., active, courtesy, consulting) for hospital affiliation governance."
+    - name: "admitting_privileges_flag"
+      expr: admitting_privileges_flag
+      comment: "Whether the provider has admitting privileges at the affiliated facility — critical for inpatient network adequacy."
+    - name: "primary_affiliation_flag"
+      expr: primary_affiliation_flag
+      comment: "Whether this is the provider's primary affiliation — used to identify primary practice relationships."
+    - name: "network_participation_flag"
+      expr: network_participation_flag
+      comment: "Whether the affiliation includes network participation — links affiliation to in-network status."
+    - name: "directory_display_flag"
+      expr: directory_display_flag
+      comment: "Whether the affiliation is displayed in the provider directory — directory accuracy dimension."
+    - name: "credentialing_verification_date"
+      expr: DATE_TRUNC('month', credentialing_verification_date)
+      comment: "Month of credentialing verification for the affiliation — pipeline and compliance trend analysis."
+    - name: "effective_start_date"
+      expr: DATE_TRUNC('month', effective_start_date)
+      comment: "Month the affiliation became effective — for network relationship growth trend analysis."
+  measures:
+    - name: "total_affiliation_count"
+      expr: COUNT(1)
+      comment: "Total affiliation records. Baseline for provider-facility and provider-group relationship volume."
+    - name: "active_affiliation_count"
+      expr: COUNT(CASE WHEN is_active = TRUE THEN affiliation_id END)
+      comment: "Count of currently active affiliations. Core network integrity KPI — active affiliations define the provider-facility relationship map."
+    - name: "admitting_privileges_count"
+      expr: COUNT(CASE WHEN admitting_privileges_flag = TRUE AND is_active = TRUE THEN affiliation_id END)
+      comment: "Count of active affiliations with admitting privileges. Measures inpatient care access capacity — critical for hospital network adequacy."
+    - name: "network_participating_affiliation_count"
+      expr: COUNT(CASE WHEN network_participation_flag = TRUE AND is_active = TRUE THEN affiliation_id END)
+      comment: "Count of active affiliations with network participation. Measures the depth of in-network provider-facility linkages."
+    - name: "credentialing_overdue_affiliation_count"
+      expr: COUNT(CASE WHEN next_credentialing_due_date < CURRENT_DATE() AND is_active = TRUE THEN affiliation_id END)
+      comment: "Count of active affiliations with overdue credentialing. Compliance risk KPI — overdue credentialing at affiliated facilities creates liability exposure."
+    - name: "directory_displayed_affiliation_count"
+      expr: COUNT(CASE WHEN directory_display_flag = TRUE AND is_active = TRUE THEN affiliation_id END)
+      comment: "Count of active affiliations displayed in the provider directory. Measures directory completeness for member-facing network transparency."
+    - name: "distinct_affiliated_providers"
+      expr: COUNT(DISTINCT provider_id)
+      comment: "Count of distinct providers with at least one active affiliation. Measures breadth of provider-facility network relationships."
+    - name: "distinct_affiliated_facilities"
+      expr: COUNT(DISTINCT facility_id)
+      comment: "Count of distinct facilities with at least one active provider affiliation. Measures facility network engagement depth."
 $$;

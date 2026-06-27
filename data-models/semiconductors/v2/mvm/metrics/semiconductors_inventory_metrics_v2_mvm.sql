@@ -1,77 +1,95 @@
--- Metric views for domain: inventory | Business: Semiconductors | Version: 2 | Generated on: 2026-06-24 02:09:37
+-- Metric views for domain: inventory | Business: Semiconductors | Version: 2 | Generated on: 2026-06-27 11:25:39
 
 CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`inventory_die_bank`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Die bank inventory KPIs tracking available die inventory, valuation, and quality metrics for semiconductor wafer die storage"
+  comment: "Die bank inventory metrics tracking die quantities, valuation, yield performance, and quality status for semiconductor wafer die inventory management."
   source: "`vibe_semiconductors_v1`.`inventory`.`die_bank`"
   dimensions:
+    - name: "bank_status"
+      expr: bank_status
+      comment: "Current status of the die bank (e.g., available, reserved, on-hold)"
     - name: "die_bank_status"
       expr: die_bank_status
-      comment: "Current status of the die bank (e.g., available, reserved, quarantined)"
+      comment: "Detailed die bank operational status"
+    - name: "disposition_status"
+      expr: disposition_status
+      comment: "Quality disposition status of the die bank"
+    - name: "kgd_status"
+      expr: kgd_status
+      comment: "Known Good Die certification status"
+    - name: "process_node"
+      expr: process_node
+      comment: "Semiconductor process technology node (e.g., 7nm, 5nm)"
+    - name: "storage_form"
+      expr: storage_form
+      comment: "Physical storage form of the die (e.g., wafer, tape, tray)"
     - name: "carrier_type"
       expr: carrier_type
       comment: "Type of carrier used for die storage and transport"
-    - name: "kgd_status"
-      expr: kgd_status
-      comment: "Known Good Die status indicating quality verification level"
     - name: "moisture_sensitivity_level"
       expr: moisture_sensitivity_level
       comment: "MSL rating indicating moisture sensitivity classification"
+    - name: "hold_flag"
+      expr: hold_flag
+      comment: "Boolean indicator if die bank is on quality or administrative hold"
+    - name: "kgd_certified_flag"
+      expr: kgd_certified_flag
+      comment: "Boolean indicator if die bank has KGD certification"
     - name: "is_consignment"
       expr: is_consignment
-      comment: "Flag indicating whether die bank is held on consignment"
+      comment: "Boolean indicator if die bank is consignment inventory"
     - name: "is_engineering_sample"
       expr: is_engineering_sample
-      comment: "Flag indicating whether die are engineering samples vs production"
-    - name: "rohs_compliant"
-      expr: rohs_compliant
-      comment: "RoHS compliance flag for environmental regulations"
-    - name: "reach_compliant"
-      expr: reach_compliant
-      comment: "REACH compliance flag for chemical substance regulations"
-    - name: "esd_sensitivity_class"
-      expr: esd_sensitivity_class
-      comment: "Electrostatic discharge sensitivity classification"
-    - name: "inventory_valuation_method"
-      expr: inventory_valuation_method
-      comment: "Method used for inventory valuation (FIFO, LIFO, weighted average)"
-    - name: "currency_code"
-      expr: currency_code
-      comment: "Currency code for die bank valuation"
-    - name: "creation_month"
-      expr: DATE_TRUNC('MONTH', creation_date)
-      comment: "Month when die bank was created"
-    - name: "expiry_month"
-      expr: DATE_TRUNC('MONTH', expiry_date)
-      comment: "Month when die bank expires"
+      comment: "Boolean indicator if die bank contains engineering samples"
+    - name: "entry_year"
+      expr: YEAR(entry_date)
+      comment: "Year the die bank was entered into inventory"
+    - name: "entry_month"
+      expr: DATE_TRUNC('MONTH', entry_date)
+      comment: "Month the die bank was entered into inventory"
+    - name: "expiry_year"
+      expr: YEAR(expiry_date)
+      comment: "Year the die bank expires"
   measures:
-    - name: "total_die_banks"
-      expr: COUNT(1)
-      comment: "Total number of die bank records"
-    - name: "total_die_inventory_value"
-      expr: SUM(CAST(quantity_available AS DOUBLE) * unit_cost)
-      comment: "Total inventory value of available die calculated as quantity times unit cost"
-    - name: "avg_die_unit_cost"
-      expr: AVG(CAST(unit_cost AS DOUBLE))
-      comment: "Average unit cost per die across all die banks"
-    - name: "total_die_size_area"
-      expr: SUM(CAST(die_size_mm2 AS DOUBLE))
-      comment: "Total die area in square millimeters across all die banks"
-    - name: "avg_die_size"
+    - name: "total_die_inventory_value_usd"
+      expr: SUM(CAST(inventory_value_usd AS DOUBLE))
+      comment: "Total USD valuation of die bank inventory - critical for financial reporting and asset management"
+    - name: "total_die_count"
+      expr: SUM(CAST(total_die_count AS DOUBLE))
+      comment: "Total count of all die units across die banks - key capacity and supply metric"
+    - name: "total_available_die_quantity"
+      expr: SUM(CAST(die_quantity AS DOUBLE))
+      comment: "Total quantity of available die units ready for allocation to production or customer orders"
+    - name: "avg_wafer_probe_yield_pct"
+      expr: AVG(CAST(wafer_probe_yield_pct AS DOUBLE))
+      comment: "Average wafer probe yield percentage - critical quality and manufacturing efficiency indicator"
+    - name: "avg_die_value_usd"
+      expr: AVG(CAST(die_value_usd AS DOUBLE))
+      comment: "Average value per die in USD - key unit economics metric for pricing and margin analysis"
+    - name: "total_die_value_usd"
+      expr: SUM(CAST(die_value_usd AS DOUBLE))
+      comment: "Total aggregate die value in USD across all die banks"
+    - name: "avg_die_size_mm2"
       expr: AVG(CAST(die_size_mm2 AS DOUBLE))
-      comment: "Average die size in square millimeters"
-    - name: "die_utilization_rate"
-      expr: ROUND(100.0 * SUM(CAST(quantity_reserved AS DOUBLE)) / NULLIF(SUM(CAST(quantity_initial AS DOUBLE)), 0), 2)
-      comment: "Percentage of initial die quantity that has been reserved for use"
-    - name: "die_scrap_rate"
-      expr: ROUND(100.0 * SUM(CAST(quantity_scrapped AS DOUBLE)) / NULLIF(SUM(CAST(quantity_initial AS DOUBLE)), 0), 2)
-      comment: "Percentage of initial die quantity that has been scrapped"
-    - name: "die_availability_rate"
-      expr: ROUND(100.0 * SUM(CAST(quantity_available AS DOUBLE)) / NULLIF(SUM(CAST(quantity_initial AS DOUBLE)), 0), 2)
-      comment: "Percentage of initial die quantity that remains available for use"
+      comment: "Average die size in square millimeters - impacts cost per die and wafer utilization"
+    - name: "total_standard_cost"
+      expr: SUM(CAST(standard_cost AS DOUBLE))
+      comment: "Total standard cost of die bank inventory - used for cost accounting and variance analysis"
+    - name: "avg_unit_cost"
+      expr: AVG(CAST(unit_cost AS DOUBLE))
+      comment: "Average unit cost per die - key input for margin and profitability analysis"
+    - name: "distinct_die_banks"
+      expr: COUNT(DISTINCT die_bank_id)
+      comment: "Count of unique die bank inventory records - tracks inventory fragmentation and management complexity"
+    - name: "kgd_certified_die_banks"
+      expr: SUM(CASE WHEN kgd_certified_flag = TRUE THEN 1 ELSE 0 END)
+      comment: "Count of die banks with Known Good Die certification - quality assurance metric"
+    - name: "die_banks_on_hold"
+      expr: SUM(CASE WHEN hold_flag = TRUE THEN 1 ELSE 0 END)
+      comment: "Count of die banks currently on hold - risk and operational constraint indicator"
 $$;
 
 CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`inventory_finished_good`
@@ -79,70 +97,103 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Finished goods inventory KPIs tracking packaged semiconductor products, quality status, and inventory valuation"
+  comment: "Finished goods inventory metrics tracking packaged semiconductor product quantities, valuation, quality status, and compliance for customer fulfillment."
   source: "`vibe_semiconductors_v1`.`inventory`.`finished_good`"
   dimensions:
+    - name: "finished_good_status"
+      expr: finished_good_status
+      comment: "Current status of the finished good inventory"
     - name: "inventory_status"
       expr: inventory_status
-      comment: "Current inventory status of finished goods"
+      comment: "Detailed inventory availability status"
     - name: "lifecycle_status"
       expr: lifecycle_status
-      comment: "Product lifecycle status (active, EOL, phase-out)"
+      comment: "Product lifecycle stage (e.g., active, EOL, obsolete)"
+    - name: "quality_status"
+      expr: quality_status
+      comment: "Quality inspection and approval status"
+    - name: "quality_disposition"
+      expr: quality_disposition
+      comment: "Quality disposition classification"
+    - name: "lot_status"
+      expr: lot_status
+      comment: "Manufacturing lot status"
     - name: "qualification_status"
       expr: qualification_status
       comment: "Product qualification and certification status"
-    - name: "device_type"
-      expr: device_type
-      comment: "Type of semiconductor device"
+    - name: "moisture_sensitivity_level"
+      expr: moisture_sensitivity_level
+      comment: "MSL rating for moisture sensitivity"
+    - name: "msd_level"
+      expr: msd_level
+      comment: "Moisture sensitivity device level classification"
     - name: "temperature_grade"
       expr: temperature_grade
-      comment: "Operating temperature grade classification"
+      comment: "Operating temperature grade classification (e.g., commercial, industrial, automotive)"
     - name: "speed_grade"
       expr: speed_grade
       comment: "Performance speed grade classification"
-    - name: "msd_level"
-      expr: msd_level
-      comment: "Moisture sensitivity level rating"
-    - name: "kgd_status"
-      expr: kgd_status
-      comment: "Known Good Die status flag"
-    - name: "aec_q_qualified"
-      expr: aec_q_qualified
-      comment: "AEC-Q automotive qualification flag"
-    - name: "rohs_compliant"
-      expr: rohs_compliant
-      comment: "RoHS environmental compliance flag"
-    - name: "reach_compliant"
-      expr: reach_compliant
-      comment: "REACH chemical compliance flag"
-    - name: "itar_controlled"
-      expr: itar_controlled
-      comment: "ITAR export control flag"
+    - name: "product_family"
+      expr: product_family
+      comment: "Product family grouping for portfolio analysis"
+    - name: "device_type"
+      expr: device_type
+      comment: "Type of semiconductor device"
     - name: "country_of_origin"
       expr: country_of_origin
-      comment: "Country where product was manufactured"
-    - name: "inventory_valuation_method"
-      expr: inventory_valuation_method
-      comment: "Inventory valuation method used"
-    - name: "eol_month"
-      expr: DATE_TRUNC('MONTH', eol_date)
-      comment: "Month when product reaches end-of-life"
+      comment: "Manufacturing country of origin for trade compliance"
+    - name: "aec_q_qualified"
+      expr: aec_q_qualified
+      comment: "Boolean indicator if product is AEC-Q qualified for automotive"
+    - name: "rohs_compliant"
+      expr: rohs_compliant
+      comment: "Boolean indicator of RoHS environmental compliance"
+    - name: "reach_compliant"
+      expr: reach_compliant
+      comment: "Boolean indicator of REACH chemical compliance"
+    - name: "itar_controlled"
+      expr: itar_controlled
+      comment: "Boolean indicator if product is ITAR export controlled"
+    - name: "hold_flag"
+      expr: hold_flag
+      comment: "Boolean indicator if inventory is on hold"
+    - name: "manufacture_year"
+      expr: YEAR(manufacture_date)
+      comment: "Year of manufacture"
+    - name: "manufacture_month"
+      expr: DATE_TRUNC('MONTH', manufacture_date)
+      comment: "Month of manufacture"
+    - name: "expiry_year"
+      expr: YEAR(expiry_date)
+      comment: "Year of expiration"
   measures:
-    - name: "total_finished_goods"
-      expr: COUNT(1)
-      comment: "Total number of finished good SKU records"
-    - name: "total_fg_inventory_value"
-      expr: SUM(CAST(quantity_on_hand AS DOUBLE) * standard_cost)
-      comment: "Total inventory value of finished goods on hand at standard cost"
-    - name: "avg_fg_standard_cost"
-      expr: AVG(CAST(standard_cost AS DOUBLE))
-      comment: "Average standard cost per finished good unit"
+    - name: "total_finished_goods_value_usd"
+      expr: SUM(CAST(inventory_value_usd AS DOUBLE))
+      comment: "Total USD valuation of finished goods inventory - critical balance sheet and working capital metric"
+    - name: "total_standard_cost_usd"
+      expr: SUM(CAST(standard_cost_usd AS DOUBLE))
+      comment: "Total standard cost of finished goods inventory - used for cost accounting and margin analysis"
+    - name: "avg_standard_cost_usd"
+      expr: AVG(CAST(standard_cost_usd AS DOUBLE))
+      comment: "Average standard cost per finished good unit - key unit economics metric"
     - name: "avg_dppm_target"
       expr: AVG(CAST(dppm_target AS DOUBLE))
-      comment: "Average defective parts per million target across finished goods"
-    - name: "avg_storage_temp_max"
-      expr: AVG(CAST(storage_temperature_max_c AS DOUBLE))
-      comment: "Average maximum storage temperature in Celsius"
+      comment: "Average defective parts per million target - critical quality performance indicator"
+    - name: "distinct_finished_goods"
+      expr: COUNT(DISTINCT finished_good_id)
+      comment: "Count of unique finished good inventory records - tracks SKU complexity and inventory breadth"
+    - name: "aec_q_qualified_units"
+      expr: SUM(CASE WHEN aec_q_qualified = TRUE THEN 1 ELSE 0 END)
+      comment: "Count of AEC-Q qualified automotive-grade units - automotive market readiness metric"
+    - name: "rohs_compliant_units"
+      expr: SUM(CASE WHEN rohs_compliant = TRUE THEN 1 ELSE 0 END)
+      comment: "Count of RoHS compliant units - environmental compliance metric for EU market access"
+    - name: "itar_controlled_units"
+      expr: SUM(CASE WHEN itar_controlled = TRUE THEN 1 ELSE 0 END)
+      comment: "Count of ITAR controlled units - export control risk and compliance metric"
+    - name: "units_on_hold"
+      expr: SUM(CASE WHEN hold_flag = TRUE THEN 1 ELSE 0 END)
+      comment: "Count of finished goods on quality or administrative hold - operational constraint indicator"
 $$;
 
 CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`inventory_goods_movement`
@@ -150,64 +201,82 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Goods movement transaction KPIs tracking inventory flows, material transfers, and valuation changes across the supply chain"
+  comment: "Goods movement transaction metrics tracking inventory transfers, shipments, receipts, and material flow for supply chain visibility and throughput analysis."
   source: "`vibe_semiconductors_v1`.`inventory`.`goods_movement`"
   dimensions:
     - name: "movement_type"
       expr: movement_type
-      comment: "Type of goods movement (receipt, issue, transfer, adjustment)"
-    - name: "stock_type"
-      expr: stock_type
-      comment: "Stock type classification (unrestricted, blocked, quality inspection)"
-    - name: "bin_classification"
-      expr: bin_classification
-      comment: "Bin classification for tested semiconductor units"
+      comment: "Type of goods movement transaction (e.g., receipt, issue, transfer, shipment)"
+    - name: "movement_status"
+      expr: movement_status
+      comment: "Current status of the goods movement"
+    - name: "goods_movement_status"
+      expr: goods_movement_status
+      comment: "Detailed goods movement processing status"
+    - name: "document_type"
+      expr: document_type
+      comment: "Type of source document triggering the movement"
+    - name: "movement_reason_code"
+      expr: movement_reason_code
+      comment: "Business reason code for the movement"
     - name: "reason_code"
       expr: reason_code
-      comment: "Reason code for the goods movement"
-    - name: "reference_document_type"
-      expr: reference_document_type
-      comment: "Type of reference document triggering the movement"
+      comment: "Detailed reason classification for the movement"
+    - name: "stock_type"
+      expr: stock_type
+      comment: "Type of stock being moved (e.g., unrestricted, blocked, quality)"
     - name: "special_stock_indicator"
       expr: special_stock_indicator
-      comment: "Special stock indicator (consignment, project stock, etc.)"
+      comment: "Indicator for special stock categories (e.g., consignment, project)"
+    - name: "bin_classification"
+      expr: bin_classification
+      comment: "Test bin classification of the moved material"
     - name: "reversal_indicator"
       expr: reversal_indicator
-      comment: "Flag indicating if this is a reversal transaction"
-    - name: "source_plant_code"
-      expr: source_plant_code
-      comment: "Source plant code for the movement"
-    - name: "destination_plant_code"
-      expr: destination_plant_code
-      comment: "Destination plant code for the movement"
-    - name: "currency_code"
-      expr: currency_code
-      comment: "Currency code for valuation"
+      comment: "Boolean indicator if this is a reversal transaction"
+    - name: "movement_year"
+      expr: YEAR(movement_date)
+      comment: "Year of the goods movement"
     - name: "movement_month"
       expr: DATE_TRUNC('MONTH', movement_date)
-      comment: "Month when goods movement occurred"
+      comment: "Month of the goods movement"
+    - name: "movement_quarter"
+      expr: DATE_TRUNC('QUARTER', movement_date)
+      comment: "Quarter of the goods movement"
+    - name: "posting_year"
+      expr: YEAR(posting_date)
+      comment: "Fiscal year of posting"
     - name: "posting_month"
       expr: DATE_TRUNC('MONTH', posting_date)
-      comment: "Month when movement was posted to accounting"
+      comment: "Fiscal month of posting"
   measures:
-    - name: "total_movements"
-      expr: COUNT(1)
-      comment: "Total number of goods movement transactions"
     - name: "total_movement_quantity"
+      expr: SUM(CAST(movement_quantity AS DOUBLE))
+      comment: "Total quantity of goods moved - key throughput and material flow metric"
+    - name: "total_movement_value_usd"
+      expr: SUM(CAST(movement_value_usd AS DOUBLE))
+      comment: "Total USD value of goods movements - critical for financial inventory accounting and working capital analysis"
+    - name: "total_quantity_moved"
       expr: SUM(CAST(quantity AS DOUBLE))
       comment: "Total quantity moved across all transactions"
-    - name: "total_movement_value"
+    - name: "total_value_usd"
+      expr: SUM(CAST(value_usd AS DOUBLE))
+      comment: "Total USD value of all goods movements"
+    - name: "total_valuation_amount"
       expr: SUM(CAST(valuation_amount AS DOUBLE))
-      comment: "Total valuation amount of all goods movements"
+      comment: "Total valuation amount for inventory accounting"
     - name: "avg_movement_quantity"
-      expr: AVG(CAST(quantity AS DOUBLE))
-      comment: "Average quantity per goods movement transaction"
-    - name: "avg_movement_value"
-      expr: AVG(CAST(valuation_amount AS DOUBLE))
-      comment: "Average valuation amount per goods movement"
-    - name: "avg_unit_value"
-      expr: AVG(valuation_amount / NULLIF(quantity, 0))
-      comment: "Average value per unit moved"
+      expr: AVG(CAST(movement_quantity AS DOUBLE))
+      comment: "Average quantity per goods movement transaction - efficiency and batch size indicator"
+    - name: "avg_movement_value_usd"
+      expr: AVG(CAST(movement_value_usd AS DOUBLE))
+      comment: "Average USD value per goods movement - transaction size and value concentration metric"
+    - name: "distinct_movements"
+      expr: COUNT(DISTINCT goods_movement_id)
+      comment: "Count of unique goods movement transactions - activity volume and operational tempo metric"
+    - name: "reversal_transactions"
+      expr: SUM(CASE WHEN reversal_indicator = TRUE THEN 1 ELSE 0 END)
+      comment: "Count of reversal transactions - data quality and process error indicator"
 $$;
 
 CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`inventory_wafer_lot`
@@ -215,153 +284,58 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Wafer lot inventory KPIs tracking fabricated wafer lots, yield metrics, and work-in-process status"
+  comment: "Wafer lot inventory metrics tracking work-in-process wafer lots, fabrication progress, yield, and valuation for fab operations management."
   source: "`vibe_semiconductors_v1`.`inventory`.`inventory_wafer_lot`"
   dimensions:
     - name: "lot_status"
       expr: lot_status
-      comment: "Current status of the wafer lot"
+      comment: "Current status of the wafer lot (e.g., in-process, completed, on-hold)"
     - name: "lot_type"
       expr: lot_type
-      comment: "Type of wafer lot (production, engineering, qualification)"
+      comment: "Type classification of the wafer lot (e.g., production, engineering, qualification)"
     - name: "process_stage"
       expr: process_stage
-      comment: "Current fabrication process stage"
+      comment: "Current fabrication process stage of the wafer lot"
     - name: "lithography_type"
       expr: lithography_type
-      comment: "Lithography technology used"
+      comment: "Lithography technology used for the wafer lot"
     - name: "priority_class"
       expr: priority_class
-      comment: "Priority classification for lot processing"
+      comment: "Priority classification for lot scheduling and expediting"
     - name: "hold_flag"
       expr: hold_flag
-      comment: "Flag indicating if lot is on hold"
+      comment: "Boolean indicator if wafer lot is on hold"
     - name: "hold_reason_code"
       expr: hold_reason_code
       comment: "Reason code for lot hold status"
     - name: "wafer_diameter_mm"
       expr: wafer_diameter_mm
-      comment: "Wafer diameter in millimeters"
-    - name: "valuation_currency"
-      expr: valuation_currency
-      comment: "Currency used for inventory valuation"
+      comment: "Wafer diameter in millimeters (e.g., 200mm, 300mm)"
+    - name: "lot_start_year"
+      expr: YEAR(lot_start_date)
+      comment: "Year the wafer lot started fabrication"
     - name: "lot_start_month"
       expr: DATE_TRUNC('MONTH', lot_start_date)
-      comment: "Month when lot processing started"
-    - name: "target_completion_month"
-      expr: DATE_TRUNC('MONTH', target_completion_date)
-      comment: "Target month for lot completion"
-    - name: "actual_completion_month"
-      expr: DATE_TRUNC('MONTH', actual_completion_date)
-      comment: "Actual month when lot was completed"
+      comment: "Month the wafer lot started fabrication"
+    - name: "target_completion_year"
+      expr: YEAR(target_completion_date)
+      comment: "Target year for lot completion"
+    - name: "actual_completion_year"
+      expr: YEAR(actual_completion_date)
+      comment: "Actual year of lot completion"
   measures:
-    - name: "total_wafer_lots"
-      expr: COUNT(1)
-      comment: "Total number of wafer lot records"
-    - name: "total_wafer_lot_value"
+    - name: "total_wafer_lot_valuation_usd"
       expr: SUM(CAST(inventory_valuation_amount AS DOUBLE))
-      comment: "Total inventory valuation amount for all wafer lots"
-    - name: "avg_wafer_lot_value"
+      comment: "Total USD valuation of wafer lot WIP inventory - critical working capital and fab asset metric"
+    - name: "avg_wafer_lot_valuation_usd"
       expr: AVG(CAST(inventory_valuation_amount AS DOUBLE))
-      comment: "Average inventory valuation per wafer lot"
-    - name: "total_wafers_current"
-      expr: SUM(CAST(wafer_count_current AS DOUBLE))
-      comment: "Total current wafer count across all lots"
-    - name: "total_wafers_started"
-      expr: SUM(CAST(wafer_count_start AS DOUBLE))
-      comment: "Total starting wafer count across all lots"
-    - name: "total_good_wafers"
-      expr: SUM(CAST(good_wafer_count AS DOUBLE))
-      comment: "Total count of good wafers across all lots"
-    - name: "total_scrap_wafers"
-      expr: SUM(CAST(scrap_wafer_count AS DOUBLE))
-      comment: "Total count of scrapped wafers across all lots"
-    - name: "wafer_yield_rate"
-      expr: ROUND(100.0 * SUM(CAST(good_wafer_count AS DOUBLE)) / NULLIF(SUM(CAST(wafer_count_start AS DOUBLE)), 0), 2)
-      comment: "Percentage of starting wafers that are classified as good"
-    - name: "wafer_scrap_rate"
-      expr: ROUND(100.0 * SUM(CAST(scrap_wafer_count AS DOUBLE)) / NULLIF(SUM(CAST(wafer_count_start AS DOUBLE)), 0), 2)
-      comment: "Percentage of starting wafers that were scrapped"
-    - name: "wafer_attrition_rate"
-      expr: ROUND(100.0 * (SUM(CAST(wafer_count_start AS DOUBLE)) - SUM(CAST(wafer_count_current AS DOUBLE))) / NULLIF(SUM(CAST(wafer_count_start AS DOUBLE)), 0), 2)
-      comment: "Percentage of starting wafers lost during processing"
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`inventory_physical_inventory`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Physical inventory count KPIs tracking cycle count accuracy, variances, and inventory reconciliation performance"
-  source: "`vibe_semiconductors_v1`.`inventory`.`physical_inventory`"
-  dimensions:
-    - name: "count_status"
-      expr: count_status
-      comment: "Status of the physical count (planned, in-progress, completed, approved)"
-    - name: "count_type"
-      expr: count_type
-      comment: "Type of physical count (cycle count, annual inventory, spot check)"
-    - name: "inventory_category"
-      expr: inventory_category
-      comment: "Category of inventory being counted"
-    - name: "bin_classification"
-      expr: bin_classification
-      comment: "Bin classification for semiconductor units"
-    - name: "kgd_status"
-      expr: kgd_status
-      comment: "Known Good Die status"
-    - name: "consignment_flag"
-      expr: consignment_flag
-      comment: "Flag indicating consignment inventory"
-    - name: "freeze_flag"
-      expr: freeze_flag
-      comment: "Flag indicating if inventory is frozen for counting"
-    - name: "recount_flag"
-      expr: recount_flag
-      comment: "Flag indicating if recount was required"
-    - name: "variance_exceeds_tolerance_flag"
-      expr: variance_exceeds_tolerance_flag
-      comment: "Flag indicating if variance exceeds acceptable tolerance"
-    - name: "fiscal_year"
-      expr: fiscal_year
-      comment: "Fiscal year of the count"
-    - name: "fiscal_period"
-      expr: fiscal_period
-      comment: "Fiscal period of the count"
-    - name: "count_month"
-      expr: DATE_TRUNC('MONTH', count_date)
-      comment: "Month when physical count was performed"
-    - name: "posting_month"
-      expr: DATE_TRUNC('MONTH', posting_date)
-      comment: "Month when count was posted to accounting"
-  measures:
-    - name: "total_count_records"
-      expr: COUNT(1)
-      comment: "Total number of physical inventory count records"
-    - name: "total_book_quantity"
-      expr: SUM(CAST(book_quantity AS DOUBLE))
-      comment: "Total book quantity across all count records"
-    - name: "total_counted_quantity"
-      expr: SUM(CAST(counted_quantity AS DOUBLE))
-      comment: "Total physically counted quantity"
-    - name: "total_variance_quantity"
-      expr: SUM(CAST(variance_quantity AS DOUBLE))
-      comment: "Total variance quantity (counted minus book)"
-    - name: "total_variance_value"
-      expr: SUM(CAST(variance_value_usd AS DOUBLE))
-      comment: "Total variance value in USD"
-    - name: "count_accuracy_rate"
-      expr: ROUND(100.0 * SUM(CASE WHEN variance_quantity = 0 THEN 1 ELSE 0 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of count records with zero variance (perfect accuracy)"
-    - name: "avg_variance_pct"
-      expr: AVG(CAST(variance_tolerance_pct AS DOUBLE))
-      comment: "Average variance tolerance percentage"
-    - name: "avg_absolute_variance_qty"
-      expr: AVG(ABS(variance_quantity))
-      comment: "Average absolute variance quantity per count record"
-    - name: "inventory_accuracy_rate"
-      expr: ROUND(100.0 * (1 - ABS(SUM(CAST(variance_quantity AS DOUBLE))) / NULLIF(SUM(CAST(book_quantity AS DOUBLE)), 0)), 2)
-      comment: "Overall inventory accuracy rate based on total variance vs book quantity"
+      comment: "Average valuation per wafer lot - unit economics and cost accumulation indicator"
+    - name: "distinct_wafer_lots"
+      expr: COUNT(DISTINCT inventory_wafer_lot_id)
+      comment: "Count of unique wafer lots in inventory - fab capacity utilization and WIP complexity metric"
+    - name: "wafer_lots_on_hold"
+      expr: SUM(CASE WHEN hold_flag = TRUE THEN 1 ELSE 0 END)
+      comment: "Count of wafer lots currently on hold - operational constraint and quality risk indicator"
 $$;
 
 CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`inventory_raw_material`
@@ -369,141 +343,106 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Raw material inventory KPIs tracking semiconductor manufacturing materials, supplier performance, and inventory optimization"
+  comment: "Raw material inventory metrics tracking chemical, substrate, and consumable materials for semiconductor fabrication supply chain management."
   source: "`vibe_semiconductors_v1`.`inventory`.`raw_material`"
   dimensions:
+    - name: "material_type"
+      expr: material_type
+      comment: "Type classification of raw material (e.g., chemical, gas, substrate, consumable)"
     - name: "material_status"
       expr: material_status
       comment: "Current status of the raw material"
+    - name: "raw_material_status"
+      expr: raw_material_status
+      comment: "Detailed raw material availability status"
     - name: "material_class"
       expr: material_class
-      comment: "Classification of the material"
+      comment: "Material classification category"
     - name: "material_group"
       expr: material_group
-      comment: "Material group categorization"
-    - name: "wafer_type"
-      expr: wafer_type
-      comment: "Type of wafer material"
+      comment: "Material grouping for procurement and planning"
+    - name: "material_grade"
+      expr: material_grade
+      comment: "Quality grade of the material (e.g., semiconductor grade, electronic grade)"
     - name: "qualification_status"
       expr: qualification_status
-      comment: "Qualification status of the material"
+      comment: "Supplier and material qualification status"
     - name: "hazard_classification"
       expr: hazard_classification
-      comment: "Hazard classification for safety"
-    - name: "storage_condition"
-      expr: storage_condition
-      comment: "Required storage conditions"
+      comment: "Hazardous material classification for safety and compliance"
+    - name: "hazardous_flag"
+      expr: hazardous_flag
+      comment: "Boolean indicator if material is hazardous"
     - name: "rohs_compliant"
       expr: rohs_compliant
-      comment: "RoHS compliance flag"
-    - name: "itar_controlled"
-      expr: itar_controlled
-      comment: "ITAR export control flag"
+      comment: "Boolean indicator of RoHS environmental compliance"
     - name: "reach_svhc_flag"
       expr: reach_svhc_flag
-      comment: "REACH substance of very high concern flag"
+      comment: "Boolean indicator if material contains REACH substances of very high concern"
+    - name: "itar_controlled"
+      expr: itar_controlled
+      comment: "Boolean indicator if material is ITAR export controlled"
     - name: "batch_managed"
       expr: batch_managed
-      comment: "Flag indicating if material is batch-managed"
+      comment: "Boolean indicator if material requires batch/lot tracking"
     - name: "serialized"
       expr: serialized
-      comment: "Flag indicating if material is serialized"
+      comment: "Boolean indicator if material requires serial number tracking"
     - name: "inspection_required"
       expr: inspection_required
-      comment: "Flag indicating if incoming inspection is required"
-    - name: "lot_size_type"
-      expr: lot_size_type
-      comment: "Type of lot sizing used"
-    - name: "price_control_type"
-      expr: price_control_type
-      comment: "Price control method (standard, moving average)"
+      comment: "Boolean indicator if incoming inspection is required"
+    - name: "wafer_type"
+      expr: wafer_type
+      comment: "Type of wafer substrate (e.g., silicon, GaAs, SiC)"
+    - name: "storage_condition"
+      expr: storage_condition
+      comment: "Required storage environmental conditions"
     - name: "country_of_origin"
       expr: country_of_origin
-      comment: "Country of origin for the material"
+      comment: "Country of origin for trade compliance"
+    - name: "receipt_year"
+      expr: YEAR(receipt_date)
+      comment: "Year of material receipt"
+    - name: "expiry_year"
+      expr: YEAR(expiry_date)
+      comment: "Year of material expiration"
   measures:
-    - name: "total_raw_materials"
-      expr: COUNT(1)
-      comment: "Total number of raw material SKUs"
+    - name: "total_raw_material_quantity_on_hand"
+      expr: SUM(CAST(quantity_on_hand AS DOUBLE))
+      comment: "Total quantity of raw materials on hand - critical supply availability and procurement planning metric"
+    - name: "total_raw_material_value_usd"
+      expr: SUM(CAST(unit_cost_usd AS DOUBLE))
+      comment: "Total USD value of raw material inventory - working capital and procurement spend metric"
+    - name: "avg_unit_cost_usd"
+      expr: AVG(CAST(unit_cost_usd AS DOUBLE))
+      comment: "Average unit cost of raw materials - cost trend and supplier performance indicator"
     - name: "avg_standard_price"
       expr: AVG(CAST(standard_price AS DOUBLE))
-      comment: "Average standard price per raw material"
+      comment: "Average standard price for cost accounting"
     - name: "avg_moving_avg_price"
       expr: AVG(CAST(moving_avg_price AS DOUBLE))
-      comment: "Average moving average price per raw material"
-    - name: "avg_lead_time_days"
-      expr: AVG(CAST(lead_time_days AS DOUBLE))
-      comment: "Average lead time in days for raw materials"
-    - name: "avg_shelf_life_days"
-      expr: AVG(CAST(shelf_life_days AS DOUBLE))
-      comment: "Average shelf life in days"
-    - name: "avg_reorder_point"
-      expr: AVG(CAST(reorder_point_qty AS DOUBLE))
-      comment: "Average reorder point quantity"
-    - name: "avg_safety_stock"
-      expr: AVG(CAST(safety_stock_qty AS DOUBLE))
-      comment: "Average safety stock quantity"
-    - name: "avg_max_stock"
-      expr: AVG(CAST(max_stock_qty AS DOUBLE))
-      comment: "Average maximum stock quantity"
-    - name: "avg_wafer_diameter"
-      expr: AVG(CAST(wafer_diameter_mm AS DOUBLE))
-      comment: "Average wafer diameter in millimeters"
+      comment: "Average moving average price - cost volatility and trend indicator"
+    - name: "total_reorder_point_qty"
+      expr: SUM(CAST(reorder_point_qty AS DOUBLE))
+      comment: "Total reorder point quantity across all materials - inventory policy and service level metric"
+    - name: "total_safety_stock_qty"
+      expr: SUM(CAST(safety_stock_qty AS DOUBLE))
+      comment: "Total safety stock quantity - supply chain risk buffer and resilience metric"
     - name: "avg_purity_pct"
       expr: AVG(CAST(purity_pct AS DOUBLE))
-      comment: "Average material purity percentage"
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`inventory_reservation`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Inventory reservation KPIs tracking material allocations, fulfillment performance, and demand commitment metrics"
-  source: "`vibe_semiconductors_v1`.`inventory`.`reservation`"
-  dimensions:
-    - name: "reservation_status"
-      expr: reservation_status
-      comment: "Current status of the reservation"
-    - name: "reservation_type"
-      expr: reservation_type
-      comment: "Type of reservation (sales order, production order, transfer)"
-    - name: "priority"
-      expr: priority
-      comment: "Priority level of the reservation"
-    - name: "reason"
-      expr: reason
-      comment: "Reason for the reservation"
-    - name: "inventory_status"
-      expr: inventory_status
-      comment: "Inventory status of reserved material"
-    - name: "bin_classification"
-      expr: bin_classification
-      comment: "Bin classification for semiconductor units"
-    - name: "is_kgd"
-      expr: is_kgd
-      comment: "Known Good Die flag"
-    - name: "reservation_month"
-      expr: DATE_TRUNC('MONTH', reservation_timestamp)
-      comment: "Month when reservation was created"
-    - name: "expiration_month"
-      expr: DATE_TRUNC('MONTH', expiration_timestamp)
-      comment: "Month when reservation expires"
-    - name: "requested_delivery_month"
-      expr: DATE_TRUNC('MONTH', requested_delivery_date)
-      comment: "Requested delivery month"
-  measures:
-    - name: "total_reservations"
-      expr: COUNT(1)
-      comment: "Total number of inventory reservations"
-    - name: "total_reserved_quantity"
-      expr: SUM(CAST(reserved_quantity AS DOUBLE))
-      comment: "Total quantity reserved across all reservations"
-    - name: "avg_reserved_quantity"
-      expr: AVG(CAST(reserved_quantity AS DOUBLE))
-      comment: "Average quantity per reservation"
-    - name: "reservation_fulfillment_rate"
-      expr: ROUND(100.0 * SUM(CASE WHEN reservation_status = 'fulfilled' THEN 1 ELSE 0 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of reservations that have been fulfilled"
+      comment: "Average material purity percentage - quality and specification compliance indicator"
+    - name: "avg_wafer_diameter_mm"
+      expr: AVG(CAST(wafer_diameter_mm AS DOUBLE))
+      comment: "Average wafer diameter for substrate materials - technology node and fab capability indicator"
+    - name: "distinct_raw_materials"
+      expr: COUNT(DISTINCT raw_material_id)
+      comment: "Count of unique raw material SKUs - supply chain complexity and vendor management scope metric"
+    - name: "hazardous_materials_count"
+      expr: SUM(CASE WHEN hazardous_flag = TRUE THEN 1 ELSE 0 END)
+      comment: "Count of hazardous materials - EHS risk and compliance management metric"
+    - name: "itar_controlled_materials_count"
+      expr: SUM(CASE WHEN itar_controlled = TRUE THEN 1 ELSE 0 END)
+      comment: "Count of ITAR controlled materials - export control and compliance risk metric"
 $$;
 
 CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`inventory_stock_balance`
@@ -511,112 +450,109 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Stock balance KPIs tracking inventory levels, availability, turnover, and working capital optimization across all material types"
+  comment: "Stock balance snapshot metrics tracking inventory levels, availability, reservations, and valuation across all inventory types for working capital and supply chain optimization."
   source: "`vibe_semiconductors_v1`.`inventory`.`stock_balance`"
   dimensions:
+    - name: "balance_type"
+      expr: balance_type
+      comment: "Type of stock balance (e.g., on-hand, reserved, in-transit)"
     - name: "stock_type"
       expr: stock_type
-      comment: "Type of stock (unrestricted, blocked, quality inspection)"
+      comment: "Stock classification type (e.g., unrestricted, blocked, quality)"
     - name: "batch_classification"
       expr: batch_classification
-      comment: "Batch classification"
+      comment: "Batch quality classification"
     - name: "bin_classification"
       expr: bin_classification
-      comment: "Bin classification for semiconductor units"
+      comment: "Test bin classification for semiconductor products"
     - name: "kgd_status"
       expr: kgd_status
-      comment: "Known Good Die status"
-    - name: "special_stock_indicator"
-      expr: special_stock_indicator
-      comment: "Special stock indicator (consignment, project stock)"
-    - name: "storage_condition_code"
-      expr: storage_condition_code
-      comment: "Storage condition code"
-    - name: "valuation_class"
-      expr: valuation_class
-      comment: "Valuation class for accounting"
+      comment: "Known Good Die status classification"
     - name: "msd_level"
       expr: msd_level
-      comment: "Moisture sensitivity level"
+      comment: "Moisture sensitivity device level"
+    - name: "special_stock_indicator"
+      expr: special_stock_indicator
+      comment: "Special stock category indicator (e.g., consignment, project)"
+    - name: "valuation_class"
+      expr: valuation_class
+      comment: "Valuation classification for accounting"
+    - name: "valuation_method"
+      expr: valuation_method
+      comment: "Inventory valuation method (e.g., FIFO, weighted average)"
+    - name: "storage_condition_code"
+      expr: storage_condition_code
+      comment: "Required storage condition code"
     - name: "export_control_flag"
       expr: export_control_flag
-      comment: "Export control flag"
+      comment: "Boolean indicator if stock is export controlled"
     - name: "hazmat_flag"
       expr: hazmat_flag
-      comment: "Hazardous material flag"
+      comment: "Boolean indicator if stock is hazardous material"
     - name: "rohs_compliant_flag"
       expr: rohs_compliant_flag
-      comment: "RoHS compliance flag"
-    - name: "slow_moving_flag"
-      expr: slow_moving_flag
-      comment: "Slow-moving inventory flag"
+      comment: "Boolean indicator of RoHS compliance"
     - name: "unrestricted_use_flag"
       expr: unrestricted_use_flag
-      comment: "Unrestricted use flag"
-    - name: "wafer_process_node"
-      expr: wafer_process_node
-      comment: "Wafer process node technology"
-    - name: "snapshot_month"
-      expr: DATE_TRUNC('MONTH', snapshot_timestamp)
+      comment: "Boolean indicator if stock is available for unrestricted use"
+    - name: "slow_moving_flag"
+      expr: slow_moving_flag
+      comment: "Boolean indicator if stock is slow-moving (inventory optimization flag)"
+    - name: "balance_year"
+      expr: YEAR(balance_date)
+      comment: "Year of the stock balance snapshot"
+    - name: "balance_month"
+      expr: DATE_TRUNC('MONTH', balance_date)
       comment: "Month of the stock balance snapshot"
-    - name: "last_receipt_month"
-      expr: DATE_TRUNC('MONTH', last_goods_receipt_date)
-      comment: "Month of last goods receipt"
-    - name: "last_issue_month"
-      expr: DATE_TRUNC('MONTH', last_goods_issue_date)
-      comment: "Month of last goods issue"
-    - name: "last_count_month"
-      expr: DATE_TRUNC('MONTH', last_physical_count_date)
-      comment: "Month of last physical count"
+    - name: "last_movement_year"
+      expr: YEAR(last_movement_date)
+      comment: "Year of last inventory movement"
   measures:
-    - name: "total_stock_records"
-      expr: COUNT(1)
-      comment: "Total number of stock balance records"
-    - name: "total_qty_on_hand"
+    - name: "total_quantity_on_hand"
       expr: SUM(CAST(qty_on_hand AS DOUBLE))
-      comment: "Total quantity on hand across all stock locations"
-    - name: "total_qty_available"
+      comment: "Total quantity on hand across all stock locations - primary inventory availability metric for supply chain planning"
+    - name: "total_quantity_available"
       expr: SUM(CAST(qty_available AS DOUBLE))
-      comment: "Total quantity available for use"
-    - name: "total_qty_reserved"
+      comment: "Total quantity available for allocation - critical ATP (available-to-promise) metric for order fulfillment"
+    - name: "total_quantity_reserved"
       expr: SUM(CAST(qty_reserved AS DOUBLE))
-      comment: "Total quantity reserved for orders"
-    - name: "total_qty_blocked"
+      comment: "Total quantity reserved for orders or production - committed inventory and demand coverage metric"
+    - name: "total_quantity_blocked"
       expr: SUM(CAST(qty_blocked AS DOUBLE))
-      comment: "Total quantity blocked from use"
-    - name: "total_qty_in_transit"
+      comment: "Total quantity blocked from use - quality hold and operational constraint indicator"
+    - name: "total_quantity_in_transit"
       expr: SUM(CAST(qty_in_transit AS DOUBLE))
-      comment: "Total quantity in transit between locations"
-    - name: "total_qty_in_wip"
+      comment: "Total quantity in transit between locations - supply chain pipeline and lead time metric"
+    - name: "total_quantity_in_wip"
       expr: SUM(CAST(qty_in_wip AS DOUBLE))
-      comment: "Total quantity in work-in-process"
-    - name: "total_qty_quality_inspection"
+      comment: "Total quantity in work-in-process - manufacturing pipeline and cycle time indicator"
+    - name: "total_quantity_quality_inspection"
       expr: SUM(CAST(qty_quality_inspection AS DOUBLE))
-      comment: "Total quantity in quality inspection"
-    - name: "inventory_availability_rate"
-      expr: ROUND(100.0 * SUM(CAST(qty_available AS DOUBLE)) / NULLIF(SUM(CAST(qty_on_hand AS DOUBLE)), 0), 2)
-      comment: "Percentage of on-hand inventory that is available for use"
-    - name: "inventory_reservation_rate"
-      expr: ROUND(100.0 * SUM(CAST(qty_reserved AS DOUBLE)) / NULLIF(SUM(CAST(qty_on_hand AS DOUBLE)), 0), 2)
-      comment: "Percentage of on-hand inventory that is reserved"
-    - name: "inventory_blocked_rate"
-      expr: ROUND(100.0 * SUM(CAST(qty_blocked AS DOUBLE)) / NULLIF(SUM(CAST(qty_on_hand AS DOUBLE)), 0), 2)
-      comment: "Percentage of on-hand inventory that is blocked"
-    - name: "avg_stock_aging_days"
-      expr: AVG(CAST(stock_aging_days AS DOUBLE))
-      comment: "Average number of days inventory has been in stock"
-    - name: "avg_reorder_point"
-      expr: AVG(CAST(reorder_point_qty AS DOUBLE))
-      comment: "Average reorder point quantity"
-    - name: "avg_safety_stock"
-      expr: AVG(CAST(safety_stock_qty AS DOUBLE))
-      comment: "Average safety stock quantity"
-    - name: "stock_below_reorder_point_rate"
-      expr: ROUND(100.0 * SUM(CASE WHEN qty_on_hand < reorder_point_qty THEN 1 ELSE 0 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of stock records below reorder point"
-    - name: "stock_below_safety_stock_rate"
-      expr: ROUND(100.0 * SUM(CASE WHEN qty_on_hand < safety_stock_qty THEN 1 ELSE 0 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of stock records below safety stock level"
+      comment: "Total quantity in quality inspection - quality process throughput and hold metric"
+    - name: "total_stock_value_usd"
+      expr: SUM(CAST(total_value_usd AS DOUBLE))
+      comment: "Total USD value of all stock balances - critical balance sheet and working capital metric for financial management"
+    - name: "total_valuation_amount"
+      expr: SUM(CAST(valuation_amount AS DOUBLE))
+      comment: "Total valuation amount for inventory accounting"
+    - name: "total_safety_stock"
+      expr: SUM(CAST(safety_stock AS DOUBLE))
+      comment: "Total safety stock quantity - supply chain risk buffer and service level policy metric"
+    - name: "total_reorder_point"
+      expr: SUM(CAST(reorder_point AS DOUBLE))
+      comment: "Total reorder point quantity - procurement trigger and inventory policy metric"
+    - name: "avg_safety_stock_level"
+      expr: AVG(CAST(safety_stock_level AS DOUBLE))
+      comment: "Average safety stock level - inventory policy and service level indicator"
+    - name: "distinct_stock_balances"
+      expr: COUNT(DISTINCT stock_balance_id)
+      comment: "Count of unique stock balance records - inventory fragmentation and complexity metric"
+    - name: "slow_moving_stock_count"
+      expr: SUM(CASE WHEN slow_moving_flag = TRUE THEN 1 ELSE 0 END)
+      comment: "Count of slow-moving stock items - inventory optimization and obsolescence risk indicator"
+    - name: "export_controlled_stock_count"
+      expr: SUM(CASE WHEN export_control_flag = TRUE THEN 1 ELSE 0 END)
+      comment: "Count of export controlled stock items - trade compliance and regulatory risk metric"
 $$;
 
 CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`inventory_storage_location`
@@ -624,95 +560,119 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Storage location KPIs tracking warehouse capacity utilization, environmental compliance, and facility performance"
+  comment: "Storage location capacity and utilization metrics tracking warehouse, cleanroom, and specialized storage facilities for inventory management and facility planning."
   source: "`vibe_semiconductors_v1`.`inventory`.`storage_location`"
   dimensions:
+    - name: "location_type"
+      expr: location_type
+      comment: "Type of storage location (e.g., warehouse, cleanroom, vault, staging)"
     - name: "location_status"
       expr: location_status
       comment: "Current operational status of the storage location"
+    - name: "storage_location_status"
+      expr: storage_location_status
+      comment: "Detailed storage location availability status"
     - name: "facility_type"
       expr: facility_type
-      comment: "Type of storage facility"
+      comment: "Type of facility housing the storage location"
+    - name: "cleanroom_class"
+      expr: cleanroom_class
+      comment: "Cleanroom classification (e.g., Class 1, Class 10, Class 100)"
     - name: "cleanroom_iso_class"
       expr: cleanroom_iso_class
-      comment: "ISO cleanroom classification"
+      comment: "ISO cleanroom classification standard"
+    - name: "warehouse_zone"
+      expr: warehouse_zone
+      comment: "Warehouse zone classification for location management"
+    - name: "storage_conditions"
+      expr: storage_conditions
+      comment: "Required environmental storage conditions"
     - name: "hazmat_classification"
       expr: hazmat_classification
-      comment: "Hazardous material classification"
+      comment: "Hazardous material storage classification"
     - name: "msd_sensitivity_level"
       expr: msd_sensitivity_level
-      comment: "Moisture sensitivity level capability"
+      comment: "Moisture sensitivity device storage capability level"
     - name: "esd_protection_class"
       expr: esd_protection_class
-      comment: "ESD protection class"
+      comment: "Electrostatic discharge protection class"
     - name: "fire_suppression_type"
       expr: fire_suppression_type
       comment: "Type of fire suppression system"
-    - name: "inventory_valuation_method"
-      expr: inventory_valuation_method
-      comment: "Inventory valuation method used at this location"
-    - name: "is_osat_partner_location"
-      expr: is_osat_partner_location
-      comment: "Flag indicating OSAT partner location"
-    - name: "itar_controlled"
-      expr: itar_controlled
-      comment: "ITAR controlled location flag"
-    - name: "kgd_storage_certified"
-      expr: kgd_storage_certified
-      comment: "Known Good Die storage certification flag"
-    - name: "msd_floor_life_capable"
-      expr: msd_floor_life_capable
-      comment: "MSD floor life management capability flag"
-    - name: "nitrogen_purge_capable"
-      expr: nitrogen_purge_capable
-      comment: "Nitrogen purge capability flag"
-    - name: "photomask_storage_capable"
-      expr: photomask_storage_capable
-      comment: "Photomask storage capability flag"
-    - name: "shelf_life_tracking_enabled"
-      expr: shelf_life_tracking_enabled
-      comment: "Shelf life tracking enabled flag"
-    - name: "wip_staging_area"
-      expr: wip_staging_area
-      comment: "Work-in-process staging area flag"
     - name: "country_code"
       expr: country_code
-      comment: "Country code of the storage location"
-    - name: "commissioned_month"
-      expr: DATE_TRUNC('MONTH', commissioned_date)
-      comment: "Month when location was commissioned"
+      comment: "Country where storage location is situated"
+    - name: "is_active"
+      expr: is_active
+      comment: "Boolean indicator if storage location is currently active"
+    - name: "temperature_controlled_flag"
+      expr: temperature_controlled_flag
+      comment: "Boolean indicator if location has temperature control"
+    - name: "humidity_controlled_flag"
+      expr: humidity_controlled_flag
+      comment: "Boolean indicator if location has humidity control"
+    - name: "esd_protected_flag"
+      expr: esd_protected_flag
+      comment: "Boolean indicator if location has ESD protection"
+    - name: "hazmat_approved_flag"
+      expr: hazmat_approved_flag
+      comment: "Boolean indicator if location is approved for hazmat storage"
+    - name: "itar_controlled"
+      expr: itar_controlled
+      comment: "Boolean indicator if location is ITAR access controlled"
+    - name: "kgd_storage_certified"
+      expr: kgd_storage_certified
+      comment: "Boolean indicator if location is certified for Known Good Die storage"
+    - name: "nitrogen_purge_capable"
+      expr: nitrogen_purge_capable
+      comment: "Boolean indicator if location has nitrogen purge capability"
+    - name: "photomask_storage_capable"
+      expr: photomask_storage_capable
+      comment: "Boolean indicator if location is suitable for photomask storage"
+    - name: "wip_staging_area"
+      expr: wip_staging_area
+      comment: "Boolean indicator if location is a WIP staging area"
+    - name: "commissioned_year"
+      expr: YEAR(commissioned_date)
+      comment: "Year the storage location was commissioned"
   measures:
-    - name: "total_storage_locations"
-      expr: COUNT(1)
-      comment: "Total number of storage locations"
-    - name: "total_max_capacity"
+    - name: "total_max_capacity_units"
       expr: SUM(CAST(max_capacity_units AS DOUBLE))
-      comment: "Total maximum capacity across all locations"
-    - name: "total_current_utilization"
-      expr: SUM(CAST(current_utilization_units AS DOUBLE))
-      comment: "Total current utilization across all locations"
-    - name: "capacity_utilization_rate"
-      expr: ROUND(100.0 * SUM(CAST(current_utilization_units AS DOUBLE)) / NULLIF(SUM(CAST(max_capacity_units AS DOUBLE)), 0), 2)
-      comment: "Percentage of total capacity currently utilized"
-    - name: "avg_max_capacity"
-      expr: AVG(CAST(max_capacity_units AS DOUBLE))
-      comment: "Average maximum capacity per location"
-    - name: "avg_current_utilization"
-      expr: AVG(CAST(current_utilization_units AS DOUBLE))
-      comment: "Average current utilization per location"
+      comment: "Total maximum storage capacity across all locations - critical facility planning and expansion metric"
+    - name: "avg_current_utilization_pct"
+      expr: AVG(CAST(current_utilization_pct AS DOUBLE))
+      comment: "Average storage utilization percentage - key facility efficiency and capacity planning indicator"
+    - name: "avg_max_temperature_c"
+      expr: AVG(CAST(max_temperature_c AS DOUBLE))
+      comment: "Average maximum storage temperature - environmental control capability metric"
+    - name: "avg_min_temperature_c"
+      expr: AVG(CAST(min_temperature_c AS DOUBLE))
+      comment: "Average minimum storage temperature - environmental control range indicator"
+    - name: "avg_max_humidity_pct"
+      expr: AVG(CAST(max_humidity_pct AS DOUBLE))
+      comment: "Average maximum humidity percentage - environmental control specification"
     - name: "avg_weight_capacity_kg"
       expr: AVG(CAST(weight_capacity_kg AS DOUBLE))
-      comment: "Average weight capacity in kilograms"
-    - name: "avg_max_temperature"
-      expr: AVG(CAST(max_temperature_c AS DOUBLE))
-      comment: "Average maximum temperature in Celsius"
-    - name: "avg_min_temperature"
-      expr: AVG(CAST(min_temperature_c AS DOUBLE))
-      comment: "Average minimum temperature in Celsius"
-    - name: "avg_max_humidity"
-      expr: AVG(CAST(max_humidity_pct AS DOUBLE))
-      comment: "Average maximum humidity percentage"
-    - name: "avg_min_humidity"
-      expr: AVG(CAST(min_humidity_pct AS DOUBLE))
-      comment: "Average minimum humidity percentage"
+      comment: "Average weight capacity in kilograms - structural capacity and safety metric"
+    - name: "distinct_storage_locations"
+      expr: COUNT(DISTINCT storage_location_id)
+      comment: "Count of unique storage locations - facility footprint and complexity metric"
+    - name: "active_storage_locations"
+      expr: SUM(CASE WHEN is_active = TRUE THEN 1 ELSE 0 END)
+      comment: "Count of active storage locations - operational capacity availability metric"
+    - name: "temperature_controlled_locations"
+      expr: SUM(CASE WHEN temperature_controlled_flag = TRUE THEN 1 ELSE 0 END)
+      comment: "Count of temperature controlled locations - specialized storage capability metric"
+    - name: "esd_protected_locations"
+      expr: SUM(CASE WHEN esd_protected_flag = TRUE THEN 1 ELSE 0 END)
+      comment: "Count of ESD protected locations - semiconductor-specific storage capability metric"
+    - name: "hazmat_approved_locations"
+      expr: SUM(CASE WHEN hazmat_approved_flag = TRUE THEN 1 ELSE 0 END)
+      comment: "Count of hazmat approved locations - chemical storage compliance and safety metric"
+    - name: "itar_controlled_locations"
+      expr: SUM(CASE WHEN itar_controlled = TRUE THEN 1 ELSE 0 END)
+      comment: "Count of ITAR controlled locations - export control and security compliance metric"
+    - name: "kgd_certified_locations"
+      expr: SUM(CASE WHEN kgd_storage_certified = TRUE THEN 1 ELSE 0 END)
+      comment: "Count of KGD certified storage locations - high-value die storage capability metric"
 $$;

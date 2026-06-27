@@ -1,5 +1,5 @@
 -- Schema for Domain: fabrication | Business:  | Version: v2_ecm
--- Generated on: 2026-06-24 00:02:25
+-- Generated on: 2026-06-27 09:03:45
 
 -- ========= DATABASE =========
 CREATE DATABASE IF NOT EXISTS `vibe_semiconductors_v1`.`fabrication` COMMENT 'Core wafer fabrication and processing domain governing all FAB operations including FEOL, MOL, and BEOL process steps. Owns wafer lot tracking, WIP management, process recipe execution, and fab line scheduling across CVD, PVD, ALD, CMP, ion implantation, and EUV/DUV lithography operations. Authoritative source for wafer genealogy and lot disposition via MES integration.';
@@ -7,14 +7,12 @@ CREATE DATABASE IF NOT EXISTS `vibe_semiconductors_v1`.`fabrication` COMMENT 'Co
 -- ========= TABLES =========
 CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` (
     `fabrication_wafer_lot_id` BIGINT COMMENT 'Unique identifier for the wafer lot tracked through the FAB from wafer start to lot disposition. Primary key for all WIP lot tracking across FEOL, MOL, and BEOL operations.',
-    `account_id` BIGINT COMMENT 'Foreign key linking to customer.account. Business justification: Required for lot‑level billing and customer account reporting; each wafer lot is charged to a specific customer account.',
-    `customer_design_win_id` BIGINT COMMENT 'Foreign key linking to customer.customer_design_win. Business justification: Needed to associate each wafer lot with the winning customer design contract for production planning and revenue attribution.',
     `fabrication_process_flow_id` BIGINT COMMENT 'Unique identifier for the process route (recipe sequence) assigned to this lot. Defines the complete sequence of operations from wafer start to completion.',
     `fabrication_technology_node_id` BIGINT COMMENT 'Foreign key linking to fabrication.technology_node. Business justification: Wafer lot references a technology node; replace string column with FK to technology_node for normalization.',
     `ic_catalog_id` BIGINT COMMENT 'Foreign key linking to product.ic_catalog. Business justification: Required for Production Planning Report linking each wafer lot to the specific IC catalog item being manufactured.',
     `ic_design_project_id` BIGINT COMMENT 'Foreign key linking to design.ic_design_project. Business justification: Required for lot‑level cost and yield reporting per design project, enabling profitability analysis and project KPI dashboards.',
+    `inventory_wafer_lot_id` BIGINT COMMENT 'add column inventory_wafer_lot_id (BIGINT) with FK to inventory.inventory_wafer_lot.inventory_wafer_lot_id - establish clear SSOT relationship where inventory owns lot tracking',
     `parent_lot_fabrication_wafer_lot_id` BIGINT COMMENT 'Reference to the parent lot from which this lot was split or derived. Null for original lots. Enables wafer genealogy tracking and traceability.',
-    `quote_id` BIGINT COMMENT 'Foreign key linking to sales.quote. Business justification: Enables Quote‑to‑Lot traceability needed for revenue recognition and cost accounting.',
     `actual_completion_timestamp` TIMESTAMP COMMENT 'Date and time when the lot completed all FAB processing operations and was dispositioned. Null for lots still in WIP.',
     `current_operation_name` STRING COMMENT 'Descriptive name of the current process operation (e.g., CVD_OXIDE_DEP, EUV_LITHO, CMP_POLISH). Provides human-readable context for lot location.',
     `current_operation_number` STRING COMMENT 'Sequential operation step number in the process route where the lot is currently located. Used for tracking lot position in the manufacturing flow.. Valid values are `^[0-9]{4,6}$`',
@@ -99,35 +97,13 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`wafer` (
 
 CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` (
     `fabrication_process_recipe_id` BIGINT COMMENT 'Unique identifier for the fabrication process recipe. Primary key for this entity.',
+    `equipment_process_recipe_id` BIGINT COMMENT 'Unique identifier for the equipment process recipe record within the fabrication process recipe fabrication entity.',
     `pdk_id` BIGINT COMMENT 'Foreign key linking to design.pdk. Business justification: Recipe qualification and change‑control require explicit reference to the PDK version the recipe supports, ensuring process compatibility.',
-    `equipment_process_recipe_id` BIGINT COMMENT 'SSOT reference to canonical equipment.equipment_process_recipe (de-duplicates cross-domain concept).',
     `approval_date` DATE COMMENT 'Date when the recipe was formally approved for production use.',
     `approval_status` STRING COMMENT 'Engineering approval status indicating whether the recipe has been reviewed and authorized for use by process engineering and quality teams.. Valid values are `pending|approved|rejected`',
     `approved_by` STRING COMMENT 'Name or identifier of the process engineer or quality manager who approved this recipe for production use.',
     `chamber_configuration` STRING COMMENT 'Specific chamber or module configuration within the equipment where the recipe is executed, enabling multi-chamber tool recipe management.',
     `change_control_reference` STRING COMMENT 'Reference to the Engineering Change Order (ECO) or Product Change Notification (PCN) that authorized the creation or modification of this recipe.',
-    `cool_duration_seconds` STRING COMMENT 'Specified cooling duration.',
-    `cool_target_temperature_celsius` DECIMAL(18,2) COMMENT 'Target cooldown temperature in recipe.',
-    `coolant_flow_rate_lpm` DECIMAL(18,2) COMMENT 'Coolant flow rate in liters per minute.',
-    `coolant_recirculation_flag` BOOLEAN COMMENT 'Whether coolant is recirculated to reduce waste.',
-    `coolant_reclaim_rate_percent` DECIMAL(18,2) COMMENT 'Percentage of coolant reclaimed/recycled.',
-    `coolant_recycling_enabled_flag` BOOLEAN COMMENT 'Whether coolant recycling (waste elimination) is enabled.',
-    `coolant_waste_volume_liters` DECIMAL(18,2) COMMENT 'Volume of coolant waste generated.',
-    `cooldown_rate_celsius_per_min` DECIMAL(18,2) COMMENT 'Specified cooldown rate.',
-    `cooling_duration_seconds` DECIMAL(18,2) COMMENT 'Duration of the cooling stage.',
-    `cooling_energy_consumption_kwh` DECIMAL(18,2) COMMENT 'Energy consumed by the cooling process.',
-    `cooling_energy_recovery_flag` BOOLEAN COMMENT 'Whether waste-heat / energy recovery is enabled for the recipe cooling step.',
-    `cooling_energy_target_kwh` DECIMAL(18,2) COMMENT 'Target cooling energy consumption.',
-    `cooling_medium` STRING COMMENT 'Cooling medium used (e.g., DI water, helium backside, chilled nitrogen).',
-    `cooling_method` STRING COMMENT 'Cooling method defined by the recipe.',
-    `cooling_optimization_enabled_flag` BOOLEAN COMMENT 'Whether cooling optimization is enabled for this step/recipe.',
-    `cooling_optimization_mode` STRING COMMENT 'Cooling optimization option for the recipe.',
-    `cooling_optimization_option` STRING COMMENT 'Cooling optimization option applied during the recipe cooling step.',
-    `cooling_process_flag` BOOLEAN COMMENT 'Indicates whether this step/recipe includes a cooling process stage.',
-    `cooling_ramp_rate_celsius_per_min` DECIMAL(18,2) COMMENT 'Controlled cooling ramp-down rate.',
-    `cooling_step_required_flag` BOOLEAN COMMENT 'Whether the recipe includes a cooling step.',
-    `cooling_target_temperature_celsius` DECIMAL(18,2) COMMENT 'Target wafer/chamber temperature after cooling.',
-    `cooling_waste_elimination_option` STRING COMMENT 'Waste-elimination option applied during the recipe cooling step.',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this recipe record was first created in the MES system.',
     `defect_density_target_per_cm2` DECIMAL(18,2) COMMENT 'Target defect density in defects per square centimeter for wafers processed with this recipe, critical for yield management.',
     `effective_end_date` DATE COMMENT 'Date when this recipe version is superseded or retired. Null indicates the recipe is currently active with no planned end date.',
@@ -160,9 +136,6 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_proc
     `target_material` STRING COMMENT 'Material being deposited, etched, or processed by this recipe (e.g., silicon dioxide, tungsten, copper, photoresist, low-k dielectric).',
     `target_thickness_nm` DECIMAL(18,2) COMMENT 'Target thickness in nanometers for deposition or remaining thickness after etch/CMP operations.',
     `uniformity_target_percent` DECIMAL(18,2) COMMENT 'Target uniformity percentage for thickness, composition, or other critical parameters across the wafer surface.',
-    `waste_elimination_strategy` STRING COMMENT 'Waste elimination strategy (e.g., heat_recovery, coolant_reclaim, lean_idle_shutdown).',
-    `waste_heat_recovery_enabled_flag` BOOLEAN COMMENT 'Whether waste-heat recovery is enabled.',
-    `waste_heat_recovery_flag` BOOLEAN COMMENT 'Whether waste heat is recovered/reused.',
     `yield_target_percent` DECIMAL(18,2) COMMENT 'Target yield percentage for wafers processed using this recipe, used for performance monitoring and continuous improvement.',
     CONSTRAINT pk_fabrication_process_recipe PRIMARY KEY(`fabrication_process_recipe_id`)
 ) COMMENT 'Master record for a validated process recipe defining the exact sequence of process parameters, tool settings, gas flows, temperatures, pressures, and timing for a specific FAB operation (CVD, PVD, ALD, CMP, implant, etch, lithography). Includes recipe version history, approval status, change control reference, qualification status, and effective date range. Versioning managed within this entity via version number and effective dates. Sourced from Applied Materials SmartFactory MES recipe management and integrated with engineering change order workflow.';
@@ -180,21 +153,6 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_proc
     `approved_by` STRING COMMENT 'Name or identifier of the engineer or manager who approved this process step for production use. Used for traceability and accountability.',
     `batch_size` STRING COMMENT 'Number of wafers or lots that can be processed together in a single batch at this step. Null for single-wafer processing steps.',
     `change_control_number` STRING COMMENT 'Engineering change order or change control number associated with the creation or modification of this process step. Links to formal change management process.',
-    `coolant_flow_rate_lpm` DECIMAL(18,2) COMMENT 'Coolant flow rate in liters per minute.',
-    `coolant_recirculation_flag` BOOLEAN COMMENT 'Whether coolant is recirculated to reduce waste.',
-    `coolant_reclaim_rate_percent` DECIMAL(18,2) COMMENT 'Percentage of coolant reclaimed/recycled.',
-    `coolant_waste_volume_liters` DECIMAL(18,2) COMMENT 'Volume of coolant waste generated.',
-    `cooling_condition_reference` STRING COMMENT 'Reference code to the applicable cooling condition specification.',
-    `cooling_duration_seconds` DECIMAL(18,2) COMMENT 'Duration of the cooling stage.',
-    `cooling_energy_consumption_kwh` DECIMAL(18,2) COMMENT 'Energy consumed by the cooling process.',
-    `cooling_medium` STRING COMMENT 'Cooling medium used (e.g., DI water, helium backside, chilled nitrogen).',
-    `cooling_method` STRING COMMENT 'Cooling method applied (e.g., convective, conductive, cryogenic, water-cooled chuck).',
-    `cooling_optimization_enabled_flag` BOOLEAN COMMENT 'Whether cooling optimization is enabled for this step/recipe.',
-    `cooling_optimization_mode` STRING COMMENT 'Cooling optimization option selected (e.g., energy_min, throughput_max, balanced).',
-    `cooling_process_flag` BOOLEAN COMMENT 'Indicates whether this step/recipe includes a cooling process stage.',
-    `cooling_ramp_rate_celsius_per_min` DECIMAL(18,2) COMMENT 'Controlled cooling ramp-down rate.',
-    `cooling_required_flag` BOOLEAN COMMENT 'Indicates whether a cooling step is required after this process step.',
-    `cooling_target_temperature_celsius` DECIMAL(18,2) COMMENT 'Target wafer/chamber temperature after cooling.',
     `cost_center` STRING COMMENT 'Financial cost center to which this process step is allocated for cost accounting and budgeting purposes.',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this process step record was first created in the system. Used for audit trails and data lineage.',
     `critical_step_flag` BOOLEAN COMMENT 'Boolean flag indicating whether this step is critical to product quality or yield. Critical steps require enhanced monitoring, control, and approval workflows.',
@@ -221,13 +179,12 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_proc
     `step_status` STRING COMMENT 'Current lifecycle status of the process step definition. Active steps are in production use; inactive or obsolete steps are retired; engineering steps are under development; pending approval steps await qualification.. Valid values are `active|inactive|engineering|obsolete|pending_approval`',
     `target_cycle_time_minutes` DECIMAL(18,2) COMMENT 'Step-level target cycle time in minutes. Used for capacity planning, scheduling, and WIP flow optimization.',
     `version_number` STRING COMMENT 'Version identifier for the process step definition. Incremented with each engineering change. Supports change control and traceability.',
-    `waste_elimination_strategy` STRING COMMENT 'Waste elimination strategy (e.g., heat_recovery, coolant_reclaim, lean_idle_shutdown).',
-    `waste_heat_recovery_flag` BOOLEAN COMMENT 'Whether waste heat is recovered/reused.',
     CONSTRAINT pk_fabrication_process_step PRIMARY KEY(`fabrication_process_step_id`)
 ) COMMENT 'Individual process step definition within a process flow routing, specifying step sequence number, operation type (FEOL/MOL/BEOL), process category (lithography, etch, deposition, CMP, implant, anneal, clean, wet clean), target recipe reference, equipment class constraint, SPC control plan linkage, rework loop indicators, and step-level cycle time targets. Forms the authoritative step catalog for all FAB routing and is the granular unit of WIP tracking. Aligned with SEMI E40 process management standard for step-level definition.';
 
 CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` (
     `fabrication_process_flow_id` BIGINT COMMENT 'Unique identifier for the process flow. Primary key for the process flow entity.',
+    `cooling_process_flow_id` BIGINT COMMENT 'Identifier for cooling process flow id on the fabrication process flow record.',
     `pdk_id` BIGINT COMMENT 'Reference to the Process Design Kit (PDK) that provides device models, design rules, and technology files for this process flow.',
     `employee_id` BIGINT COMMENT 'Foreign key linking to workforce.employee. Business justification: Process Flow Owner is an employee; ownership reports and change‑control need the employee ID.',
     `rule_set_id` BIGINT COMMENT 'Reference to the design rule set (DRC/LVS rules) that physical layouts must comply with for this process flow.',
@@ -235,19 +192,10 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_proc
     `approval_date` DATE COMMENT 'Date when this process flow received formal approval for use in FAB operations.',
     `approved_by` STRING COMMENT 'Name or identifier of the process engineer or manager who approved this process flow for production use.',
     `beol_step_count` STRING COMMENT 'Number of process steps in the Back End Of Line (BEOL) phase covering metal interconnect layers and passivation.',
-    `coolant_flow_rate_lpm` DECIMAL(18,2) COMMENT 'Coolant flow rate in liters per minute.',
-    `coolant_recirculation_flag` BOOLEAN COMMENT 'Whether coolant is recirculated to reduce waste.',
-    `coolant_reclaim_rate_percent` DECIMAL(18,2) COMMENT 'Percentage of coolant reclaimed/recycled.',
-    `coolant_waste_volume_liters` DECIMAL(18,2) COMMENT 'Volume of coolant waste generated.',
-    `cooling_duration_seconds` DECIMAL(18,2) COMMENT 'Duration of the cooling stage.',
-    `cooling_energy_consumption_kwh` DECIMAL(18,2) COMMENT 'Energy consumed by the cooling process.',
-    `cooling_medium` STRING COMMENT 'Cooling medium used (e.g., DI water, helium backside, chilled nitrogen).',
-    `cooling_method` STRING COMMENT 'Cooling method applied (e.g., convective, conductive, cryogenic, water-cooled chuck).',
-    `cooling_optimization_enabled_flag` BOOLEAN COMMENT 'Whether cooling optimization is enabled for this step/recipe.',
-    `cooling_optimization_mode` STRING COMMENT 'Cooling optimization option selected (e.g., energy_min, throughput_max, balanced).',
-    `cooling_process_flag` BOOLEAN COMMENT 'Indicates whether this step/recipe includes a cooling process stage.',
-    `cooling_ramp_rate_celsius_per_min` DECIMAL(18,2) COMMENT 'Controlled cooling ramp-down rate.',
-    `cooling_target_temperature_celsius` DECIMAL(18,2) COMMENT 'Target wafer/chamber temperature after cooling.',
+    `cool_optimization_mode` STRING COMMENT 'The cool optimization mode of the fabrication process flow record in the fabrication domain.',
+    `coolant_type` STRING COMMENT 'The coolant type for the fabrication process flow record.',
+    `cooling_method` STRING COMMENT 'The cooling method for fabrication process flow.',
+    `cooling_optimization_mode` STRING COMMENT 'The cooling optimization mode of the fabrication process flow record in the fabrication domain.',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this process flow record was first created in the system.',
     `fabrication_process_flow_description` STRING COMMENT 'Detailed textual description of the process flow including its purpose, key characteristics, and intended applications.',
     `effective_end_date` DATE COMMENT 'Date when this process flow is no longer valid for new wafer lot starts. Nullable for flows with indefinite validity.',
@@ -277,8 +225,8 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_proc
     `total_process_steps` STRING COMMENT 'Total number of discrete process steps defined in this flow spanning FEOL, MOL, and BEOL operations.',
     `transistor_architecture` STRING COMMENT 'Transistor device architecture employed in this process flow: planar MOSFET, FinFET (Fin Field-Effect Transistor), GAA (Gate All Around), or nanosheet.. Valid values are `planar|finfet|gaa|nanosheet`',
     `wafer_size_mm` STRING COMMENT 'Wafer diameter in millimeters that this process flow is designed for (e.g., 200mm, 300mm, 450mm).',
-    `waste_elimination_strategy` STRING COMMENT 'Waste elimination strategy (e.g., heat_recovery, coolant_reclaim, lean_idle_shutdown).',
-    `waste_heat_recovery_flag` BOOLEAN COMMENT 'Whether waste heat is recovered/reused.',
+    `waste_elimination_strategy` STRING COMMENT 'The waste elimination strategy of the fabrication process flow record in the fabrication domain.',
+    `waste_elimination_target_pct` DECIMAL(18,2) COMMENT 'The waste elimination target pct of the fabrication process flow record in the fabrication domain.',
     CONSTRAINT pk_fabrication_process_flow PRIMARY KEY(`fabrication_process_flow_id`)
 ) COMMENT 'Ordered sequence of process steps defining the complete manufacturing route for a product on a given technology node. Captures flow revision, node generation (e.g., 5nm, 7nm, 28nm), flow type (standard, MPW, engineering), effective dates, and approval status. SSOT for FAB routing and WIP scheduling. Aligned with SEMI E40 process management standard for flow-level routing definition.';
 
@@ -301,22 +249,11 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` (
     `at_step` BIGINT COMMENT 'FK to fabrication.process_step.process_step_id — Every lot move occurs at a specific process step. This links the transaction to the routing position.',
     `comments` STRING COMMENT 'Free-text comments or notes entered by the operator or engineer regarding this lot move. Captures contextual information, issues, or special handling instructions.',
     `control_job_code` STRING COMMENT 'Identifier for the MES (Manufacturing Execution System) control job that orchestrated this lot move. Links to the higher-level job or batch execution context in Camstar MES or SmartFactory MES.. Valid values are `^[A-Z0-9_-]{4,30}$`',
-    `coolant_flow_rate_lpm` DECIMAL(18,2) COMMENT 'Coolant flow rate observed.',
-    `coolant_reclaim_rate_percent` DECIMAL(18,2) COMMENT 'Coolant reclaim percentage.',
-    `coolant_waste_volume_liters` DECIMAL(18,2) COMMENT 'Coolant waste volume generated.',
-    `cooling_duration_seconds` DECIMAL(18,2) COMMENT 'Duration of cooling observed.',
-    `cooling_energy_consumption_kwh` DECIMAL(18,2) COMMENT 'Energy consumed by cooling.',
-    `cooling_method` STRING COMMENT 'Cooling method applied.',
-    `cooling_optimization_enabled_flag` BOOLEAN COMMENT 'Whether cooling optimization was active.',
-    `cooling_optimization_mode` STRING COMMENT 'Cooling optimization option in effect.',
-    `cooling_process_flag` BOOLEAN COMMENT 'Indicates whether a cooling process is associated.',
-    `cooling_ramp_rate_celsius_per_min` DECIMAL(18,2) COMMENT 'Measured cooling ramp-down rate.',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this lot move record was first created in the source system. Format: yyyy-MM-ddTHH:mm:ss.SSSXXX. Used for data lineage and audit trail.',
     `defect_count` STRING COMMENT 'Number of defects detected during or after this lot move, as reported by inline inspection or metrology systems. Used for yield analysis and SPC (Statistical Process Control).',
     `disposition` STRING COMMENT 'Quality disposition or pass/fail outcome of the lot move. Determines whether the lot proceeds to the next step, requires rework, is scrapped, or is placed on hold for further inspection.. Valid values are `pass|fail|rework|scrap|hold|conditional_pass`',
     `hold_reason_code` STRING COMMENT 'Code indicating the reason for a lot hold, if applicable (e.g., quality issue, equipment failure, engineering review, customer request). Empty if lot is not on hold.. Valid values are `^[A-Z0-9_]{2,10}$`',
     `last_modified_timestamp` TIMESTAMP COMMENT 'Timestamp when this lot move record was last updated in the source system. Format: yyyy-MM-ddTHH:mm:ss.SSSXXX. Used for change tracking and data synchronization.',
-    `measured_cooling_temperature_celsius` DECIMAL(18,2) COMMENT 'Measured temperature during/after cooling.',
     `measurement_unit` STRING COMMENT 'Unit of measure for the measurement_value field (e.g., nm (nanometers), um (micrometers), angstrom, ohm-cm (resistivity), percent, ppm (parts per million)).. Valid values are `nm|um|angstrom|ohm_cm|percent|ppm`',
     `measurement_value` DECIMAL(18,2) COMMENT 'Primary metrology measurement value captured during this lot move (e.g., film thickness, CD (Critical Dimension), overlay, resistivity). Unit of measure is context-dependent on the operation type.',
     `move_in_timestamp` TIMESTAMP COMMENT 'Timestamp when the lot was moved into the process step or equipment. Marks the start of processing for this operation. Format: yyyy-MM-ddTHH:mm:ss.SSSXXX.',
@@ -336,8 +273,6 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` (
     `technology_node` STRING COMMENT 'Process technology node for this lot (e.g., 5nm, 7nm, 14nm, 28nm, 180nm). Defines the minimum feature size and process generation.. Valid values are `^[0-9]{1,3}nm$|^[0-9]{1,3}um$`',
     `tracks_lot` BIGINT COMMENT 'FK to fabrication.wafer_lot.wafer_lot_id — Every lot move transaction must reference the lot being moved. Core MES transaction integrity — cannot track WIP without this FK.',
     `wafer_size_mm` STRING COMMENT 'Diameter of the wafers in this lot in millimeters (e.g., 200mm, 300mm, 450mm). Standard wafer size for the FAB (Fabrication Facility).',
-    `waste_elimination_strategy` STRING COMMENT 'Waste elimination strategy applied.',
-    `waste_heat_recovery_flag` BOOLEAN COMMENT 'Whether waste heat was recovered.',
     CONSTRAINT pk_lot_move PRIMARY KEY(`lot_move_id`)
 ) COMMENT 'Transactional record of each WIP lot movement through a process step in the FAB, capturing move-in timestamp, move-out timestamp, operator ID, equipment used, recipe executed, actual process parameters, pass/fail disposition, and quantity in/out. Core MES transaction sourced from Camstar MES and SmartFactory MES. Enables cycle time analysis and WIP genealogy.';
 
@@ -394,6 +329,7 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_
     `fab_facility_id` BIGINT COMMENT 'Reference to the fabrication facility where the hold event occurred.',
     `fab_tool_id` BIGINT COMMENT 'Reference to the equipment unit associated with the hold event, if applicable (e.g., tool that triggered the excursion).',
     `fabrication_process_step_id` BIGINT COMMENT 'Reference to the specific process step (FEOL, MOL, BEOL operation) where the lot was held.',
+    `inventory_lot_hold_id` BIGINT COMMENT 'add column inventory_lot_hold_id (BIGINT) with FK to inventory.inventory_lot_hold.inventory_lot_hold_id - establish clear SSOT relationship where inventory owns hold records',
     `primary_fabrication_employee_id` BIGINT COMMENT 'Employee or operator identifier who placed the hold on the lot.',
     `fabrication_wafer_lot_id` BIGINT COMMENT 'Reference to the wafer lot that is placed on hold.',
     `sku_id` BIGINT COMMENT 'Reference to the product (IC design, SoC, ASIC) being fabricated in the lot under hold.',
@@ -482,19 +418,8 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` (
     `ic_catalog_id` BIGINT COMMENT 'Reference to the product being manufactured. Links the run card to the specific Integrated Circuit (IC), System on Chip (SoC), or Application-Specific Integrated Circuit (ASIC) design.',
     `ic_design_project_id` BIGINT COMMENT 'Reference to the specific IC design project or tapeout that this run card supports. Links to the Register Transfer Level (RTL), Graphic Data System II (GDSII), and Process Design Kit (PDK) used.',
     `profit_center_id` BIGINT COMMENT 'Foreign key linking to finance.profit_center. Business justification: Profit center performance reporting includes fab run card production output and associated revenue.',
-    `purchase_order_id` BIGINT COMMENT 'Foreign key linking to supply.purchase_order. Business justification: Links Run Card to the purchase order of consumables, enabling run cost allocation and audit of material usage per lot.',
     `approved_timestamp` TIMESTAMP COMMENT 'Date and time when this run card was formally approved for manufacturing execution. Marks the transition from draft to approved status.',
     `completion_timestamp` TIMESTAMP COMMENT 'Date and time when the wafer lot completed all process steps defined in this run card. Marks the end of the fabrication cycle. Null if lot is still in process.',
-    `coolant_flow_rate_lpm` DECIMAL(18,2) COMMENT 'Coolant flow rate observed.',
-    `coolant_reclaim_rate_percent` DECIMAL(18,2) COMMENT 'Coolant reclaim percentage.',
-    `coolant_waste_volume_liters` DECIMAL(18,2) COMMENT 'Coolant waste volume generated.',
-    `cooling_duration_seconds` DECIMAL(18,2) COMMENT 'Duration of cooling observed.',
-    `cooling_energy_consumption_kwh` DECIMAL(18,2) COMMENT 'Energy consumed by cooling.',
-    `cooling_method` STRING COMMENT 'Cooling method applied.',
-    `cooling_optimization_enabled_flag` BOOLEAN COMMENT 'Whether cooling optimization was active.',
-    `cooling_optimization_mode` STRING COMMENT 'Cooling optimization option in effect.',
-    `cooling_process_flag` BOOLEAN COMMENT 'Indicates whether a cooling process is associated.',
-    `cooling_ramp_rate_celsius_per_min` DECIMAL(18,2) COMMENT 'Measured cooling ramp-down rate.',
     `created_timestamp` TIMESTAMP COMMENT 'Date and time when this run card record was first created in the Manufacturing Execution System (MES). Audit trail for record creation.',
     `cycle_time_days` DECIMAL(18,2) COMMENT 'Actual or planned cycle time for this run card from start to completion, measured in days. Key metric for manufacturing efficiency and Time to Market (TTM).',
     `deviation_description` STRING COMMENT 'Detailed description of any engineering deviations, process exceptions, or non-standard procedures authorized for this run card. Null if no deviations exist.',
@@ -505,7 +430,6 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` (
     `hold_reason` STRING COMMENT 'Explanation of why the run card is on hold, if applicable. May reference quality issues, engineering review, or customer requests. Null if no hold exists.',
     `itar_controlled` BOOLEAN COMMENT 'Boolean indicator of whether this run card is subject to International Traffic in Arms Regulations (ITAR) export control restrictions. True indicates ITAR-controlled technology.',
     `lot_disposition` STRING COMMENT 'Final disposition status of the wafer lot upon run card completion: pass (meets all specifications), fail (rejected), conditional (partial acceptance), quarantine (under review), or scrap (discarded).. Valid values are `pass|fail|conditional|quarantine|scrap`',
-    `measured_cooling_temperature_celsius` DECIMAL(18,2) COMMENT 'Measured temperature during/after cooling.',
     `modified_timestamp` TIMESTAMP COMMENT 'Date and time when this run card record was last modified. Audit trail for tracking changes to the run card throughout its lifecycle.',
     `notes` STRING COMMENT 'General notes, comments, or observations recorded during the execution of this run card. Captures operator feedback, process anomalies, or engineering observations.',
     `pcn_number` STRING COMMENT 'Product Change Notification (PCN) number if this run card implements a customer-notified product change. Ensures traceability to customer communications.',
@@ -525,16 +449,11 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` (
     `target_completion_date` DATE COMMENT 'Planned or committed completion date for this run card. Used for scheduling, capacity planning, and customer delivery commitments.',
     `wafer_quantity` STRING COMMENT 'Number of wafers in the lot governed by this run card. Tracks lot size for capacity planning and yield calculations.',
     `wafer_size_mm` STRING COMMENT 'Diameter of the silicon wafers in this lot, measured in millimeters (e.g., 200mm, 300mm, 450mm). Determines compatible equipment and handling procedures.',
-    `waste_elimination_strategy` STRING COMMENT 'Waste elimination strategy applied.',
-    `waste_heat_recovery_flag` BOOLEAN COMMENT 'Whether waste heat was recovered.',
     CONSTRAINT pk_fab_run_card PRIMARY KEY(`fab_run_card_id`)
 ) COMMENT 'Master traveler document associated with a wafer lot defining the approved process flow, special instructions, engineering deviations, customer-specific requirements, and step-level notes for a given lot run. Captures run card version, approval status, deviation flags, and associated engineering change orders. Sourced from Camstar MES and Oracle Agile PLM.';
 
 CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` (
     `equipment_run_id` BIGINT COMMENT 'Unique identifier for the equipment run. Primary key for this transactional record of a specific tool chamber run executed on a wafer lot or wafer set.',
-    `ar_invoice_id` BIGINT COMMENT 'Foreign key linking to invoice.ar_invoice. Business justification: Equipment Run Usage Billing links each equipment run to the customer invoice that captures per‑run usage fees.',
-    `cooling_optimization_run_id` BIGINT COMMENT 'Reference to the cooling optimization run associated with this equipment run',
-    `cooling_process_id` BIGINT COMMENT 'FK to the cooling process applied during this equipment run.',
     `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Equipment run cost accounting allocates depreciation and overhead to the cost center responsible for the run.',
     `employee_id` BIGINT COMMENT 'Identifier of the FAB operator who initiated or supervised this equipment run. Used for accountability and training tracking.',
     `fab_tool_id` BIGINT COMMENT 'Identifier of the fabrication equipment tool that executed this run. Links to the equipment master record.',
@@ -549,29 +468,12 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` (
     `actual_pressure_torr` DECIMAL(18,2) COMMENT 'Actual measured chamber pressure in Torr during the run. Used for process control and deviation analysis.',
     `actual_temperature_celsius` DECIMAL(18,2) COMMENT 'Actual measured process temperature in degrees Celsius during the run. Used for process control and deviation analysis.',
     `alarm_count` STRING COMMENT 'Number of equipment alarms triggered during this run. Indicator of process stability and equipment health.',
+    `chamber_cooling_temperature_celsius` DECIMAL(18,2) COMMENT 'The chamber cooling temperature celsius for the equipment run.',
     `cmp_removal_rate_angstrom_per_min` DECIMAL(18,2) COMMENT 'Material removal rate during CMP in Angstroms per minute. Critical parameter for planarization control and endpoint detection.',
     `cmp_slurry_type` STRING COMMENT 'Type of slurry used in CMP process (e.g., oxide slurry, tungsten slurry, copper slurry). Applicable only when process_type is CMP.',
     `cmp_wiwnu_percent` DECIMAL(18,2) COMMENT 'Within-wafer non-uniformity percentage for CMP process. Measures variation in material removal across the wafer surface. Lower values indicate better planarization quality.',
-    `cool_step_duration_seconds` STRING COMMENT 'Cooling step duration during the run.',
-    `cool_step_temperature_celsius` DECIMAL(18,2) COMMENT 'Cooling step achieved temperature.',
-    `cool_thermal_uniformity_percent` DECIMAL(18,2) COMMENT 'Thermal uniformity after cooling.',
-    `coolant_flow_rate_lpm` DECIMAL(18,2) COMMENT 'Coolant flow rate during the run.',
-    `coolant_recirculation_flag` BOOLEAN COMMENT 'Whether coolant is recirculated to reduce waste.',
-    `coolant_reclaim_rate_percent` DECIMAL(18,2) COMMENT 'Percentage of coolant reclaimed/recycled.',
-    `coolant_recycled_flag` BOOLEAN COMMENT 'Whether coolant was recycled (waste elimination).',
-    `coolant_waste_volume_liters` DECIMAL(18,2) COMMENT 'Volume of coolant waste generated.',
-    `cooldown_rate_celsius_per_min` DECIMAL(18,2) COMMENT 'Cooldown rate during the run.',
-    `cooling_duration_seconds` STRING COMMENT 'Duration of cooling phase in seconds during this equipment run.',
-    `cooling_energy_consumption_kwh` DECIMAL(18,2) COMMENT 'Energy used by cooling during the run.',
-    `cooling_energy_saving_pct` DECIMAL(18,2) COMMENT 'Cooling energy saving percentage',
-    `cooling_medium` STRING COMMENT 'Cooling medium used (e.g., DI water, helium backside, chilled nitrogen).',
-    `cooling_method` STRING COMMENT 'Cooling method applied (e.g., convective, conductive, cryogenic, water-cooled chuck).',
-    `cooling_optimization_enabled_flag` BOOLEAN COMMENT 'Flag indicating whether cooling optimization is enabled for this equipment run',
-    `cooling_optimization_mode` STRING COMMENT 'Cooling optimization option applied for this run.',
-    `cooling_process_flag` BOOLEAN COMMENT 'Indicates whether this step/recipe includes a cooling process stage.',
-    `cooling_ramp_rate_celsius_per_min` DECIMAL(18,2) COMMENT 'Controlled cooling ramp-down rate.',
-    `cooling_target_temperature_celsius` DECIMAL(18,2) COMMENT 'Target wafer/chamber temperature after cooling.',
-    `cooling_waste_eliminated_flag` BOOLEAN COMMENT 'Flag indicating whether cooling waste has been eliminated for this equipment run',
+    `coolant_flow_rate_lpm` DECIMAL(18,2) COMMENT 'Coolant flow rate, measured in liters per minute, recorded for the equipment run (coolant flow rate lpm).',
+    `cooling_rate_celsius_per_min` DOUBLE COMMENT 'The cooling rate celsius per min recorded for the equipment run.',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this equipment run record was first created in the data platform. Audit trail for data lineage.',
     `deposition_film_material` STRING COMMENT 'Material deposited during CVD, PVD, or ALD runs (e.g., SiO2, Si3N4, TiN, Tungsten, Copper). Applicable for deposition process types.',
     `deposition_rate_angstrom_per_min` DECIMAL(18,2) COMMENT 'Film deposition rate in Angstroms per minute. Used for process control and cycle time optimization.',
@@ -588,7 +490,6 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` (
     `lithography_overlay_x_nm` DECIMAL(18,2) COMMENT 'Measured overlay error in the X-axis direction in nanometers. Indicates alignment accuracy between successive lithography layers.',
     `lithography_overlay_y_nm` DECIMAL(18,2) COMMENT 'Measured overlay error in the Y-axis direction in nanometers. Indicates alignment accuracy between successive lithography layers.',
     `mes_transaction_code` STRING COMMENT 'Transaction identifier from the Manufacturing Execution System (MES) that recorded this equipment run. Provides traceability to the source system.',
-    `post_process_cooling_flag` BOOLEAN COMMENT 'Indicates whether post-process cooling was applied during this run.',
     `process_type` STRING COMMENT 'Discriminator identifying the category of fabrication process executed in this run. Determines which process-specific parameters are relevant. CVD=Chemical Vapor Deposition, PVD=Physical Vapor Deposition, ALD=Atomic Layer Deposition, CMP=Chemical Mechanical Planarization. [ENUM-REF-CANDIDATE: CVD|PVD|ALD|CMP|implant|etch|lithography|anneal|clean|wet_clean|diffusion|oxidation|metrology — 13 candidates stripped; promote to reference product]',
     `processes_lot` BIGINT COMMENT 'FK to fabrication.wafer_lot.wafer_lot_id — Equipment run must reference the lot/wafers being processed. Core traceability requirement for process parameter linkage to product.',
     `run_duration_seconds` DECIMAL(18,2) COMMENT 'Total duration of the equipment run in seconds, calculated from start to end timestamp. Used for cycle time analysis and equipment utilization metrics.',
@@ -603,11 +504,7 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` (
     `uses_recipe` BIGINT COMMENT 'FK to fabrication.process_recipe.process_recipe_id — Every equipment run executes a specific recipe. Required for recipe-to-outcome traceability and process capability analysis.',
     `wafer_count` STRING COMMENT 'Number of wafers processed in this equipment run. Batch size for the run.',
     `wafer_slot_map` STRING COMMENT 'Mapping of wafer identifiers to slot positions within the carrier or chamber. Structured representation of wafer placement during processing.',
-    `waste_elimination_strategy` STRING COMMENT 'Waste elimination strategy (e.g., heat_recovery, coolant_reclaim, lean_idle_shutdown).',
-    `waste_heat_recovered_flag` BOOLEAN COMMENT 'Whether waste heat was recovered.',
-    `waste_heat_recovered_kj` DECIMAL(18,2) COMMENT '',
-    `waste_heat_recovered_kwh` DECIMAL(18,2) COMMENT 'Waste heat recovered during the run.',
-    `waste_heat_recovery_flag` BOOLEAN COMMENT 'Whether waste heat is recovered/reused.',
+    `waste_heat_recovered_kwh` DOUBLE COMMENT 'The waste heat recovered kwh of the equipment run record in the fabrication domain.',
     CONSTRAINT pk_equipment_run PRIMARY KEY(`equipment_run_id`)
 ) COMMENT 'Transactional record of a specific equipment tool run (chamber run, process run) executed on a wafer lot or wafer set. Captures tool ID, chamber ID, run start/end timestamps, recipe name and version, process type discriminator (CVD, PVD, ALD, CMP, implant, etch, lithography, anneal, clean, wet clean), actual vs. target parameter deviations, run status, and wafers processed. Process-type-specific parameters stored as structured attributes: implant (species, dose, energy, tilt, twist, beam current), deposition (film material, thickness, rate, precursor flows, uniformity), CMP (slurry type, removal rate, WIWNU, endpoint detection), lithography (reticle ID, exposure dose, focus offset, overlay, CD measurement). Unified model aligned with SEMI E10/E142 equipment event patterns. SSOT for all FAB process execution records.';
 
@@ -666,7 +563,7 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_
     `ic_catalog_id` BIGINT COMMENT 'Identifier of the semiconductor product or design associated with the lot genealogy event. Links to the IC (Integrated Circuit) design or ASIC (Application-Specific Integrated Circuit) being fabricated.',
     `primary_fabrication_wafer_lot_id` BIGINT COMMENT 'Identifier of the parent wafer lot from which the child lot originated. References the source lot in split, merge, or rework operations.',
     `recipe_id` BIGINT COMMENT 'Identifier of the process recipe or procedure used during the genealogy event. Captures the specific process parameters and settings applied.',
-    `order_id` BIGINT COMMENT 'Identifier of the manufacturing work order authorizing the genealogy event. Links the lot transformation to production planning and scheduling systems.',
+    `inventory_lot_genealogy_id` BIGINT COMMENT 'add column inventory_lot_genealogy_id (BIGINT) with FK to inventory.inventory_lot_genealogy.inventory_lot_genealogy_id - establish clear SSOT relationship where inventory owns genealogy',
     `compliance_flag` BOOLEAN COMMENT 'Indicates whether the genealogy event was performed to meet regulatory or customer compliance requirements. True for ITAR, EAR, or customer-mandated lot segregation.',
     `created_timestamp` TIMESTAMP COMMENT 'Date and time when this genealogy record was first created in the system. Audit trail for record creation.',
     `destination_fab_line` STRING COMMENT 'Identifier of the FAB production line where the child lot was routed after the genealogy event. Tracks lot movement across production lines.',
@@ -693,6 +590,8 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_
 CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_technology_node` (
     `fabrication_technology_node_id` BIGINT COMMENT 'Unique identifier for the semiconductor technology node record. Primary key.',
     `fab_facility_id` BIGINT COMMENT 'Identifier of the primary fabrication facility where this technology node is manufactured. Links to the fab facility master data.',
+    `process_technology_node_id` BIGINT COMMENT 'Identifier for the process technology node id associated with the fabrication technology node record.',
+    `research_technology_node_id` BIGINT COMMENT 'Unique identifier for the research technology node record within the fabrication technology node fabrication entity.',
     `active_flag` BOOLEAN COMMENT 'Indicates whether this technology node record is currently active and available for use in manufacturing and design operations. False indicates archived or deprecated nodes.',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this technology node record was first created in the system. Audit trail for data lineage and compliance.',
     `design_rule_complexity` STRING COMMENT 'Complexity level of Design for Manufacturability (DFM) rules required for this node. Higher complexity nodes require more sophisticated Optical Proximity Correction (OPC) and restricted design rules.. Valid values are `low|medium|high|extreme`',
@@ -744,12 +643,10 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_yield_record
     `bin_1_die_count` STRING COMMENT 'Number of die classified into bin 1 (typically highest quality/performance bin). Part of bin-level yield breakdown.',
     `bin_2_die_count` STRING COMMENT 'Number of die classified into bin 2 (typically second-tier quality/performance bin). Part of bin-level yield breakdown.',
     `bin_3_die_count` STRING COMMENT 'Number of die classified into bin 3 (typically third-tier quality/performance bin). Part of bin-level yield breakdown.',
-    `bin_yield` STRING COMMENT 'Bin yield percentage',
     `checkpoint_code` STRING COMMENT 'The FAB inline checkpoint at which this yield measurement was captured. Distinguishes FEOL, MOL, BEOL, and pre-probe stages. [ENUM-REF-CANDIDATE: POST_FEOL|POST_MOL|POST_BEOL|PRE_PROBE|POST_CMP|POST_LITHO|POST_ETCH|POST_IMPLANT|INLINE_INSPECTION — 9 candidates stripped; promote to reference product]',
     `comments` STRING COMMENT 'Free-text comments or notes about this yield measurement, including observations, anomalies, or contextual information for root cause analysis.',
     `control_limit_lower` DECIMAL(18,2) COMMENT 'Lower control limit for yield percentage at this checkpoint. Part of Statistical Process Control (SPC) monitoring.',
     `control_limit_upper` DECIMAL(18,2) COMMENT 'Upper control limit for yield percentage at this checkpoint. Part of Statistical Process Control (SPC) monitoring.',
-    `defect_rate` DECIMAL(18,2) COMMENT 'Defect rate per wafer as a decimal ratio',
     `design_loss_die_count` STRING COMMENT 'Number of die lost due to design-related issues (DFM violations, timing failures, functional failures). Part of yield loss pareto analysis.',
     `disposition_status` STRING COMMENT 'The disposition decision for the wafer or lot based on this yield measurement. Determines next processing step or lot hold.. Valid values are `PASS|FAIL|HOLD|REWORK|SCRAP`',
     `excursion_severity_level` STRING COMMENT 'Severity classification of the yield excursion event. Determines escalation path and response urgency.. Valid values are `CRITICAL|MAJOR|MINOR|NONE`',
@@ -769,7 +666,6 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_yield_record
     `yield_excursion_flag` BOOLEAN COMMENT 'Boolean indicator that this yield record represents an excursion event (yield below control limits or specification). Triggers root cause analysis and corrective action.',
     `yield_for_lot` BIGINT COMMENT 'FK to fabrication.fabrication_wafer_lot.fabrication_wafer_lot_id — Yield records are captured at lot level at key FAB checkpoints.',
     `yield_percentage` DECIMAL(18,2) COMMENT 'Calculated yield percentage at this checkpoint (good_die_count / gross_die_count * 100). Primary yield metric for FAB inline performance tracking.',
-    `yield_rate` DECIMAL(18,2) COMMENT 'Yield rate as a decimal ratio',
     `yield_record_for_lot` BIGINT COMMENT 'FK to fabrication.wafer_lot.wafer_lot_id — Yield records reference the lot measured. Required for lot-level yield tracking and excursion detection.',
     CONSTRAINT pk_fab_yield_record PRIMARY KEY(`fab_yield_record_id`)
 ) COMMENT 'Transactional record capturing wafer-level and lot-level yield outcomes at key FAB inline checkpoints (post-FEOL, post-MOL, post-BEOL, pre-probe), recording gross die count, good die count, yield percentage, yield loss pareto by category (process, design, random defect, systematic), bin-level yield breakdown, and yield excursion flags. SSOT for FAB inline yield data distinct from final test yield (owned by test domain) and distinct from SPC/metrology analysis (owned by quality domain).';
@@ -777,7 +673,7 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_yield_record
 CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` (
     `mask_set_id` BIGINT COMMENT 'Primary key for mask_set',
     `derived_from_mask_set_id` BIGINT COMMENT 'Self-referencing FK on mask_set (derived_from_mask_set_id)',
-    `ic_design_project_id` BIGINT COMMENT 'P7: Add column ic_design_project_id (BIGINT) to design.mask_set with FK to design.ic_design_project.ic_design_project_id because mask sets are produced for a design project. P7: connect_table: design.mask_set** - add column ic_des',
+    `ic_design_project_id` BIGINT COMMENT 'FK to design.ic_design_project.ic_design_project_id',
     `application_area` STRING COMMENT 'Primary product domain where the mask set is applied.',
     `mask_set_category` STRING COMMENT 'Category indicating whether the mask set is a standard, custom, or prototype design.',
     `mask_set_code` STRING COMMENT 'External catalogue or part number assigned to the mask set by the fab.',
@@ -795,6 +691,7 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` (
     `mask_cost_usd` DECIMAL(18,2) COMMENT 'Acquisition cost of the mask set in US dollars.',
     `mask_layer_count` STRING COMMENT 'Number of patterned layers contained in the mask set.',
     `mask_material` STRING COMMENT 'Material composition of the mask (e.g., quartz, glass, silicon).',
+    `mask_set_status` STRING COMMENT 'Current lifecycle state of the mask set.',
     `mask_thickness_nm` DECIMAL(18,2) COMMENT 'Physical thickness of the mask substrate in nanometres.',
     `mask_type` STRING COMMENT 'Category of mask based on its physical principle.',
     `mask_set_name` STRING COMMENT 'Human‑readable name of the mask set used by engineers and planners.',
@@ -805,7 +702,6 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` (
     `revision_date` DATE COMMENT 'Date when the current revision of the mask set was released.',
     `revision_number` STRING COMMENT 'Sequential revision number for engineering changes to the mask set.',
     `safety_classification` STRING COMMENT 'Safety handling class for the mask set according to fab safety standards.',
-    `mask_set_status` STRING COMMENT 'Current lifecycle state of the mask set.',
     `storage_location` STRING COMMENT 'Physical storage location or vault identifier for the mask set.',
     `usage_count` BIGINT COMMENT 'Total number of wafer lots processed with this mask set.',
     `version` STRING COMMENT 'Alphanumeric version label for the mask set (e.g., V1.2).',
@@ -861,7 +757,7 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` (
 
 CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` (
     `work_center_id` BIGINT COMMENT 'Primary key for work_center',
-    `fab_facility_id` BIGINT COMMENT 'P11: Add column fab_facility_id (BIGINT) to fabrication.work_center with FK to fabrication.fab_facility.fab_facility_id because work centers operate within a fab facility. P11: connect_table: fabrication.work_center** - add column fab_facil',
+    `fab_facility_id` BIGINT COMMENT 'Unique identifier for the fab facility record within the work center fabrication entity.',
     `parent_work_center_id` BIGINT COMMENT 'Self-referencing FK on work_center (parent_work_center_id)',
     `area_sq_m` DECIMAL(18,2) COMMENT 'Floor area of the work center in square meters.',
     `capacity_wafers_per_hour` STRING COMMENT 'Maximum number of wafers the work center can process in one hour.',
@@ -891,16 +787,17 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` (
     `process_step` STRING COMMENT 'Manufacturing process step primarily performed at this work center.',
     `safety_rating` STRING COMMENT 'Safety classification of the work center based on internal risk assessments.',
     `shift_schedule` STRING COMMENT 'Standard shift pattern assigned to the work center.',
-    `work_center_status` STRING COMMENT 'Current operational state of the work center.',
     `temperature_c` DECIMAL(18,2) COMMENT 'Typical ambient temperature inside the work center.',
-    `work_center_type` STRING COMMENT 'Category of the work center based on the manufacturing process it supports.',
     `updated_timestamp` TIMESTAMP COMMENT 'Date and time of the most recent modification to the work center record.',
+    `work_center_status` STRING COMMENT 'Current operational state of the work center.',
+    `work_center_type` STRING COMMENT 'Category of the work center based on the manufacturing process it supports.',
     CONSTRAINT pk_work_center PRIMARY KEY(`work_center_id`)
 ) COMMENT 'Master reference table for work_center. Referenced by work_center_id.';
 
 CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` (
     `spc_control_plan_id` BIGINT COMMENT 'Primary key for spc_control_plan',
-    `fabrication_technology_node_id` BIGINT COMMENT 'Foreign key linking this SPC control plan to the fabrication technology node it applies to.',
+    `fabrication_technology_node_id` BIGINT COMMENT 'Reference to the fabrication technology node associated with this spc control plan record (fabrication technology node id).',
+    `process_spc_control_plan_id` BIGINT COMMENT 'Authoritative FK resolving SSOT duplicate ownership',
     `superseded_spc_control_plan_id` BIGINT COMMENT 'Self-referencing FK on spc_control_plan (superseded_spc_control_plan_id)',
     `approval_date` DATE COMMENT 'Date on which the control plan received formal approval.',
     `approved_by` STRING COMMENT 'Name of the engineer or manager who approved the control plan.',
@@ -914,6 +811,7 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan
     `is_critical` BOOLEAN COMMENT 'Indicates whether the control plan is considered critical for product quality.',
     `lower_spec_limit` DECIMAL(18,2) COMMENT 'Lower acceptable specification limit for the metric.',
     `measurement_unit` STRING COMMENT 'Unit of measure for the target metric and limits.',
+    `model_lineage_source` STRING COMMENT 'Indicates this product is a referrer in SSOT resolution; authoritative data lives in the owner product',
     `notes` STRING COMMENT 'Free‑form notes or comments related to the control plan.',
     `plan_code` STRING COMMENT 'Business identifier code for the control plan, used in manufacturing documentation and MES.',
     `plan_name` STRING COMMENT 'Human‑readable name of the control plan.',
@@ -931,32 +829,49 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan
     `version` STRING COMMENT 'Version identifier for the control plan, following the internal versioning scheme.',
     `created_by` STRING COMMENT 'User identifier who initially created the control plan record.',
     CONSTRAINT pk_spc_control_plan PRIMARY KEY(`spc_control_plan_id`)
-) COMMENT 'Master reference table for spc_control_plan. Referenced by spc_control_plan_id. References SSOT: process.spc_control_plan';
+) COMMENT 'Master reference table for spc_control_plan. Referenced by spc_control_plan_id.';
 
 CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` (
     `equipment_group_id` BIGINT COMMENT 'Primary key for equipment_group',
-    `fab_facility_id` BIGINT COMMENT 'P10: Add column fab_facility_id (BIGINT) to fabrication.equipment_group with FK to fabrication.fab_facility.fab_facility_id because equipment groups exist within a fab facility. P10: connect_table: fabrication.equipment_group** - add column',
+    `fab_facility_id` BIGINT COMMENT 'Unique identifier for the fab facility record within the equipment group fabrication entity.',
     `parent_equipment_group_id` BIGINT COMMENT 'Self-referencing FK on equipment_group (parent_equipment_group_id)',
     `parent_group_id` BIGINT COMMENT 'Identifier of the parent equipment group, if this group is part of a hierarchy.',
+    `capacity_wafers_per_hour` STRING COMMENT 'The capacity wafers per hour for the equipment group entity.',
     `equipment_group_code` STRING COMMENT 'Short alphanumeric code used to reference the equipment group in MES and ERP systems.',
     `compliance_status` STRING COMMENT 'Regulatory compliance status of the equipment group.',
     `cost_center_code` STRING COMMENT 'Internal cost‑center code associated with the equipment group for financial tracking.',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the equipment group record was first created in the system.',
     `default_capacity` STRING COMMENT 'Typical production capacity of the equipment group expressed in wafers per day.',
     `equipment_group_description` STRING COMMENT 'Free‑form description providing additional context about the equipment group.',
+    `effective_end_date` DATE COMMENT 'The effective end date for the equipment group record.',
     `effective_from` DATE COMMENT 'Date when the equipment group became operational.',
+    `effective_start_date` DATE COMMENT 'The effective start date associated with the equipment group fabrication record.',
     `effective_until` DATE COMMENT 'Date when the equipment group is scheduled to be decommissioned (null if open‑ended).',
+    `equipment_class` STRING COMMENT 'The equipment class of the equipment group record in the fabrication domain.',
+    `equipment_count` BIGINT COMMENT 'The equipment count of the equipment group record in the fabrication domain.',
+    `equipment_group_status` STRING COMMENT 'Current lifecycle state of the equipment group.',
     `fab_location` STRING COMMENT 'Identifier of the fab site or cleanroom where the equipment group is located.',
+    `group_code` STRING COMMENT 'Coded value representing the group code of the equipment group fabrication record.',
     `group_hierarchy_level` STRING COMMENT 'Numeric level indicating the position of the group within the equipment hierarchy.',
+    `group_name` STRING COMMENT 'The group name of the equipment group record in the fabrication domain.',
     `group_type` STRING COMMENT 'Category of the equipment group indicating its primary function within the fab.',
+    `is_active` BOOLEAN COMMENT 'The is active of the equipment group record in the fabrication domain.',
+    `last_modified_timestamp` TIMESTAMP COMMENT 'The last modified timestamp of the equipment group record in the fabrication domain.',
+    `location` STRING COMMENT 'The location of the equipment group record in the fabrication domain.',
+    `maintenance_strategy` STRING COMMENT 'The maintenance strategy of the equipment group record in the fabrication domain.',
     `maintenance_window` STRING COMMENT 'Preferred maintenance window for the equipment group.',
+    `manager_name` STRING COMMENT 'The manager name of the equipment group record in the fabrication domain.',
     `max_temperature_c` DECIMAL(18,2) COMMENT 'Maximum temperature at which the equipment group can safely operate.',
     `equipment_group_name` STRING COMMENT 'Human‑readable name of the equipment group.',
+    `notes` STRING COMMENT 'The notes of the equipment group record in the fabrication domain.',
+    `operational_status` STRING COMMENT 'The operational status of the equipment group record in the fabrication domain.',
+    `process_area` STRING COMMENT 'The process area of the equipment group record in the fabrication domain.',
     `process_technology` STRING COMMENT 'Process node (technology) supported by the equipment group.',
     `safety_class` STRING COMMENT 'Safety class assigned to the equipment group according to industry standards.',
-    `equipment_group_status` STRING COMMENT 'Current lifecycle state of the equipment group.',
+    `tool_count` STRING COMMENT 'The tool count of the equipment group record in the fabrication domain.',
     `updated_by` STRING COMMENT 'User identifier of the person who last modified the equipment group record.',
     `updated_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent update to the equipment group record.',
+    `utilization_target_percent` DECIMAL(18,2) COMMENT 'The utilization target percent of the equipment group record in the fabrication domain.',
     `voltage_rating_v` DECIMAL(18,2) COMMENT 'Nominal voltage rating for the equipment group.',
     `created_by` STRING COMMENT 'User identifier of the person who created the equipment group record.',
     CONSTRAINT pk_equipment_group PRIMARY KEY(`equipment_group_id`)
@@ -964,34 +879,44 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group`
 
 CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` (
     `fabrication_fab_id` BIGINT COMMENT 'Primary key for fab',
+    `fab_facility_id` BIGINT COMMENT 'Unique identifier for the fab facility record within the fabrication fab fabrication entity.',
     `fab_site_id` BIGINT COMMENT 'Foreign key linking to fabrication.fab_site. Business justification: Each fab belongs to a fab site; adding fab_site_id FK to fab links fab to its site and resolves fab_site isolation.',
+    `capacity_wafer_per_month` BIGINT COMMENT 'The capacity wafer per month of the fabrication fab record in the fabrication domain.',
     `capacity_wafers_per_month` STRING COMMENT 'Maximum number of wafers the fab can process in a month.',
+    `capacity_wspm` BIGINT COMMENT 'The capacity wspm of the fabrication fab record in the fabrication domain.',
     `cleanroom_class` STRING COMMENT 'Cleanroom class rating of the fab environment.',
     `compliance_status` STRING COMMENT 'Current compliance standing with industry regulations.',
     `contact_email` STRING COMMENT 'Primary email address for fab communications.',
     `contact_phone` STRING COMMENT 'Primary telephone number for the fab.',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the fab record was first created.',
-    `fabrication_fab_description` STRING COMMENT 'Free‑form textual description of the fab.',
     `end_date` DATE COMMENT 'Date when the fab ceased operations (null if still active).',
     `environmental_certification` STRING COMMENT 'Environmental management certification held by the fab.',
-    `fab_region` STRING COMMENT 'Broad geographic region where the fab is located.',
+    `fab_code` STRING COMMENT 'Business‑assigned unique code for the fab.',
+    `fab_description` STRING COMMENT 'Free‑form textual description of the fab.',
+    `fab_name` STRING COMMENT 'Human‑readable name of the fab.',
+    `fab_status` STRING COMMENT 'Current operational status of the fab.',
     `fab_type` STRING COMMENT 'Classification of the fab based on process focus.',
     `last_maintenance_date` DATE COMMENT 'Date of the most recent maintenance activity.',
+    `last_modified_timestamp` TIMESTAMP COMMENT 'The last modified timestamp of the fabrication fab record in the fabrication domain.',
+    `location` STRING COMMENT 'The location of the fabrication fab record in the fabrication domain.',
     `location_city` STRING COMMENT 'City where the fab is situated.',
     `location_country` STRING COMMENT 'Three‑letter ISO country code where the fab resides.',
     `location_state` STRING COMMENT 'State or province of the fab location.',
     `manager_name` STRING COMMENT 'Name of the manager overseeing the fab.',
-    `fabrication_fab_name` STRING COMMENT 'Human‑readable name of the fab.',
     `next_scheduled_maintenance` DATE COMMENT 'Planned date for the next maintenance event.',
+    `notes` STRING COMMENT 'The notes of the fabrication fab record in the fabrication domain.',
     `number_of_cleanrooms` STRING COMMENT 'Total count of cleanrooms within the fab.',
+    `operational_status` STRING COMMENT 'The operational status of the fabrication fab record in the fabrication domain.',
     `owner_department` STRING COMMENT 'Internal department responsible for the fab.',
     `power_capacity_mw` DECIMAL(18,2) COMMENT 'Maximum electrical power capacity of the fab in megawatts.',
+    `region` STRING COMMENT 'Broad geographic region where the fab is located.',
     `safety_incident_count` STRING COMMENT 'Cumulative number of safety incidents recorded at the fab.',
     `start_date` DATE COMMENT 'Date when the fab began operations.',
-    `fabrication_fab_status` STRING COMMENT 'Current operational status of the fab.',
+    `technology_node` STRING COMMENT 'The technology node of the fabrication fab record in the fabrication domain.',
     `technology_node_nm` DECIMAL(18,2) COMMENT 'Minimum feature size of the process technology in nanometers.',
     `total_area_sq_m` DECIMAL(18,2) COMMENT 'Overall floor area of the fab in square meters.',
     `updated_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent update to the fab record.',
+    `wafer_size_mm` STRING COMMENT 'The wafer size mm of the fabrication fab record in the fabrication domain.',
     `waste_treatment_capacity_kg_per_day` DECIMAL(18,2) COMMENT 'Maximum waste treatment capacity per day in kilograms.',
     `water_usage_cubic_m_per_day` DECIMAL(18,2) COMMENT 'Average water consumption per day in cubic meters.',
     CONSTRAINT pk_fabrication_fab PRIMARY KEY(`fabrication_fab_id`)
@@ -1000,7 +925,9 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab`
 CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` (
     `reticle_set_id` BIGINT COMMENT 'Primary key for reticle_set',
     `derived_from_reticle_set_id` BIGINT COMMENT 'Self-referencing FK on reticle_set (derived_from_reticle_set_id)',
-    `fabrication_technology_node_id` BIGINT COMMENT 'P8: Add column fabrication_technology_node_id (BIGINT) to fabrication.reticle_set with FK to fabrication.fabrication_technology_node.fabrication_technology_node_id. P8: connect_table: fabrication.reticle_set** - add column fabrication_techn',
+    `fabrication_technology_node_id` BIGINT COMMENT 'Unique identifier for the fabrication technology node record within the reticle set fabrication entity.',
+    `ic_design_project_id` BIGINT COMMENT 'Unique identifier for the ic design project record within the reticle set fabrication entity.',
+    `mask_set_id` BIGINT COMMENT 'Unique identifier for the mask set record within the reticle set fabrication entity.',
     `calibration_date` DATE COMMENT 'Date of the most recent calibration of the reticle set.',
     `reticle_set_code` STRING COMMENT 'Business identifier or part number assigned to the reticle set.',
     `compliance_standard` STRING COMMENT 'Regulatory or industry standard the reticle set complies with.',
@@ -1013,11 +940,17 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` (
     `expected_lifetime_cycles` BIGINT COMMENT 'Projected number of exposure cycles before retirement.',
     `exposure_tool` STRING COMMENT 'Name or identifier of the exposure tool compatible with the reticle set.',
     `fab_location` STRING COMMENT 'Fabrication plant or line where the reticle set is stored/used.',
+    `field_size_mm` DOUBLE COMMENT 'The field size mm of the reticle set record in the fabrication domain.',
+    `field_size_x_mm` DECIMAL(18,2) COMMENT 'The field size x mm of the reticle set record in the fabrication domain.',
+    `field_size_y_mm` DECIMAL(18,2) COMMENT 'The field size y mm of the reticle set record in the fabrication domain.',
     `is_critical` BOOLEAN COMMENT 'Indicates whether the reticle set is critical for high‑volume production.',
     `is_licensed` BOOLEAN COMMENT 'True if the reticle set is covered by a licensing agreement.',
+    `last_modified_timestamp` TIMESTAMP COMMENT 'The last modified timestamp of the reticle set record in the fabrication domain.',
     `last_used_timestamp` TIMESTAMP COMMENT 'Date‑time when the reticle set was last used.',
+    `lithography_technology` STRING COMMENT 'The lithography technology of the reticle set record in the fabrication domain.',
     `lithography_type` STRING COMMENT 'Lithography technology used with the reticle set.',
     `lot_number` STRING COMMENT 'Manufacturing lot identifier for traceability.',
+    `magnification_factor` DOUBLE COMMENT 'The magnification factor of the reticle set record in the fabrication domain.',
     `maintenance_status` STRING COMMENT 'Current maintenance state of the reticle set.',
     `material` STRING COMMENT 'Base material of the reticle substrate.',
     `reticle_set_name` STRING COMMENT 'Human‑readable name identifying the reticle set.',
@@ -1025,15 +958,18 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` (
     `number_of_reticles` STRING COMMENT 'Count of individual reticles contained in the set.',
     `qualification_date` DATE COMMENT 'Date when qualification was performed.',
     `qualification_status` STRING COMMENT 'Qualification outcome for the reticle set.',
+    `reduction_ratio` STRING COMMENT 'The reduction ratio of the reticle set record in the fabrication domain.',
+    `reticle_count` STRING COMMENT 'The reticle count of the reticle set record in the fabrication domain.',
+    `reticle_set_status` STRING COMMENT 'Current lifecycle status of the reticle set.',
+    `reticle_set_type` STRING COMMENT 'Category of the set (e.g., mask, reticle, blank, dummy).',
     `retire_date` DATE COMMENT 'Date the reticle set was retired from service.',
     `retire_reason` STRING COMMENT 'Reason for retiring the reticle set (e.g., wear, obsolescence).',
     `revision` STRING COMMENT 'Version or revision code of the reticle set design.',
     `safety_classification` STRING COMMENT 'Safety class based on material and handling requirements.',
-    `reticle_set_status` STRING COMMENT 'Current lifecycle status of the reticle set.',
     `storage_humidity_percent` DECIMAL(18,2) COMMENT 'Controlled storage humidity level for the reticle set.',
+    `storage_location` STRING COMMENT 'The storage location of the reticle set record in the fabrication domain.',
     `storage_temperature_c` DECIMAL(18,2) COMMENT 'Controlled storage temperature for the reticle set.',
     `total_area_mm2` DECIMAL(18,2) COMMENT 'Combined active area of all reticles in square millimetres.',
-    `reticle_set_type` STRING COMMENT 'Category of the set (e.g., mask, reticle, blank, dummy).',
     `updated_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent update to the reticle set record.',
     `usage_count` BIGINT COMMENT 'Number of times the reticle set has been used in production.',
     `vendor` STRING COMMENT 'Supplier of the reticle set.',
@@ -1044,6 +980,7 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` (
 
 CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` (
     `plant_id` BIGINT COMMENT 'Primary key for plant',
+    `fab_facility_id` BIGINT COMMENT 'Unique identifier for the fab facility record within the plant fabrication entity.',
     `parent_plant_id` BIGINT COMMENT 'Self-referencing FK on plant (parent_plant_id)',
     `site_id` BIGINT COMMENT 'Identifier used by external systems (e.g., MES) to reference the plant.',
     `address_line1` STRING COMMENT 'Primary street address of the plant.',
@@ -1054,11 +991,13 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` (
     `plant_code` STRING COMMENT 'External business code assigned to the plant, often used in ERP and MES systems.',
     `compliance_certifications` STRING COMMENT 'List of key compliance certifications held by the plant.',
     `country` STRING COMMENT 'Three‑letter ISO country code of the plant.',
+    `country_code` STRING COMMENT 'Coded value representing the country code of the plant fabrication record.',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the plant record was first created in the data lake.',
     `data_classification` STRING COMMENT 'Classification level for data governance purposes.',
     `plant_description` STRING COMMENT 'Free‑form textual description of the plants capabilities and purpose.',
     `environmental_rating` STRING COMMENT 'Environmental performance rating of the plant.',
     `last_maintenance_date` DATE COMMENT 'Most recent date on which major maintenance was performed.',
+    `last_modified_timestamp` TIMESTAMP COMMENT 'The last modified timestamp of the plant record in the fabrication domain.',
     `latitude` DOUBLE COMMENT 'Geographic latitude of the plant location.',
     `longitude` DOUBLE COMMENT 'Geographic longitude of the plant location.',
     `maintenance_cycle_days` STRING COMMENT 'Planned interval in days between routine maintenance activities.',
@@ -1066,18 +1005,20 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` (
     `manager_name` STRING COMMENT 'Full name of the plant manager.',
     `manager_phone` STRING COMMENT 'Contact phone number for the plant manager.',
     `plant_name` STRING COMMENT 'Human‑readable name of the plant used in reports and dashboards.',
+    `notes` STRING COMMENT 'The notes of the plant record in the fabrication domain.',
     `number_of_cleanrooms` STRING COMMENT 'Total number of cleanroom suites in the plant.',
     `number_of_fabs` STRING COMMENT 'Count of distinct fabrication lines within the plant.',
     `operational_shift` STRING COMMENT 'Number of production shifts run per day.',
+    `operational_status` STRING COMMENT 'The operational status of the plant record in the fabrication domain.',
     `owner_department` STRING COMMENT 'Internal department responsible for the plants overall governance.',
+    `plant_status` STRING COMMENT 'Current operational state of the plant within its lifecycle.',
+    `plant_type` STRING COMMENT 'Category of the plant based on its primary manufacturing function.',
     `power_capacity_mw` DECIMAL(18,2) COMMENT 'Maximum electrical power capacity of the plant in megawatts.',
     `region` STRING COMMENT 'Broad business region where the plant is located.',
     `security_level` STRING COMMENT 'Security classification of the plant based on risk and access controls.',
     `shutdown_date` DATE COMMENT 'Date when the plant was permanently closed or decommissioned, if applicable.',
     `start_date` DATE COMMENT 'Date when the plant began operations.',
     `state` STRING COMMENT 'State or province of the plant location.',
-    `plant_status` STRING COMMENT 'Current operational state of the plant within its lifecycle.',
-    `plant_type` STRING COMMENT 'Category of the plant based on its primary manufacturing function.',
     `updated_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent update to the plant record.',
     `waste_treatment_capacity_tons_per_day` DECIMAL(18,2) COMMENT 'Maximum daily waste treatment capacity in metric tons.',
     `water_usage_m3_per_day` DECIMAL(18,2) COMMENT 'Average daily water consumption of the plant.',
@@ -1087,6 +1028,7 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` (
 
 CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` (
     `fab_site_id` BIGINT COMMENT 'Primary key for fab_site',
+    `fab_facility_id` BIGINT COMMENT 'Unique identifier for the fab facility record within the fab site fabrication entity.',
     `parent_fab_site_id` BIGINT COMMENT 'Self-referencing FK on fab_site (parent_fab_site_id)',
     `plant_id` BIGINT COMMENT 'Foreign key linking to fabrication.plant. Business justification: Fab site is part of a plant; adding plant_id FK to fab_site establishes hierarchy and connects plant.',
     `address_line1` STRING COMMENT 'Primary street address of the fab site.',
@@ -1095,13 +1037,16 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` (
     `capacity_wafer_per_month` STRING COMMENT 'Maximum number of wafers the site can process each month.',
     `city` STRING COMMENT 'City where the fab site is located.',
     `country` STRING COMMENT 'Three‑letter ISO country code of the fab site.',
+    `country_code` STRING COMMENT 'Coded value representing the country code of the fab site fabrication record.',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the record was first created.',
     `fab_site_description` STRING COMMENT 'Free‑form description of the fab site.',
     `end_date` DATE COMMENT 'Date when the site was decommissioned or closed (nullable).',
     `environmental_certification` STRING COMMENT 'Environmental compliance certifications held by the site.',
+    `fab_site_status` STRING COMMENT 'Current lifecycle status of the site.',
     `ghs_compliance` STRING COMMENT 'Globally Harmonized System chemical safety compliance.',
     `is_primary_site` BOOLEAN COMMENT 'Indicates whether this site is the primary manufacturing location for the company.',
     `last_audit_date` DATE COMMENT 'Date of the most recent compliance audit.',
+    `last_modified_timestamp` TIMESTAMP COMMENT 'The last modified timestamp of the fab site record in the fabrication domain.',
     `latitude` DOUBLE COMMENT 'Geographic latitude of the fab site.',
     `longitude` DOUBLE COMMENT 'Geographic longitude of the fab site.',
     `maintenance_window_start` STRING COMMENT 'Daily start time for scheduled maintenance (HH:mm, 24‑hour).',
@@ -1115,6 +1060,7 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` (
     `number_of_employees` STRING COMMENT 'Headcount of staff assigned to the site.',
     `number_of_tools` STRING COMMENT 'Total count of lithography, etch, deposition, and other equipment.',
     `operational_hours_per_day` STRING COMMENT 'Standard number of production hours each day.',
+    `operational_status` STRING COMMENT 'The operational status of the fab site record in the fabrication domain.',
     `owner_department` STRING COMMENT 'Internal department responsible for the site.',
     `postal_code` STRING COMMENT 'Postal/ZIP code for the fab site address.',
     `power_capacity_mw` DECIMAL(18,2) COMMENT 'Maximum electrical power available to the site in megawatts.',
@@ -1123,10 +1069,11 @@ CREATE OR REPLACE TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` (
     `security_level` STRING COMMENT 'Physical and logical security classification of the site.',
     `site_area_sq_m` DECIMAL(18,2) COMMENT 'Total built‑up area of the fab site in square meters.',
     `site_code` STRING COMMENT 'Business code used to reference the fab site in external systems.',
+    `site_name` STRING COMMENT 'The site name of the fab site record in the fabrication domain.',
     `site_type` STRING COMMENT 'Category of the site (e.g., fab, test, R&D, assembly).',
     `start_date` DATE COMMENT 'Date when the fab site became operational.',
     `state` STRING COMMENT 'State or province of the fab site location.',
-    `fab_site_status` STRING COMMENT 'Current lifecycle status of the site.',
+    `state_province` STRING COMMENT 'The state province of the fab site record in the fabrication domain.',
     `updated_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent update to the record.',
     `waste_treatment_capacity_tons_per_day` DECIMAL(18,2) COMMENT 'Maximum waste treatment throughput per day.',
     `water_capacity_m3_per_day` DECIMAL(18,2) COMMENT 'Daily water supply capacity for the fab site.',
@@ -1189,10 +1136,14 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ADD CONSTR
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ADD CONSTRAINT `fk_fabrication_equipment_group_fab_facility_id` FOREIGN KEY (`fab_facility_id`) REFERENCES `vibe_semiconductors_v1`.`fabrication`.`fab_facility`(`fab_facility_id`);
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ADD CONSTRAINT `fk_fabrication_equipment_group_parent_equipment_group_id` FOREIGN KEY (`parent_equipment_group_id`) REFERENCES `vibe_semiconductors_v1`.`fabrication`.`equipment_group`(`equipment_group_id`);
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ADD CONSTRAINT `fk_fabrication_equipment_group_parent_group_id` FOREIGN KEY (`parent_group_id`) REFERENCES `vibe_semiconductors_v1`.`fabrication`.`equipment_group`(`equipment_group_id`);
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ADD CONSTRAINT `fk_fabrication_fabrication_fab_fab_facility_id` FOREIGN KEY (`fab_facility_id`) REFERENCES `vibe_semiconductors_v1`.`fabrication`.`fab_facility`(`fab_facility_id`);
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ADD CONSTRAINT `fk_fabrication_fabrication_fab_fab_site_id` FOREIGN KEY (`fab_site_id`) REFERENCES `vibe_semiconductors_v1`.`fabrication`.`fab_site`(`fab_site_id`);
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ADD CONSTRAINT `fk_fabrication_reticle_set_derived_from_reticle_set_id` FOREIGN KEY (`derived_from_reticle_set_id`) REFERENCES `vibe_semiconductors_v1`.`fabrication`.`reticle_set`(`reticle_set_id`);
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ADD CONSTRAINT `fk_fabrication_reticle_set_fabrication_technology_node_id` FOREIGN KEY (`fabrication_technology_node_id`) REFERENCES `vibe_semiconductors_v1`.`fabrication`.`fabrication_technology_node`(`fabrication_technology_node_id`);
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ADD CONSTRAINT `fk_fabrication_reticle_set_mask_set_id` FOREIGN KEY (`mask_set_id`) REFERENCES `vibe_semiconductors_v1`.`fabrication`.`mask_set`(`mask_set_id`);
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ADD CONSTRAINT `fk_fabrication_plant_fab_facility_id` FOREIGN KEY (`fab_facility_id`) REFERENCES `vibe_semiconductors_v1`.`fabrication`.`fab_facility`(`fab_facility_id`);
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ADD CONSTRAINT `fk_fabrication_plant_parent_plant_id` FOREIGN KEY (`parent_plant_id`) REFERENCES `vibe_semiconductors_v1`.`fabrication`.`plant`(`plant_id`);
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ADD CONSTRAINT `fk_fabrication_fab_site_fab_facility_id` FOREIGN KEY (`fab_facility_id`) REFERENCES `vibe_semiconductors_v1`.`fabrication`.`fab_facility`(`fab_facility_id`);
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ADD CONSTRAINT `fk_fabrication_fab_site_parent_fab_site_id` FOREIGN KEY (`parent_fab_site_id`) REFERENCES `vibe_semiconductors_v1`.`fabrication`.`fab_site`(`fab_site_id`);
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ADD CONSTRAINT `fk_fabrication_fab_site_plant_id` FOREIGN KEY (`plant_id`) REFERENCES `vibe_semiconductors_v1`.`fabrication`.`plant`(`plant_id`);
 
@@ -1201,26 +1152,17 @@ ALTER SCHEMA `vibe_semiconductors_v1`.`fabrication` SET TAGS ('dbx_division' = '
 ALTER SCHEMA `vibe_semiconductors_v1`.`fabrication` SET TAGS ('dbx_domain' = 'fabrication');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` SET TAGS ('dbx_data_type' = 'master_data');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` SET TAGS ('dbx_subdomain' = 'lot_management');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` SET TAGS ('dbx_domain_verified' = 'fabrication');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` SET TAGS ('dbx_ssot_for' = 'inventory.inventory_wafer_lot');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` SET TAGS ('dbx_ssot_owner' = 'true');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` SET TAGS ('dbx_ssot' = 'true');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` SET TAGS ('dbx_ssot_authoritative' = 'true');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` SET TAGS ('dbx_ssot_owner' = 'wafer_lot');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` ALTER COLUMN `fabrication_wafer_lot_id` SET TAGS ('dbx_business_glossary_term' = 'Fabrication Wafer Lot Identifier (ID)');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Account Id (Foreign Key)');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` ALTER COLUMN `customer_design_win_id` SET TAGS ('dbx_business_glossary_term' = 'Customer Design Win Id (Foreign Key)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` ALTER COLUMN `fabrication_process_flow_id` SET TAGS ('dbx_business_glossary_term' = 'Route Identifier (ID)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` ALTER COLUMN `fabrication_technology_node_id` SET TAGS ('dbx_business_glossary_term' = 'Technology Node Id (Foreign Key)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` ALTER COLUMN `ic_catalog_id` SET TAGS ('dbx_business_glossary_term' = 'Ic Catalog Id (Foreign Key)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` ALTER COLUMN `ic_design_project_id` SET TAGS ('dbx_business_glossary_term' = 'Ic Design Project Id (Foreign Key)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` ALTER COLUMN `parent_lot_fabrication_wafer_lot_id` SET TAGS ('dbx_business_glossary_term' = 'Parent Lot Identifier (ID)');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` ALTER COLUMN `quote_id` SET TAGS ('dbx_business_glossary_term' = 'Quote Id (Foreign Key)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` ALTER COLUMN `actual_completion_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Actual Completion Timestamp');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` ALTER COLUMN `current_operation_name` SET TAGS ('dbx_business_glossary_term' = 'Current Operation Name');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` ALTER COLUMN `current_operation_name` SET TAGS ('dbx_denorm_natural_key_addressed' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` ALTER COLUMN `current_operation_number` SET TAGS ('dbx_business_glossary_term' = 'Current Operation Number');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` ALTER COLUMN `current_operation_number` SET TAGS ('dbx_value_regex' = '^[0-9]{4,6}$');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` ALTER COLUMN `current_operation_number` SET TAGS ('dbx_denorm_natural_key_addressed' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` ALTER COLUMN `current_process_area` SET TAGS ('dbx_business_glossary_term' = 'Current Process Area');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` ALTER COLUMN `current_process_area` SET TAGS ('dbx_value_regex' = 'feol|mol|beol|metrology|test');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` ALTER COLUMN `cycle_time_days` SET TAGS ('dbx_business_glossary_term' = 'Cycle Time (Days)');
@@ -1267,7 +1209,6 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` ALTER
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot` ALTER COLUMN `wip_status` SET TAGS ('dbx_value_regex' = 'queued|in_process|on_hold|completed|scrapped|shipped');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`wafer` SET TAGS ('dbx_data_type' = 'master_data');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`wafer` SET TAGS ('dbx_subdomain' = 'lot_management');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`wafer` SET TAGS ('dbx_domain_verified' = 'fabrication');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`wafer` ALTER COLUMN `wafer_id` SET TAGS ('dbx_business_glossary_term' = 'Wafer Identifier (ID)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`wafer` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Customer Identifier (ID)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`wafer` ALTER COLUMN `fab_facility_id` SET TAGS ('dbx_business_glossary_term' = 'FAB (Fabrication Facility) Identifier (ID)');
@@ -1318,34 +1259,17 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`wafer` ALTER COLUMN `wafer_n
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`wafer` ALTER COLUMN `wafer_number` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{1,20}$');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` SET TAGS ('dbx_data_type' = 'master_data');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` SET TAGS ('dbx_subdomain' = 'process_engineering');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` SET TAGS ('dbx_domain_verified' = 'fabrication');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` SET TAGS ('dbx_ssot_for' = 'equipment.equipment_process_recipe');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` SET TAGS ('dbx_ssot_owner' = 'true');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` SET TAGS ('dbx_ssot' = 'true');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` SET TAGS ('dbx_ssot_owner' = 'process_recipe');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` SET TAGS ('dbx_ssot_authoritative' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `fabrication_process_recipe_id` SET TAGS ('dbx_business_glossary_term' = 'Fabrication Process Recipe Identifier (ID)');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `equipment_process_recipe_id` SET TAGS ('dbx_business_glossary_term' = 'Equipment Process Recipe Id');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `pdk_id` SET TAGS ('dbx_business_glossary_term' = 'Pdk Id (Foreign Key)');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `equipment_process_recipe_id` SET TAGS ('dbx_ssot' = 'true');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `equipment_process_recipe_id` SET TAGS ('dbx_canonical_ref' = 'true');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `equipment_process_recipe_id` SET TAGS ('dbx_ssot_consolidated' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `approval_status` SET TAGS ('dbx_business_glossary_term' = 'Approval Status');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `approval_status` SET TAGS ('dbx_value_regex' = 'pending|approved|rejected');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Approved By');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `approved_by` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `chamber_configuration` SET TAGS ('dbx_business_glossary_term' = 'Chamber Configuration');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `change_control_reference` SET TAGS ('dbx_business_glossary_term' = 'Change Control Reference');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `coolant_flow_rate_lpm` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `coolant_recirculation_flag` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `coolant_reclaim_rate_percent` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `coolant_waste_volume_liters` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `cooling_duration_seconds` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `cooling_energy_consumption_kwh` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `cooling_medium` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `cooling_optimization_enabled_flag` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `cooling_process_flag` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `cooling_ramp_rate_celsius_per_min` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `cooling_target_temperature_celsius` SET TAGS ('dbx_topic' = 'cooling_process');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `defect_density_target_per_cm2` SET TAGS ('dbx_business_glossary_term' = 'Defect Density Target (Per Square Centimeter)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `effective_end_date` SET TAGS ('dbx_business_glossary_term' = 'Effective End Date');
@@ -1382,12 +1306,9 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` 
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `target_material` SET TAGS ('dbx_business_glossary_term' = 'Target Material');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `target_thickness_nm` SET TAGS ('dbx_business_glossary_term' = 'Target Thickness (Nanometers)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `uniformity_target_percent` SET TAGS ('dbx_business_glossary_term' = 'Uniformity Target (Percent)');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `waste_elimination_strategy` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `waste_heat_recovery_flag` SET TAGS ('dbx_topic' = 'cooling_process');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe` ALTER COLUMN `yield_target_percent` SET TAGS ('dbx_business_glossary_term' = 'Yield Target (Percent)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` SET TAGS ('dbx_data_type' = 'master_data');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` SET TAGS ('dbx_subdomain' = 'process_engineering');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` SET TAGS ('dbx_domain_verified' = 'fabrication');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `fabrication_process_step_id` SET TAGS ('dbx_business_glossary_term' = 'Process Step Identifier (ID)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `equipment_group_id` SET TAGS ('dbx_business_glossary_term' = 'Equipment Group Identifier (ID)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `fabrication_process_flow_id` SET TAGS ('dbx_business_glossary_term' = 'Process Flow Identifier (ID)');
@@ -1396,29 +1317,14 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` AL
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `rework_target_step_id` SET TAGS ('dbx_business_glossary_term' = 'Rework Target Step Identifier (ID)');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `rework_target_step_id` SET TAGS ('dbx_renamed_from' = 'rework_target_step_id');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `spc_control_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Statistical Process Control (SPC) Control Plan Identifier (ID)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `approval_status` SET TAGS ('dbx_business_glossary_term' = 'Approval Status');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `approval_status` SET TAGS ('dbx_value_regex' = 'draft|submitted|approved|rejected');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Approved By');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `approved_by` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `batch_size` SET TAGS ('dbx_business_glossary_term' = 'Batch Size');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `change_control_number` SET TAGS ('dbx_business_glossary_term' = 'Change Control Number');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `coolant_flow_rate_lpm` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `coolant_recirculation_flag` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `coolant_reclaim_rate_percent` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `coolant_waste_volume_liters` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `cooling_condition_reference` SET TAGS ('dbx_business_glossary_term' = 'Cooling Condition Reference');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `cooling_duration_seconds` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `cooling_energy_consumption_kwh` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `cooling_medium` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `cooling_method` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `cooling_optimization_enabled_flag` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `cooling_optimization_mode` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `cooling_process_flag` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `cooling_ramp_rate_celsius_per_min` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `cooling_required_flag` SET TAGS ('dbx_business_glossary_term' = 'Cooling Required');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `cooling_target_temperature_celsius` SET TAGS ('dbx_topic' = 'cooling_process');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `cost_center` SET TAGS ('dbx_business_glossary_term' = 'Cost Center');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `critical_step_flag` SET TAGS ('dbx_business_glossary_term' = 'Critical Step Flag');
@@ -1427,7 +1333,6 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` AL
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `equipment_class` SET TAGS ('dbx_business_glossary_term' = 'Equipment Class');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `inspection_required_flag` SET TAGS ('dbx_business_glossary_term' = 'Inspection Required Flag');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `last_modified_by` SET TAGS ('dbx_business_glossary_term' = 'Last Modified By');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `last_modified_by` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `max_queue_time_minutes` SET TAGS ('dbx_business_glossary_term' = 'Maximum Queue Time (Minutes)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `min_batch_size` SET TAGS ('dbx_business_glossary_term' = 'Minimum Batch Size');
@@ -1449,12 +1354,10 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` AL
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `step_status` SET TAGS ('dbx_value_regex' = 'active|inactive|engineering|obsolete|pending_approval');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `target_cycle_time_minutes` SET TAGS ('dbx_business_glossary_term' = 'Target Cycle Time (Minutes)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `version_number` SET TAGS ('dbx_business_glossary_term' = 'Version Number');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `waste_elimination_strategy` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_step` ALTER COLUMN `waste_heat_recovery_flag` SET TAGS ('dbx_topic' = 'cooling_process');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` SET TAGS ('dbx_data_type' = 'master_data');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` SET TAGS ('dbx_subdomain' = 'process_engineering');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` SET TAGS ('dbx_domain_verified' = 'fabrication');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `fabrication_process_flow_id` SET TAGS ('dbx_business_glossary_term' = 'Process Flow Identifier (ID)');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `cooling_process_flow_id` SET TAGS ('dbx_business_glossary_term' = 'Cooling Process Flow Id');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `pdk_id` SET TAGS ('dbx_business_glossary_term' = 'Process Design Kit (PDK) Identifier (ID)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Process Owner Employee Id (Foreign Key)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
@@ -1463,21 +1366,11 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` AL
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `spc_control_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Statistical Process Control (SPC) Control Plan Identifier (ID)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Approved By User');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `approved_by` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `beol_step_count` SET TAGS ('dbx_business_glossary_term' = 'Back End Of Line (BEOL) Step Count');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `coolant_flow_rate_lpm` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `coolant_recirculation_flag` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `coolant_reclaim_rate_percent` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `coolant_waste_volume_liters` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `cooling_duration_seconds` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `cooling_energy_consumption_kwh` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `cooling_medium` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `cooling_method` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `cooling_optimization_enabled_flag` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `cooling_optimization_mode` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `cooling_process_flag` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `cooling_ramp_rate_celsius_per_min` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `cooling_target_temperature_celsius` SET TAGS ('dbx_topic' = 'cooling_process');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `cool_optimization_mode` SET TAGS ('dbx_business_glossary_term' = 'Cool Optimization Mode');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `coolant_type` SET TAGS ('dbx_business_glossary_term' = 'Coolant Type');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `cooling_method` SET TAGS ('dbx_business_glossary_term' = 'Cooling Method');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `cooling_optimization_mode` SET TAGS ('dbx_business_glossary_term' = 'Cooling Optimization Mode');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `fabrication_process_flow_description` SET TAGS ('dbx_business_glossary_term' = 'Process Flow Description');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `effective_end_date` SET TAGS ('dbx_business_glossary_term' = 'Effective End Date');
@@ -1497,7 +1390,6 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` AL
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `flow_type` SET TAGS ('dbx_value_regex' = 'standard|mpw|engineering|qualification|rnd');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `is_customer_specific` SET TAGS ('dbx_business_glossary_term' = 'Is Customer Specific Flow Flag');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `last_modified_by` SET TAGS ('dbx_business_glossary_term' = 'Last Modified By User');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `last_modified_by` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Last Modified Timestamp');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `lithography_technology` SET TAGS ('dbx_business_glossary_term' = 'Lithography Technology');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `lithography_technology` SET TAGS ('dbx_value_regex' = 'euv|duv|immersion|dry');
@@ -1515,11 +1407,10 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` AL
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `transistor_architecture` SET TAGS ('dbx_business_glossary_term' = 'Transistor Architecture Type');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `transistor_architecture` SET TAGS ('dbx_value_regex' = 'planar|finfet|gaa|nanosheet');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `wafer_size_mm` SET TAGS ('dbx_business_glossary_term' = 'Wafer Size (Millimeters)');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `waste_elimination_strategy` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `waste_heat_recovery_flag` SET TAGS ('dbx_topic' = 'cooling_process');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `waste_elimination_strategy` SET TAGS ('dbx_business_glossary_term' = 'Waste Elimination Strategy');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_process_flow` ALTER COLUMN `waste_elimination_target_pct` SET TAGS ('dbx_business_glossary_term' = 'Waste Elimination Target Pct');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` SET TAGS ('dbx_data_type' = 'transactional_data');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` SET TAGS ('dbx_subdomain' = 'lot_management');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` SET TAGS ('dbx_domain_verified' = 'fabrication');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `lot_move_id` SET TAGS ('dbx_business_glossary_term' = 'Lot Move ID');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Operator ID');
@@ -1541,16 +1432,6 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `at_s
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `comments` SET TAGS ('dbx_business_glossary_term' = 'Comments');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `control_job_code` SET TAGS ('dbx_business_glossary_term' = 'Control Job ID');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `control_job_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9_-]{4,30}$');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `coolant_flow_rate_lpm` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `coolant_reclaim_rate_percent` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `coolant_waste_volume_liters` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `cooling_duration_seconds` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `cooling_energy_consumption_kwh` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `cooling_method` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `cooling_optimization_enabled_flag` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `cooling_optimization_mode` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `cooling_process_flag` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `cooling_ramp_rate_celsius_per_min` SET TAGS ('dbx_topic' = 'cooling_process');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `defect_count` SET TAGS ('dbx_business_glossary_term' = 'Defect Count');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `disposition` SET TAGS ('dbx_business_glossary_term' = 'Disposition');
@@ -1558,7 +1439,6 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `disp
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `hold_reason_code` SET TAGS ('dbx_business_glossary_term' = 'Hold Reason Code');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `hold_reason_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9_]{2,10}$');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `measured_cooling_temperature_celsius` SET TAGS ('dbx_topic' = 'cooling_process');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `measurement_unit` SET TAGS ('dbx_business_glossary_term' = 'Measurement Unit');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `measurement_unit` SET TAGS ('dbx_value_regex' = 'nm|um|angstrom|ohm_cm|percent|ppm');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `measurement_value` SET TAGS ('dbx_business_glossary_term' = 'Measurement Value');
@@ -1584,11 +1464,8 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `tech
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `technology_node` SET TAGS ('dbx_value_regex' = '^[0-9]{1,3}nm$|^[0-9]{1,3}um$');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `tracks_lot` SET TAGS ('dbx_business_glossary_term' = 'Tracks Lot');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `wafer_size_mm` SET TAGS ('dbx_business_glossary_term' = 'Wafer Size (Millimeters)');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `waste_elimination_strategy` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_move` ALTER COLUMN `waste_heat_recovery_flag` SET TAGS ('dbx_topic' = 'cooling_process');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`wafer_start` SET TAGS ('dbx_data_type' = 'transactional_data');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`wafer_start` SET TAGS ('dbx_subdomain' = 'lot_management');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`wafer_start` SET TAGS ('dbx_domain_verified' = 'fabrication');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`wafer_start` ALTER COLUMN `wafer_start_id` SET TAGS ('dbx_business_glossary_term' = 'Wafer Start Identifier (ID)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`wafer_start` ALTER COLUMN `photomask_id` SET TAGS ('dbx_business_glossary_term' = 'Mask Set Identifier (ID)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`wafer_start` ALTER COLUMN `fabrication_process_flow_id` SET TAGS ('dbx_business_glossary_term' = 'Process Flow Identifier (ID)');
@@ -1652,20 +1529,22 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`wafer_start` ALTER COLUMN `w
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`wafer_start` ALTER COLUMN `work_center` SET TAGS ('dbx_value_regex' = '^WC[0-9]{4}$');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` SET TAGS ('dbx_data_type' = 'transactional_data');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` SET TAGS ('dbx_subdomain' = 'lot_management');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` SET TAGS ('dbx_domain_verified' = 'fabrication');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` SET TAGS ('dbx_ssot_for' = 'inventory.inventory_lot_hold');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` SET TAGS ('dbx_ssot_owner' = 'true');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` SET TAGS ('dbx_ssot' = 'true');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` SET TAGS ('dbx_ssot_authoritative' = 'true');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` SET TAGS ('dbx_ssot_owner' = 'lot_hold');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` ALTER COLUMN `fabrication_lot_hold_id` SET TAGS ('dbx_business_glossary_term' = 'Fabrication Lot Hold ID');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Customer ID');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Approver ID');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii_identifier' = 'true');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` ALTER COLUMN `employee_id` SET TAGS ('dbx_classification' = 'restricted');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` ALTER COLUMN `fab_facility_id` SET TAGS ('dbx_business_glossary_term' = 'Fabrication (FAB) Facility ID');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` ALTER COLUMN `fab_tool_id` SET TAGS ('dbx_business_glossary_term' = 'Equipment ID');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` ALTER COLUMN `fabrication_process_step_id` SET TAGS ('dbx_business_glossary_term' = 'Process Step ID');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` ALTER COLUMN `primary_fabrication_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Initiating Operator ID');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` ALTER COLUMN `primary_fabrication_employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` ALTER COLUMN `primary_fabrication_employee_id` SET TAGS ('dbx_pii_identifier' = 'true');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` ALTER COLUMN `primary_fabrication_employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` ALTER COLUMN `primary_fabrication_employee_id` SET TAGS ('dbx_classification' = 'restricted');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` ALTER COLUMN `fabrication_wafer_lot_id` SET TAGS ('dbx_business_glossary_term' = 'Lot ID');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` ALTER COLUMN `sku_id` SET TAGS ('dbx_business_glossary_term' = 'Product ID');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` ALTER COLUMN `approval_required` SET TAGS ('dbx_business_glossary_term' = 'Approval Required Flag');
@@ -1699,7 +1578,6 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` ALTER 
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_hold` ALTER COLUMN `wafer_count` SET TAGS ('dbx_business_glossary_term' = 'Wafer Count');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_disposition` SET TAGS ('dbx_data_type' = 'transactional_data');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_disposition` SET TAGS ('dbx_subdomain' = 'lot_management');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_disposition` SET TAGS ('dbx_domain_verified' = 'fabrication');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_disposition` ALTER COLUMN `lot_disposition_id` SET TAGS ('dbx_business_glossary_term' = 'Lot Disposition ID');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_disposition` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Approved By Employee Id (Foreign Key)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_disposition` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
@@ -1750,7 +1628,6 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_disposition` ALTER COLUM
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`lot_disposition` ALTER COLUMN `waiver_number` SET TAGS ('dbx_value_regex' = '^WVR-[0-9]{8}-[A-Z0-9]{4}$');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` SET TAGS ('dbx_data_type' = 'master_data');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` SET TAGS ('dbx_subdomain' = 'lot_management');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` SET TAGS ('dbx_domain_verified' = 'fabrication');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `fab_run_card_id` SET TAGS ('dbx_business_glossary_term' = 'Fabrication (FAB) Run Card Identifier (ID)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Customer Identifier (ID)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Approved By Employee Id (Foreign Key)');
@@ -1765,19 +1642,8 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `ic_catalog_id` SET TAGS ('dbx_business_glossary_term' = 'Product Identifier (ID)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `ic_design_project_id` SET TAGS ('dbx_business_glossary_term' = 'Design Identifier (ID)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `profit_center_id` SET TAGS ('dbx_business_glossary_term' = 'Profit Center Id (Foreign Key)');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `purchase_order_id` SET TAGS ('dbx_business_glossary_term' = 'Purchase Order Id (Foreign Key)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `approved_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Approved Timestamp');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `completion_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Completion Timestamp');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `coolant_flow_rate_lpm` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `coolant_reclaim_rate_percent` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `coolant_waste_volume_liters` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `cooling_duration_seconds` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `cooling_energy_consumption_kwh` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `cooling_method` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `cooling_optimization_enabled_flag` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `cooling_optimization_mode` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `cooling_process_flag` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `cooling_ramp_rate_celsius_per_min` SET TAGS ('dbx_topic' = 'cooling_process');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `cycle_time_days` SET TAGS ('dbx_business_glossary_term' = 'Cycle Time (Days)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `deviation_description` SET TAGS ('dbx_business_glossary_term' = 'Deviation Description');
@@ -1789,7 +1655,6 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `itar_controlled` SET TAGS ('dbx_business_glossary_term' = 'International Traffic in Arms Regulations (ITAR) Controlled');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `lot_disposition` SET TAGS ('dbx_business_glossary_term' = 'Lot Disposition');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `lot_disposition` SET TAGS ('dbx_value_regex' = 'pass|fail|conditional|quarantine|scrap');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `measured_cooling_temperature_celsius` SET TAGS ('dbx_topic' = 'cooling_process');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Notes');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `pcn_number` SET TAGS ('dbx_business_glossary_term' = 'Product Change Notification (PCN) Number');
@@ -1815,14 +1680,9 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `target_completion_date` SET TAGS ('dbx_business_glossary_term' = 'Target Completion Date');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `wafer_quantity` SET TAGS ('dbx_business_glossary_term' = 'Wafer Quantity');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `wafer_size_mm` SET TAGS ('dbx_business_glossary_term' = 'Wafer Size (Millimeters)');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `waste_elimination_strategy` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_run_card` ALTER COLUMN `waste_heat_recovery_flag` SET TAGS ('dbx_topic' = 'cooling_process');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` SET TAGS ('dbx_data_type' = 'transactional_data');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` SET TAGS ('dbx_subdomain' = 'equipment_operations');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` SET TAGS ('dbx_domain_verified' = 'fabrication');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `equipment_run_id` SET TAGS ('dbx_business_glossary_term' = 'Equipment Run ID');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `ar_invoice_id` SET TAGS ('dbx_business_glossary_term' = 'Ar Invoice Id (Foreign Key)');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `cooling_process_id` SET TAGS ('dbx_business_glossary_term' = 'Cooling Process');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Operator ID');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
@@ -1839,18 +1699,12 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN 
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `actual_pressure_torr` SET TAGS ('dbx_business_glossary_term' = 'Actual Pressure Torr');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `actual_temperature_celsius` SET TAGS ('dbx_business_glossary_term' = 'Actual Temperature Celsius');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `alarm_count` SET TAGS ('dbx_business_glossary_term' = 'Alarm Count');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `chamber_cooling_temperature_celsius` SET TAGS ('dbx_business_glossary_term' = 'Chamber Cooling Temperature Celsius');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `cmp_removal_rate_angstrom_per_min` SET TAGS ('dbx_business_glossary_term' = 'Chemical Mechanical Planarization (CMP) Removal Rate Angstrom Per Minute');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `cmp_slurry_type` SET TAGS ('dbx_business_glossary_term' = 'Chemical Mechanical Planarization (CMP) Slurry Type');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `cmp_wiwnu_percent` SET TAGS ('dbx_business_glossary_term' = 'Chemical Mechanical Planarization (CMP) Within-Wafer Non-Uniformity (WIWNU) Percent');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `coolant_recirculation_flag` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `coolant_reclaim_rate_percent` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `coolant_waste_volume_liters` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `cooling_duration_seconds` SET TAGS ('dbx_business_glossary_term' = 'Cooling Duration');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `cooling_medium` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `cooling_method` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `cooling_process_flag` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `cooling_ramp_rate_celsius_per_min` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `cooling_target_temperature_celsius` SET TAGS ('dbx_topic' = 'cooling_process');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `coolant_flow_rate_lpm` SET TAGS ('dbx_business_glossary_term' = 'Coolant Flow Rate Lpm');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `cooling_rate_celsius_per_min` SET TAGS ('dbx_business_glossary_term' = 'Cooling Rate Celsius Per Min');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `deposition_film_material` SET TAGS ('dbx_business_glossary_term' = 'Deposition Film Material');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `deposition_rate_angstrom_per_min` SET TAGS ('dbx_business_glossary_term' = 'Deposition Rate Angstrom Per Minute');
@@ -1867,7 +1721,6 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN 
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `lithography_overlay_x_nm` SET TAGS ('dbx_business_glossary_term' = 'Lithography Overlay X-Axis Nanometers');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `lithography_overlay_y_nm` SET TAGS ('dbx_business_glossary_term' = 'Lithography Overlay Y-Axis Nanometers');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `mes_transaction_code` SET TAGS ('dbx_business_glossary_term' = 'Manufacturing Execution System (MES) Transaction ID');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `post_process_cooling_flag` SET TAGS ('dbx_business_glossary_term' = 'Post Process Cooling');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `process_type` SET TAGS ('dbx_business_glossary_term' = 'Process Type');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `processes_lot` SET TAGS ('dbx_business_glossary_term' = 'Processes Lot');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `run_duration_seconds` SET TAGS ('dbx_business_glossary_term' = 'Run Duration Seconds');
@@ -1883,11 +1736,9 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN 
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `uses_recipe` SET TAGS ('dbx_business_glossary_term' = 'Uses Recipe');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `wafer_count` SET TAGS ('dbx_business_glossary_term' = 'Wafer Count');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `wafer_slot_map` SET TAGS ('dbx_business_glossary_term' = 'Wafer Slot Map');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `waste_elimination_strategy` SET TAGS ('dbx_topic' = 'cooling_process');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `waste_heat_recovery_flag` SET TAGS ('dbx_topic' = 'cooling_process');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_run` ALTER COLUMN `waste_heat_recovered_kwh` SET TAGS ('dbx_business_glossary_term' = 'Waste Heat Recovered Kwh');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`photomask` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`photomask` SET TAGS ('dbx_subdomain' = 'process_engineering');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`photomask` SET TAGS ('dbx_domain_verified' = 'fabrication');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`photomask` SET TAGS ('dbx_subdomain' = 'tooling_resources');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`photomask` ALTER COLUMN `photomask_id` SET TAGS ('dbx_business_glossary_term' = 'Photomask Identifier');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`photomask` ALTER COLUMN `ic_design_project_id` SET TAGS ('dbx_business_glossary_term' = 'Design Project Identifier (ID)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`photomask` ALTER COLUMN `mask_set_id` SET TAGS ('dbx_business_glossary_term' = 'Mask Set Identifier (ID)');
@@ -1943,23 +1794,21 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`photomask` ALTER COLUMN `usa
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`photomask` ALTER COLUMN `warranty_expiration_date` SET TAGS ('dbx_business_glossary_term' = 'Warranty Expiration Date');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` SET TAGS ('dbx_data_type' = 'association_data');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` SET TAGS ('dbx_subdomain' = 'lot_management');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` SET TAGS ('dbx_domain_verified' = 'fabrication');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` SET TAGS ('dbx_ssot_for' = 'inventory.inventory_lot_genealogy');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` SET TAGS ('dbx_ssot_owner' = 'true');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` SET TAGS ('dbx_ssot' = 'true');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` SET TAGS ('dbx_ssot_authoritative' = 'true');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` SET TAGS ('dbx_ssot_owner' = 'lot_genealogy');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` ALTER COLUMN `fabrication_lot_genealogy_id` SET TAGS ('dbx_business_glossary_term' = 'Fabrication Lot Genealogy ID');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Customer ID');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` ALTER COLUMN `account_id` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` ALTER COLUMN `fabrication_wafer_lot_id` SET TAGS ('dbx_business_glossary_term' = 'Child Lot ID');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Operator ID');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii_identifier' = 'true');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` ALTER COLUMN `employee_id` SET TAGS ('dbx_classification' = 'restricted');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` ALTER COLUMN `fab_tool_id` SET TAGS ('dbx_business_glossary_term' = 'Equipment ID');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` ALTER COLUMN `fabrication_process_step_id` SET TAGS ('dbx_business_glossary_term' = 'Operation ID');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` ALTER COLUMN `ic_catalog_id` SET TAGS ('dbx_business_glossary_term' = 'Product ID');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` ALTER COLUMN `primary_fabrication_wafer_lot_id` SET TAGS ('dbx_business_glossary_term' = 'Parent Lot ID');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` ALTER COLUMN `recipe_id` SET TAGS ('dbx_business_glossary_term' = 'Recipe ID');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` ALTER COLUMN `order_id` SET TAGS ('dbx_business_glossary_term' = 'Work Order ID');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` ALTER COLUMN `compliance_flag` SET TAGS ('dbx_business_glossary_term' = 'Compliance Flag');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` ALTER COLUMN `destination_fab_line` SET TAGS ('dbx_business_glossary_term' = 'Destination FAB (Fabrication Facility) Line');
@@ -1985,13 +1834,11 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` A
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_lot_genealogy` ALTER COLUMN `wafer_size_mm` SET TAGS ('dbx_business_glossary_term' = 'Wafer Size (Millimeters)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_technology_node` SET TAGS ('dbx_data_type' = 'reference_data');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_technology_node` SET TAGS ('dbx_subdomain' = 'process_engineering');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_technology_node` SET TAGS ('dbx_domain_verified' = 'fabrication');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_technology_node` SET TAGS ('dbx_ssot_for' = 'process.process_technology_node');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_technology_node` SET TAGS ('dbx_ssot_owner' = 'true');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_technology_node` SET TAGS ('dbx_ssot' = 'true');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_technology_node` SET TAGS ('dbx_ssot_authoritative' = 'true');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_technology_node` SET TAGS ('dbx_ssot_owner' = 'technology_node');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_technology_node` ALTER COLUMN `fabrication_technology_node_id` SET TAGS ('dbx_business_glossary_term' = 'Technology Node ID');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_technology_node` ALTER COLUMN `fab_facility_id` SET TAGS ('dbx_business_glossary_term' = 'Fabrication (FAB) Facility ID');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_technology_node` ALTER COLUMN `process_technology_node_id` SET TAGS ('dbx_business_glossary_term' = 'Process Technology Node Id');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_technology_node` ALTER COLUMN `research_technology_node_id` SET TAGS ('dbx_business_glossary_term' = 'Research Technology Node Id');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_technology_node` ALTER COLUMN `active_flag` SET TAGS ('dbx_business_glossary_term' = 'Active Record Flag');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_technology_node` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_technology_node` ALTER COLUMN `design_rule_complexity` SET TAGS ('dbx_business_glossary_term' = 'Design Rule Complexity Level');
@@ -2011,7 +1858,6 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_technology_node`
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_technology_node` ALTER COLUMN `metal_layer_count` SET TAGS ('dbx_business_glossary_term' = 'Metal Layer Count');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_technology_node` ALTER COLUMN `minimum_feature_size_nm` SET TAGS ('dbx_business_glossary_term' = 'Minimum Feature Size (Nanometers)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_technology_node` ALTER COLUMN `modified_by_user` SET TAGS ('dbx_business_glossary_term' = 'Modified By User Identifier');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_technology_node` ALTER COLUMN `modified_by_user` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_technology_node` ALTER COLUMN `node_code` SET TAGS ('dbx_business_glossary_term' = 'Technology Node Code');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_technology_node` ALTER COLUMN `node_generation` SET TAGS ('dbx_business_glossary_term' = 'Technology Node Generation');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_technology_node` ALTER COLUMN `node_name` SET TAGS ('dbx_business_glossary_term' = 'Technology Node Name');
@@ -2032,7 +1878,6 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_technology_node`
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_technology_node` ALTER COLUMN `wafer_size_mm` SET TAGS ('dbx_business_glossary_term' = 'Wafer Size (Millimeters)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_yield_record` SET TAGS ('dbx_data_type' = 'transactional_data');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_yield_record` SET TAGS ('dbx_subdomain' = 'lot_management');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_yield_record` SET TAGS ('dbx_domain_verified' = 'fabrication');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_yield_record` ALTER COLUMN `fab_yield_record_id` SET TAGS ('dbx_business_glossary_term' = 'Fabrication (FAB) Yield Record Identifier (ID)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_yield_record` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_yield_record` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Operator Identifier (ID)');
@@ -2078,11 +1923,11 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_yield_record` ALTER COLU
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_yield_record` ALTER COLUMN `yield_percentage` SET TAGS ('dbx_business_glossary_term' = 'Yield Percentage');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_yield_record` ALTER COLUMN `yield_record_for_lot` SET TAGS ('dbx_business_glossary_term' = 'Yield Record For Lot');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` SET TAGS ('dbx_subdomain' = 'process_engineering');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` SET TAGS ('dbx_domain_verified' = 'fabrication');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` SET TAGS ('dbx_subdomain' = 'tooling_resources');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` ALTER COLUMN `mask_set_id` SET TAGS ('dbx_business_glossary_term' = 'Mask Set Identifier');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` ALTER COLUMN `derived_from_mask_set_id` SET TAGS ('dbx_business_glossary_term' = 'Derived From Mask Set Id');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` ALTER COLUMN `derived_from_mask_set_id` SET TAGS ('dbx_self_ref_fk' = 'true');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` ALTER COLUMN `ic_design_project_id` SET TAGS ('dbx_business_glossary_term' = 'Ic Design Project Id');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` ALTER COLUMN `application_area` SET TAGS ('dbx_business_glossary_term' = 'Application Area');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` ALTER COLUMN `mask_set_category` SET TAGS ('dbx_business_glossary_term' = 'Mask Set Category');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` ALTER COLUMN `mask_set_code` SET TAGS ('dbx_business_glossary_term' = 'Mask Set Code');
@@ -2100,6 +1945,7 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` ALTER COLUMN `lith
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` ALTER COLUMN `mask_cost_usd` SET TAGS ('dbx_business_glossary_term' = 'Mask Cost Usd');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` ALTER COLUMN `mask_layer_count` SET TAGS ('dbx_business_glossary_term' = 'Mask Layer Count');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` ALTER COLUMN `mask_material` SET TAGS ('dbx_business_glossary_term' = 'Mask Material');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` ALTER COLUMN `mask_set_status` SET TAGS ('dbx_business_glossary_term' = 'Status');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` ALTER COLUMN `mask_thickness_nm` SET TAGS ('dbx_business_glossary_term' = 'Mask Thickness Nm');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` ALTER COLUMN `mask_type` SET TAGS ('dbx_business_glossary_term' = 'Mask Type');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` ALTER COLUMN `mask_set_name` SET TAGS ('dbx_business_glossary_term' = 'Name');
@@ -2110,15 +1956,13 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` ALTER COLUMN `qual
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` ALTER COLUMN `revision_date` SET TAGS ('dbx_business_glossary_term' = 'Revision Date');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Revision Number');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` ALTER COLUMN `safety_classification` SET TAGS ('dbx_business_glossary_term' = 'Safety Classification');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` ALTER COLUMN `mask_set_status` SET TAGS ('dbx_business_glossary_term' = 'Status');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` ALTER COLUMN `storage_location` SET TAGS ('dbx_business_glossary_term' = 'Storage Location');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` ALTER COLUMN `usage_count` SET TAGS ('dbx_business_glossary_term' = 'Usage Count');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` ALTER COLUMN `version` SET TAGS ('dbx_business_glossary_term' = 'Version');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` ALTER COLUMN `wafer_size_mm` SET TAGS ('dbx_business_glossary_term' = 'Wafer Size Mm');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`mask_set` ALTER COLUMN `wavelength_nm` SET TAGS ('dbx_business_glossary_term' = 'Wavelength Nm');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` SET TAGS ('dbx_subdomain' = 'facility_infrastructure');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` SET TAGS ('dbx_domain_verified' = 'fabrication');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` SET TAGS ('dbx_subdomain' = 'tooling_resources');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `fab_facility_id` SET TAGS ('dbx_business_glossary_term' = 'Fab Facility Identifier');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `parent_fab_facility_id` SET TAGS ('dbx_business_glossary_term' = 'Parent Fab Facility Id');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `parent_fab_facility_id` SET TAGS ('dbx_self_ref_fk' = 'true');
@@ -2132,11 +1976,9 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `contact_email` SET TAGS ('dbx_business_glossary_term' = 'Contact Email');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `contact_email` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `contact_email` SET TAGS ('dbx_pii_email' = 'true');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `contact_email` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `contact_phone` SET TAGS ('dbx_business_glossary_term' = 'Contact Phone');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `contact_phone` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `contact_phone` SET TAGS ('dbx_pii_phone' = 'true');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `contact_phone` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `country_code` SET TAGS ('dbx_business_glossary_term' = 'Country Code');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `country_code` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `country_code` SET TAGS ('dbx_pii_address' = 'true');
@@ -2158,11 +2000,9 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `location_address_line1` SET TAGS ('dbx_business_glossary_term' = 'Location Address Line1');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `location_address_line1` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `location_address_line1` SET TAGS ('dbx_pii_address' = 'true');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `location_address_line1` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `location_address_line2` SET TAGS ('dbx_business_glossary_term' = 'Location Address Line2');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `location_address_line2` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `location_address_line2` SET TAGS ('dbx_pii_address' = 'true');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `location_address_line2` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `longitude` SET TAGS ('dbx_business_glossary_term' = 'Longitude');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `longitude` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `longitude` SET TAGS ('dbx_pii_address' = 'true');
@@ -2170,7 +2010,6 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `manager_name` SET TAGS ('dbx_business_glossary_term' = 'Manager Name');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `manager_name` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `manager_name` SET TAGS ('dbx_pii_name' = 'true');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `manager_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `next_audit_due` SET TAGS ('dbx_business_glossary_term' = 'Next Audit Due');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Notes');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `number_of_cleanrooms` SET TAGS ('dbx_business_glossary_term' = 'Number Of Cleanrooms');
@@ -2188,8 +2027,8 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_facility` ALTER COLUMN `water_usage_m3` SET TAGS ('dbx_business_glossary_term' = 'Water Usage M3');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` SET TAGS ('dbx_data_type' = 'master_data');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` SET TAGS ('dbx_subdomain' = 'equipment_operations');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` SET TAGS ('dbx_domain_verified' = 'fabrication');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` ALTER COLUMN `work_center_id` SET TAGS ('dbx_business_glossary_term' = 'Work Center Identifier');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` ALTER COLUMN `fab_facility_id` SET TAGS ('dbx_business_glossary_term' = 'Fab Facility Id');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` ALTER COLUMN `parent_work_center_id` SET TAGS ('dbx_business_glossary_term' = 'Parent Work Center Id');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` ALTER COLUMN `parent_work_center_id` SET TAGS ('dbx_self_ref_fk' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` ALTER COLUMN `area_sq_m` SET TAGS ('dbx_business_glossary_term' = 'Area Sq M');
@@ -2215,7 +2054,6 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` ALTER COLUMN `m
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` ALTER COLUMN `manager_contact` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` ALTER COLUMN `manager_contact` SET TAGS ('dbx_pii_phone' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` ALTER COLUMN `manager_name` SET TAGS ('dbx_business_glossary_term' = 'Manager Name');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` ALTER COLUMN `manager_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` ALTER COLUMN `work_center_name` SET TAGS ('dbx_business_glossary_term' = 'Name');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` ALTER COLUMN `next_calibration_due` SET TAGS ('dbx_business_glossary_term' = 'Next Calibration Due');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Notes');
@@ -2223,23 +2061,19 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` ALTER COLUMN `o
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` ALTER COLUMN `process_step` SET TAGS ('dbx_business_glossary_term' = 'Process Step');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` ALTER COLUMN `safety_rating` SET TAGS ('dbx_business_glossary_term' = 'Safety Rating');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` ALTER COLUMN `shift_schedule` SET TAGS ('dbx_business_glossary_term' = 'Shift Schedule');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` ALTER COLUMN `work_center_status` SET TAGS ('dbx_business_glossary_term' = 'Status');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` ALTER COLUMN `temperature_c` SET TAGS ('dbx_business_glossary_term' = 'Temperature C');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` ALTER COLUMN `work_center_type` SET TAGS ('dbx_business_glossary_term' = 'Type');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Updated Timestamp');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` ALTER COLUMN `work_center_status` SET TAGS ('dbx_business_glossary_term' = 'Status');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`work_center` ALTER COLUMN `work_center_type` SET TAGS ('dbx_business_glossary_term' = 'Type');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` SET TAGS ('dbx_data_type' = 'master_data');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` SET TAGS ('dbx_subdomain' = 'process_engineering');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` SET TAGS ('dbx_domain_verified' = 'fabrication');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` SET TAGS ('dbx_ssot_owner' = 'process.spc_control_plan');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` SET TAGS ('dbx_ssot_authoritative' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `spc_control_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Spc Control Plan Identifier');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `spc_control_plan_id` SET TAGS ('dbx_ssot_reference' = 'true');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `spc_control_plan_id` SET TAGS ('dbx_ssot_consolidated' = 'true');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `fabrication_technology_node_id` SET TAGS ('dbx_business_glossary_term' = 'Fabrication Technology Node Id');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `process_spc_control_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Authoritative Process Spc Control Plan Id');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `superseded_spc_control_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Superseded Spc Control Plan Id');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `superseded_spc_control_plan_id` SET TAGS ('dbx_self_ref_fk' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Approved By');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `approved_by` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `change_reason` SET TAGS ('dbx_business_glossary_term' = 'Change Reason');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `control_limit_lower` SET TAGS ('dbx_business_glossary_term' = 'Control Limit Lower');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `control_limit_upper` SET TAGS ('dbx_business_glossary_term' = 'Control Limit Upper');
@@ -2250,12 +2084,12 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLU
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `is_critical` SET TAGS ('dbx_business_glossary_term' = 'Is Critical');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `lower_spec_limit` SET TAGS ('dbx_business_glossary_term' = 'Lower Spec Limit');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `measurement_unit` SET TAGS ('dbx_business_glossary_term' = 'Measurement Unit');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `model_lineage_source` SET TAGS ('dbx_business_glossary_term' = 'Model Lineage Source');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Notes');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `plan_code` SET TAGS ('dbx_business_glossary_term' = 'Plan Code');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `plan_name` SET TAGS ('dbx_business_glossary_term' = 'Plan Name');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `plan_type` SET TAGS ('dbx_business_glossary_term' = 'Plan Type');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `responsible_engineer` SET TAGS ('dbx_business_glossary_term' = 'Responsible Engineer');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `responsible_engineer` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Revision Number');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `sample_size` SET TAGS ('dbx_business_glossary_term' = 'Sample Size');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `sampling_frequency` SET TAGS ('dbx_business_glossary_term' = 'Sampling Frequency');
@@ -2263,91 +2097,112 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLU
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `target_metric` SET TAGS ('dbx_business_glossary_term' = 'Target Metric');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `target_value` SET TAGS ('dbx_business_glossary_term' = 'Target Value');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `updated_by` SET TAGS ('dbx_business_glossary_term' = 'Updated By');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `updated_by` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Updated Timestamp');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `upper_spec_limit` SET TAGS ('dbx_business_glossary_term' = 'Upper Spec Limit');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `version` SET TAGS ('dbx_business_glossary_term' = 'Version');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `created_by` SET TAGS ('dbx_business_glossary_term' = 'Created By');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`spc_control_plan` ALTER COLUMN `created_by` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` SET TAGS ('dbx_data_type' = 'master_data');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` SET TAGS ('dbx_subdomain' = 'equipment_operations');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` SET TAGS ('dbx_domain_verified' = 'fabrication');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `equipment_group_id` SET TAGS ('dbx_business_glossary_term' = 'Equipment Group Identifier');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `fab_facility_id` SET TAGS ('dbx_business_glossary_term' = 'Fab Facility Id');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `parent_equipment_group_id` SET TAGS ('dbx_business_glossary_term' = 'Parent Equipment Group Id');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `parent_equipment_group_id` SET TAGS ('dbx_self_ref_fk' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `parent_group_id` SET TAGS ('dbx_business_glossary_term' = 'Parent Group Id');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `capacity_wafers_per_hour` SET TAGS ('dbx_business_glossary_term' = 'Capacity Wafers Per Hour');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `equipment_group_code` SET TAGS ('dbx_business_glossary_term' = 'Code');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `compliance_status` SET TAGS ('dbx_business_glossary_term' = 'Compliance Status');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `cost_center_code` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Code');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `default_capacity` SET TAGS ('dbx_business_glossary_term' = 'Default Capacity');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `equipment_group_description` SET TAGS ('dbx_business_glossary_term' = 'Description');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `effective_end_date` SET TAGS ('dbx_business_glossary_term' = 'Effective End Date');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `effective_from` SET TAGS ('dbx_business_glossary_term' = 'Effective From');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `effective_start_date` SET TAGS ('dbx_business_glossary_term' = 'Effective Start Date');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `effective_until` SET TAGS ('dbx_business_glossary_term' = 'Effective Until');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `equipment_class` SET TAGS ('dbx_business_glossary_term' = 'Equipment Class');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `equipment_count` SET TAGS ('dbx_business_glossary_term' = 'Equipment Count');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `equipment_group_status` SET TAGS ('dbx_business_glossary_term' = 'Status');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `fab_location` SET TAGS ('dbx_business_glossary_term' = 'Fab Location');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `group_code` SET TAGS ('dbx_business_glossary_term' = 'Group Code');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `group_hierarchy_level` SET TAGS ('dbx_business_glossary_term' = 'Group Hierarchy Level');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `group_name` SET TAGS ('dbx_business_glossary_term' = 'Group Name');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `group_type` SET TAGS ('dbx_business_glossary_term' = 'Group Type');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `is_active` SET TAGS ('dbx_business_glossary_term' = 'Is Active');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `location` SET TAGS ('dbx_business_glossary_term' = 'Location');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `maintenance_strategy` SET TAGS ('dbx_business_glossary_term' = 'Maintenance Strategy');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `maintenance_window` SET TAGS ('dbx_business_glossary_term' = 'Maintenance Window');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `manager_name` SET TAGS ('dbx_business_glossary_term' = 'Manager Name');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `max_temperature_c` SET TAGS ('dbx_business_glossary_term' = 'Max Temperature C');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `equipment_group_name` SET TAGS ('dbx_business_glossary_term' = 'Name');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Notes');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `operational_status` SET TAGS ('dbx_business_glossary_term' = 'Operational Status');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `process_area` SET TAGS ('dbx_business_glossary_term' = 'Process Area');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `process_technology` SET TAGS ('dbx_business_glossary_term' = 'Process Technology');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `safety_class` SET TAGS ('dbx_business_glossary_term' = 'Safety Class');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `equipment_group_status` SET TAGS ('dbx_business_glossary_term' = 'Status');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `tool_count` SET TAGS ('dbx_business_glossary_term' = 'Tool Count');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `updated_by` SET TAGS ('dbx_business_glossary_term' = 'Updated By');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `updated_by` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Updated Timestamp');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `utilization_target_percent` SET TAGS ('dbx_business_glossary_term' = 'Utilization Target Percent');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `voltage_rating_v` SET TAGS ('dbx_business_glossary_term' = 'Voltage Rating V');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `created_by` SET TAGS ('dbx_business_glossary_term' = 'Created By');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`equipment_group` ALTER COLUMN `created_by` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` SET TAGS ('dbx_subdomain' = 'facility_infrastructure');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` SET TAGS ('dbx_domain_verified' = 'fabrication');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` SET TAGS ('dbx_subdomain' = 'equipment_operations');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `fabrication_fab_id` SET TAGS ('dbx_business_glossary_term' = 'Fab Identifier');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `fab_facility_id` SET TAGS ('dbx_business_glossary_term' = 'Fab Facility Id');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `fab_site_id` SET TAGS ('dbx_business_glossary_term' = 'Fab Site Id (Foreign Key)');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `capacity_wafer_per_month` SET TAGS ('dbx_business_glossary_term' = 'Capacity Wafer Per Month');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `capacity_wafers_per_month` SET TAGS ('dbx_business_glossary_term' = 'Capacity Wafers Per Month');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `capacity_wspm` SET TAGS ('dbx_business_glossary_term' = 'Capacity Wspm');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `cleanroom_class` SET TAGS ('dbx_business_glossary_term' = 'Cleanroom Class');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `compliance_status` SET TAGS ('dbx_business_glossary_term' = 'Compliance Status');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `contact_email` SET TAGS ('dbx_business_glossary_term' = 'Contact Email');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `contact_email` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `contact_email` SET TAGS ('dbx_pii_email' = 'true');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `contact_email` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `contact_phone` SET TAGS ('dbx_business_glossary_term' = 'Contact Phone');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `contact_phone` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `contact_phone` SET TAGS ('dbx_pii_phone' = 'true');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `contact_phone` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `fabrication_fab_description` SET TAGS ('dbx_business_glossary_term' = 'Description');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `end_date` SET TAGS ('dbx_business_glossary_term' = 'End Date');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `environmental_certification` SET TAGS ('dbx_business_glossary_term' = 'Environmental Certification');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `fab_region` SET TAGS ('dbx_business_glossary_term' = 'Fab Region');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `fab_code` SET TAGS ('dbx_business_glossary_term' = 'Fab Code');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `fab_description` SET TAGS ('dbx_business_glossary_term' = 'Description');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `fab_name` SET TAGS ('dbx_business_glossary_term' = 'Name');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `fab_status` SET TAGS ('dbx_business_glossary_term' = 'Status');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `fab_type` SET TAGS ('dbx_business_glossary_term' = 'Fab Type');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `last_maintenance_date` SET TAGS ('dbx_business_glossary_term' = 'Last Maintenance Date');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `location` SET TAGS ('dbx_business_glossary_term' = 'Location');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `location_city` SET TAGS ('dbx_business_glossary_term' = 'Location City');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `location_country` SET TAGS ('dbx_business_glossary_term' = 'Location Country');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `location_state` SET TAGS ('dbx_business_glossary_term' = 'Location State');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `manager_name` SET TAGS ('dbx_business_glossary_term' = 'Manager Name');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `manager_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `fabrication_fab_name` SET TAGS ('dbx_business_glossary_term' = 'Name');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `next_scheduled_maintenance` SET TAGS ('dbx_business_glossary_term' = 'Next Scheduled Maintenance');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Notes');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `number_of_cleanrooms` SET TAGS ('dbx_business_glossary_term' = 'Number Of Cleanrooms');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `operational_status` SET TAGS ('dbx_business_glossary_term' = 'Operational Status');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `owner_department` SET TAGS ('dbx_business_glossary_term' = 'Owner Department');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `power_capacity_mw` SET TAGS ('dbx_business_glossary_term' = 'Power Capacity Mw');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `region` SET TAGS ('dbx_business_glossary_term' = 'Fab Region');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `safety_incident_count` SET TAGS ('dbx_business_glossary_term' = 'Safety Incident Count');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `start_date` SET TAGS ('dbx_business_glossary_term' = 'Start Date');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `fabrication_fab_status` SET TAGS ('dbx_business_glossary_term' = 'Status');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `technology_node` SET TAGS ('dbx_business_glossary_term' = 'Technology Node');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `technology_node_nm` SET TAGS ('dbx_business_glossary_term' = 'Technology Node Nm');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `total_area_sq_m` SET TAGS ('dbx_business_glossary_term' = 'Total Area Sq M');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Updated Timestamp');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `wafer_size_mm` SET TAGS ('dbx_business_glossary_term' = 'Wafer Size Mm');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `waste_treatment_capacity_kg_per_day` SET TAGS ('dbx_business_glossary_term' = 'Waste Treatment Capacity Kg Per Day');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `waste_treatment_capacity_kg_per_day` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `waste_treatment_capacity_kg_per_day` SET TAGS ('dbx_pii' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fabrication_fab` ALTER COLUMN `water_usage_cubic_m_per_day` SET TAGS ('dbx_business_glossary_term' = 'Water Usage Cubic M Per Day');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` SET TAGS ('dbx_subdomain' = 'process_engineering');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` SET TAGS ('dbx_domain_verified' = 'fabrication');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` SET TAGS ('dbx_subdomain' = 'tooling_resources');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `reticle_set_id` SET TAGS ('dbx_business_glossary_term' = 'Reticle Set Identifier');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `derived_from_reticle_set_id` SET TAGS ('dbx_business_glossary_term' = 'Derived From Reticle Set Id');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `derived_from_reticle_set_id` SET TAGS ('dbx_self_ref_fk' = 'true');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `fabrication_technology_node_id` SET TAGS ('dbx_business_glossary_term' = 'Fabrication Technology Node Id');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `ic_design_project_id` SET TAGS ('dbx_business_glossary_term' = 'Ic Design Project Id');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `mask_set_id` SET TAGS ('dbx_business_glossary_term' = 'Mask Set Id');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `calibration_date` SET TAGS ('dbx_business_glossary_term' = 'Calibration Date');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `reticle_set_code` SET TAGS ('dbx_business_glossary_term' = 'Code');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `compliance_standard` SET TAGS ('dbx_business_glossary_term' = 'Compliance Standard');
@@ -2360,11 +2215,17 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `r
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `expected_lifetime_cycles` SET TAGS ('dbx_business_glossary_term' = 'Expected Lifetime Cycles');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `exposure_tool` SET TAGS ('dbx_business_glossary_term' = 'Exposure Tool');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `fab_location` SET TAGS ('dbx_business_glossary_term' = 'Fab Location');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `field_size_mm` SET TAGS ('dbx_business_glossary_term' = 'Field Size Mm');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `field_size_x_mm` SET TAGS ('dbx_business_glossary_term' = 'Field Size X Mm');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `field_size_y_mm` SET TAGS ('dbx_business_glossary_term' = 'Field Size Y Mm');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `is_critical` SET TAGS ('dbx_business_glossary_term' = 'Is Critical');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `is_licensed` SET TAGS ('dbx_business_glossary_term' = 'Is Licensed');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `last_used_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Used Timestamp');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `lithography_technology` SET TAGS ('dbx_business_glossary_term' = 'Lithography Technology');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `lithography_type` SET TAGS ('dbx_business_glossary_term' = 'Lithography Type');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `lot_number` SET TAGS ('dbx_business_glossary_term' = 'Lot Number');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `magnification_factor` SET TAGS ('dbx_business_glossary_term' = 'Magnification Factor');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `maintenance_status` SET TAGS ('dbx_business_glossary_term' = 'Maintenance Status');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `material` SET TAGS ('dbx_business_glossary_term' = 'Material');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `reticle_set_name` SET TAGS ('dbx_business_glossary_term' = 'Name');
@@ -2372,31 +2233,33 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `n
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `number_of_reticles` SET TAGS ('dbx_business_glossary_term' = 'Number Of Reticles');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `qualification_date` SET TAGS ('dbx_business_glossary_term' = 'Qualification Date');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `qualification_status` SET TAGS ('dbx_business_glossary_term' = 'Qualification Status');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `reduction_ratio` SET TAGS ('dbx_business_glossary_term' = 'Reduction Ratio');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `reticle_count` SET TAGS ('dbx_business_glossary_term' = 'Reticle Count');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `reticle_set_status` SET TAGS ('dbx_business_glossary_term' = 'Status');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `reticle_set_type` SET TAGS ('dbx_business_glossary_term' = 'Type');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `retire_date` SET TAGS ('dbx_business_glossary_term' = 'Retire Date');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `retire_reason` SET TAGS ('dbx_business_glossary_term' = 'Retire Reason');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `revision` SET TAGS ('dbx_business_glossary_term' = 'Revision');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `safety_classification` SET TAGS ('dbx_business_glossary_term' = 'Safety Classification');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `reticle_set_status` SET TAGS ('dbx_business_glossary_term' = 'Status');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `storage_humidity_percent` SET TAGS ('dbx_business_glossary_term' = 'Storage Humidity Percent');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `storage_location` SET TAGS ('dbx_business_glossary_term' = 'Storage Location');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `storage_temperature_c` SET TAGS ('dbx_business_glossary_term' = 'Storage Temperature C');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `total_area_mm2` SET TAGS ('dbx_business_glossary_term' = 'Total Area Mm2');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `reticle_set_type` SET TAGS ('dbx_business_glossary_term' = 'Type');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Updated Timestamp');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `usage_count` SET TAGS ('dbx_business_glossary_term' = 'Usage Count');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `vendor` SET TAGS ('dbx_business_glossary_term' = 'Vendor');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `vendor_part_number` SET TAGS ('dbx_business_glossary_term' = 'Vendor Part Number');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`reticle_set` ALTER COLUMN `wavelength_nm` SET TAGS ('dbx_business_glossary_term' = 'Wavelength Nm');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` SET TAGS ('dbx_subdomain' = 'facility_infrastructure');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` SET TAGS ('dbx_domain_verified' = 'fabrication');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` SET TAGS ('dbx_subdomain' = 'tooling_resources');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `plant_id` SET TAGS ('dbx_business_glossary_term' = 'Plant Identifier');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `fab_facility_id` SET TAGS ('dbx_business_glossary_term' = 'Fab Facility Id');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `parent_plant_id` SET TAGS ('dbx_business_glossary_term' = 'Parent Plant Id');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `parent_plant_id` SET TAGS ('dbx_self_ref_fk' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `site_id` SET TAGS ('dbx_business_glossary_term' = 'Site Id');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `address_line1` SET TAGS ('dbx_business_glossary_term' = 'Address Line1');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `address_line1` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `address_line1` SET TAGS ('dbx_pii_address' = 'true');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `address_line1` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `area_sq_m` SET TAGS ('dbx_business_glossary_term' = 'Area Sq M');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `capacity_wafer_per_month` SET TAGS ('dbx_business_glossary_term' = 'Capacity Wafer Per Month');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `city` SET TAGS ('dbx_business_glossary_term' = 'City');
@@ -2404,11 +2267,13 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `cleanro
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `plant_code` SET TAGS ('dbx_business_glossary_term' = 'Plant Code');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `compliance_certifications` SET TAGS ('dbx_business_glossary_term' = 'Compliance Certifications');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `country` SET TAGS ('dbx_business_glossary_term' = 'Country');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `country_code` SET TAGS ('dbx_business_glossary_term' = 'Country Code');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `data_classification` SET TAGS ('dbx_business_glossary_term' = 'Data Classification');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `plant_description` SET TAGS ('dbx_business_glossary_term' = 'Description');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `environmental_rating` SET TAGS ('dbx_business_glossary_term' = 'Environmental Rating');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `last_maintenance_date` SET TAGS ('dbx_business_glossary_term' = 'Last Maintenance Date');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `latitude` SET TAGS ('dbx_business_glossary_term' = 'Latitude');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `latitude` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `latitude` SET TAGS ('dbx_pii_address' = 'true');
@@ -2419,28 +2284,27 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `mainten
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `manager_email` SET TAGS ('dbx_business_glossary_term' = 'Manager Email');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `manager_email` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `manager_email` SET TAGS ('dbx_pii_email' = 'true');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `manager_email` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `manager_name` SET TAGS ('dbx_business_glossary_term' = 'Manager Name');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `manager_name` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `manager_name` SET TAGS ('dbx_pii_name' = 'true');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `manager_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `manager_phone` SET TAGS ('dbx_business_glossary_term' = 'Manager Phone');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `manager_phone` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `manager_phone` SET TAGS ('dbx_pii_phone' = 'true');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `manager_phone` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `plant_name` SET TAGS ('dbx_business_glossary_term' = 'Name');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Notes');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `number_of_cleanrooms` SET TAGS ('dbx_business_glossary_term' = 'Number Of Cleanrooms');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `number_of_fabs` SET TAGS ('dbx_business_glossary_term' = 'Number Of Fabs');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `operational_shift` SET TAGS ('dbx_business_glossary_term' = 'Operational Shift');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `operational_status` SET TAGS ('dbx_business_glossary_term' = 'Operational Status');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `owner_department` SET TAGS ('dbx_business_glossary_term' = 'Owner Department');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `plant_status` SET TAGS ('dbx_business_glossary_term' = 'Status');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `plant_type` SET TAGS ('dbx_business_glossary_term' = 'Type');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `power_capacity_mw` SET TAGS ('dbx_business_glossary_term' = 'Power Capacity Mw');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `region` SET TAGS ('dbx_business_glossary_term' = 'Region');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `security_level` SET TAGS ('dbx_business_glossary_term' = 'Security Level');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `shutdown_date` SET TAGS ('dbx_business_glossary_term' = 'Shutdown Date');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `start_date` SET TAGS ('dbx_business_glossary_term' = 'Start Date');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `state` SET TAGS ('dbx_business_glossary_term' = 'State');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `plant_status` SET TAGS ('dbx_business_glossary_term' = 'Status');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `plant_type` SET TAGS ('dbx_business_glossary_term' = 'Type');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Updated Timestamp');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `waste_treatment_capacity_tons_per_day` SET TAGS ('dbx_business_glossary_term' = 'Waste Treatment Capacity Tons Per Day');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `waste_treatment_capacity_tons_per_day` SET TAGS ('dbx_restricted' = 'true');
@@ -2450,27 +2314,32 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `zip_cod
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `zip_code` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`plant` ALTER COLUMN `zip_code` SET TAGS ('dbx_pii_address' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` SET TAGS ('dbx_subdomain' = 'facility_infrastructure');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` SET TAGS ('dbx_domain_verified' = 'fabrication');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` SET TAGS ('dbx_subdomain' = 'tooling_resources');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `fab_site_id` SET TAGS ('dbx_business_glossary_term' = 'Fab Site Identifier');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `fab_facility_id` SET TAGS ('dbx_business_glossary_term' = 'Fab Facility Id');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `parent_fab_site_id` SET TAGS ('dbx_business_glossary_term' = 'Parent Fab Site Id');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `parent_fab_site_id` SET TAGS ('dbx_self_ref_fk' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `plant_id` SET TAGS ('dbx_business_glossary_term' = 'Plant Id (Foreign Key)');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `address_line1` SET TAGS ('dbx_business_glossary_term' = 'Address Line1');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `address_line1` SET TAGS ('dbx_sensitivity' = 'pii');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `address_line1` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `address_line1` SET TAGS ('dbx_pii_address' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `address_line2` SET TAGS ('dbx_business_glossary_term' = 'Address Line2');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `address_line2` SET TAGS ('dbx_sensitivity' = 'pii');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `address_line2` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `address_line2` SET TAGS ('dbx_pii_address' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `audit_status` SET TAGS ('dbx_business_glossary_term' = 'Audit Status');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `capacity_wafer_per_month` SET TAGS ('dbx_business_glossary_term' = 'Capacity Wafer Per Month');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `city` SET TAGS ('dbx_business_glossary_term' = 'City');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `country` SET TAGS ('dbx_business_glossary_term' = 'Country');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `country_code` SET TAGS ('dbx_business_glossary_term' = 'Country Code');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `fab_site_description` SET TAGS ('dbx_business_glossary_term' = 'Description');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `end_date` SET TAGS ('dbx_business_glossary_term' = 'End Date');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `environmental_certification` SET TAGS ('dbx_business_glossary_term' = 'Environmental Certification');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `fab_site_status` SET TAGS ('dbx_business_glossary_term' = 'Status');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `ghs_compliance` SET TAGS ('dbx_business_glossary_term' = 'Ghs Compliance');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `is_primary_site` SET TAGS ('dbx_business_glossary_term' = 'Is Primary Site');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `last_audit_date` SET TAGS ('dbx_business_glossary_term' = 'Last Audit Date');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `latitude` SET TAGS ('dbx_business_glossary_term' = 'Latitude');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `latitude` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `latitude` SET TAGS ('dbx_pii_address' = 'true');
@@ -2481,15 +2350,12 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `main
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `manager_email` SET TAGS ('dbx_business_glossary_term' = 'Manager Email');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `manager_email` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `manager_email` SET TAGS ('dbx_pii_email' = 'true');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `manager_email` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `manager_name` SET TAGS ('dbx_business_glossary_term' = 'Manager Name');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `manager_name` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `manager_name` SET TAGS ('dbx_pii_name' = 'true');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `manager_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `manager_phone` SET TAGS ('dbx_business_glossary_term' = 'Manager Phone');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `manager_phone` SET TAGS ('dbx_restricted' = 'true');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `manager_phone` SET TAGS ('dbx_pii_phone' = 'true');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `manager_phone` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `fab_site_name` SET TAGS ('dbx_business_glossary_term' = 'Name');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `next_audit_date` SET TAGS ('dbx_business_glossary_term' = 'Next Audit Date');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Notes');
@@ -2497,6 +2363,7 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `numb
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `number_of_employees` SET TAGS ('dbx_business_glossary_term' = 'Number Of Employees');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `number_of_tools` SET TAGS ('dbx_business_glossary_term' = 'Number Of Tools');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `operational_hours_per_day` SET TAGS ('dbx_business_glossary_term' = 'Operational Hours Per Day');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `operational_status` SET TAGS ('dbx_business_glossary_term' = 'Operational Status');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `owner_department` SET TAGS ('dbx_business_glossary_term' = 'Owner Department');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `postal_code` SET TAGS ('dbx_business_glossary_term' = 'Postal Code');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `postal_code` SET TAGS ('dbx_restricted' = 'true');
@@ -2507,10 +2374,11 @@ ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `safe
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `security_level` SET TAGS ('dbx_business_glossary_term' = 'Security Level');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `site_area_sq_m` SET TAGS ('dbx_business_glossary_term' = 'Site Area Sq M');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `site_code` SET TAGS ('dbx_business_glossary_term' = 'Site Code');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `site_name` SET TAGS ('dbx_business_glossary_term' = 'Site Name');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `site_type` SET TAGS ('dbx_business_glossary_term' = 'Site Type');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `start_date` SET TAGS ('dbx_business_glossary_term' = 'Start Date');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `state` SET TAGS ('dbx_business_glossary_term' = 'State');
-ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `fab_site_status` SET TAGS ('dbx_business_glossary_term' = 'Status');
+ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `state_province` SET TAGS ('dbx_business_glossary_term' = 'State Province');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Updated Timestamp');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `waste_treatment_capacity_tons_per_day` SET TAGS ('dbx_business_glossary_term' = 'Waste Treatment Capacity Tons Per Day');
 ALTER TABLE `vibe_semiconductors_v1`.`fabrication`.`fab_site` ALTER COLUMN `waste_treatment_capacity_tons_per_day` SET TAGS ('dbx_restricted' = 'true');

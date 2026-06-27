@@ -1,1009 +1,12 @@
--- Metric views for domain: channel | Business: Travel_Hospitality | Version: 2 | Generated on: 2026-06-22 18:44:46
+-- Metric views for domain: channel | Business: Travel Hospitality | Version: 2 | Generated on: 2026-06-28 00:14:33
 
-CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_booking`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Core channel booking performance metrics tracking revenue, volume, cancellations, and cost of acquisition across all distribution channels. Primary KPI surface for channel mix optimization and revenue management decisions."
-  source: "`vibe_travel_hospitality_v1`.`channel`.`channel_booking`"
-  dimensions:
-    - name: "channel_type"
-      expr: channel_type
-      comment: "Distribution channel type (OTA, GDS, Direct, Wholesale, etc.) for channel mix analysis."
-    - name: "booking_status"
-      expr: booking_status
-      comment: "Current status of the booking (confirmed, cancelled, modified) for funnel and conversion analysis."
-    - name: "market_segment_code"
-      expr: market_segment_code
-      comment: "Market segment code (transient, group, corporate, leisure) for segment-level revenue attribution."
-    - name: "rate_type"
-      expr: rate_type
-      comment: "Rate type applied to the booking (BAR, negotiated, package, promotional) for rate strategy analysis."
-    - name: "source_country"
-      expr: source_country
-      comment: "Country of booking origin for geographic demand analysis."
-    - name: "currency_code"
-      expr: currency_code
-      comment: "Transaction currency for multi-currency revenue reporting."
-    - name: "check_in_date"
-      expr: DATE_TRUNC('month', check_in_date)
-      comment: "Check-in month for arrival demand trend analysis."
-    - name: "booking_timestamp_month"
-      expr: DATE_TRUNC('month', booking_timestamp)
-      comment: "Month the booking was made for booking pace and pickup reporting."
-    - name: "is_cancelled"
-      expr: is_cancelled
-      comment: "Boolean flag indicating whether the booking was cancelled, used for cancellation rate segmentation."
-    - name: "is_rate_parity_compliant"
-      expr: is_rate_parity_compliant
-      comment: "Whether the booking was made at a rate-parity-compliant price, for parity compliance monitoring."
-    - name: "corporate_account_code"
-      expr: corporate_account_code
-      comment: "Corporate account identifier for negotiated-rate volume tracking."
-  measures:
-    - name: "total_bookings"
-      expr: COUNT(1)
-      comment: "Total number of channel bookings. Baseline volume KPI for channel productivity measurement."
-    - name: "total_gross_booking_value"
-      expr: SUM(CAST(gross_booking_value AS DOUBLE))
-      comment: "Total gross booking value in transaction currency. Primary revenue contribution metric for each channel."
-    - name: "total_net_revenue"
-      expr: SUM(CAST(net_revenue_amount AS DOUBLE))
-      comment: "Total net revenue after commissions and fees. Measures true channel revenue contribution to the property."
-    - name: "total_commission_amount"
-      expr: SUM(CAST(commission_amount AS DOUBLE))
-      comment: "Total commission paid to the channel. Key cost-of-distribution metric for channel profitability analysis."
-    - name: "total_channel_commission_amount"
-      expr: SUM(CAST(channel_commission_amount AS DOUBLE))
-      comment: "Total channel-specific commission accrued. Used to compare commission burden across channel types."
-    - name: "total_connectivity_fee_amount"
-      expr: SUM(CAST(connectivity_fee_amount AS DOUBLE))
-      comment: "Total connectivity fees charged by the channel. Contributes to total cost of distribution."
-    - name: "avg_adr"
-      expr: AVG(CAST(adr AS DOUBLE))
-      comment: "Average Daily Rate across channel bookings. Measures rate quality delivered by each channel."
-    - name: "avg_commission_rate_pct"
-      expr: AVG(CAST(commission_rate_pct AS DOUBLE))
-      comment: "Average commission rate percentage across bookings. Benchmarks cost efficiency across channels."
-    - name: "cancellation_count"
-      expr: COUNT(CASE WHEN is_cancelled = TRUE THEN 1 END)
-      comment: "Number of cancelled bookings. High cancellation rates signal channel quality or policy issues."
-    - name: "cancellation_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN is_cancelled = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of bookings that were cancelled. Critical channel quality and demand reliability metric."
-    - name: "avg_booking_value"
-      expr: AVG(CAST(booking_amount AS DOUBLE))
-      comment: "Average booking value per transaction. Indicates channel's ability to drive higher-value reservations."
-    - name: "rate_parity_violation_count"
-      expr: COUNT(CASE WHEN is_rate_parity_compliant = FALSE THEN 1 END)
-      comment: "Number of bookings where rate parity was violated. Drives contractual compliance and brand protection actions."
-    - name: "rate_parity_compliance_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN is_rate_parity_compliant = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of bookings in rate parity compliance. Monitors adherence to channel contract obligations."
-    - name: "net_revenue_per_booking"
-      expr: ROUND(SUM(CAST(net_revenue_amount AS DOUBLE)) / NULLIF(COUNT(1), 0), 2)
-      comment: "Net revenue per booking after commissions. Measures true yield per transaction by channel."
-    - name: "commission_cost_ratio_pct"
-      expr: ROUND(100.0 * SUM(CAST(commission_amount AS DOUBLE)) / NULLIF(SUM(CAST(gross_booking_value AS DOUBLE)), 0), 2)
-      comment: "Commission as a percentage of gross booking value. Core cost-of-distribution efficiency metric."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Channel master entity metrics covering channel portfolio health, cost structure, and configuration quality. Used by revenue and distribution leadership to evaluate channel mix strategy."
-  source: "`vibe_travel_hospitality_v1`.`channel`.`channel`"
-  dimensions:
-    - name: "channel_type"
-      expr: channel_type
-      comment: "Type of distribution channel (OTA, GDS, Direct, Wholesale, CRS) for portfolio segmentation."
-    - name: "channel_category"
-      expr: channel_category
-      comment: "Broader category grouping of channels for strategic channel mix reporting."
-    - name: "channel_status"
-      expr: channel_status
-      comment: "Operational status of the channel (active, inactive, suspended) for portfolio health monitoring."
-    - name: "geographic_scope"
-      expr: geographic_scope
-      comment: "Geographic market scope of the channel for regional distribution strategy analysis."
-    - name: "primary_market_country_code"
-      expr: primary_market_country_code
-      comment: "Primary country market served by the channel for geographic demand attribution."
-    - name: "commission_basis"
-      expr: commission_basis
-      comment: "Basis on which commission is calculated (per booking, per room night, percentage of revenue)."
-    - name: "payment_model"
-      expr: CAST(payment_model AS STRING)
-      comment: "Payment model type for the channel (merchant, agency, net rate) for financial flow analysis."
-    - name: "rate_parity_required"
-      expr: rate_parity_required
-      comment: "Whether rate parity is contractually required for this channel."
-    - name: "loyalty_bookings_eligible"
-      expr: loyalty_bookings_eligible
-      comment: "Whether bookings through this channel are eligible for loyalty points accrual."
-    - name: "activation_date_month"
-      expr: DATE_TRUNC('month', activation_date)
-      comment: "Month the channel was activated for channel onboarding trend analysis."
-  measures:
-    - name: "total_active_channels"
-      expr: COUNT(CASE WHEN channel_status = 'active' THEN 1 END)
-      comment: "Number of currently active distribution channels. Measures breadth of active distribution network."
-    - name: "total_channels"
-      expr: COUNT(1)
-      comment: "Total number of channels in the portfolio including all statuses."
-    - name: "avg_commission_rate_pct"
-      expr: AVG(CAST(commission_rate_pct AS DOUBLE))
-      comment: "Average commission rate across all channels. Benchmarks cost of distribution across the portfolio."
-    - name: "avg_booking_fee_usd"
-      expr: AVG(CAST(booking_fee_usd AS DOUBLE))
-      comment: "Average per-booking fee charged by channels. Contributes to total cost of distribution analysis."
-    - name: "avg_connectivity_fee_usd"
-      expr: AVG(CAST(connectivity_fee_usd AS DOUBLE))
-      comment: "Average monthly connectivity fee across channels. Key fixed cost component of channel management."
-    - name: "total_connectivity_fee_usd"
-      expr: SUM(CAST(connectivity_fee_usd AS DOUBLE))
-      comment: "Total connectivity fees across all channels. Measures fixed technology cost of distribution infrastructure."
-    - name: "avg_sla_uptime_pct"
-      expr: AVG(CAST(sla_uptime_pct AS DOUBLE))
-      comment: "Average SLA uptime percentage across channels. Measures distribution technology reliability."
-    - name: "loyalty_eligible_channel_count"
-      expr: COUNT(CASE WHEN loyalty_bookings_eligible = TRUE THEN 1 END)
-      comment: "Number of channels supporting loyalty accrual. Measures loyalty program distribution reach."
-    - name: "rate_parity_required_channel_count"
-      expr: COUNT(CASE WHEN rate_parity_required = TRUE THEN 1 END)
-      comment: "Number of channels with contractual rate parity obligations. Drives compliance monitoring scope."
-    - name: "pci_compliant_channel_count"
-      expr: COUNT(CASE WHEN pci_compliant = TRUE THEN 1 END)
-      comment: "Number of PCI-compliant channels. Critical for payment security risk management."
-    - name: "pci_compliance_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN pci_compliant = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of channels that are PCI compliant. Measures payment security posture across distribution."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_commission_accrual`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Commission accrual metrics tracking total commission liability, payment status, and cost of acquisition by channel. Used by finance and revenue management to monitor distribution cost and commission payables."
-  source: "`vibe_travel_hospitality_v1`.`channel`.`commission_accrual`"
-  dimensions:
-    - name: "channel_type"
-      expr: channel_type
-      comment: "Channel type for commission cost attribution by distribution channel category."
-    - name: "commission_type"
-      expr: commission_type
-      comment: "Type of commission (base, override, promotional) for commission structure analysis."
-    - name: "commission_basis"
-      expr: commission_basis
-      comment: "Basis for commission calculation (room revenue, total revenue, per booking) for cost modeling."
-    - name: "accrual_status"
-      expr: accrual_status
-      comment: "Status of the commission accrual (pending, invoiced, paid, disputed) for payables management."
-    - name: "market_segment_code"
-      expr: market_segment_code
-      comment: "Market segment for commission cost attribution by business segment."
-    - name: "local_currency_code"
-      expr: local_currency_code
-      comment: "Local currency of the commission transaction for multi-currency cost reporting."
-    - name: "accrual_date_month"
-      expr: DATE_TRUNC('month', accrual_date)
-      comment: "Month of commission accrual for trend analysis and period-over-period comparison."
-    - name: "payment_due_date_month"
-      expr: DATE_TRUNC('month', payment_due_date)
-      comment: "Month commission payment is due for cash flow and payables forecasting."
-    - name: "is_commissionable"
-      expr: is_commissionable
-      comment: "Whether the booking is commissionable, for filtering non-commissionable volume."
-  measures:
-    - name: "total_commission_accrual_amount"
-      expr: SUM(CAST(accrual_amount AS DOUBLE))
-      comment: "Total commission accrued across all bookings. Primary cost-of-distribution liability metric."
-    - name: "total_commission_amount_base"
-      expr: SUM(CAST(commission_amount_base AS DOUBLE))
-      comment: "Total base commission in base currency. Used for standardized cross-currency cost comparison."
-    - name: "total_commission_amount_local"
-      expr: SUM(CAST(commission_amount_local AS DOUBLE))
-      comment: "Total commission in local currency. Used for local market cost reporting and payables."
-    - name: "total_gross_booking_value"
-      expr: SUM(CAST(gross_booking_value AS DOUBLE))
-      comment: "Total gross booking value underlying commission accruals. Denominator for commission rate validation."
-    - name: "total_cost_of_acquisition"
-      expr: SUM(CAST(total_cost_of_acquisition AS DOUBLE))
-      comment: "Total cost of acquisition including commission and connectivity fees. True channel cost metric."
-    - name: "total_connectivity_fee_amount"
-      expr: SUM(CAST(connectivity_fee_amount AS DOUBLE))
-      comment: "Total connectivity fees accrued alongside commissions. Measures technology cost of distribution."
-    - name: "avg_commission_rate"
-      expr: AVG(CAST(commission_rate AS DOUBLE))
-      comment: "Average effective commission rate across accruals. Benchmarks negotiated vs. actual commission rates."
-    - name: "avg_adr"
-      expr: AVG(CAST(adr AS DOUBLE))
-      comment: "Average Daily Rate on commissionable bookings. Measures rate quality of commission-generating bookings."
-    - name: "commission_to_gbv_ratio_pct"
-      expr: ROUND(100.0 * SUM(CAST(accrual_amount AS DOUBLE)) / NULLIF(SUM(CAST(gross_booking_value AS DOUBLE)), 0), 2)
-      comment: "Commission as a percentage of gross booking value. Core cost-of-distribution efficiency ratio."
-    - name: "cost_of_acquisition_per_booking"
-      expr: ROUND(SUM(CAST(total_cost_of_acquisition AS DOUBLE)) / NULLIF(COUNT(1), 0), 2)
-      comment: "Average total cost of acquisition per booking. Measures channel efficiency for investment decisions."
-    - name: "disputed_accrual_count"
-      expr: COUNT(CASE WHEN accrual_status = 'disputed' THEN 1 END)
-      comment: "Number of commission accruals in dispute. Signals channel relationship and billing quality issues."
-    - name: "avg_fx_rate"
-      expr: AVG(CAST(fx_rate AS DOUBLE))
-      comment: "Average FX rate applied to commission conversions. Used for currency risk monitoring in commission payables."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_rate_parity_audit`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Rate parity audit metrics tracking parity violations, variance severity, and resolution performance across channels. Critical for brand protection, contract compliance, and revenue integrity management."
-  source: "`vibe_travel_hospitality_v1`.`channel`.`rate_parity_audit`"
-  dimensions:
-    - name: "channel_type"
-      expr: channel_type
-      comment: "Channel type where parity was audited for identifying which channel categories drive most violations."
-    - name: "audit_status"
-      expr: audit_status
-      comment: "Status of the audit record (open, resolved, escalated) for compliance workflow management."
-    - name: "parity_status"
-      expr: parity_status
-      comment: "Parity outcome (compliant, violation, under review) for compliance rate reporting."
-    - name: "violation_severity"
-      expr: violation_severity
-      comment: "Severity level of the parity violation (low, medium, high, critical) for prioritized remediation."
-    - name: "violation_type"
-      expr: violation_type
-      comment: "Type of parity violation (rate, availability, content) for root cause analysis."
-    - name: "monitoring_source"
-      expr: monitoring_source
-      comment: "Source of the parity monitoring (automated tool, manual review, OTA report) for audit coverage analysis."
-    - name: "rate_plan_code"
-      expr: rate_plan_code
-      comment: "Rate plan involved in the audit for identifying which rate plans are most prone to parity issues."
-    - name: "currency_code"
-      expr: currency_code
-      comment: "Currency of the audited rates for multi-currency parity analysis."
-    - name: "stay_date_month"
-      expr: DATE_TRUNC('month', stay_date)
-      comment: "Stay month of the audited rate for seasonal parity trend analysis."
-    - name: "audit_timestamp_month"
-      expr: DATE_TRUNC('month', audit_timestamp)
-      comment: "Month the audit was performed for audit activity trend reporting."
-    - name: "is_parity_violation"
-      expr: is_parity_violation
-      comment: "Boolean flag for parity violation, used for quick compliance segmentation."
-  measures:
-    - name: "total_audits"
-      expr: COUNT(1)
-      comment: "Total number of rate parity audits conducted. Measures monitoring coverage and activity."
-    - name: "total_violations"
-      expr: COUNT(CASE WHEN is_parity_violation = TRUE THEN 1 END)
-      comment: "Total number of confirmed rate parity violations. Primary compliance risk metric."
-    - name: "violation_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN is_parity_violation = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of audits resulting in a parity violation. Core channel compliance KPI for executive reporting."
-    - name: "avg_rate_variance_pct"
-      expr: AVG(CAST(rate_variance_pct AS DOUBLE))
-      comment: "Average rate variance percentage where violations occurred. Measures severity of parity breaches."
-    - name: "avg_rate_variance_amount"
-      expr: AVG(CAST(rate_variance_amount AS DOUBLE))
-      comment: "Average absolute rate variance amount in currency. Quantifies financial impact of parity violations."
-    - name: "total_rate_variance_amount"
-      expr: SUM(CAST(rate_variance_amount AS DOUBLE))
-      comment: "Total rate variance amount across all violations. Measures aggregate revenue risk from parity breaches."
-    - name: "avg_direct_rate"
-      expr: AVG(CAST(direct_rate AS DOUBLE))
-      comment: "Average direct booking rate observed during audits. Benchmarks direct channel rate competitiveness."
-    - name: "avg_observed_rate"
-      expr: AVG(CAST(observed_rate AS DOUBLE))
-      comment: "Average rate observed on the channel during audit. Measures channel rate positioning vs. direct."
-    - name: "avg_contracted_parity_rate"
-      expr: AVG(CAST(contracted_parity_rate AS DOUBLE))
-      comment: "Average contracted parity rate. Baseline for measuring compliance against contractual obligations."
-    - name: "avg_tolerance_threshold_pct"
-      expr: AVG(CAST(tolerance_threshold_pct AS DOUBLE))
-      comment: "Average tolerance threshold applied in audits. Contextualizes violation counts against agreed thresholds."
-    - name: "open_dispute_count"
-      expr: COUNT(CASE WHEN dispute_raised_date IS NOT NULL AND dispute_resolved_date IS NULL THEN 1 END)
-      comment: "Number of parity disputes raised but not yet resolved. Measures outstanding compliance remediation workload."
-    - name: "resolved_dispute_count"
-      expr: COUNT(CASE WHEN dispute_resolved_date IS NOT NULL THEN 1 END)
-      comment: "Number of parity disputes successfully resolved. Measures compliance team effectiveness."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_inventory_allocation`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Channel inventory allocation metrics tracking room allocation utilization, sell-through rates, and overbooking exposure by channel and room type. Addresses VREQ-024 by providing rich business metrics over this previously stub entity."
-  source: "`vibe_travel_hospitality_v1`.`channel`.`inventory_allocation`"
-  dimensions:
-    - name: "allocation_type"
-      expr: allocation_type
-      comment: "Type of inventory allocation (allotment, free-sale, guaranteed, contingency) for allocation strategy analysis."
-    - name: "allocation_status"
-      expr: allocation_status
-      comment: "Current status of the allocation (active, released, expired, consumed) for portfolio health monitoring."
-    - name: "allocation_method"
-      expr: allocation_method
-      comment: "Method used to allocate inventory (manual, RMS-generated, contract-driven) for process efficiency analysis."
-    - name: "currency_code"
-      expr: currency_code
-      comment: "Currency of the allocated rate for multi-currency revenue analysis."
-    - name: "stay_date_month"
-      expr: DATE_TRUNC('month', stay_date)
-      comment: "Stay month of the allocation for demand pattern and seasonal analysis."
-    - name: "effective_start_date_month"
-      expr: DATE_TRUNC('month', effective_start_date)
-      comment: "Month the allocation became effective for allocation lifecycle trend analysis."
-    - name: "is_freesale"
-      expr: is_freesale
-      comment: "Whether the allocation is a free-sale (unlimited) allocation vs. fixed allotment."
-    - name: "is_guaranteed"
-      expr: is_guaranteed
-      comment: "Whether the allocation is guaranteed, indicating contractual commitment level."
-    - name: "stop_sell_flag"
-      expr: stop_sell_flag
-      comment: "Whether stop-sell is active on this allocation, for demand management monitoring."
-    - name: "overbooking_allowed"
-      expr: overbooking_allowed
-      comment: "Whether overbooking is permitted on this allocation for risk exposure segmentation."
-    - name: "lra_flag"
-      expr: lra_flag
-      comment: "Last Room Availability flag indicating whether the channel must be offered the last available room."
-  measures:
-    - name: "total_allocations"
-      expr: COUNT(1)
-      comment: "Total number of inventory allocation records. Baseline measure for allocation portfolio size."
-    - name: "total_allocated_rate_amount"
-      expr: SUM(CAST(allocated_rate_amount AS DOUBLE))
-      comment: "Total value of allocated rate amounts across all allocations. Measures revenue potential of allocated inventory."
-    - name: "total_allocation_rate_amount"
-      expr: SUM(CAST(allocation_rate_amount AS DOUBLE))
-      comment: "Total allocation rate amount. Used alongside allocated_rate_amount for rate variance analysis."
-    - name: "total_negotiated_rate_amount"
-      expr: SUM(CAST(negotiated_rate_amount AS DOUBLE))
-      comment: "Total negotiated rate value across allocations. Measures contracted revenue from negotiated inventory."
-    - name: "avg_utilization_pct"
-      expr: AVG(CAST(utilization_pct AS DOUBLE))
-      comment: "Average inventory utilization percentage across allocations. Core efficiency metric for allocation management."
-    - name: "avg_wash_factor_pct"
-      expr: AVG(CAST(wash_factor_pct AS DOUBLE))
-      comment: "Average wash factor applied to allocations. Measures expected attrition from contracted allotments."
-    - name: "avg_commission_rate_pct"
-      expr: AVG(CAST(commission_rate_pct AS DOUBLE))
-      comment: "Average commission rate on allocated inventory. Measures cost of distribution for allocated rooms."
-    - name: "avg_overbooking_limit_pct"
-      expr: AVG(CAST(overbooking_limit_pct AS DOUBLE))
-      comment: "Average overbooking limit percentage across allocations. Measures aggregate overbooking risk exposure."
-    - name: "stop_sell_allocation_count"
-      expr: COUNT(CASE WHEN stop_sell_flag = TRUE THEN 1 END)
-      comment: "Number of allocations with stop-sell active. Measures demand management intervention frequency."
-    - name: "stop_sell_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN stop_sell_flag = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of allocations with stop-sell active. Indicates demand pressure and inventory tightness."
-    - name: "freesale_allocation_count"
-      expr: COUNT(CASE WHEN is_freesale = TRUE THEN 1 END)
-      comment: "Number of free-sale allocations. Measures exposure to unlimited-availability channel commitments."
-    - name: "guaranteed_allocation_count"
-      expr: COUNT(CASE WHEN is_guaranteed = TRUE THEN 1 END)
-      comment: "Number of guaranteed allocations. Measures contractual inventory commitment level."
-    - name: "avg_rate_amount"
-      expr: AVG(CAST(rate_amount AS DOUBLE))
-      comment: "Average rate amount across all allocations. Benchmarks pricing level of allocated inventory."
-    - name: "overbooking_allowed_count"
-      expr: COUNT(CASE WHEN overbooking_allowed = TRUE THEN 1 END)
-      comment: "Number of allocations where overbooking is permitted. Quantifies overbooking risk exposure in the portfolio."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_commission_schedule`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Commission schedule metrics tracking commission rate structures, tiered pricing, and schedule coverage across channels. Used by finance and commercial teams to manage and optimize commission agreements."
-  source: "`vibe_travel_hospitality_v1`.`channel`.`commission_schedule`"
-  dimensions:
-    - name: "commission_basis"
-      expr: commission_basis
-      comment: "Basis for commission calculation (room revenue, total revenue, per booking) for cost structure analysis."
-    - name: "schedule_status"
-      expr: schedule_status
-      comment: "Status of the commission schedule (active, expired, pending) for schedule portfolio management."
-    - name: "billing_frequency"
-      expr: billing_frequency
-      comment: "Frequency of commission billing (monthly, quarterly, per booking) for cash flow planning."
-    - name: "market_segment_code"
-      expr: market_segment_code
-      comment: "Market segment the schedule applies to for segment-level commission cost analysis."
-    - name: "auto_accrual_enabled"
-      expr: auto_accrual_enabled
-      comment: "Whether commission accrual is automated for this schedule, measuring automation coverage."
-    - name: "applies_to_cancellations"
-      expr: applies_to_cancellations
-      comment: "Whether commission applies to cancellations, for cancellation cost liability analysis."
-    - name: "applies_to_no_shows"
-      expr: applies_to_no_shows
-      comment: "Whether commission applies to no-shows, for no-show cost liability analysis."
-    - name: "effective_from_month"
-      expr: DATE_TRUNC('month', effective_from)
-      comment: "Month the commission schedule became effective for schedule lifecycle trend analysis."
-  measures:
-    - name: "total_schedules"
-      expr: COUNT(1)
-      comment: "Total number of commission schedules. Measures breadth of commission agreement portfolio."
-    - name: "active_schedule_count"
-      expr: COUNT(CASE WHEN schedule_status = 'active' THEN 1 END)
-      comment: "Number of currently active commission schedules. Measures active commission obligation scope."
-    - name: "avg_commission_rate_pct"
-      expr: AVG(CAST(commission_rate_pct AS DOUBLE))
-      comment: "Average commission rate across all schedules. Benchmarks overall commission cost structure."
-    - name: "avg_flat_fee_amount"
-      expr: AVG(CAST(flat_fee_amount AS DOUBLE))
-      comment: "Average flat fee amount where applicable. Measures fixed commission cost component."
-    - name: "avg_max_commission_amount"
-      expr: AVG(CAST(max_commission_amount AS DOUBLE))
-      comment: "Average maximum commission cap across schedules. Measures commission liability ceiling."
-    - name: "avg_min_commission_amount"
-      expr: AVG(CAST(min_commission_amount AS DOUBLE))
-      comment: "Average minimum commission floor across schedules. Measures guaranteed commission floor obligations."
-    - name: "avg_tier_1_rate_pct"
-      expr: AVG(CAST(tier_1_rate_pct AS DOUBLE))
-      comment: "Average tier-1 commission rate. Benchmarks base tier commission cost across channel agreements."
-    - name: "avg_tier_2_rate_pct"
-      expr: AVG(CAST(tier_2_rate_pct AS DOUBLE))
-      comment: "Average tier-2 commission rate. Measures incremental commission cost at higher volume tiers."
-    - name: "avg_payment_terms_days"
-      expr: AVG(CAST(payment_terms_days AS DOUBLE))
-      comment: "Average payment terms in days across commission schedules. Measures commission payables timing."
-    - name: "auto_accrual_schedule_count"
-      expr: COUNT(CASE WHEN auto_accrual_enabled = TRUE THEN 1 END)
-      comment: "Number of schedules with automated accrual. Measures commission automation coverage."
-    - name: "cancellation_commission_schedule_count"
-      expr: COUNT(CASE WHEN applies_to_cancellations = TRUE THEN 1 END)
-      comment: "Number of schedules where commission applies to cancellations. Quantifies cancellation commission liability."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_rate_plan`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Channel rate plan metrics tracking rate loading status, rate adjustment structures, and plan coverage across channels. Used by revenue management and distribution teams to monitor rate plan health and channel rate strategy."
-  source: "`vibe_travel_hospitality_v1`.`channel`.`channel_rate_plan`"
-  dimensions:
-    - name: "channel_rate_plan_status"
-      expr: channel_rate_plan_status
-      comment: "Status of the channel rate plan (active, inactive, pending) for rate plan portfolio health monitoring."
-    - name: "rate_plan_type"
-      expr: rate_plan_type
-      comment: "Type of rate plan (BAR, negotiated, package, promotional) for rate strategy segmentation."
-    - name: "rate_loading_status"
-      expr: rate_loading_status
-      comment: "Status of rate loading to the channel (loaded, pending, failed) for distribution readiness monitoring."
-    - name: "rate_derivation_method"
-      expr: rate_derivation_method
-      comment: "Method used to derive the channel rate (flat, percentage, offset) for rate structure analysis."
-    - name: "rate_adjustment_type"
-      expr: rate_adjustment_type
-      comment: "Type of rate adjustment applied (markup, markdown, flat) for pricing strategy analysis."
-    - name: "currency_code"
-      expr: currency_code
-      comment: "Currency of the rate plan for multi-currency rate management."
-    - name: "meal_plan_code"
-      expr: meal_plan_code
-      comment: "Meal plan included in the rate (room only, B&B, half board) for package rate analysis."
-    - name: "is_rate_parity_applicable"
-      expr: is_rate_parity_applicable
-      comment: "Whether rate parity applies to this rate plan for compliance scope identification."
-    - name: "is_refundable"
-      expr: is_refundable
-      comment: "Whether the rate plan is refundable for cancellation policy and demand analysis."
-    - name: "effective_from_month"
-      expr: DATE_TRUNC('month', effective_from)
-      comment: "Month the rate plan became effective for rate plan lifecycle trend analysis."
-  measures:
-    - name: "total_rate_plans"
-      expr: COUNT(1)
-      comment: "Total number of channel rate plans. Measures breadth of rate plan distribution portfolio."
-    - name: "active_rate_plan_count"
-      expr: COUNT(CASE WHEN channel_rate_plan_status = 'active' THEN 1 END)
-      comment: "Number of currently active channel rate plans. Measures active rate distribution coverage."
-    - name: "avg_base_rate_amount"
-      expr: AVG(CAST(base_rate_amount AS DOUBLE))
-      comment: "Average base rate amount across channel rate plans. Benchmarks rate level across distribution."
-    - name: "avg_channel_rate_amount"
-      expr: AVG(CAST(channel_rate_amount AS DOUBLE))
-      comment: "Average channel-specific rate amount. Measures actual rate delivered to each channel."
-    - name: "avg_commission_rate_pct"
-      expr: AVG(CAST(commission_rate_pct AS DOUBLE))
-      comment: "Average commission rate on channel rate plans. Measures cost of distribution by rate plan."
-    - name: "avg_connectivity_fee_amount"
-      expr: AVG(CAST(connectivity_fee_amount AS DOUBLE))
-      comment: "Average connectivity fee on rate plans. Measures technology cost component of rate distribution."
-    - name: "avg_rate_adjustment_value"
-      expr: AVG(CAST(rate_adjustment_value AS DOUBLE))
-      comment: "Average rate adjustment value applied to channel rates. Measures magnitude of channel rate modifications."
-    - name: "rate_loading_failure_count"
-      expr: COUNT(CASE WHEN rate_loading_status = 'failed' THEN 1 END)
-      comment: "Number of rate plans with failed loading status. Measures distribution technology failure impact."
-    - name: "rate_loading_success_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN rate_loading_status = 'loaded' THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of rate plans successfully loaded to channels. Measures distribution readiness and reliability."
-    - name: "parity_applicable_rate_plan_count"
-      expr: COUNT(CASE WHEN is_rate_parity_applicable = TRUE THEN 1 END)
-      comment: "Number of rate plans subject to rate parity requirements. Defines parity compliance monitoring scope."
-    - name: "refundable_rate_plan_count"
-      expr: COUNT(CASE WHEN is_refundable = TRUE THEN 1 END)
-      comment: "Number of refundable rate plans. Measures cancellation risk exposure in the rate plan portfolio."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_gds_connection`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "GDS connection performance and health metrics tracking uptime, commission rates, and connectivity quality across GDS networks. Used by distribution and technology teams to manage GDS channel performance."
-  source: "`vibe_travel_hospitality_v1`.`channel`.`gds_connection`"
-  dimensions:
-    - name: "gds_name"
-      expr: gds_name
-      comment: "Name of the GDS network (Amadeus, Sabre, Travelport) for GDS-specific performance analysis."
-    - name: "connection_status"
-      expr: connection_status
-      comment: "Current connection status (active, inactive, degraded) for GDS health monitoring."
-    - name: "connectivity_type"
-      expr: connectivity_type
-      comment: "Type of GDS connectivity (direct, switch, API) for technology architecture analysis."
-    - name: "gds_tier"
-      expr: gds_tier
-      comment: "GDS partnership tier for preferred partner program management."
-    - name: "health_check_status"
-      expr: health_check_status
-      comment: "Latest health check status for real-time GDS connectivity monitoring."
-    - name: "market_segment_code"
-      expr: market_segment_code
-      comment: "Market segment served by the GDS connection for segment-level distribution analysis."
-    - name: "lra_enabled"
-      expr: lra_enabled
-      comment: "Whether Last Room Availability is enabled on this GDS connection."
-    - name: "activation_date_month"
-      expr: DATE_TRUNC('month', activation_date)
-      comment: "Month the GDS connection was activated for onboarding trend analysis."
-  measures:
-    - name: "total_gds_connections"
-      expr: COUNT(1)
-      comment: "Total number of GDS connections. Measures GDS distribution network breadth."
-    - name: "active_connection_count"
-      expr: COUNT(CASE WHEN connection_status = 'active' THEN 1 END)
-      comment: "Number of active GDS connections. Measures live GDS distribution coverage."
-    - name: "avg_uptime_sla_pct"
-      expr: AVG(CAST(uptime_sla_pct AS DOUBLE))
-      comment: "Average GDS uptime SLA percentage. Measures distribution technology reliability across GDS networks."
-    - name: "avg_commission_rate_pct"
-      expr: AVG(CAST(commission_rate_pct AS DOUBLE))
-      comment: "Average commission rate across GDS connections. Benchmarks GDS cost of distribution."
-    - name: "avg_connectivity_fee_monthly_usd"
-      expr: AVG(CAST(connectivity_fee_monthly_usd AS DOUBLE))
-      comment: "Average monthly connectivity fee per GDS connection. Measures fixed GDS technology cost."
-    - name: "total_connectivity_fee_monthly_usd"
-      expr: SUM(CAST(connectivity_fee_monthly_usd AS DOUBLE))
-      comment: "Total monthly GDS connectivity fees. Measures aggregate fixed cost of GDS distribution infrastructure."
-    - name: "avg_segment_fee_usd"
-      expr: AVG(CAST(segment_fee_usd AS DOUBLE))
-      comment: "Average per-segment fee charged by GDS. Measures variable cost of GDS bookings."
-    - name: "lra_enabled_connection_count"
-      expr: COUNT(CASE WHEN lra_enabled = TRUE THEN 1 END)
-      comment: "Number of GDS connections with LRA enabled. Measures contractual last-room-availability exposure."
-    - name: "healthy_connection_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN health_check_status = 'healthy' THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of GDS connections with healthy status. Measures GDS distribution reliability."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_metasearch_listing`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Metasearch channel performance metrics tracking click-through rates, conversion, ROAS, and cost efficiency across metasearch platforms. Used by digital marketing and distribution teams to optimize metasearch investment."
-  source: "`vibe_travel_hospitality_v1`.`channel`.`metasearch_listing`"
-  dimensions:
-    - name: "platform_name"
-      expr: platform_name
-      comment: "Metasearch platform name (Google Hotel Ads, TripAdvisor, Trivago) for platform-level performance comparison."
-    - name: "listing_status"
-      expr: listing_status
-      comment: "Current listing status (active, paused, suspended) for portfolio health monitoring."
-    - name: "listing_type"
-      expr: listing_type
-      comment: "Type of metasearch listing (CPC, CPA, commission) for bid strategy analysis."
-    - name: "bid_strategy_type"
-      expr: bid_strategy_type
-      comment: "Bidding strategy type (manual, automated, target ROAS) for campaign optimization analysis."
-    - name: "device_type"
-      expr: device_type
-      comment: "Device type (desktop, mobile, tablet) for device-level performance optimization."
-    - name: "target_market"
-      expr: target_market
-      comment: "Target market for the listing for geographic demand and investment analysis."
-    - name: "currency_code"
-      expr: currency_code
-      comment: "Currency of the listing spend and revenue for multi-currency performance reporting."
-    - name: "reporting_period_start_month"
-      expr: DATE_TRUNC('month', reporting_period_start)
-      comment: "Reporting period month for trend analysis of metasearch performance."
-    - name: "is_rate_parity_monitored"
-      expr: is_rate_parity_monitored
-      comment: "Whether rate parity is monitored on this listing for compliance scope identification."
-  measures:
-    - name: "total_impressions"
-      expr: SUM(CAST(impression_count AS DOUBLE))
-      comment: "Total metasearch impressions. Measures visibility and reach of hotel listings on metasearch platforms."
-    - name: "total_clicks"
-      expr: SUM(CAST(click_count AS DOUBLE))
-      comment: "Total clicks on metasearch listings. Measures user engagement and traffic driven to direct booking."
-    - name: "total_booking_revenue"
-      expr: SUM(CAST(booking_revenue AS DOUBLE))
-      comment: "Total revenue generated from metasearch bookings. Primary revenue contribution metric for metasearch."
-    - name: "total_spend"
-      expr: SUM(CAST(total_spend AS DOUBLE))
-      comment: "Total metasearch advertising spend. Core cost metric for ROI and budget management."
-    - name: "avg_click_through_rate"
-      expr: AVG(CAST(click_through_rate AS DOUBLE))
-      comment: "Average click-through rate across listings. Measures listing relevance and creative effectiveness."
-    - name: "avg_conversion_rate"
-      expr: AVG(CAST(conversion_rate AS DOUBLE))
-      comment: "Average booking conversion rate from clicks. Measures landing page and booking funnel effectiveness."
-    - name: "avg_return_on_ad_spend"
-      expr: AVG(CAST(return_on_ad_spend AS DOUBLE))
-      comment: "Average ROAS across metasearch listings. Primary efficiency metric for metasearch investment decisions."
-    - name: "avg_cpc_actual"
-      expr: AVG(CAST(cpc_actual AS DOUBLE))
-      comment: "Average actual cost per click. Measures bid efficiency and competitive positioning on metasearch."
-    - name: "avg_cpa_actual"
-      expr: AVG(CAST(cpa_actual AS DOUBLE))
-      comment: "Average actual cost per acquisition. Measures true cost efficiency of metasearch bookings."
-    - name: "avg_bid_amount"
-      expr: AVG(CAST(bid_amount AS DOUBLE))
-      comment: "Average bid amount across listings. Benchmarks bidding aggressiveness across platforms."
-    - name: "total_daily_budget_cap"
-      expr: SUM(CAST(daily_budget_cap AS DOUBLE))
-      comment: "Total daily budget cap across all metasearch listings. Measures total metasearch investment ceiling."
-    - name: "revenue_per_click"
-      expr: ROUND(SUM(CAST(booking_revenue AS DOUBLE)) / NULLIF(SUM(CAST(click_count AS DOUBLE)), 0), 2)
-      comment: "Revenue generated per click. Measures the revenue quality of metasearch traffic for investment optimization."
-    - name: "cost_per_booking_revenue_ratio_pct"
-      expr: ROUND(100.0 * SUM(CAST(total_spend AS DOUBLE)) / NULLIF(SUM(CAST(booking_revenue AS DOUBLE)), 0), 2)
-      comment: "Metasearch spend as a percentage of booking revenue. Core cost efficiency metric for channel investment decisions."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_wholesale_allotment`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Wholesale allotment metrics tracking contracted allotment utilization, pickup performance, and wash factor exposure. Used by revenue management and commercial teams to optimize wholesale channel agreements."
-  source: "`vibe_travel_hospitality_v1`.`channel`.`wholesale_allotment`"
-  dimensions:
-    - name: "allotment_type"
-      expr: allotment_type
-      comment: "Type of wholesale allotment (hard block, soft block, free-sale) for commitment level analysis."
-    - name: "allotment_status"
-      expr: allotment_status
-      comment: "Current status of the allotment (active, released, expired, consumed) for portfolio health monitoring."
-    - name: "market_segment_code"
-      expr: market_segment_code
-      comment: "Market segment for the wholesale allotment for segment-level revenue attribution."
-    - name: "currency_code"
-      expr: currency_code
-      comment: "Currency of the allotment rates for multi-currency revenue analysis."
-    - name: "connectivity_type"
-      expr: connectivity_type
-      comment: "Connectivity type for the wholesale channel for technology cost analysis."
-    - name: "stay_date_from_month"
-      expr: DATE_TRUNC('month', stay_date_from)
-      comment: "Stay period start month for seasonal allotment demand analysis."
-    - name: "contract_effective_date_month"
-      expr: DATE_TRUNC('month', contract_effective_date)
-      comment: "Month the wholesale contract became effective for contract lifecycle analysis."
-    - name: "is_stop_sell"
-      expr: is_stop_sell
-      comment: "Whether stop-sell is active on the allotment for demand management monitoring."
-    - name: "last_room_availability"
-      expr: last_room_availability
-      comment: "Whether LRA applies to this wholesale allotment for contractual obligation monitoring."
-  measures:
-    - name: "total_allotments"
-      expr: COUNT(1)
-      comment: "Total number of wholesale allotment records. Baseline measure for wholesale portfolio size."
-    - name: "total_contracted_net_rate"
-      expr: SUM(CAST(contracted_net_rate AS DOUBLE))
-      comment: "Total contracted net rate value across allotments. Measures contracted wholesale revenue potential."
-    - name: "total_rack_rate"
-      expr: SUM(CAST(rack_rate AS DOUBLE))
-      comment: "Total rack rate value across allotments. Used to calculate discount depth vs. contracted net rate."
-    - name: "avg_contracted_net_rate"
-      expr: AVG(CAST(contracted_net_rate AS DOUBLE))
-      comment: "Average contracted net rate per allotment. Benchmarks wholesale pricing across partners."
-    - name: "avg_commission_rate"
-      expr: AVG(CAST(commission_rate AS DOUBLE))
-      comment: "Average commission rate on wholesale allotments. Measures cost of wholesale distribution."
-    - name: "avg_wash_factor_pct"
-      expr: AVG(CAST(wash_factor_pct AS DOUBLE))
-      comment: "Average wash factor applied to wholesale allotments. Measures expected attrition from contracted blocks."
-    - name: "net_rate_to_rack_rate_ratio_pct"
-      expr: ROUND(100.0 * SUM(CAST(contracted_net_rate AS DOUBLE)) / NULLIF(SUM(CAST(rack_rate AS DOUBLE)), 0), 2)
-      comment: "Contracted net rate as a percentage of rack rate. Measures wholesale discount depth across the portfolio."
-    - name: "stop_sell_allotment_count"
-      expr: COUNT(CASE WHEN is_stop_sell = TRUE THEN 1 END)
-      comment: "Number of wholesale allotments with stop-sell active. Measures demand management intervention frequency."
-    - name: "lra_allotment_count"
-      expr: COUNT(CASE WHEN last_room_availability = TRUE THEN 1 END)
-      comment: "Number of wholesale allotments with LRA obligation. Measures contractual last-room-availability exposure."
-    - name: "active_allotment_count"
-      expr: COUNT(CASE WHEN allotment_status = 'active' THEN 1 END)
-      comment: "Number of currently active wholesale allotments. Measures live wholesale inventory commitment."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_ota_campaign_participation`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "OTA campaign participation metrics tracking co-op marketing investment, revenue performance, and campaign ROI across OTA partners. Used by commercial and marketing teams to evaluate OTA partnership value."
-  source: "`vibe_travel_hospitality_v1`.`channel`.`ota_campaign_participation`"
-  dimensions:
-    - name: "campaign_status"
-      expr: campaign_status
-      comment: "Status of the OTA campaign participation (active, completed, cancelled) for portfolio management."
-    - name: "participation_status"
-      expr: participation_status
-      comment: "Hotel's participation status in the OTA campaign for enrollment tracking."
-    - name: "promotional_placement_type"
-      expr: promotional_placement_type
-      comment: "Type of promotional placement (featured listing, deal badge, sponsored) for placement effectiveness analysis."
-    - name: "campaign_start_date_month"
-      expr: DATE_TRUNC('month', campaign_start_date)
-      comment: "Month the OTA campaign started for campaign timing and seasonality analysis."
-    - name: "campaign_end_date_month"
-      expr: DATE_TRUNC('month', campaign_end_date)
-      comment: "Month the OTA campaign ended for campaign duration and performance analysis."
-  measures:
-    - name: "total_participations"
-      expr: COUNT(1)
-      comment: "Total number of OTA campaign participations. Measures breadth of OTA marketing engagement."
-    - name: "total_actual_revenue"
-      expr: SUM(CAST(actual_revenue_amount AS DOUBLE))
-      comment: "Total actual revenue generated from OTA campaign participations. Primary ROI metric for OTA co-op investment."
-    - name: "total_target_revenue"
-      expr: SUM(CAST(target_revenue_amount AS DOUBLE))
-      comment: "Total target revenue across OTA campaigns. Baseline for measuring campaign revenue attainment."
-    - name: "total_participation_fee"
-      expr: SUM(CAST(participation_fee AS DOUBLE))
-      comment: "Total participation fees paid to OTA partners. Measures direct cost of OTA campaign participation."
-    - name: "total_hotel_contribution"
-      expr: SUM(CAST(hotel_contribution_amount AS DOUBLE))
-      comment: "Total hotel co-op marketing contribution. Measures hotel's financial commitment to OTA partnerships."
-    - name: "total_coop_marketing_budget"
-      expr: SUM(CAST(coop_marketing_budget AS DOUBLE))
-      comment: "Total co-op marketing budget across OTA campaigns. Measures total OTA marketing investment."
-    - name: "total_performance_bonus_earned"
-      expr: SUM(CAST(performance_bonus_earned AS DOUBLE))
-      comment: "Total performance bonuses earned from OTA campaigns. Measures incremental value from exceeding targets."
-    - name: "revenue_attainment_rate_pct"
-      expr: ROUND(100.0 * SUM(CAST(actual_revenue_amount AS DOUBLE)) / NULLIF(SUM(CAST(target_revenue_amount AS DOUBLE)), 0), 2)
-      comment: "Actual revenue as a percentage of target revenue. Measures OTA campaign effectiveness vs. plan."
-    - name: "revenue_per_participation_fee"
-      expr: ROUND(SUM(CAST(actual_revenue_amount AS DOUBLE)) / NULLIF(SUM(CAST(participation_fee AS DOUBLE)), 0), 2)
-      comment: "Revenue generated per dollar of participation fee. Measures ROI of OTA campaign investment."
-    - name: "avg_ota_coop_budget"
-      expr: AVG(CAST(ota_coop_budget_amount AS DOUBLE))
-      comment: "Average OTA co-op budget per campaign participation. Benchmarks OTA marketing investment levels."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_negotiated_rate`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Channel negotiated rate metrics tracking rate loading status, volume commitments, and rate competitiveness across corporate and consortia agreements. Used by commercial teams to manage negotiated rate portfolio performance."
-  source: "`vibe_travel_hospitality_v1`.`channel`.`channel_negotiated_rate`"
-  dimensions:
-    - name: "agreement_status"
-      expr: agreement_status
-      comment: "Status of the negotiated rate agreement (active, expired, pending) for portfolio health monitoring."
-    - name: "rate_type"
-      expr: rate_type
-      comment: "Type of negotiated rate (corporate, consortia, government, TMC) for rate category analysis."
-    - name: "rate_category"
-      expr: rate_category
-      comment: "Rate category for the negotiated agreement for segment-level rate management."
-    - name: "market_segment_code"
-      expr: market_segment_code
-      comment: "Market segment for the negotiated rate for segment-level revenue attribution."
-    - name: "gds_loading_status"
-      expr: gds_loading_status
-      comment: "GDS loading status of the negotiated rate (loaded, pending, failed) for distribution readiness monitoring."
-    - name: "currency_code"
-      expr: currency_code
-      comment: "Currency of the negotiated rate for multi-currency rate management."
-    - name: "negotiation_year"
-      expr: negotiation_year
-      comment: "Year the rate was negotiated for annual rate cycle analysis."
-    - name: "effective_date_month"
-      expr: DATE_TRUNC('month', effective_date)
-      comment: "Month the negotiated rate became effective for rate lifecycle analysis."
-    - name: "is_last_room_availability"
-      expr: is_last_room_availability
-      comment: "Whether LRA applies to this negotiated rate for contractual obligation monitoring."
-    - name: "is_rate_parity_required"
-      expr: is_rate_parity_required
-      comment: "Whether rate parity is required for this negotiated rate for compliance scope identification."
-  measures:
-    - name: "total_negotiated_rates"
-      expr: COUNT(1)
-      comment: "Total number of channel negotiated rates. Measures breadth of negotiated rate portfolio."
-    - name: "active_rate_count"
-      expr: COUNT(CASE WHEN agreement_status = 'active' THEN 1 END)
-      comment: "Number of currently active negotiated rates. Measures live negotiated rate distribution coverage."
-    - name: "avg_negotiated_rate_amount"
-      expr: AVG(CAST(negotiated_rate_amount AS DOUBLE))
-      comment: "Average negotiated rate amount. Benchmarks rate level across corporate and consortia agreements."
-    - name: "avg_amount"
-      expr: AVG(CAST(amount AS DOUBLE))
-      comment: "Average rate amount across all negotiated rate records. Used for rate competitiveness benchmarking."
-    - name: "avg_commission_rate_pct"
-      expr: AVG(CAST(commission_rate_pct AS DOUBLE))
-      comment: "Average commission rate on negotiated rates. Measures cost of distribution for negotiated business."
-    - name: "gds_loading_failure_count"
-      expr: COUNT(CASE WHEN gds_loading_status = 'failed' THEN 1 END)
-      comment: "Number of negotiated rates with failed GDS loading. Measures distribution readiness failures."
-    - name: "gds_loading_success_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN gds_loading_status = 'loaded' THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of negotiated rates successfully loaded to GDS. Measures distribution readiness."
-    - name: "lra_rate_count"
-      expr: COUNT(CASE WHEN is_last_room_availability = TRUE THEN 1 END)
-      comment: "Number of negotiated rates with LRA obligation. Measures contractual last-room-availability exposure."
-    - name: "parity_required_rate_count"
-      expr: COUNT(CASE WHEN is_rate_parity_required = TRUE THEN 1 END)
-      comment: "Number of negotiated rates with parity requirements. Defines parity compliance monitoring scope."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_connectivity_fee`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Connectivity fee metrics tracking technology cost of distribution, fee structures, and waiver activity across channels. Used by finance and technology teams to manage and optimize connectivity cost."
-  source: "`vibe_travel_hospitality_v1`.`channel`.`connectivity_fee`"
-  dimensions:
-    - name: "billing_frequency"
-      expr: billing_frequency
-      comment: "Frequency of connectivity fee billing (monthly, per-booking, annual) for cash flow planning."
-    - name: "invoice_frequency"
-      expr: invoice_frequency
-      comment: "Invoice frequency for connectivity fees for accounts payable management."
-    - name: "property_scope"
-      expr: property_scope
-      comment: "Scope of the connectivity fee (single property, portfolio, chain) for cost allocation analysis."
-    - name: "gl_account_code"
-      expr: gl_account_code
-      comment: "GL account code for connectivity fee posting for financial reporting and cost center allocation."
-    - name: "is_waived"
-      expr: is_waived
-      comment: "Whether the connectivity fee has been waived for waiver rate and cost savings analysis."
-    - name: "tax_applicable"
-      expr: tax_applicable
-      comment: "Whether tax applies to the connectivity fee for tax liability analysis."
-    - name: "effective_from_date_month"
-      expr: DATE_TRUNC('month', effective_from_date)
-      comment: "Month the connectivity fee became effective for fee lifecycle trend analysis."
-  measures:
-    - name: "total_connectivity_fees"
-      expr: COUNT(1)
-      comment: "Total number of connectivity fee records. Baseline measure for connectivity fee portfolio size."
-    - name: "total_fee_amount"
-      expr: SUM(CAST(fee_amount AS DOUBLE))
-      comment: "Total connectivity fee amount. Primary cost metric for technology distribution infrastructure."
-    - name: "avg_fee_amount"
-      expr: AVG(CAST(fee_amount AS DOUBLE))
-      comment: "Average connectivity fee amount. Benchmarks technology cost per channel connection."
-    - name: "total_maximum_fee_amount"
-      expr: SUM(CAST(maximum_fee_amount AS DOUBLE))
-      comment: "Total maximum fee cap across connectivity agreements. Measures maximum connectivity cost exposure."
-    - name: "total_minimum_fee_amount"
-      expr: SUM(CAST(minimum_fee_amount AS DOUBLE))
-      comment: "Total minimum fee floor across connectivity agreements. Measures guaranteed connectivity cost floor."
-    - name: "avg_tax_rate"
-      expr: AVG(CAST(tax_rate AS DOUBLE))
-      comment: "Average tax rate applied to connectivity fees. Measures tax burden on distribution technology costs."
-    - name: "waived_fee_count"
-      expr: COUNT(CASE WHEN is_waived = TRUE THEN 1 END)
-      comment: "Number of connectivity fees that have been waived. Measures cost savings from fee waivers."
-    - name: "waiver_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN is_waived = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of connectivity fees that are waived. Measures negotiation effectiveness in reducing tech costs."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_stop_sell`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Stop-sell restriction metrics tracking frequency, duration, and revenue context of inventory closures across channels. Used by revenue management to evaluate demand management effectiveness and restriction patterns."
-  source: "`vibe_travel_hospitality_v1`.`channel`.`stop_sell`"
-  dimensions:
-    - name: "channel_type"
-      expr: channel_type
-      comment: "Channel type where stop-sell was applied for channel-level restriction analysis."
-    - name: "restriction_type"
-      expr: restriction_type
-      comment: "Type of restriction (stop-sell, CTA, CTD, min-stay) for restriction strategy analysis."
-    - name: "restriction_status"
-      expr: restriction_status
-      comment: "Current status of the restriction (active, lifted, expired) for active restriction monitoring."
-    - name: "reason_code"
-      expr: reason_code
-      comment: "Reason code for the stop-sell action for root cause analysis of inventory closures."
-    - name: "market_segment_code"
-      expr: market_segment_code
-      comment: "Market segment affected by the stop-sell for segment-level demand management analysis."
-    - name: "is_all_channels"
-      expr: is_all_channels
-      comment: "Whether the stop-sell applies to all channels for broad vs. targeted restriction analysis."
-    - name: "is_system_generated"
-      expr: is_system_generated
-      comment: "Whether the stop-sell was system-generated (RMS) vs. manually applied for automation analysis."
-    - name: "stay_date_month"
-      expr: DATE_TRUNC('month', stay_date)
-      comment: "Stay month of the stop-sell for seasonal restriction pattern analysis."
-    - name: "currency_code"
-      expr: currency_code
-      comment: "Currency for rate context at time of stop-sell application."
-  measures:
-    - name: "total_stop_sells"
-      expr: COUNT(1)
-      comment: "Total number of stop-sell records. Baseline measure for restriction activity volume."
-    - name: "active_stop_sell_count"
-      expr: COUNT(CASE WHEN restriction_status = 'active' THEN 1 END)
-      comment: "Number of currently active stop-sell restrictions. Measures live inventory closure scope."
-    - name: "system_generated_count"
-      expr: COUNT(CASE WHEN is_system_generated = TRUE THEN 1 END)
-      comment: "Number of system-generated stop-sells. Measures RMS automation level in demand management."
-    - name: "system_generated_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN is_system_generated = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of stop-sells generated by RMS. Measures revenue management automation maturity."
-    - name: "all_channel_stop_sell_count"
-      expr: COUNT(CASE WHEN is_all_channels = TRUE THEN 1 END)
-      comment: "Number of stop-sells applied across all channels simultaneously. Measures broad demand management actions."
-    - name: "avg_adr_at_apply"
-      expr: AVG(CAST(adr_at_apply AS DOUBLE))
-      comment: "Average ADR at the time stop-sell was applied. Measures rate context of demand management decisions."
-    - name: "avg_occupancy_at_apply"
-      expr: AVG(CAST(occupancy_at_apply AS DOUBLE))
-      comment: "Average occupancy at the time stop-sell was applied. Validates that stop-sells are applied at appropriate demand levels."
-    - name: "avg_revpar_at_apply"
-      expr: AVG(CAST(revpar_at_apply AS DOUBLE))
-      comment: "Average RevPAR at the time stop-sell was applied. Measures revenue context of inventory closure decisions."
-    - name: "lifted_stop_sell_count"
-      expr: COUNT(CASE WHEN lift_timestamp IS NOT NULL THEN 1 END)
-      comment: "Number of stop-sells that have been lifted. Measures restriction reversal activity and demand recovery."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_booking_source`
+CREATE OR REPLACE VIEW `travel_hospitality_ecm`.`_metrics`.`channel_booking_source`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
   comment: "Booking Source business metrics"
-  source: "`vibe_travel_hospitality_v1`.`channel`.`booking_source`"
+  source: "`travel_hospitality_ecm`.`channel`.`booking_source`"
   dimensions:
     - name: "Activation Date"
       expr: activation_date
@@ -1052,13 +55,13 @@ AS $$
       expr: AVG(connectivity_fee_amount)
 $$;
 
-CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_channel`
+CREATE OR REPLACE VIEW `travel_hospitality_ecm`.`_metrics`.`channel_channel`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
   comment: "Channel business metrics"
-  source: "`vibe_travel_hospitality_v1`.`channel`.`channel`"
+  source: "`travel_hospitality_ecm`.`channel`.`channel`"
   dimensions:
     - name: "Activation Date"
       expr: activation_date
@@ -1115,13 +118,99 @@ AS $$
       expr: AVG(sla_uptime_pct)
 $$;
 
-CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_channel_booking`
+CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_booking`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Core channel booking performance metrics covering revenue, acquisition cost, cancellation, and rate parity compliance. Primary KPI surface for channel mix and distribution cost analysis."
+  source: "`vibe_travel_hospitality_v1`.`channel`.`channel_booking`"
+  dimensions:
+    - name: "channel_type"
+      expr: channel_type
+      comment: "Distribution channel type (OTA, GDS, Direct, Wholesale) for channel mix analysis."
+    - name: "booking_status"
+      expr: booking_status
+      comment: "Current status of the booking (confirmed, cancelled, modified) for funnel and cancellation analysis."
+    - name: "rate_type"
+      expr: rate_type
+      comment: "Rate type applied to the booking (BAR, negotiated, package) for rate strategy analysis."
+    - name: "market_segment_code"
+      expr: market_segment_code
+      comment: "Market segment code for segmented revenue and channel performance reporting."
+    - name: "currency_code"
+      expr: currency_code
+      comment: "Transaction currency for multi-currency revenue reporting."
+    - name: "check_in_month"
+      expr: DATE_TRUNC('month', check_in_date)
+      comment: "Check-in month for time-series trend analysis of booking volumes and revenue."
+    - name: "booking_month"
+      expr: DATE_TRUNC('month', booking_timestamp)
+      comment: "Month the booking was made for lead-time and booking-window analysis."
+    - name: "is_rate_parity_compliant"
+      expr: is_rate_parity_compliant
+      comment: "Flag indicating whether the booking was rate-parity compliant for compliance monitoring."
+    - name: "is_cancelled"
+      expr: is_cancelled
+      comment: "Cancellation flag for cancellation rate segmentation."
+    - name: "source_country"
+      expr: source_country
+      comment: "Country of booking origin for geographic demand analysis."
+  measures:
+    - name: "total_gross_booking_value"
+      expr: SUM(CAST(gross_booking_value AS DOUBLE))
+      comment: "Total gross booking value across all channel bookings. Primary revenue KPI for channel performance and distribution cost benchmarking."
+    - name: "total_net_revenue"
+      expr: SUM(CAST(net_revenue_amount AS DOUBLE))
+      comment: "Total net revenue after channel commissions and fees. Measures true revenue contribution per channel after distribution costs."
+    - name: "total_channel_commission"
+      expr: SUM(CAST(channel_commission_amount AS DOUBLE))
+      comment: "Total commission paid to distribution channels. Critical cost-of-acquisition metric for channel profitability analysis."
+    - name: "total_connectivity_fees"
+      expr: SUM(CAST(connectivity_fee_amount AS DOUBLE))
+      comment: "Total connectivity fees incurred across channel bookings. Contributes to total cost of distribution."
+    - name: "avg_adr"
+      expr: AVG(CAST(adr AS DOUBLE))
+      comment: "Average Daily Rate across channel bookings. Key pricing KPI used to benchmark channel rate performance against property ADR targets."
+    - name: "avg_commission_rate_pct"
+      expr: AVG(CAST(commission_rate_pct AS DOUBLE))
+      comment: "Average commission rate percentage across bookings. Drives channel cost-of-acquisition benchmarking and contract renegotiation decisions."
+    - name: "total_bookings"
+      expr: COUNT(1)
+      comment: "Total number of channel bookings. Baseline volume metric for channel throughput and market share analysis."
+    - name: "cancelled_bookings"
+      expr: COUNT(CASE WHEN is_cancelled = TRUE THEN 1 END)
+      comment: "Count of cancelled bookings. Used to compute cancellation rate and assess channel booking quality."
+    - name: "cancellation_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN is_cancelled = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of bookings that were cancelled. High cancellation rates signal channel quality issues or policy misalignment."
+    - name: "rate_parity_violation_count"
+      expr: COUNT(CASE WHEN is_rate_parity_compliant = FALSE THEN 1 END)
+      comment: "Number of bookings where rate parity was violated. Directly triggers contract enforcement and channel audit actions."
+    - name: "rate_parity_compliance_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN is_rate_parity_compliant = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of bookings that are rate-parity compliant. Steers channel contract compliance monitoring and OTA relationship management."
+    - name: "distinct_channels"
+      expr: COUNT(DISTINCT channel_id)
+      comment: "Number of distinct active channels generating bookings. Measures channel portfolio breadth and diversification."
+    - name: "distinct_properties_booked"
+      expr: COUNT(DISTINCT property_id)
+      comment: "Number of distinct properties receiving channel bookings. Indicates channel reach across the property portfolio."
+    - name: "avg_gross_booking_value"
+      expr: AVG(CAST(gross_booking_value AS DOUBLE))
+      comment: "Average gross booking value per channel booking. Measures booking quality and average transaction size by channel."
+    - name: "net_revenue_margin_pct"
+      expr: ROUND(100.0 * SUM(CAST(net_revenue_amount AS DOUBLE)) / NULLIF(SUM(CAST(gross_booking_value AS DOUBLE)), 0), 2)
+      comment: "Net revenue as a percentage of gross booking value. Measures channel efficiency after distribution costs — key for channel profitability ranking."
+$$;
+
+CREATE OR REPLACE VIEW `travel_hospitality_ecm`.`_metrics`.`channel_channel_booking`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
   comment: "Channel Booking business metrics"
-  source: "`vibe_travel_hospitality_v1`.`channel`.`channel_booking`"
+  source: "`travel_hospitality_ecm`.`channel`.`channel_booking`"
   dimensions:
     - name: "Booking Status"
       expr: booking_status
@@ -1186,13 +275,13 @@ AS $$
       expr: AVG(net_revenue_amount)
 $$;
 
-CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_channel_contract`
+CREATE OR REPLACE VIEW `travel_hospitality_ecm`.`_metrics`.`channel_channel_contract`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
   comment: "Channel Contract business metrics"
-  source: "`vibe_travel_hospitality_v1`.`channel`.`channel_contract`"
+  source: "`travel_hospitality_ecm`.`channel`.`channel_contract`"
   dimensions:
     - name: "Bar Access"
       expr: bar_access
@@ -1245,13 +334,78 @@ AS $$
       expr: AVG(marketing_coop_amount)
 $$;
 
-CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_channel_inventory_allocation`
+CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_contract`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Channel contract governance metrics covering contract status, commission terms, and compliance obligations. Drives channel contract lifecycle management and renewal decisions."
+  source: "`vibe_travel_hospitality_v1`.`channel`.`channel_contract`"
+  dimensions:
+    - name: "contract_type"
+      expr: contract_type
+      comment: "Type of channel contract (OTA, GDS, wholesale, direct) for contract portfolio analysis."
+    - name: "contract_status"
+      expr: contract_status
+      comment: "Current contract status (active, expired, terminated, pending) for contract lifecycle management."
+    - name: "commission_basis"
+      expr: commission_basis
+      comment: "Commission basis in the contract for cost structure analysis."
+    - name: "payment_model"
+      expr: payment_model
+      comment: "Payment model (merchant, agency, net) for financial settlement analysis."
+    - name: "preferred_partner_tier"
+      expr: preferred_partner_tier
+      comment: "Preferred partner tier for strategic partner segmentation."
+    - name: "rate_parity_clause"
+      expr: rate_parity_clause
+      comment: "Rate parity clause flag for compliance obligation analysis."
+    - name: "renewal_type"
+      expr: renewal_type
+      comment: "Contract renewal type (auto-renew, manual) for contract management planning."
+    - name: "effective_month"
+      expr: DATE_TRUNC('month', effective_date)
+      comment: "Month the contract becomes effective for contract calendar analysis."
+    - name: "currency_code"
+      expr: currency_code
+      comment: "Contract currency for multi-currency contract analysis."
+  measures:
+    - name: "total_contracts"
+      expr: COUNT(1)
+      comment: "Total number of channel contracts. Baseline for channel contract portfolio size."
+    - name: "active_contracts"
+      expr: COUNT(CASE WHEN contract_status = 'active' THEN 1 END)
+      comment: "Number of currently active channel contracts. Measures live channel contract coverage."
+    - name: "avg_commission_rate"
+      expr: AVG(CAST(commission_rate AS DOUBLE))
+      comment: "Average commission rate across channel contracts. Benchmarks contracted commission levels for renegotiation decisions."
+    - name: "avg_connectivity_fee"
+      expr: AVG(CAST(connectivity_fee AS DOUBLE))
+      comment: "Average connectivity fee in channel contracts. Measures technology cost commitments in channel agreements."
+    - name: "avg_marketing_coop_amount"
+      expr: AVG(CAST(marketing_coop_amount AS DOUBLE))
+      comment: "Average co-op marketing budget in channel contracts. Measures channel marketing investment commitments."
+    - name: "rate_parity_clause_coverage_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN rate_parity_clause = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of channel contracts with rate parity clauses. Measures rate parity contractual coverage across the channel portfolio."
+    - name: "procurement_contract_linked_count"
+      expr: COUNT(CASE WHEN procurement_contract_id IS NOT NULL THEN 1 END)
+      comment: "Number of channel contracts linked to the master procurement contract SSOT. Tracks contract governance compliance and SSOT alignment."
+    - name: "expiring_contracts_90_days"
+      expr: COUNT(CASE WHEN expiration_date BETWEEN CURRENT_DATE AND DATE_ADD(CURRENT_DATE, 90) THEN 1 END)
+      comment: "Number of channel contracts expiring within 90 days. Triggers proactive contract renewal management to avoid distribution gaps."
+    - name: "distinct_channels_under_contract"
+      expr: COUNT(DISTINCT channel_id)
+      comment: "Number of distinct channels with active contracts. Measures channel contract coverage breadth."
+$$;
+
+CREATE OR REPLACE VIEW `travel_hospitality_ecm`.`_metrics`.`channel_channel_inventory_allocation`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
   comment: "Channel Inventory Allocation business metrics"
-  source: "`vibe_travel_hospitality_v1`.`channel`.`channel_inventory_allocation`"
+  source: "`travel_hospitality_ecm`.`channel`.`channel_inventory_allocation`"
   dimensions:
     - name: "Action Type"
       expr: action_type
@@ -1308,13 +462,78 @@ AS $$
       expr: AVG(overbooking_limit_pct)
 $$;
 
-CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_channel_negotiated_rate`
+CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_inventory_allocation`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Channel inventory allocation performance metrics covering allocation utilization, pickup, overbooking, and restriction management. Drives inventory optimization and channel yield decisions."
+  source: "`vibe_travel_hospitality_v1`.`channel`.`channel_inventory_allocation`"
+  dimensions:
+    - name: "channel_type"
+      expr: channel_type
+      comment: "Distribution channel type for allocation analysis by channel category."
+    - name: "allocation_type"
+      expr: allocation_type
+      comment: "Type of allocation (allotment, free-sell, on-request) for inventory strategy analysis."
+    - name: "allotment_type"
+      expr: allotment_type
+      comment: "Allotment type for wholesale vs retail inventory segmentation."
+    - name: "allocation_status"
+      expr: allocation_status
+      comment: "Current allocation status for operational inventory monitoring."
+    - name: "active_status"
+      expr: active_status
+      comment: "Active/inactive status of the allocation record."
+    - name: "is_stop_sell"
+      expr: is_stop_sell
+      comment: "Stop-sell flag for inventory restriction analysis."
+    - name: "is_closed_to_arrival"
+      expr: is_closed_to_arrival
+      comment: "Closed-to-arrival restriction flag for arrival pattern analysis."
+    - name: "stay_date_from_month"
+      expr: DATE_TRUNC('month', stay_date_from)
+      comment: "Stay period start month for seasonal allocation analysis."
+    - name: "is_rms_generated"
+      expr: is_rms_generated
+      comment: "Flag indicating RMS-generated allocation for automation coverage analysis."
+  measures:
+    - name: "total_allocation_records"
+      expr: COUNT(1)
+      comment: "Total number of channel inventory allocation records. Baseline for allocation portfolio size and operational coverage."
+    - name: "avg_channel_allocation_pct"
+      expr: AVG(CAST(channel_allocation_pct AS DOUBLE))
+      comment: "Average percentage of inventory allocated to channels. Measures channel inventory commitment level for yield optimization."
+    - name: "avg_overbooking_limit_pct"
+      expr: AVG(CAST(overbooking_limit_pct AS DOUBLE))
+      comment: "Average overbooking limit percentage across allocations. Quantifies overbooking risk exposure for revenue and operations management."
+    - name: "stop_sell_allocation_count"
+      expr: COUNT(CASE WHEN is_stop_sell = TRUE THEN 1 END)
+      comment: "Number of allocations currently under stop-sell restriction. Measures inventory restriction intensity — high counts signal demand-supply imbalance."
+    - name: "stop_sell_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN is_stop_sell = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of allocations under stop-sell. Key yield management KPI — high rates indicate strong demand or inventory constraint."
+    - name: "rms_generated_allocation_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN is_rms_generated = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of allocations generated by the RMS. Measures automation adoption in inventory management — drives operational efficiency decisions."
+    - name: "distinct_channels_with_allocation"
+      expr: COUNT(DISTINCT primary_channel_id)
+      comment: "Number of distinct channels with active inventory allocations. Measures channel inventory distribution breadth."
+    - name: "avg_commission_rate"
+      expr: AVG(CAST(commission_rate AS DOUBLE))
+      comment: "Average commission rate on channel inventory allocations. Benchmarks allocation-level commission costs."
+    - name: "rate_parity_enforced_count"
+      expr: COUNT(CASE WHEN rate_parity_enforcement_flag = TRUE THEN 1 END)
+      comment: "Number of allocations with rate parity enforcement active. Measures rate parity governance coverage across inventory allocations."
+$$;
+
+CREATE OR REPLACE VIEW `travel_hospitality_ecm`.`_metrics`.`channel_channel_negotiated_rate`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
   comment: "Channel Negotiated Rate business metrics"
-  source: "`vibe_travel_hospitality_v1`.`channel`.`channel_negotiated_rate`"
+  source: "`travel_hospitality_ecm`.`channel`.`channel_negotiated_rate`"
   dimensions:
     - name: "Advance Purchase Days"
       expr: advance_purchase_days
@@ -1363,13 +582,78 @@ AS $$
       expr: AVG(commission_rate_pct)
 $$;
 
-CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_channel_rate_plan`
+CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_negotiated_rate`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Channel negotiated rate metrics covering corporate and TMC rate management, GDS loading status, and rate competitiveness. Drives corporate account rate strategy and GDS distribution governance."
+  source: "`vibe_travel_hospitality_v1`.`channel`.`channel_negotiated_rate`"
+  dimensions:
+    - name: "rate_type"
+      expr: rate_type
+      comment: "Type of negotiated rate (corporate, consortia, government) for rate category analysis."
+    - name: "rate_category"
+      expr: rate_category
+      comment: "Rate category for negotiated rate segmentation."
+    - name: "agreement_status"
+      expr: agreement_status
+      comment: "Current agreement status for rate contract lifecycle monitoring."
+    - name: "gds_loading_status"
+      expr: gds_loading_status
+      comment: "GDS loading status for rate distribution operational monitoring."
+    - name: "market_segment_code"
+      expr: market_segment_code
+      comment: "Market segment for negotiated rate segmentation."
+    - name: "currency_code"
+      expr: currency_code
+      comment: "Currency of the negotiated rate for multi-currency analysis."
+    - name: "negotiation_year"
+      expr: negotiation_year
+      comment: "Year of rate negotiation for annual rate cycle analysis."
+    - name: "effective_month"
+      expr: DATE_TRUNC('month', effective_date)
+      comment: "Month the negotiated rate becomes effective for rate calendar analysis."
+    - name: "is_rate_parity_required"
+      expr: is_rate_parity_required
+      comment: "Rate parity requirement flag for compliance segmentation."
+  measures:
+    - name: "total_negotiated_rates"
+      expr: COUNT(1)
+      comment: "Total number of channel negotiated rates. Baseline for corporate rate portfolio size."
+    - name: "avg_negotiated_rate_amount"
+      expr: AVG(CAST(amount AS DOUBLE))
+      comment: "Average negotiated rate amount. Benchmarks corporate rate levels against BAR and market rates."
+    - name: "avg_commission_rate_pct"
+      expr: AVG(CAST(commission_rate_pct AS DOUBLE))
+      comment: "Average commission rate on negotiated rates. Measures distribution cost on corporate rate agreements."
+    - name: "revenue_rate_plan_linked_count"
+      expr: COUNT(CASE WHEN revenue_rate_plan_id IS NOT NULL THEN 1 END)
+      comment: "Number of negotiated rates linked to the revenue master rate plan. Measures SSOT alignment for negotiated rate governance."
+    - name: "revenue_negotiated_rate_linked_count"
+      expr: COUNT(CASE WHEN revenue_negotiated_rate_id IS NOT NULL THEN 1 END)
+      comment: "Number of channel negotiated rates linked to the revenue master negotiated rate SSOT. Tracks cross-domain rate governance compliance."
+    - name: "gds_loaded_rate_count"
+      expr: COUNT(CASE WHEN gds_loading_status = 'loaded' THEN 1 END)
+      comment: "Number of negotiated rates successfully loaded in GDS. Measures GDS distribution readiness for corporate accounts."
+    - name: "gds_loading_success_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN gds_loading_status = 'loaded' THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of negotiated rates successfully loaded in GDS. Operational KPI for GDS rate distribution completeness."
+    - name: "distinct_corporate_accounts"
+      expr: COUNT(DISTINCT channel_corporate_account_id)
+      comment: "Number of distinct corporate accounts with negotiated rates. Measures corporate account rate coverage breadth."
+    - name: "distinct_properties_with_negotiated_rates"
+      expr: COUNT(DISTINCT property_id)
+      comment: "Number of distinct properties with channel negotiated rates. Measures corporate rate distribution across the property portfolio."
+$$;
+
+CREATE OR REPLACE VIEW `travel_hospitality_ecm`.`_metrics`.`channel_channel_rate_plan`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
   comment: "Channel Rate Plan business metrics"
-  source: "`vibe_travel_hospitality_v1`.`channel`.`channel_rate_plan`"
+  source: "`travel_hospitality_ecm`.`channel`.`channel_rate_plan`"
   dimensions:
     - name: "Advance Purchase Days"
       expr: advance_purchase_days
@@ -1430,13 +714,350 @@ AS $$
       expr: AVG(rate_adjustment_value)
 $$;
 
-CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_crs_channel_mapping`
+CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_rate_plan`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Channel rate plan coverage, pricing, and loading metrics. Supports rate strategy governance, channel rate parity management, and revenue rate plan alignment."
+  source: "`vibe_travel_hospitality_v1`.`channel`.`channel_rate_plan`"
+  dimensions:
+    - name: "rate_plan_type"
+      expr: rate_plan_type
+      comment: "Type of rate plan (BAR, negotiated, package, promotional) for rate strategy segmentation."
+    - name: "rate_plan_status"
+      expr: channel_rate_plan_status
+      comment: "Current status of the channel rate plan (active, inactive, pending) for rate loading governance."
+    - name: "rate_loading_status"
+      expr: rate_loading_status
+      comment: "Rate loading status in CRS/GDS for operational rate distribution monitoring."
+    - name: "currency_code"
+      expr: currency_code
+      comment: "Currency of the rate plan for multi-currency rate management."
+    - name: "is_rate_parity_applicable"
+      expr: is_rate_parity_applicable
+      comment: "Flag indicating whether rate parity rules apply to this rate plan."
+    - name: "is_package_rate"
+      expr: is_package_rate
+      comment: "Flag indicating whether this is a package rate for package revenue analysis."
+    - name: "is_refundable"
+      expr: is_refundable
+      comment: "Refundability flag for cancellation policy and revenue risk analysis."
+    - name: "effective_from_month"
+      expr: DATE_TRUNC('month', effective_from)
+      comment: "Month the rate plan becomes effective for rate calendar analysis."
+    - name: "meal_plan_code"
+      expr: meal_plan_code
+      comment: "Meal plan included in the rate for ancillary revenue analysis."
+    - name: "rate_derivation_method"
+      expr: rate_derivation_method
+      comment: "Method used to derive the channel rate from the base rate for pricing strategy analysis."
+  measures:
+    - name: "total_rate_plans"
+      expr: COUNT(1)
+      comment: "Total number of channel rate plans. Baseline for rate plan portfolio size and loading coverage."
+    - name: "active_rate_plans"
+      expr: COUNT(CASE WHEN channel_rate_plan_status = 'active' THEN 1 END)
+      comment: "Number of currently active channel rate plans. Measures live rate plan coverage for distribution readiness."
+    - name: "avg_base_rate_amount"
+      expr: AVG(CAST(base_rate_amount AS DOUBLE))
+      comment: "Average base rate amount across channel rate plans. Benchmarks channel pricing against revenue rate plan targets."
+    - name: "avg_channel_rate_amount"
+      expr: AVG(CAST(channel_rate_amount AS DOUBLE))
+      comment: "Average channel-specific rate amount. Measures channel rate positioning relative to base rates."
+    - name: "avg_rate_adjustment_value"
+      expr: AVG(CAST(rate_adjustment_value AS DOUBLE))
+      comment: "Average rate adjustment applied to channel rates. Quantifies channel rate deviation from base pricing strategy."
+    - name: "avg_commission_rate_pct"
+      expr: AVG(CAST(commission_rate_pct AS DOUBLE))
+      comment: "Average commission rate across channel rate plans. Drives channel cost-of-distribution benchmarking."
+    - name: "rate_parity_applicable_rate_plans"
+      expr: COUNT(CASE WHEN is_rate_parity_applicable = TRUE THEN 1 END)
+      comment: "Number of rate plans subject to rate parity rules. Measures rate parity compliance exposure across the rate plan portfolio."
+    - name: "distinct_properties_with_rate_plans"
+      expr: COUNT(DISTINCT property_id)
+      comment: "Number of distinct properties with active channel rate plans. Measures rate plan distribution coverage across the property portfolio."
+    - name: "revenue_rate_plan_linkage_count"
+      expr: COUNT(CASE WHEN revenue_rate_plan_id IS NOT NULL THEN 1 END)
+      comment: "Number of channel rate plans linked to a revenue master rate plan. Measures SSOT alignment between channel and revenue rate plans — critical governance KPI."
+    - name: "revenue_rate_plan_linkage_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN revenue_rate_plan_id IS NOT NULL THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of channel rate plans linked to the revenue master rate plan SSOT. Tracks rate plan governance compliance — low scores indicate SSOT fragmentation risk."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_wholesale_inventory_allocation`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Wholesale inventory allotment performance metrics covering allocated vs sold units, utilization, release management, and overbooking. Drives wholesale channel yield and allotment optimization decisions."
+  source: "`vibe_travel_hospitality_v1`.`channel`.`channel_wholesale_inventory_allocation`"
+  dimensions:
+    - name: "allocation_type"
+      expr: allocation_type
+      comment: "Type of wholesale allocation for allotment strategy segmentation."
+    - name: "allocation_status"
+      expr: allocation_status
+      comment: "Current status of the wholesale allocation for operational monitoring."
+    - name: "allocation_method"
+      expr: allocation_method
+      comment: "Method used to allocate wholesale inventory for strategy analysis."
+    - name: "currency_code"
+      expr: currency_code
+      comment: "Currency of the allocation for multi-currency wholesale reporting."
+    - name: "is_active"
+      expr: is_active
+      comment: "Active flag for filtering live vs historical allocations."
+    - name: "is_guaranteed"
+      expr: is_guaranteed
+      comment: "Guaranteed allotment flag for risk and liability analysis."
+    - name: "stop_sell_flag"
+      expr: stop_sell_flag
+      comment: "Stop-sell flag for wholesale inventory restriction monitoring."
+    - name: "stay_date_month"
+      expr: DATE_TRUNC('month', stay_date)
+      comment: "Stay date month for seasonal wholesale allotment analysis."
+    - name: "overbooking_allowed"
+      expr: overbooking_allowed
+      comment: "Overbooking permission flag for risk exposure segmentation."
+    - name: "auto_release_enabled"
+      expr: auto_release_enabled
+      comment: "Auto-release flag for inventory release automation coverage analysis."
+  measures:
+    - name: "total_allocated_rooms"
+      expr: SUM(CAST(allocated_room_count AS DOUBLE))
+      comment: "Total number of rooms allocated to wholesale channels. Primary wholesale inventory commitment KPI."
+    - name: "total_sold_rooms"
+      expr: SUM(CAST(sold_room_count AS DOUBLE))
+      comment: "Total number of wholesale-allocated rooms sold. Measures wholesale channel pickup performance."
+    - name: "total_remaining_rooms"
+      expr: SUM(CAST(remaining_room_count AS DOUBLE))
+      comment: "Total remaining unsold rooms in wholesale allocations. Measures inventory at risk of release or washout."
+    - name: "wholesale_utilization_pct"
+      expr: AVG(CAST(utilization_pct AS DOUBLE))
+      comment: "Average utilization percentage across wholesale allocations. Core wholesale yield KPI — low utilization triggers release or reallocation decisions."
+    - name: "avg_allocated_rate_amount"
+      expr: AVG(CAST(allocated_rate_amount AS DOUBLE))
+      comment: "Average rate amount for wholesale allocations. Benchmarks wholesale net rates against BAR and negotiated rates."
+    - name: "avg_base_rate_amount"
+      expr: AVG(CAST(base_rate_amount AS DOUBLE))
+      comment: "Average base rate amount underlying wholesale allocations. Used to compute wholesale rate discount depth."
+    - name: "avg_commission_rate_pct"
+      expr: AVG(CAST(commission_rate_pct AS DOUBLE))
+      comment: "Average commission rate on wholesale allocations. Drives wholesale cost-of-distribution benchmarking."
+    - name: "total_sold_count"
+      expr: SUM(CAST(sold_count AS DOUBLE))
+      comment: "Total sold unit count across wholesale allocations. Measures wholesale channel throughput."
+    - name: "total_remaining_count"
+      expr: SUM(CAST(remaining_count AS DOUBLE))
+      comment: "Total remaining unit count in wholesale allocations. Quantifies unsold wholesale inventory exposure."
+    - name: "guaranteed_allocation_count"
+      expr: COUNT(CASE WHEN is_guaranteed = TRUE THEN 1 END)
+      comment: "Number of guaranteed wholesale allocations. Measures contractual inventory commitment and associated financial risk."
+    - name: "auto_release_enabled_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN auto_release_enabled = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of wholesale allocations with auto-release enabled. Measures automation adoption in wholesale inventory management."
+    - name: "stop_sell_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN stop_sell_flag = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of wholesale allocations under stop-sell. Indicates wholesale demand strength and inventory constraint levels."
+    - name: "distinct_properties_with_wholesale"
+      expr: COUNT(DISTINCT property_id)
+      comment: "Number of distinct properties with wholesale inventory allocations. Measures wholesale channel property coverage."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_commission_accrual`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Commission accrual and cost-of-acquisition metrics for distribution channel financial management. Tracks commission liability, payment status, and channel acquisition economics."
+  source: "`vibe_travel_hospitality_v1`.`channel`.`commission_accrual`"
+  dimensions:
+    - name: "channel_type"
+      expr: channel_type
+      comment: "Distribution channel type for commission cost segmentation."
+    - name: "commission_type"
+      expr: commission_type
+      comment: "Type of commission (base, override, performance) for commission structure analysis."
+    - name: "commission_basis"
+      expr: commission_basis
+      comment: "Basis on which commission is calculated (room revenue, total revenue, per-night) for cost modeling."
+    - name: "accrual_status"
+      expr: accrual_status
+      comment: "Current accrual status (accrued, paid, disputed, reversed) for liability management."
+    - name: "market_segment_code"
+      expr: market_segment_code
+      comment: "Market segment for commission cost analysis by segment."
+    - name: "accrual_month"
+      expr: DATE_TRUNC('month', accrual_date)
+      comment: "Month of commission accrual for time-series liability tracking."
+    - name: "local_currency_code"
+      expr: local_currency_code
+      comment: "Local currency of the commission accrual for multi-currency reporting."
+  measures:
+    - name: "total_commission_base_currency"
+      expr: SUM(CAST(commission_amount_base AS DOUBLE))
+      comment: "Total commission accrued in base currency. Primary financial liability metric for channel cost management and AP forecasting."
+    - name: "total_commission_local_currency"
+      expr: SUM(CAST(commission_amount_local AS DOUBLE))
+      comment: "Total commission accrued in local currency. Used for multi-currency commission reconciliation."
+    - name: "total_gross_booking_value"
+      expr: SUM(CAST(gross_booking_value AS DOUBLE))
+      comment: "Total gross booking value underlying commission accruals. Provides context for commission rate benchmarking."
+    - name: "total_connectivity_fees"
+      expr: SUM(CAST(connectivity_fee_amount AS DOUBLE))
+      comment: "Total connectivity fees accrued alongside commissions. Part of total cost of distribution."
+    - name: "total_cost_of_acquisition"
+      expr: SUM(CAST(total_cost_of_acquisition AS DOUBLE))
+      comment: "Total cost of acquisition including commission and fees. The definitive channel economics KPI for distribution strategy decisions."
+    - name: "avg_commission_rate"
+      expr: AVG(CAST(commission_rate AS DOUBLE))
+      comment: "Average commission rate across accruals. Benchmarks negotiated rates against market and drives contract renegotiation."
+    - name: "avg_adr"
+      expr: AVG(CAST(adr AS DOUBLE))
+      comment: "Average Daily Rate on bookings generating commission accruals. Validates that high-commission channels are also delivering premium rates."
+    - name: "commission_to_gbv_ratio_pct"
+      expr: ROUND(100.0 * SUM(CAST(commission_amount_base AS DOUBLE)) / NULLIF(SUM(CAST(gross_booking_value AS DOUBLE)), 0), 2)
+      comment: "Commission as a percentage of gross booking value. Core channel cost efficiency KPI — steers channel mix optimization and contract negotiations."
+    - name: "total_accrual_records"
+      expr: COUNT(1)
+      comment: "Total number of commission accrual records. Baseline volume for accrual processing throughput monitoring."
+    - name: "distinct_channels_with_commission"
+      expr: COUNT(DISTINCT channel_id)
+      comment: "Number of distinct channels generating commission accruals. Measures commission liability breadth across the channel portfolio."
+    - name: "avg_fx_rate"
+      expr: AVG(CAST(fx_rate AS DOUBLE))
+      comment: "Average FX rate applied to commission conversions. Monitors currency exposure in commission settlements."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_commission_schedule`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Commission schedule governance metrics covering rate structures, tiering, and schedule coverage. Supports commission contract management and cost-of-distribution planning."
+  source: "`vibe_travel_hospitality_v1`.`channel`.`commission_schedule`"
+  dimensions:
+    - name: "commission_basis"
+      expr: commission_basis
+      comment: "Basis for commission calculation (room revenue, total revenue, per-night) for cost structure analysis."
+    - name: "fee_type"
+      expr: fee_type
+      comment: "Type of fee in the commission schedule for fee structure analysis."
+    - name: "fee_structure"
+      expr: fee_structure
+      comment: "Fee structure (flat, tiered, percentage) for commission model analysis."
+    - name: "schedule_status"
+      expr: schedule_status
+      comment: "Current status of the commission schedule (active, expired, pending) for governance monitoring."
+    - name: "billing_frequency"
+      expr: billing_frequency
+      comment: "Billing frequency for commission payments for cash flow planning."
+    - name: "market_segment_code"
+      expr: market_segment_code
+      comment: "Market segment the commission schedule applies to for segment-level cost analysis."
+    - name: "effective_from_month"
+      expr: DATE_TRUNC('month', effective_from)
+      comment: "Month the commission schedule becomes effective for schedule lifecycle analysis."
+    - name: "auto_accrual_enabled"
+      expr: auto_accrual_enabled
+      comment: "Flag indicating automated accrual for operational efficiency analysis."
+  measures:
+    - name: "total_schedules"
+      expr: COUNT(1)
+      comment: "Total number of commission schedules. Baseline for commission contract portfolio size."
+    - name: "active_schedules"
+      expr: COUNT(CASE WHEN schedule_status = 'active' THEN 1 END)
+      comment: "Number of currently active commission schedules. Measures live commission contract coverage."
+    - name: "avg_commission_rate_pct"
+      expr: AVG(CAST(commission_rate_pct AS DOUBLE))
+      comment: "Average commission rate across all schedules. Benchmarks portfolio-level commission costs for contract renegotiation decisions."
+    - name: "avg_flat_fee_amount"
+      expr: AVG(CAST(flat_fee_amount AS DOUBLE))
+      comment: "Average flat fee amount in commission schedules. Quantifies fixed distribution cost components."
+    - name: "avg_max_commission_amount"
+      expr: AVG(CAST(max_commission_amount AS DOUBLE))
+      comment: "Average maximum commission cap across schedules. Measures commission liability ceiling for financial planning."
+    - name: "avg_min_commission_amount"
+      expr: AVG(CAST(min_commission_amount AS DOUBLE))
+      comment: "Average minimum commission floor across schedules. Measures guaranteed commission cost floor."
+    - name: "auto_accrual_adoption_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN auto_accrual_enabled = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of commission schedules with auto-accrual enabled. Measures automation adoption in commission processing — drives operational efficiency."
+    - name: "distinct_channels_with_schedules"
+      expr: COUNT(DISTINCT distribution_channel_id)
+      comment: "Number of distinct channels with commission schedules. Measures commission contract coverage across the channel portfolio."
+    - name: "distinct_properties_with_schedules"
+      expr: COUNT(DISTINCT property_id)
+      comment: "Number of distinct properties with commission schedules. Measures property-level commission contract coverage."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_connectivity_fee`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Connectivity fee cost management metrics covering fee amounts, waiver rates, and vendor cost analysis. Drives technology distribution cost optimization and vendor contract decisions."
+  source: "`vibe_travel_hospitality_v1`.`channel`.`connectivity_fee`"
+  dimensions:
+    - name: "fee_type"
+      expr: fee_type
+      comment: "Type of connectivity fee (per-booking, monthly, annual) for fee structure analysis."
+    - name: "fee_basis"
+      expr: fee_basis
+      comment: "Basis for fee calculation for cost modeling."
+    - name: "fee_status"
+      expr: fee_status
+      comment: "Current fee status (active, waived, disputed) for fee management."
+    - name: "billing_frequency"
+      expr: billing_frequency
+      comment: "Billing frequency for connectivity fees for cash flow planning."
+    - name: "is_waived"
+      expr: is_waived
+      comment: "Waiver flag for fee waiver analysis and vendor negotiation."
+    - name: "is_negotiated_rate"
+      expr: is_negotiated_rate
+      comment: "Flag indicating negotiated vs standard rate for contract analysis."
+    - name: "tax_applicable"
+      expr: tax_applicable
+      comment: "Tax applicability flag for tax cost analysis."
+    - name: "effective_from_month"
+      expr: DATE_TRUNC('month', effective_from_date)
+      comment: "Month the connectivity fee becomes effective for fee lifecycle analysis."
+  measures:
+    - name: "total_fee_amount"
+      expr: SUM(CAST(fee_amount AS DOUBLE))
+      comment: "Total connectivity fee amount. Primary technology distribution cost KPI for vendor contract management."
+    - name: "avg_fee_amount"
+      expr: AVG(CAST(fee_amount AS DOUBLE))
+      comment: "Average connectivity fee amount. Benchmarks per-connection technology costs for vendor negotiation."
+    - name: "avg_tax_rate"
+      expr: AVG(CAST(tax_rate AS DOUBLE))
+      comment: "Average tax rate applied to connectivity fees. Quantifies tax cost component of distribution technology."
+    - name: "waived_fee_count"
+      expr: COUNT(CASE WHEN is_waived = TRUE THEN 1 END)
+      comment: "Number of connectivity fees that have been waived. Measures vendor concession value and negotiation outcomes."
+    - name: "waiver_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN is_waived = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of connectivity fees waived. Measures vendor negotiation effectiveness and fee reduction achievement."
+    - name: "negotiated_fee_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN is_negotiated_rate = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of connectivity fees on negotiated rates. Measures contract coverage for technology cost management."
+    - name: "distinct_vendors_with_fees"
+      expr: COUNT(DISTINCT vendor_id)
+      comment: "Number of distinct vendors charging connectivity fees. Measures technology vendor concentration and diversification."
+    - name: "distinct_properties_with_fees"
+      expr: COUNT(DISTINCT property_id)
+      comment: "Number of distinct properties incurring connectivity fees. Measures technology cost distribution across the property portfolio."
+$$;
+
+CREATE OR REPLACE VIEW `travel_hospitality_ecm`.`_metrics`.`channel_crs_channel_mapping`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
   comment: "Crs Channel Mapping business metrics"
-  source: "`vibe_travel_hospitality_v1`.`channel`.`crs_channel_mapping`"
+  source: "`travel_hospitality_ecm`.`channel`.`crs_channel_mapping`"
   dimensions:
     - name: "Cancellation Policy Code"
       expr: cancellation_policy_code
@@ -1489,13 +1110,190 @@ AS $$
       expr: AVG(rate_offset_value)
 $$;
 
-CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_ota_partner`
+CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_gds_connection`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "GDS (Global Distribution System) connection health and commercial performance metrics. Tracks uptime, commission rates, and connection coverage for corporate and travel agent channel management."
+  source: "`vibe_travel_hospitality_v1`.`channel`.`gds_connection`"
+  dimensions:
+    - name: "gds_name"
+      expr: gds_name
+      comment: "Name of the GDS platform (Amadeus, Sabre, Travelport, Worldline) for platform-level performance comparison."
+    - name: "connection_status"
+      expr: connection_status
+      comment: "Current connection status (active, inactive, suspended) for operational health monitoring."
+    - name: "gds_tier"
+      expr: gds_tier
+      comment: "GDS tier designation for commercial prioritization and rate loading strategy."
+    - name: "health_check_status"
+      expr: health_check_status
+      comment: "Latest health check status of the GDS connection for real-time operational monitoring."
+    - name: "connectivity_type"
+      expr: connectivity_type
+      comment: "Type of GDS connectivity (direct connect, switch, aggregator) for technology cost analysis."
+    - name: "lra_enabled"
+      expr: lra_enabled
+      comment: "Boolean flag indicating whether Last Room Availability is enabled on this GDS connection."
+    - name: "nrr_supported"
+      expr: nrr_supported
+      comment: "Boolean flag indicating whether non-refundable rates are supported on this GDS connection."
+    - name: "market_segment_code"
+      expr: market_segment_code
+      comment: "Primary market segment served by this GDS connection (corporate, leisure, group)."
+  measures:
+    - name: "total_gds_connections"
+      expr: COUNT(1)
+      comment: "Total number of GDS connections. Baseline for GDS distribution footprint."
+    - name: "active_connections"
+      expr: COUNT(CASE WHEN connection_status = 'active' THEN 1 END)
+      comment: "Count of active GDS connections. Measures live GDS distribution coverage."
+    - name: "avg_uptime_sla_pct"
+      expr: AVG(CAST(uptime_sla_pct AS DOUBLE))
+      comment: "Average uptime SLA percentage across GDS connections. Measures distribution reliability; below-SLA connections trigger vendor escalation."
+    - name: "avg_commission_rate_pct"
+      expr: AVG(CAST(commission_rate_pct AS DOUBLE))
+      comment: "Average commission rate across GDS connections. Benchmarks GDS distribution cost for renegotiation."
+    - name: "avg_monthly_connectivity_fee"
+      expr: AVG(CAST(connectivity_fee_monthly_usd AS DOUBLE))
+      comment: "Average monthly connectivity fee per GDS connection. Tracks technology cost of GDS distribution."
+    - name: "total_monthly_connectivity_cost"
+      expr: SUM(CAST(connectivity_fee_monthly_usd AS DOUBLE))
+      comment: "Total monthly GDS connectivity fees across all connections. Measures aggregate GDS technology cost."
+    - name: "avg_segment_fee"
+      expr: AVG(CAST(segment_fee_usd AS DOUBLE))
+      comment: "Average per-segment fee charged by GDS. Tracks transaction-level distribution cost."
+    - name: "lra_enabled_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN lra_enabled = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of GDS connections with Last Room Availability enabled. Measures inventory exposure and revenue optimization coverage."
+    - name: "unique_properties_on_gds"
+      expr: COUNT(DISTINCT property_id)
+      comment: "Number of distinct properties connected to GDS. Measures GDS distribution reach across the portfolio."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_metasearch_listing`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Metasearch channel performance metrics covering spend efficiency, conversion, click-through, and return on ad spend. Drives metasearch bidding strategy and budget allocation decisions."
+  source: "`vibe_travel_hospitality_v1`.`channel`.`metasearch_listing`"
+  dimensions:
+    - name: "platform_name"
+      expr: platform_name
+      comment: "Metasearch platform (Google Hotel Ads, TripAdvisor, Kayak) for platform-level performance comparison."
+    - name: "listing_status"
+      expr: listing_status
+      comment: "Current listing status for active vs inactive listing analysis."
+    - name: "listing_type"
+      expr: listing_type
+      comment: "Type of metasearch listing for format performance analysis."
+    - name: "bid_strategy_type"
+      expr: bid_strategy_type
+      comment: "Bidding strategy type (CPC, CPA, commission) for bid strategy performance comparison."
+    - name: "device_type"
+      expr: device_type
+      comment: "Device type (desktop, mobile, tablet) for device-level conversion analysis."
+    - name: "target_market"
+      expr: target_market
+      comment: "Target market for geographic metasearch performance analysis."
+    - name: "rate_parity_status"
+      expr: rate_parity_status
+      comment: "Rate parity status on the metasearch listing for compliance monitoring."
+    - name: "reporting_period_month"
+      expr: DATE_TRUNC('month', reporting_period_start)
+      comment: "Reporting period month for time-series metasearch performance analysis."
+  measures:
+    - name: "total_spend"
+      expr: SUM(CAST(total_spend AS DOUBLE))
+      comment: "Total metasearch advertising spend. Primary cost metric for metasearch budget management and ROI analysis."
+    - name: "total_booking_revenue"
+      expr: SUM(CAST(booking_revenue AS DOUBLE))
+      comment: "Total revenue generated from metasearch bookings. Measures metasearch channel revenue contribution."
+    - name: "total_impressions"
+      expr: SUM(CAST(impression_count AS DOUBLE))
+      comment: "Total metasearch impressions. Measures brand visibility and reach on metasearch platforms."
+    - name: "total_clicks"
+      expr: SUM(CAST(click_count AS DOUBLE))
+      comment: "Total clicks on metasearch listings. Measures traffic driven from metasearch to direct booking channels."
+    - name: "avg_click_through_rate"
+      expr: AVG(CAST(click_through_rate AS DOUBLE))
+      comment: "Average click-through rate across metasearch listings. Measures listing relevance and creative effectiveness."
+    - name: "avg_conversion_rate"
+      expr: AVG(CAST(conversion_rate AS DOUBLE))
+      comment: "Average conversion rate from click to booking. Core metasearch efficiency KPI — low rates trigger bid strategy or landing page optimization."
+    - name: "avg_return_on_ad_spend"
+      expr: AVG(CAST(return_on_ad_spend AS DOUBLE))
+      comment: "Average return on ad spend across metasearch listings. Primary metasearch investment efficiency KPI for budget allocation decisions."
+    - name: "avg_cpc_actual"
+      expr: AVG(CAST(cpc_actual AS DOUBLE))
+      comment: "Average actual cost per click. Benchmarks metasearch bidding efficiency against target CPC thresholds."
+    - name: "avg_cpa_actual"
+      expr: AVG(CAST(cpa_actual AS DOUBLE))
+      comment: "Average actual cost per acquisition. Measures metasearch cost efficiency per booking — drives bid strategy optimization."
+    - name: "revenue_to_spend_ratio"
+      expr: ROUND(SUM(CAST(booking_revenue AS DOUBLE)) / NULLIF(SUM(CAST(total_spend AS DOUBLE)), 0), 2)
+      comment: "Ratio of booking revenue to total metasearch spend. Portfolio-level ROAS metric for metasearch investment justification."
+    - name: "distinct_properties_listed"
+      expr: COUNT(DISTINCT property_id)
+      comment: "Number of distinct properties with active metasearch listings. Measures metasearch channel property coverage."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_ota_campaign_participation`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "OTA co-marketing campaign performance metrics tracking investment, revenue outcomes, and ROI of OTA promotional participation. Drives OTA partnership investment decisions."
+  source: "`vibe_travel_hospitality_v1`.`channel`.`ota_campaign_participation`"
+  dimensions:
+    - name: "participation_status"
+      expr: participation_status
+      comment: "Status of the OTA campaign participation (active, completed, withdrawn, pending) for portfolio monitoring."
+    - name: "promotional_placement_type"
+      expr: promotional_placement_type
+      comment: "Type of promotional placement (featured listing, flash sale, loyalty deal, etc.) for campaign type analysis."
+    - name: "campaign_start_date"
+      expr: campaign_start_date
+      comment: "Campaign start date for time-series campaign performance analysis."
+    - name: "campaign_end_date"
+      expr: campaign_end_date
+      comment: "Campaign end date for campaign duration and timing analysis."
+  measures:
+    - name: "total_participations"
+      expr: COUNT(1)
+      comment: "Total number of OTA campaign participations. Baseline for OTA co-marketing activity volume."
+    - name: "total_hotel_contribution"
+      expr: SUM(CAST(hotel_contribution_amount AS DOUBLE))
+      comment: "Total hotel co-op marketing investment in OTA campaigns. Measures marketing spend committed to OTA partnerships."
+    - name: "total_ota_coop_budget"
+      expr: SUM(CAST(ota_coop_budget_amount AS DOUBLE))
+      comment: "Total OTA co-op budget committed across campaigns. Measures OTA marketing investment for ROI analysis."
+    - name: "total_actual_revenue"
+      expr: SUM(CAST(actual_revenue_amount AS DOUBLE))
+      comment: "Total actual revenue generated from OTA campaign participations. Primary outcome KPI for campaign ROI."
+    - name: "total_performance_bonus_earned"
+      expr: SUM(CAST(performance_bonus_earned AS DOUBLE))
+      comment: "Total performance bonuses earned from OTA campaigns. Measures incremental commercial benefit of preferred partner status."
+    - name: "total_partner_contribution"
+      expr: SUM(CAST(partner_contribution_amount AS DOUBLE))
+      comment: "Total OTA partner contribution to co-marketing campaigns. Measures OTA investment in the partnership."
+    - name: "revenue_per_hotel_investment"
+      expr: ROUND(SUM(CAST(actual_revenue_amount AS DOUBLE)) / NULLIF(SUM(CAST(hotel_contribution_amount AS DOUBLE)), 0), 2)
+      comment: "Revenue generated per dollar of hotel co-op investment. Measures ROI of OTA campaign participation; drives future investment decisions."
+    - name: "unique_ota_partners"
+      expr: COUNT(DISTINCT ota_partner_id)
+      comment: "Number of distinct OTA partners with campaign participations. Measures breadth of OTA co-marketing relationships."
+$$;
+
+CREATE OR REPLACE VIEW `travel_hospitality_ecm`.`_metrics`.`channel_ota_partner`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
   comment: "Ota Partner business metrics"
-  source: "`vibe_travel_hospitality_v1`.`channel`.`ota_partner`"
+  source: "`travel_hospitality_ecm`.`channel`.`ota_partner`"
   dimensions:
     - name: "Affiliate Network"
       expr: affiliate_network
@@ -1556,13 +1354,13 @@ AS $$
       expr: AVG(review_score)
 $$;
 
-CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_package_rate`
+CREATE OR REPLACE VIEW `travel_hospitality_ecm`.`_metrics`.`channel_package_rate`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
   comment: "Package Rate business metrics"
-  source: "`vibe_travel_hospitality_v1`.`channel`.`package_rate`"
+  source: "`travel_hospitality_ecm`.`channel`.`package_rate`"
   dimensions:
     - name: "Cancellation Policy Override"
       expr: cancellation_policy_override
@@ -1599,4 +1397,196 @@ AS $$
       expr: SUM(commission_rate)
     - name: "Average Commission Rate"
       expr: AVG(commission_rate)
+$$;
+
+CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_rate_parity_audit`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Rate parity compliance audit metrics tracking violations, variance severity, and dispute resolution. Directly steers channel contract enforcement and OTA relationship management."
+  source: "`vibe_travel_hospitality_v1`.`channel`.`rate_parity_audit`"
+  dimensions:
+    - name: "channel_type"
+      expr: channel_type
+      comment: "Distribution channel type for rate parity violation analysis by channel category."
+    - name: "audit_status"
+      expr: audit_status
+      comment: "Current audit status (open, resolved, disputed) for compliance workflow management."
+    - name: "violation_type"
+      expr: violation_type
+      comment: "Type of rate parity violation for root cause analysis."
+    - name: "violation_severity"
+      expr: violation_severity
+      comment: "Severity level of the rate parity violation for prioritized remediation."
+    - name: "is_parity_violation"
+      expr: is_parity_violation
+      comment: "Boolean flag for violation filtering and compliance rate calculation."
+    - name: "monitoring_source"
+      expr: monitoring_source
+      comment: "Source of rate monitoring (internal tool, third-party shopper) for audit coverage analysis."
+    - name: "currency_code"
+      expr: currency_code
+      comment: "Currency of the audited rates for multi-currency parity analysis."
+    - name: "audit_month"
+      expr: DATE_TRUNC('month', audit_timestamp)
+      comment: "Month of the rate parity audit for trend analysis of violation frequency."
+    - name: "stay_date_month"
+      expr: DATE_TRUNC('month', stay_date)
+      comment: "Stay date month for forward-looking parity violation analysis."
+  measures:
+    - name: "total_audits"
+      expr: COUNT(1)
+      comment: "Total number of rate parity audits conducted. Baseline for audit coverage and monitoring intensity."
+    - name: "total_violations"
+      expr: COUNT(CASE WHEN is_parity_violation = TRUE THEN 1 END)
+      comment: "Total number of confirmed rate parity violations. Primary compliance KPI triggering channel contract enforcement actions."
+    - name: "violation_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN is_parity_violation = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of audits resulting in a rate parity violation. Core channel compliance KPI — high rates trigger contract renegotiation or channel suspension."
+    - name: "avg_rate_variance"
+      expr: AVG(CAST(rate_variance AS DOUBLE))
+      comment: "Average absolute rate variance between observed and contracted parity rate. Quantifies the magnitude of rate parity breaches."
+    - name: "avg_rate_variance_pct"
+      expr: AVG(CAST(rate_variance_pct AS DOUBLE))
+      comment: "Average percentage rate variance. Measures severity of rate parity violations relative to contracted rates."
+    - name: "avg_direct_rate"
+      expr: AVG(CAST(direct_rate AS DOUBLE))
+      comment: "Average direct booking rate observed during audits. Benchmarks direct channel pricing against OTA rates."
+    - name: "avg_observed_rate"
+      expr: AVG(CAST(observed_rate AS DOUBLE))
+      comment: "Average rate observed on the channel during audit. Used to compute rate gap between direct and channel pricing."
+    - name: "avg_tolerance_threshold_pct"
+      expr: AVG(CAST(tolerance_threshold_pct AS DOUBLE))
+      comment: "Average tolerance threshold applied in parity audits. Contextualizes violation counts against contracted tolerance levels."
+    - name: "open_disputes"
+      expr: COUNT(CASE WHEN dispute_raised_date IS NOT NULL AND dispute_resolved_date IS NULL THEN 1 END)
+      comment: "Number of open rate parity disputes. Measures unresolved compliance exposure requiring channel management intervention."
+    - name: "distinct_channels_with_violations"
+      expr: COUNT(DISTINCT CASE WHEN is_parity_violation = TRUE THEN channel_id END)
+      comment: "Number of distinct channels with confirmed rate parity violations. Identifies which channels pose the highest compliance risk."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_stop_sell`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Stop-sell restriction metrics tracking restriction frequency, duration, and channel impact. Drives inventory yield management and channel restriction strategy decisions."
+  source: "`vibe_travel_hospitality_v1`.`channel`.`stop_sell`"
+  dimensions:
+    - name: "channel_type"
+      expr: channel_type
+      comment: "Distribution channel type for stop-sell analysis by channel category."
+    - name: "restriction_type"
+      expr: restriction_type
+      comment: "Type of restriction (stop-sell, CTA, CTD, min-LOS) for restriction strategy analysis."
+    - name: "reason_code"
+      expr: reason_code
+      comment: "Reason code for the stop-sell for root cause analysis."
+    - name: "restriction_status"
+      expr: restriction_status
+      comment: "Current restriction status (active, lifted) for operational monitoring."
+    - name: "is_all_channels"
+      expr: is_all_channels
+      comment: "Flag indicating whether the stop-sell applies to all channels for scope analysis."
+    - name: "is_system_generated"
+      expr: is_system_generated
+      comment: "Flag indicating RMS/system-generated vs manual stop-sell for automation analysis."
+    - name: "market_segment_code"
+      expr: market_segment_code
+      comment: "Market segment affected by the stop-sell for segment-level restriction analysis."
+    - name: "stay_date_from_month"
+      expr: DATE_TRUNC('month', stay_date_from)
+      comment: "Stay period start month for seasonal restriction pattern analysis."
+  measures:
+    - name: "total_stop_sell_events"
+      expr: COUNT(1)
+      comment: "Total number of stop-sell restriction events. Baseline for restriction frequency and inventory constraint intensity."
+    - name: "active_stop_sells"
+      expr: COUNT(CASE WHEN restriction_status = 'active' THEN 1 END)
+      comment: "Number of currently active stop-sell restrictions. Measures live inventory constraint level across channels."
+    - name: "system_generated_stop_sell_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN is_system_generated = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of stop-sells generated by the RMS/system. Measures yield management automation adoption."
+    - name: "all_channel_stop_sell_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN is_all_channels = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of stop-sells applied to all channels simultaneously. Indicates broad inventory constraint events vs targeted channel restrictions."
+    - name: "avg_adr_at_apply"
+      expr: AVG(CAST(adr_at_apply AS DOUBLE))
+      comment: "Average ADR at the time stop-sell was applied. Contextualizes restriction decisions against prevailing rate levels."
+    - name: "avg_occupancy_at_apply"
+      expr: AVG(CAST(occupancy_at_apply AS DOUBLE))
+      comment: "Average occupancy rate at the time stop-sell was applied. Validates that stop-sells are triggered at appropriate occupancy thresholds."
+    - name: "avg_revpar_at_apply"
+      expr: AVG(CAST(revpar_at_apply AS DOUBLE))
+      comment: "Average RevPAR at the time stop-sell was applied. Measures revenue performance context for restriction decisions."
+    - name: "distinct_properties_with_stop_sells"
+      expr: COUNT(DISTINCT property_id)
+      comment: "Number of distinct properties with stop-sell restrictions. Measures restriction breadth across the property portfolio."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`channel_wholesale_allotment`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Wholesale allotment contract performance metrics covering allotment size, pickup, wash, and rate management. Drives wholesale channel yield optimization and contract renewal decisions."
+  source: "`vibe_travel_hospitality_v1`.`channel`.`wholesale_allotment`"
+  dimensions:
+    - name: "allotment_type"
+      expr: allotment_type
+      comment: "Type of wholesale allotment (guaranteed, free-sell, on-request) for allotment strategy analysis."
+    - name: "allotment_status"
+      expr: allotment_status
+      comment: "Current allotment status for operational monitoring."
+    - name: "market_segment_code"
+      expr: market_segment_code
+      comment: "Market segment for wholesale allotment segmentation."
+    - name: "currency_code"
+      expr: currency_code
+      comment: "Currency of the allotment for multi-currency wholesale reporting."
+    - name: "connectivity_type"
+      expr: connectivity_type
+      comment: "Connectivity type for wholesale channel technology analysis."
+    - name: "is_stop_sell"
+      expr: is_stop_sell
+      comment: "Stop-sell flag for wholesale inventory restriction monitoring."
+    - name: "stay_date_from_month"
+      expr: DATE_TRUNC('month', stay_date_from)
+      comment: "Stay period start month for seasonal wholesale allotment analysis."
+    - name: "contract_effective_month"
+      expr: DATE_TRUNC('month', contract_effective_date)
+      comment: "Contract effective month for allotment contract lifecycle analysis."
+  measures:
+    - name: "total_allotments"
+      expr: COUNT(1)
+      comment: "Total number of wholesale allotment records. Baseline for wholesale contract portfolio size."
+    - name: "avg_contracted_net_rate"
+      expr: AVG(CAST(contracted_net_rate AS DOUBLE))
+      comment: "Average contracted net rate across wholesale allotments. Benchmarks wholesale pricing against rack and BAR rates."
+    - name: "avg_rack_rate"
+      expr: AVG(CAST(rack_rate AS DOUBLE))
+      comment: "Average rack rate for allotted room types. Used to compute wholesale discount depth relative to rack."
+    - name: "avg_commission_rate"
+      expr: AVG(CAST(commission_rate AS DOUBLE))
+      comment: "Average commission rate on wholesale allotments. Measures wholesale distribution cost."
+    - name: "avg_wash_factor_pct"
+      expr: AVG(CAST(wash_factor_pct AS DOUBLE))
+      comment: "Average wash factor percentage applied to wholesale allotments. Measures expected allotment attrition for inventory planning."
+    - name: "stop_sell_allotment_count"
+      expr: COUNT(CASE WHEN is_stop_sell = TRUE THEN 1 END)
+      comment: "Number of wholesale allotments under stop-sell. Indicates wholesale demand strength and inventory constraint."
+    - name: "stop_sell_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN is_stop_sell = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of wholesale allotments under stop-sell. Key wholesale yield KPI — high rates indicate strong demand or inventory scarcity."
+    - name: "distinct_ota_partners"
+      expr: COUNT(DISTINCT ota_partner_id)
+      comment: "Number of distinct OTA partners with wholesale allotments. Measures wholesale channel partner diversification."
+    - name: "distinct_properties_with_allotments"
+      expr: COUNT(DISTINCT property_id)
+      comment: "Number of distinct properties with wholesale allotments. Measures wholesale channel property coverage."
+    - name: "wholesale_discount_depth_pct"
+      expr: ROUND(100.0 * (1 - (SUM(CAST(contracted_net_rate AS DOUBLE)) / NULLIF(SUM(CAST(rack_rate AS DOUBLE)), 0))), 2)
+      comment: "Average wholesale discount as a percentage of rack rate. Measures how deeply wholesale rates are discounted — drives pricing strategy and contract renegotiation."
 $$;

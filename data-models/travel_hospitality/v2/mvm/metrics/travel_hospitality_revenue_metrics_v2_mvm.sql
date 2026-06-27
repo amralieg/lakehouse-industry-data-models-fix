@@ -1,108 +1,98 @@
--- Metric views for domain: revenue | Business: Travel_Hospitality | Version: 2 | Generated on: 2026-06-22 19:35:58
+-- Metric views for domain: revenue | Business: Travel_Hospitality | Version: 2 | Generated on: 2026-06-27 02:47:23
 
 CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`revenue_performance_actuals`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Core hospitality revenue performance KPIs derived from daily actuals. Covers room revenue, total property revenue, GOP, RevPAR, ADR, occupancy, TRevPAR, GOPPAR, CPOR, and competitive index metrics (ARI, MPI, RGI). Primary steering dashboard for revenue management and ownership reporting."
+  comment: "Core hospitality revenue performance KPIs derived from daily actuals. Covers room revenue, total property revenue, GOP, RevPAR, ADR, occupancy, TRevPAR, CPOR, and competitive index metrics (ARI, MPI, RGI). Primary steering dashboard for revenue management and ownership reporting."
   source: "`vibe_travel_hospitality_v1`.`revenue`.`performance_actuals`"
-  filter: record_status = 'ACTIVE'
   dimensions:
     - name: "performance_date"
       expr: performance_date
-      comment: "Calendar date of the performance record; used for daily, weekly, and monthly trend analysis."
+      comment: "Date of the performance record (yyyy-MM-dd). Used for daily, weekly, monthly, and YTD trending."
     - name: "performance_month"
       expr: DATE_TRUNC('MONTH', performance_date)
-      comment: "Month bucket of the performance date for period-over-period revenue reporting."
+      comment: "Calendar month bucket derived from performance_date. Supports month-over-month revenue trend analysis."
     - name: "performance_year"
       expr: YEAR(performance_date)
-      comment: "Fiscal/calendar year of the performance record for annual KPI tracking."
-    - name: "property_id"
-      expr: property_id
-      comment: "Foreign key to the property dimension; enables property-level revenue segmentation."
-    - name: "source_system_code"
-      expr: source_system_code
-      comment: "Originating PMS or RMS system code; useful for data lineage and reconciliation filtering."
+      comment: "Calendar year derived from performance_date. Supports year-over-year comparisons."
+    - name: "currency_code"
+      expr: currency_code
+      comment: "ISO currency code for all monetary measures on this record. Enables multi-currency filtering."
+    - name: "record_status"
+      expr: record_status
+      comment: "Processing status of the actuals record (e.g. FINAL, PRELIMINARY, ADJUSTED). Allows filtering to reconciled data only."
     - name: "is_reconciled"
       expr: is_reconciled
       comment: "Boolean flag indicating whether the actuals record has been reconciled against the general ledger."
-    - name: "hierarchy_id"
-      expr: hierarchy_id
-      comment: "Organisational hierarchy reference enabling roll-up reporting across regions, brands, or ownership groups."
-    - name: "seasonal_calendar_id"
-      expr: seasonal_calendar_id
-      comment: "Seasonal calendar reference for demand-season segmentation of revenue performance."
+    - name: "source_system_code"
+      expr: source_system_code
+      comment: "Originating system of record (e.g. PMS, POS, ERP). Supports data lineage and cross-system reconciliation."
+    - name: "property_id"
+      expr: property_id
+      comment: "Foreign key to the property dimension. Primary grouping key for property-level performance reporting."
     - name: "promotion_id"
       expr: promotion_id
-      comment: "Loyalty promotion reference enabling measurement of promotion-driven revenue lift."
+      comment: "Foreign key to the promotion dimension. Supports revenue attribution to specific promotional campaigns."
   measures:
-    - name: "total_property_revenue"
-      expr: SUM(CAST(total_property_revenue AS DOUBLE))
-      comment: "Total revenue across all streams (rooms, F&B, spa, parking, ancillary, misc) for the property. Primary top-line KPI for ownership and executive reporting."
     - name: "total_room_revenue"
       expr: SUM(CAST(total_room_revenue AS DOUBLE))
-      comment: "Aggregate room revenue; the largest single revenue stream and primary driver of RevPAR and ADR performance."
+      comment: "Total rooms revenue across all selected records. Core top-line KPI for hotel revenue management and ownership reporting."
+    - name: "total_property_revenue"
+      expr: SUM(CAST(total_property_revenue AS DOUBLE))
+      comment: "Total revenue across all property revenue streams (rooms, F&B, spa, ancillary, parking, misc). Represents full TRevPAR numerator and overall property P&L top line."
     - name: "fb_revenue"
       expr: SUM(CAST(fb_revenue AS DOUBLE))
-      comment: "Total food and beverage revenue; key ancillary revenue stream tracked against budget and prior year."
-    - name: "spa_revenue"
-      expr: SUM(CAST(spa_revenue AS DOUBLE))
-      comment: "Total spa revenue; ancillary revenue stream used to evaluate wellness offering performance."
-    - name: "parking_revenue"
-      expr: SUM(CAST(parking_revenue AS DOUBLE))
-      comment: "Total parking revenue; ancillary stream contributing to TRevPAR and total property yield."
+      comment: "Total food and beverage revenue. Key non-rooms revenue stream for full-service and resort properties."
     - name: "ancillary_revenue"
       expr: SUM(CAST(ancillary_revenue AS DOUBLE))
-      comment: "Total ancillary revenue (excluding rooms and F&B); measures upsell and non-room revenue diversification."
-    - name: "miscellaneous_income"
-      expr: SUM(CAST(miscellaneous_income AS DOUBLE))
-      comment: "Miscellaneous income items; tracked to ensure full revenue capture and audit completeness."
+      comment: "Total ancillary revenue (e.g. resort fees, amenity charges). Tracks incremental revenue beyond room rate."
+    - name: "spa_revenue"
+      expr: SUM(CAST(spa_revenue AS DOUBLE))
+      comment: "Total spa revenue. Measures performance of the spa profit centre for resort and full-service properties."
+    - name: "parking_revenue"
+      expr: SUM(CAST(parking_revenue AS DOUBLE))
+      comment: "Total parking revenue. Tracks ancillary parking income, relevant for urban and airport properties."
     - name: "gross_operating_profit"
       expr: SUM(CAST(gop AS DOUBLE))
-      comment: "Gross Operating Profit (GOP) — total revenue minus departmental and undistributed operating expenses. Core profitability KPI for hotel owners and operators."
+      comment: "Total Gross Operating Profit (GOP) per USALI standards. Primary profitability KPI used in owner reports and management agreements."
     - name: "ebitda_contribution"
       expr: SUM(CAST(ebitda_contribution AS DOUBLE))
-      comment: "EBITDA contribution from the property; used by ownership and asset management for investment performance evaluation."
+      comment: "Total EBITDA contribution from the property. Used by ownership and investment teams to assess asset-level returns."
     - name: "avg_adr"
       expr: AVG(CAST(adr AS DOUBLE))
-      comment: "Average Daily Rate (ADR) — average achieved room rate per occupied room. Core pricing KPI for revenue management."
+      comment: "Average Daily Rate (ADR) — average room revenue per occupied room. Core pricing KPI for revenue managers and GMs."
     - name: "avg_revpar"
       expr: AVG(CAST(revpar AS DOUBLE))
-      comment: "Average Revenue Per Available Room (RevPAR) — the primary yield metric combining occupancy and rate performance."
+      comment: "Average Revenue Per Available Room (RevPAR). The primary yield metric combining occupancy and rate; used in every revenue steering meeting."
     - name: "avg_trevpar"
       expr: AVG(CAST(trevpar AS DOUBLE))
-      comment: "Average Total Revenue Per Available Room (TRevPAR) — measures total property yield across all revenue streams per available room."
+      comment: "Average Total Revenue Per Available Room (TRevPAR). Measures total property revenue yield across all available rooms; key for full-service and resort properties."
     - name: "avg_goppar"
       expr: AVG(CAST(goppar AS DOUBLE))
-      comment: "Average Gross Operating Profit Per Available Room (GOPPAR) — profitability yield metric used by asset managers and ownership groups."
-    - name: "avg_cpor"
-      expr: AVG(CAST(cpor AS DOUBLE))
-      comment: "Average Cost Per Occupied Room (CPOR) — operational efficiency metric; rising CPOR erodes GOP margin."
+      comment: "Average Gross Operating Profit Per Available Room (GOPPAR). Profitability yield metric used by asset managers and ownership groups."
     - name: "avg_occupancy_rate"
       expr: AVG(CAST(occupancy_rate AS DOUBLE))
-      comment: "Average occupancy rate (percentage of available rooms sold); fundamental demand metric driving RevPAR."
+      comment: "Average occupancy rate (percentage of available rooms sold). Fundamental demand indicator used in all revenue and operations reviews."
+    - name: "avg_cpor"
+      expr: AVG(CAST(cpor AS DOUBLE))
+      comment: "Average Cost Per Occupied Room (CPOR). Measures operational efficiency; rising CPOR against flat ADR signals margin compression."
     - name: "avg_ari"
       expr: AVG(CAST(ari AS DOUBLE))
-      comment: "Average Accommodation Revenue Index (ARI) — competitive benchmarking metric measuring revenue share relative to the competitive set."
+      comment: "Average Accommodation Revenue Index (ARI) — competitive set revenue share index. Values above 100 indicate outperformance vs comp set."
     - name: "avg_mpi"
       expr: AVG(CAST(mpi AS DOUBLE))
-      comment: "Average Market Penetration Index (MPI) — measures occupancy performance relative to the competitive set; index above 100 indicates outperformance."
+      comment: "Average Market Penetration Index (MPI) — occupancy share vs competitive set. Tracks demand capture relative to market."
     - name: "avg_rgi"
       expr: AVG(CAST(rgi AS DOUBLE))
-      comment: "Average Revenue Generation Index (RGI) — composite competitive index (RevPAR vs comp set); primary STR benchmarking KPI."
-    - name: "revpar_vs_prior_year_variance"
-      expr: AVG(CAST(revpar AS DOUBLE)) - AVG(CAST(prior_year_revpar AS DOUBLE))
-      comment: "RevPAR variance versus prior year (absolute); measures year-over-year revenue yield improvement or decline."
-    - name: "revpar_growth_pct"
-      expr: ROUND(100.0 * (AVG(CAST(revpar AS DOUBLE)) - AVG(CAST(prior_year_revpar AS DOUBLE))) / NULLIF(AVG(CAST(prior_year_revpar AS DOUBLE)), 0), 2)
-      comment: "RevPAR year-over-year growth percentage; key executive KPI for evaluating revenue recovery and growth trajectory."
-    - name: "reconciled_record_count"
-      expr: COUNT(CASE WHEN is_reconciled = TRUE THEN 1 END)
-      comment: "Count of reconciled performance records; data quality and close-process completeness indicator."
-    - name: "reconciliation_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN is_reconciled = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of performance records that have been reconciled; financial close quality metric."
+      comment: "Average Revenue Generation Index (RGI) — RevPAR share vs competitive set. Composite competitive performance indicator used in STR reporting."
+    - name: "avg_prior_year_revpar"
+      expr: AVG(CAST(prior_year_revpar AS DOUBLE))
+      comment: "Average prior-year RevPAR for the same period. Baseline for year-over-year RevPAR variance analysis."
+    - name: "miscellaneous_income"
+      expr: SUM(CAST(miscellaneous_income AS DOUBLE))
+      comment: "Total miscellaneous income. Captures other operating revenue not classified in primary revenue streams."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`revenue_budget`
@@ -110,101 +100,97 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Revenue budget planning KPIs enabling variance analysis between budgeted targets and strategic goals. Covers room revenue, F&B, total revenue, GOP, and key performance targets (ADR, RevPAR, occupancy, GOPPAR, TRevPAR). Used by finance, revenue management, and ownership for annual planning and quarterly reforecasting."
+  comment: "Annual and period budget KPIs for revenue planning and variance analysis. Covers budgeted room revenue, total revenue, F&B, events, GOP, and key target metrics (ADR, RevPAR, occupancy, GOPPAR, TRevPAR). Used by finance, revenue management, and ownership for budget vs actual steering."
   source: "`vibe_travel_hospitality_v1`.`revenue`.`budget`"
-  filter: record_status = 'ACTIVE'
   dimensions:
     - name: "fiscal_year"
       expr: fiscal_year
-      comment: "Fiscal year of the budget record; primary time dimension for annual budget cycle management."
+      comment: "Fiscal year of the budget record. Primary time dimension for annual budget planning and YTD tracking."
     - name: "fiscal_period"
       expr: fiscal_period
-      comment: "Fiscal period (month/quarter) within the budget year for period-level budget tracking."
+      comment: "Fiscal period (e.g. month, quarter) within the fiscal year. Supports period-level budget vs actual analysis."
     - name: "planning_period_start_date"
       expr: planning_period_start_date
-      comment: "Start date of the budget planning period; used to align budget to operational calendar."
+      comment: "Start date of the budget planning period. Used to align budget records to calendar periods."
     - name: "planning_period_end_date"
       expr: planning_period_end_date
       comment: "End date of the budget planning period."
-    - name: "property_id"
-      expr: property_id
-      comment: "Property reference enabling property-level budget comparison and roll-up to portfolio level."
-    - name: "property_segment"
-      expr: property_segment
-      comment: "Property segment classification (e.g. luxury, select-service) for segment-level budget benchmarking."
     - name: "planning_horizon_type"
       expr: planning_horizon_type
-      comment: "Type of planning horizon (annual, rolling, strategic) to distinguish budget versions."
+      comment: "Type of planning horizon (e.g. ANNUAL, QUARTERLY, ROLLING_12). Distinguishes budget cycles."
     - name: "strategy_type"
       expr: strategy_type
-      comment: "Revenue strategy type associated with the budget (e.g. growth, stabilisation, repositioning)."
+      comment: "Revenue strategy type associated with the budget (e.g. GROWTH, STABILIZATION, REPOSITIONING). Supports strategic segmentation of budget targets."
     - name: "strategy_status"
       expr: strategy_status
-      comment: "Current status of the revenue strategy (e.g. approved, in-review, superseded)."
+      comment: "Current status of the budget strategy (e.g. DRAFT, APPROVED, REVISED). Filters to approved budgets for official reporting."
     - name: "is_owner_approved"
       expr: is_owner_approved
-      comment: "Boolean flag indicating owner approval of the budget; required for capital and operating plan finalisation."
-    - name: "version"
-      expr: version
-      comment: "Budget version identifier enabling comparison across reforecast iterations."
-    - name: "hierarchy_id"
-      expr: hierarchy_id
-      comment: "Organisational hierarchy reference for portfolio-level budget roll-up."
+      comment: "Boolean flag indicating owner approval of the budget. Ensures only owner-approved budgets are used in official variance reporting."
+    - name: "property_segment"
+      expr: property_segment
+      comment: "Property segment classification (e.g. LUXURY, SELECT_SERVICE, RESORT). Enables portfolio-level budget analysis by segment."
+    - name: "currency_code"
+      expr: currency_code
+      comment: "ISO currency code for all monetary budget measures."
+    - name: "property_id"
+      expr: property_id
+      comment: "Foreign key to the property dimension. Primary grouping key for property-level budget reporting."
+    - name: "market_segment_id"
+      expr: market_segment_id
+      comment: "Foreign key to the market segment dimension. Enables budget analysis by market segment."
+    - name: "approval_date"
+      expr: approval_date
+      comment: "Date the budget was formally approved. Used to track budget approval timelines."
   measures:
-    - name: "total_budgeted_revenue"
-      expr: SUM(CAST(budgeted_total_revenue AS DOUBLE))
-      comment: "Total budgeted revenue across all streams; primary top-line budget target for ownership and finance reporting."
-    - name: "budgeted_room_revenue"
+    - name: "total_budgeted_room_revenue"
       expr: SUM(CAST(budgeted_room_revenue AS DOUBLE))
-      comment: "Budgeted room revenue; largest revenue stream target used to set ADR and occupancy goals."
-    - name: "budgeted_fb_revenue"
+      comment: "Total budgeted rooms revenue for the period. Primary budget baseline for revenue variance analysis."
+    - name: "total_budgeted_total_revenue"
+      expr: SUM(CAST(budgeted_total_revenue AS DOUBLE))
+      comment: "Total budgeted revenue across all streams. Used as the denominator for budget attainment calculations."
+    - name: "total_budgeted_fb_revenue"
       expr: SUM(CAST(budgeted_fb_revenue AS DOUBLE))
-      comment: "Budgeted food and beverage revenue; used to set F&B outlet targets and staffing plans."
-    - name: "budgeted_events_revenue"
+      comment: "Total budgeted food and beverage revenue. Tracks F&B budget targets for full-service properties."
+    - name: "total_budgeted_events_revenue"
       expr: SUM(CAST(budgeted_events_revenue AS DOUBLE))
-      comment: "Budgeted events and meetings revenue; key for conference and banqueting capacity planning."
-    - name: "budgeted_other_revenue"
-      expr: SUM(CAST(budgeted_other_revenue AS DOUBLE))
-      comment: "Budgeted ancillary and other revenue streams; ensures full revenue budget coverage."
-    - name: "budgeted_gop"
+      comment: "Total budgeted events and meetings revenue. Key budget line for conference and convention properties."
+    - name: "total_budgeted_gop"
       expr: SUM(CAST(budgeted_gop AS DOUBLE))
-      comment: "Budgeted Gross Operating Profit; primary profitability target for ownership and management agreements."
+      comment: "Total budgeted Gross Operating Profit. Primary profitability budget target used in management agreements and owner reporting."
+    - name: "total_budgeted_other_revenue"
+      expr: SUM(CAST(budgeted_other_revenue AS DOUBLE))
+      comment: "Total budgeted other/ancillary revenue. Captures non-rooms, non-F&B, non-events budget lines."
     - name: "avg_target_adr"
       expr: AVG(CAST(target_adr AS DOUBLE))
-      comment: "Average budgeted ADR target; pricing benchmark for revenue management strategy setting."
+      comment: "Average budgeted target ADR. Pricing benchmark used to evaluate actual ADR performance against plan."
     - name: "avg_target_revpar"
       expr: AVG(CAST(target_revpar AS DOUBLE))
-      comment: "Average budgeted RevPAR target; primary yield benchmark for revenue management performance evaluation."
+      comment: "Average budgeted target RevPAR. Primary yield benchmark for revenue management performance evaluation."
     - name: "avg_target_occupancy_rate"
       expr: AVG(CAST(target_occupancy_rate AS DOUBLE))
-      comment: "Average budgeted occupancy rate target; demand planning benchmark for staffing and cost management."
+      comment: "Average budgeted target occupancy rate. Demand planning benchmark used in capacity and staffing decisions."
     - name: "avg_target_goppar"
       expr: AVG(CAST(target_goppar AS DOUBLE))
-      comment: "Average budgeted GOPPAR target; profitability yield benchmark for asset management reporting."
+      comment: "Average budgeted target GOPPAR. Profitability yield benchmark for asset management and ownership reviews."
     - name: "avg_target_trevpar"
       expr: AVG(CAST(target_trevpar AS DOUBLE))
-      comment: "Average budgeted TRevPAR target; total revenue yield benchmark across all property revenue streams."
+      comment: "Average budgeted target TRevPAR. Total revenue yield benchmark for full-service and resort properties."
     - name: "avg_target_alos"
       expr: AVG(CAST(target_alos AS DOUBLE))
-      comment: "Average budgeted length of stay target; used to optimise rate strategy and channel mix planning."
+      comment: "Average budgeted target Average Length of Stay (ALOS). Used in length-of-stay strategy and minimum stay restriction planning."
     - name: "avg_budgeted_cpor"
       expr: AVG(CAST(budgeted_cpor AS DOUBLE))
-      comment: "Average budgeted Cost Per Occupied Room; operational efficiency benchmark for housekeeping and rooms division."
+      comment: "Average budgeted Cost Per Occupied Room. Operational efficiency benchmark for cost management reviews."
     - name: "avg_target_mpi"
       expr: AVG(CAST(target_mpi AS DOUBLE))
-      comment: "Average budgeted Market Penetration Index target; competitive positioning goal for revenue management."
+      comment: "Average budgeted target Market Penetration Index. Competitive demand share target used in revenue strategy planning."
     - name: "avg_target_rgi"
       expr: AVG(CAST(target_rgi AS DOUBLE))
-      comment: "Average budgeted Revenue Generation Index target; composite competitive benchmark goal."
-    - name: "avg_target_ari"
-      expr: AVG(CAST(target_ari AS DOUBLE))
-      comment: "Average budgeted Accommodation Revenue Index target; revenue share competitive goal."
-    - name: "owner_approved_budget_count"
-      expr: COUNT(CASE WHEN is_owner_approved = TRUE THEN 1 END)
-      comment: "Number of owner-approved budget records; governance and approval process completeness metric."
-    - name: "owner_approval_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN is_owner_approved = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of budget records with owner approval; financial governance KPI for ownership reporting."
+      comment: "Average budgeted target Revenue Generation Index. Composite competitive performance target for STR benchmarking."
+    - name: "budget_record_count"
+      expr: COUNT(1)
+      comment: "Count of budget records. Used to validate budget completeness and track submission coverage across properties and periods."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`revenue_demand_forecast`
@@ -212,179 +198,97 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Demand forecasting accuracy and projected performance KPIs. Covers projected occupancy, ADR, RevPAR, room revenue, cancellations, no-shows, pickup, and forecast accuracy (MAPE). Used by revenue management to evaluate forecast quality and calibrate pricing and inventory decisions."
+  comment: "Demand forecasting KPIs covering projected occupancy, ADR, RevPAR, room revenue, pickup, cancellations, and forecast accuracy. Used by revenue managers to set pricing strategy, manage inventory, and evaluate forecast model performance."
   source: "`vibe_travel_hospitality_v1`.`revenue`.`demand_forecast`"
-  filter: record_status = 'ACTIVE'
   dimensions:
     - name: "forecast_date"
       expr: forecast_date
-      comment: "Date for which the demand forecast applies; primary time dimension for forecast horizon analysis."
+      comment: "The stay date being forecasted. Primary time dimension for demand forecast analysis."
     - name: "forecast_month"
       expr: DATE_TRUNC('MONTH', forecast_date)
-      comment: "Month bucket of the forecast date for monthly demand planning and revenue projection."
+      comment: "Month bucket of the forecast date. Supports monthly demand trend and pickup analysis."
     - name: "forecast_type"
       expr: forecast_type
-      comment: "Type of forecast (e.g. unconstrained, constrained, pickup) enabling comparison of forecast methodologies."
+      comment: "Type of forecast (e.g. UNCONSTRAINED, CONSTRAINED, PICKUP). Distinguishes forecast methodologies for comparison."
     - name: "forecast_model_type"
       expr: forecast_model_type
-      comment: "Forecasting model used (e.g. ARIMA, ML ensemble, exponential smoothing); used to evaluate model performance."
+      comment: "Algorithm or model type used to generate the forecast (e.g. EXPONENTIAL_SMOOTHING, ML_GRADIENT_BOOST). Enables model performance benchmarking."
     - name: "forecast_granularity"
       expr: forecast_granularity
-      comment: "Granularity of the forecast (daily, weekly, segment-level) for appropriate aggregation and comparison."
+      comment: "Granularity of the forecast (e.g. DAILY, WEEKLY, SEGMENT). Filters to the appropriate forecast resolution."
     - name: "forecast_status"
       expr: forecast_status
-      comment: "Status of the forecast record (e.g. published, draft, superseded); filter for active forecasts."
-    - name: "property_id"
-      expr: property_id
-      comment: "Property reference for property-level demand forecast analysis."
-    - name: "room_type_id"
-      expr: room_type_id
-      comment: "Room type reference enabling room-type-level demand and pricing analysis."
-    - name: "market_segment_id"
-      expr: market_segment_id
-      comment: "Market segment reference for segment-level demand forecasting and mix management."
-    - name: "is_holiday"
-      expr: is_holiday
-      comment: "Boolean flag for holiday periods; enables demand uplift analysis on holidays vs. standard periods."
-    - name: "is_special_event"
-      expr: is_special_event
-      comment: "Boolean flag for special events; critical for identifying event-driven demand spikes in forecasting."
+      comment: "Status of the forecast record (e.g. ACTIVE, SUPERSEDED, OVERRIDE). Filters to current active forecasts."
     - name: "is_override"
       expr: is_override
-      comment: "Boolean flag indicating a manual revenue manager override of the system forecast."
+      comment: "Boolean flag indicating a manual revenue manager override of the system forecast. Tracks human intervention frequency."
+    - name: "is_holiday"
+      expr: is_holiday
+      comment: "Boolean flag indicating the forecast date falls on a public holiday. Enables holiday demand pattern analysis."
+    - name: "is_special_event"
+      expr: is_special_event
+      comment: "Boolean flag indicating a special event impacting demand on the forecast date. Supports event-driven demand segmentation."
     - name: "day_of_week"
       expr: day_of_week
-      comment: "Day of week (numeric) for day-of-week demand pattern analysis and pricing strategy."
+      comment: "Day of week for the forecast date. Enables day-of-week demand pattern analysis for pricing and restriction decisions."
+    - name: "currency_code"
+      expr: currency_code
+      comment: "ISO currency code for monetary forecast measures."
+    - name: "property_id"
+      expr: property_id
+      comment: "Foreign key to the property dimension. Primary grouping key for property-level forecast reporting."
+    - name: "market_segment_id"
+      expr: market_segment_id
+      comment: "Foreign key to the market segment dimension. Enables demand forecast analysis by market segment."
+    - name: "room_type_id"
+      expr: room_type_id
+      comment: "Foreign key to the room type dimension. Supports room-type-level demand and pricing analysis."
   measures:
     - name: "avg_projected_occupancy_pct"
       expr: AVG(CAST(projected_occupancy_pct AS DOUBLE))
-      comment: "Average projected occupancy percentage across forecast records; primary demand forecast KPI for inventory and pricing decisions."
+      comment: "Average projected occupancy percentage across forecast records. Primary demand KPI used to set pricing strategy and manage inventory restrictions."
     - name: "avg_projected_adr"
       expr: AVG(CAST(projected_adr AS DOUBLE))
-      comment: "Average projected ADR from demand forecasts; pricing benchmark for rate strategy and channel optimisation."
+      comment: "Average projected ADR from the demand forecast. Pricing benchmark used to evaluate rate strategy against expected demand."
     - name: "avg_projected_revpar"
       expr: AVG(CAST(projected_revpar AS DOUBLE))
-      comment: "Average projected RevPAR; forward-looking yield KPI used to set revenue targets and evaluate strategy."
+      comment: "Average projected RevPAR from the demand forecast. Forward-looking yield KPI used in weekly revenue strategy meetings."
     - name: "total_projected_room_revenue"
       expr: SUM(CAST(projected_room_revenue AS DOUBLE))
-      comment: "Total projected room revenue from demand forecasts; used for cash flow planning and ownership reporting."
+      comment: "Total projected room revenue from the demand forecast. Used in rolling revenue projections and budget pacing analysis."
+    - name: "total_projected_pickup"
+      expr: SUM(CAST(projected_pickup AS DOUBLE))
+      comment: "Total projected room pickup (incremental bookings expected). Key metric for pace analysis and last-minute pricing decisions."
+    - name: "total_projected_cancellations"
+      expr: SUM(CAST(projected_cancellations AS DOUBLE))
+      comment: "Total projected cancellations. Used to set overbooking levels and manage net rooms available."
+    - name: "total_projected_no_shows"
+      expr: SUM(CAST(projected_no_shows AS DOUBLE))
+      comment: "Total projected no-shows. Informs overbooking strategy and no-show policy calibration."
     - name: "avg_unconstrained_demand"
       expr: AVG(CAST(unconstrained_demand AS DOUBLE))
-      comment: "Average unconstrained demand (demand without inventory limits); measures true market demand and identifies displacement opportunities."
+      comment: "Average unconstrained demand (demand before inventory limits). Reveals true market demand and informs capacity strategy."
     - name: "avg_constrained_demand"
       expr: AVG(CAST(constrained_demand AS DOUBLE))
-      comment: "Average constrained demand (demand within available inventory); operational demand signal for staffing and procurement."
-    - name: "demand_displacement_rate_pct"
-      expr: ROUND(100.0 * (AVG(CAST(unconstrained_demand AS DOUBLE)) - AVG(CAST(constrained_demand AS DOUBLE))) / NULLIF(AVG(CAST(unconstrained_demand AS DOUBLE)), 0), 2)
-      comment: "Percentage of unconstrained demand displaced by inventory constraints; measures revenue opportunity loss from sell-outs."
-    - name: "avg_projected_cancellations"
-      expr: AVG(CAST(projected_cancellations AS DOUBLE))
-      comment: "Average projected cancellation volume; used to calibrate overbooking strategy and net demand estimates."
-    - name: "avg_projected_no_shows"
-      expr: AVG(CAST(projected_no_shows AS DOUBLE))
-      comment: "Average projected no-show volume; informs overbooking policy and walk risk management."
-    - name: "avg_projected_pickup"
-      expr: AVG(CAST(projected_pickup AS DOUBLE))
-      comment: "Average projected booking pickup; measures expected incremental reservations within the forecast horizon."
-    - name: "avg_forecast_accuracy_mape"
-      expr: AVG(CAST(forecast_accuracy_mape AS DOUBLE))
-      comment: "Average Mean Absolute Percentage Error (MAPE) of demand forecasts; primary forecast quality KPI — lower is better."
+      comment: "Average constrained demand (demand after applying inventory limits). Operational demand estimate used in staffing and procurement planning."
     - name: "avg_booking_pace_index"
       expr: AVG(CAST(booking_pace_index AS DOUBLE))
-      comment: "Average booking pace index; measures how quickly reservations are accumulating relative to historical pace — early warning signal for demand shifts."
-    - name: "avg_mpi_forecast"
-      expr: AVG(CAST(mpi_forecast AS DOUBLE))
-      comment: "Average forecasted Market Penetration Index; forward-looking competitive positioning metric."
-    - name: "avg_ari_forecast"
-      expr: AVG(CAST(ari_forecast AS DOUBLE))
-      comment: "Average forecasted Accommodation Revenue Index; projected competitive revenue share metric."
-    - name: "avg_rgi_forecast"
-      expr: AVG(CAST(rgi_forecast AS DOUBLE))
-      comment: "Average forecasted Revenue Generation Index; composite competitive yield forecast metric."
-    - name: "override_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN is_override = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of forecast records manually overridden by revenue managers; high override rates may indicate model calibration issues."
+      comment: "Average booking pace index relative to historical baseline. Values above 1.0 indicate faster-than-normal pace; triggers early rate increases."
+    - name: "avg_forecast_accuracy_mape"
+      expr: AVG(CAST(forecast_accuracy_mape AS DOUBLE))
+      comment: "Average Mean Absolute Percentage Error (MAPE) of the forecast model. Primary forecast quality KPI; high MAPE triggers model recalibration."
+    - name: "avg_demand_segment_mix_pct"
+      expr: AVG(CAST(demand_segment_mix_pct AS DOUBLE))
+      comment: "Average demand segment mix percentage. Tracks the share of demand from each market segment; informs channel and segment strategy."
     - name: "avg_confidence_level_pct"
       expr: AVG(CAST(confidence_level_pct AS DOUBLE))
-      comment: "Average statistical confidence level of demand forecasts; measures forecast reliability for decision-making."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`revenue_inventory_control`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Inventory control and yield management KPIs covering overbooking levels, hurdle rates, BAR pricing, occupancy on books, and sell restrictions. Used by revenue management to optimise room inventory allocation, pricing floors, and channel availability decisions."
-  source: "`vibe_travel_hospitality_v1`.`revenue`.`inventory_control`"
-  filter: record_status = 'ACTIVE'
-  dimensions:
-    - name: "stay_date"
-      expr: stay_date
-      comment: "Stay date for which the inventory control record applies; primary time dimension for inventory analysis."
-    - name: "stay_month"
-      expr: DATE_TRUNC('MONTH', stay_date)
-      comment: "Month bucket of the stay date for monthly inventory and yield analysis."
-    - name: "primary_inventory_property_id"
-      expr: primary_inventory_property_id
-      comment: "Property reference for property-level inventory control analysis."
-    - name: "room_type_id"
-      expr: room_type_id
-      comment: "Room type reference enabling room-type-level inventory and pricing analysis."
-    - name: "distribution_channel_id"
-      expr: distribution_channel_id
-      comment: "Distribution channel reference for channel-level availability and rate management."
-    - name: "control_type"
-      expr: control_type
-      comment: "Type of inventory control applied (e.g. stop-sell, min-stay, overbooking cap)."
-    - name: "control_status"
-      expr: control_status
-      comment: "Current status of the inventory control record (active, expired, overridden)."
-    - name: "is_closed_to_arrival"
-      expr: is_closed_to_arrival
-      comment: "Boolean flag indicating closed-to-arrival restriction; critical for understanding booking restriction patterns."
-    - name: "is_closed_to_departure"
-      expr: is_closed_to_departure
-      comment: "Boolean flag indicating closed-to-departure restriction."
-    - name: "is_override"
-      expr: is_override
-      comment: "Boolean flag indicating a manual revenue manager override of system-recommended inventory control."
-    - name: "walk_policy"
-      expr: walk_policy
-      comment: "Walk policy applied when overbooking results in guest displacement; risk management dimension."
-  measures:
-    - name: "avg_occupancy_on_books"
-      expr: AVG(CAST(occupancy_on_books AS DOUBLE))
-      comment: "Average occupancy on books at time of inventory control snapshot; forward-looking demand signal for pricing decisions."
-    - name: "avg_overbooking_pct"
-      expr: AVG(CAST(overbooking_pct AS DOUBLE))
-      comment: "Average overbooking percentage applied; measures revenue management aggressiveness in capturing displaced demand."
-    - name: "avg_hurdle_rate"
-      expr: AVG(CAST(hurdle_rate AS DOUBLE))
-      comment: "Average hurdle rate (minimum acceptable rate for accepting a booking); key yield management threshold metric."
-    - name: "avg_current_bar"
-      expr: AVG(CAST(current_bar AS DOUBLE))
-      comment: "Average current Best Available Rate (BAR); real-time pricing benchmark for rate parity and competitive monitoring."
-    - name: "avg_min_rate"
-      expr: AVG(CAST(min_rate AS DOUBLE))
-      comment: "Average minimum rate floor applied across inventory control records; measures rate floor strategy."
-    - name: "avg_max_rate"
-      expr: AVG(CAST(max_rate AS DOUBLE))
-      comment: "Average maximum rate ceiling applied; measures rate ceiling strategy and revenue capture limits."
-    - name: "avg_system_recommended_value"
-      expr: AVG(CAST(system_recommended_value AS DOUBLE))
-      comment: "Average RMS system-recommended control value; baseline for measuring override impact on revenue outcomes."
-    - name: "avg_control_value"
-      expr: AVG(CAST(control_value AS DOUBLE))
-      comment: "Average applied inventory control value (actual vs. system recommendation); measures revenue manager intervention level."
-    - name: "bar_vs_system_recommendation_variance"
-      expr: AVG(CAST(current_bar AS DOUBLE)) - AVG(CAST(system_recommended_value AS DOUBLE))
-      comment: "Variance between applied BAR and RMS system recommendation; measures revenue manager override impact on pricing."
-    - name: "closed_to_arrival_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN is_closed_to_arrival = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of inventory control records with closed-to-arrival restriction; measures restriction intensity by date/room type."
-    - name: "override_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN is_override = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of inventory control records manually overridden; high rates may indicate RMS calibration issues or exceptional demand events."
+      comment: "Average statistical confidence level of the forecast. Low confidence triggers manual review and override by revenue managers."
+    - name: "avg_mpi_forecast"
+      expr: AVG(CAST(mpi_forecast AS DOUBLE))
+      comment: "Average forecasted Market Penetration Index. Forward-looking competitive demand share indicator used in strategy planning."
+    - name: "avg_ari_forecast"
+      expr: AVG(CAST(ari_forecast AS DOUBLE))
+      comment: "Average forecasted Accommodation Revenue Index. Forward-looking competitive revenue share indicator."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`revenue_rate_availability`
@@ -392,80 +296,82 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Rate availability and pricing distribution KPIs covering BAR, rack rate, min/max rates, occupancy forecast, and rate parity. Used by revenue management and distribution teams to monitor pricing consistency, channel availability, and rate strategy execution across distribution channels."
+  comment: "Rate and inventory availability KPIs covering BAR rates, rack rates, occupancy forecasts, and availability controls (stop-sell, CTA, CTD). Used by revenue managers and distribution teams to monitor rate parity, pricing position, and channel availability."
   source: "`vibe_travel_hospitality_v1`.`revenue`.`rate_availability`"
-  filter: record_status = 'ACTIVE'
   dimensions:
     - name: "snapshot_date"
       expr: snapshot_date
-      comment: "Date of the rate availability snapshot; primary time dimension for rate monitoring and parity analysis."
+      comment: "Date of the rate availability snapshot. Primary time dimension for rate calendar and availability analysis."
     - name: "snapshot_month"
       expr: DATE_TRUNC('MONTH', snapshot_date)
-      comment: "Month bucket of the snapshot date for monthly rate strategy analysis."
-    - name: "property_id"
-      expr: property_id
-      comment: "Property reference for property-level rate availability analysis."
-    - name: "room_type_id"
-      expr: room_type_id
-      comment: "Room type reference enabling room-type-level rate and availability analysis."
-    - name: "distribution_channel_id"
-      expr: distribution_channel_id
-      comment: "Distribution channel reference for channel-level rate parity and availability monitoring."
-    - name: "availability_status"
-      expr: availability_status
-      comment: "Current availability status (open, closed, stop-sell) for the rate/room type/channel combination."
+      comment: "Month bucket of the snapshot date. Supports monthly rate strategy and availability trend analysis."
     - name: "rate_plan_type"
       expr: rate_plan_type
-      comment: "Rate plan type (BAR, negotiated, package, group) for rate mix and strategy analysis."
+      comment: "Type of rate plan (e.g. BAR, NEGOTIATED, PACKAGE, GROUP). Enables rate strategy analysis by plan category."
     - name: "rate_plan_code"
       expr: rate_plan_code
-      comment: "Rate plan code for granular rate performance tracking."
-    - name: "meal_plan_code"
-      expr: meal_plan_code
-      comment: "Meal plan inclusion code (e.g. BB, HB, FB) for package rate analysis."
+      comment: "Rate plan code. Granular identifier for rate-level availability and pricing analysis."
+    - name: "availability_status"
+      expr: availability_status
+      comment: "Current availability status of the rate (e.g. OPEN, CLOSED, STOP_SELL). Tracks inventory control decisions."
     - name: "stop_sell"
       expr: stop_sell
-      comment: "Boolean flag indicating stop-sell restriction; measures inventory closure frequency by channel and room type."
+      comment: "Boolean flag indicating stop-sell is active for this rate/room type combination. Key inventory control indicator."
+    - name: "closed_to_arrival"
+      expr: closed_to_arrival
+      comment: "Boolean flag indicating closed-to-arrival restriction is active. Tracks length-of-stay management controls."
+    - name: "closed_to_departure"
+      expr: closed_to_departure
+      comment: "Boolean flag indicating closed-to-departure restriction is active."
     - name: "rate_parity_flag"
       expr: rate_parity_flag
-      comment: "Boolean flag indicating rate parity compliance; critical for OTA contract compliance and brand integrity."
+      comment: "Boolean flag indicating rate parity compliance across channels. Rate parity violations trigger immediate revenue management action."
+    - name: "is_package_rate"
+      expr: is_package_rate
+      comment: "Boolean flag indicating this is a package rate (room + inclusions). Enables package vs standalone rate analysis."
     - name: "pricing_override_flag"
       expr: pricing_override_flag
-      comment: "Boolean flag indicating a manual pricing override; used to track revenue manager intervention frequency."
+      comment: "Boolean flag indicating a manual pricing override was applied. Tracks frequency of human intervention in automated pricing."
+    - name: "currency_code"
+      expr: currency_code
+      comment: "ISO currency code for all monetary rate measures."
+    - name: "property_id"
+      expr: property_id
+      comment: "Foreign key to the property dimension. Primary grouping key for property-level rate availability reporting."
+    - name: "room_type_id"
+      expr: room_type_id
+      comment: "Foreign key to the room type dimension. Enables rate availability analysis by room type."
+    - name: "revenue_management_system"
+      expr: revenue_management_system
+      comment: "Name of the RMS that generated the rate recommendation. Enables RMS performance and adoption analysis."
   measures:
     - name: "avg_bar_rate"
       expr: AVG(CAST(bar_rate AS DOUBLE))
-      comment: "Average Best Available Rate (BAR) across rate availability records; primary pricing benchmark for channel management."
+      comment: "Average Best Available Rate (BAR). Primary pricing KPI for rate strategy monitoring and competitive benchmarking."
     - name: "avg_rack_rate"
       expr: AVG(CAST(rack_rate AS DOUBLE))
-      comment: "Average rack rate; baseline published rate used to measure discount depth and rate strategy positioning."
+      comment: "Average rack rate. Baseline published rate; used to calculate discount depth and rate integrity metrics."
     - name: "avg_min_rate"
       expr: AVG(CAST(min_rate AS DOUBLE))
-      comment: "Average minimum rate floor across availability records; measures rate floor strategy execution."
+      comment: "Average minimum rate floor across rate availability records. Monitors rate floor compliance and revenue protection."
     - name: "avg_max_rate"
       expr: AVG(CAST(max_rate AS DOUBLE))
-      comment: "Average maximum rate ceiling; measures rate ceiling strategy and revenue capture limits."
+      comment: "Average maximum rate ceiling across rate availability records. Monitors rate ceiling compliance and price cap adherence."
     - name: "avg_occupancy_forecast_pct"
       expr: AVG(CAST(occupancy_forecast_pct AS DOUBLE))
-      comment: "Average occupancy forecast percentage at time of rate availability snapshot; demand signal for pricing decisions."
-    - name: "bar_to_rack_discount_pct"
-      expr: ROUND(100.0 * (AVG(CAST(rack_rate AS DOUBLE)) - AVG(CAST(bar_rate AS DOUBLE))) / NULLIF(AVG(CAST(rack_rate AS DOUBLE)), 0), 2)
-      comment: "Average BAR discount percentage relative to rack rate; measures pricing aggressiveness and discount depth."
-    - name: "rate_range_spread"
-      expr: AVG(CAST(max_rate AS DOUBLE)) - AVG(CAST(min_rate AS DOUBLE))
-      comment: "Average spread between max and min rates; measures dynamic pricing range and revenue management flexibility."
-    - name: "rate_parity_compliance_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN rate_parity_flag = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of rate availability records in rate parity compliance; OTA contract compliance and brand integrity KPI."
-    - name: "stop_sell_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN stop_sell = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of rate availability records with stop-sell active; measures inventory restriction intensity by channel."
-    - name: "pricing_override_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN pricing_override_flag = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of rate availability records with manual pricing overrides; measures revenue manager intervention frequency."
-    - name: "distinct_active_rate_plans"
-      expr: COUNT(DISTINCT rate_plan_code)
-      comment: "Count of distinct active rate plan codes in the availability snapshot; measures rate plan complexity and distribution breadth."
+      comment: "Average forecasted occupancy percentage at the time of the rate snapshot. Contextualises pricing decisions against expected demand."
+    - name: "stop_sell_record_count"
+      expr: COUNT(CASE WHEN stop_sell = TRUE THEN 1 END)
+      comment: "Count of rate availability records with stop-sell active. Tracks inventory closure frequency; high counts signal demand strength or overbooking risk."
+    - name: "rate_parity_violation_count"
+      expr: COUNT(CASE WHEN rate_parity_flag = FALSE THEN 1 END)
+      comment: "Count of rate availability records with rate parity violations. Rate parity breaches risk brand damage and OTA contract penalties; zero is the target."
+    - name: "pricing_override_count"
+      expr: COUNT(CASE WHEN pricing_override_flag = TRUE THEN 1 END)
+      comment: "Count of manual pricing overrides applied by revenue managers. High override rates indicate RMS recommendations are not trusted; triggers model review."
+    - name: "total_rate_availability_records"
+      expr: COUNT(1)
+      comment: "Total count of rate availability records. Used to validate distribution coverage and identify gaps in rate loading across channels and room types."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`revenue_negotiated_rate`
@@ -473,74 +379,64 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Negotiated rate contract KPIs covering contracted rate levels, commission structures, LRA compliance, and contract portfolio health. Used by sales, revenue management, and finance to evaluate corporate account rate performance, commission costs, and contract compliance."
+  comment: "Negotiated rate portfolio KPIs covering contracted rate amounts, commission rates, and contract coverage. Used by sales, revenue management, and finance to manage corporate account rate agreements, GDS loading, and commission cost exposure."
   source: "`vibe_travel_hospitality_v1`.`revenue`.`negotiated_rate`"
-  filter: record_status = 'ACTIVE'
   dimensions:
-    - name: "contract_start_date"
-      expr: contract_start_date
-      comment: "Contract effective start date; used to track contract portfolio vintage and renewal cycles."
-    - name: "contract_end_date"
-      expr: contract_end_date
-      comment: "Contract expiry date; used for contract renewal pipeline management."
-    - name: "property_id"
-      expr: property_id
-      comment: "Property reference for property-level negotiated rate portfolio analysis."
-    - name: "market_segment_id"
-      expr: market_segment_id
-      comment: "Market segment reference for segment-level negotiated rate analysis (corporate, consortia, government)."
-    - name: "distribution_channel_id"
-      expr: distribution_channel_id
-      comment: "Distribution channel reference for channel-level negotiated rate performance."
     - name: "rate_type"
       expr: rate_type
-      comment: "Type of negotiated rate (corporate, consortia, government, wholesale) for portfolio segmentation."
+      comment: "Type of negotiated rate (e.g. CORPORATE, CONSORTIA, GOVERNMENT, CREW). Enables rate portfolio analysis by contract category."
     - name: "rate_status"
       expr: rate_status
-      comment: "Current status of the negotiated rate (active, expired, pending-load) for contract health monitoring."
+      comment: "Current status of the negotiated rate (e.g. ACTIVE, EXPIRED, PENDING_APPROVAL). Filters to active contracted rates."
     - name: "approval_status"
       expr: approval_status
-      comment: "Approval status of the negotiated rate contract; governance and compliance dimension."
-    - name: "is_lra"
-      expr: is_lra
-      comment: "Boolean flag indicating Last Room Availability (LRA) obligation; LRA contracts constrain inventory control flexibility."
-    - name: "is_non_refundable"
-      expr: is_non_refundable
-      comment: "Boolean flag for non-refundable rate contracts; impacts cancellation revenue and risk profile."
-    - name: "breakfast_included"
-      expr: breakfast_included
-      comment: "Boolean flag indicating breakfast inclusion; impacts F&B revenue attribution and rate value perception."
+      comment: "Approval workflow status of the negotiated rate. Ensures only approved rates are included in official reporting."
     - name: "rate_loading_status"
       expr: rate_loading_status
-      comment: "GDS/CRS rate loading status; operational metric for distribution readiness of negotiated rates."
+      comment: "GDS/CRS loading status of the negotiated rate. Tracks whether contracted rates are live and bookable in distribution channels."
+    - name: "currency_code"
+      expr: currency_code
+      comment: "ISO currency code for all monetary negotiated rate measures."
+    - name: "contract_start_date"
+      expr: contract_start_date
+      comment: "Start date of the negotiated rate contract. Used to track contract lifecycle and renewal pipeline."
+    - name: "contract_end_date"
+      expr: contract_end_date
+      comment: "End date of the negotiated rate contract. Enables contract expiry monitoring and renewal forecasting."
+    - name: "is_lra"
+      expr: is_lra
+      comment: "Boolean flag indicating a Last Room Available (LRA) rate. LRA rates have significant revenue management implications as they cannot be closed."
+    - name: "is_non_refundable"
+      expr: is_non_refundable
+      comment: "Boolean flag indicating a non-refundable negotiated rate. Tracks non-refundable rate penetration in the contracted portfolio."
+    - name: "breakfast_included"
+      expr: breakfast_included
+      comment: "Boolean flag indicating breakfast is included in the negotiated rate. Tracks inclusive rate penetration and F&B revenue implications."
+    - name: "property_id"
+      expr: property_id
+      comment: "Foreign key to the property dimension. Primary grouping key for property-level negotiated rate portfolio reporting."
+    - name: "market_segment_id"
+      expr: market_segment_id
+      comment: "Foreign key to the market segment dimension. Enables negotiated rate analysis by market segment."
   measures:
     - name: "avg_negotiated_rate_amount"
       expr: AVG(CAST(amount AS DOUBLE))
-      comment: "Average negotiated rate amount across active contracts; pricing benchmark for corporate account management."
-    - name: "total_negotiated_rate_amount"
-      expr: SUM(CAST(amount AS DOUBLE))
-      comment: "Sum of all negotiated rate amounts; portfolio-level contracted rate value indicator."
+      comment: "Average negotiated rate amount across all active contracts. Benchmarks contracted rate levels against BAR and rack rate for rate integrity analysis."
     - name: "avg_commission_pct"
       expr: AVG(CAST(commission_pct AS DOUBLE))
-      comment: "Average commission percentage across negotiated rate contracts; measures distribution cost burden on negotiated business."
-    - name: "avg_bar_variance_pct"
+      comment: "Average commission percentage across negotiated rate contracts. Tracks commission cost exposure in the contracted rate portfolio."
+    - name: "avg_rate_bar_variance_pct"
       expr: AVG(CAST(rate_bar_variance_pct AS DOUBLE))
-      comment: "Average variance between negotiated rate and BAR; measures discount depth of corporate contracts relative to best available rate."
-    - name: "lra_contract_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN is_lra = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of negotiated rate contracts with LRA obligation; measures inventory flexibility constraints from corporate commitments."
-    - name: "non_refundable_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN is_non_refundable = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of negotiated rate contracts that are non-refundable; measures revenue certainty from contracted business."
-    - name: "breakfast_included_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN breakfast_included = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of negotiated rate contracts including breakfast; measures F&B bundling prevalence in corporate contracts."
-    - name: "distinct_active_accounts"
-      expr: COUNT(DISTINCT account_id)
-      comment: "Count of distinct corporate accounts with active negotiated rates; measures corporate account portfolio breadth."
-    - name: "avg_rate_includes_tax"
-      expr: AVG(CAST(rate_includes_tax AS DOUBLE))
-      comment: "Average tax-inclusive rate value; used for net rate analysis and revenue recognition accuracy."
+      comment: "Average variance between the negotiated rate and the Best Available Rate (BAR) as a percentage. Measures discount depth granted to corporate accounts."
+    - name: "active_contract_count"
+      expr: COUNT(CASE WHEN rate_status = 'ACTIVE' THEN 1 END)
+      comment: "Count of active negotiated rate contracts. Tracks the size of the contracted rate portfolio; used in sales pipeline and account management reporting."
+    - name: "lra_contract_count"
+      expr: COUNT(CASE WHEN is_lra = TRUE THEN 1 END)
+      comment: "Count of Last Room Available (LRA) negotiated rate contracts. LRA contracts constrain revenue management flexibility; high counts are a risk indicator."
+    - name: "total_negotiated_rate_contracts"
+      expr: COUNT(1)
+      comment: "Total count of negotiated rate records. Used to assess contracted rate portfolio size and distribution coverage."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`revenue_dynamic_rate_rule`
@@ -548,159 +444,62 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Dynamic rate rule (DRR) KPIs covering pricing adjustment strategies, rate floor/ceiling compliance, rule activation frequency, and approval governance. Used by revenue management to evaluate the effectiveness and coverage of automated pricing rules."
+  comment: "Dynamic pricing rule KPIs covering rate adjustment values, rule trigger activity, and rate floor/ceiling compliance. Used by revenue managers and RMS administrators to monitor automated pricing rule performance, trigger frequency, and pricing guardrail adherence."
   source: "`vibe_travel_hospitality_v1`.`revenue`.`dynamic_rate_rule`"
-  filter: rule_status = 'ACTIVE'
   dimensions:
-    - name: "effective_from"
-      expr: effective_from
-      comment: "Date from which the dynamic rate rule is effective; used for rule lifecycle and seasonality analysis."
-    - name: "effective_until"
-      expr: effective_until
-      comment: "Date until which the dynamic rate rule is effective; used for rule expiry and renewal management."
-    - name: "property_id"
-      expr: property_id
-      comment: "Property reference for property-level dynamic pricing rule analysis."
-    - name: "room_type_id"
-      expr: room_type_id
-      comment: "Room type reference for room-type-level pricing rule coverage analysis."
-    - name: "market_segment_id"
-      expr: market_segment_id
-      comment: "Market segment reference for segment-targeted pricing rule analysis."
     - name: "rule_type"
       expr: rule_type
-      comment: "Type of dynamic rate rule (e.g. demand-based, pickup-based, competitive) for strategy classification."
-    - name: "adjustment_type"
-      expr: adjustment_type
-      comment: "Type of rate adjustment (percentage, absolute, BAR-relative) for pricing strategy analysis."
-    - name: "adjustment_direction"
-      expr: adjustment_direction
-      comment: "Direction of rate adjustment (increase, decrease) for pricing strategy directional analysis."
+      comment: "Type of dynamic rate rule (e.g. DEMAND_BASED, PICKUP_BASED, COMPETITIVE). Enables analysis of pricing rule strategy mix."
+    - name: "rule_status"
+      expr: rule_status
+      comment: "Current status of the dynamic rate rule (e.g. ACTIVE, INACTIVE, PENDING). Filters to active rules for operational monitoring."
     - name: "approval_status"
       expr: approval_status
-      comment: "Approval status of the dynamic rate rule; governance and compliance dimension."
+      comment: "Approval status of the dynamic rate rule. Ensures only approved rules are included in production pricing analysis."
+    - name: "adjustment_type"
+      expr: adjustment_type
+      comment: "Type of rate adjustment applied by the rule (e.g. PERCENTAGE, FIXED_AMOUNT). Distinguishes pricing rule mechanics."
+    - name: "adjustment_direction"
+      expr: adjustment_direction
+      comment: "Direction of the rate adjustment (e.g. INCREASE, DECREASE). Tracks whether rules are predominantly driving rates up or down."
     - name: "is_stackable"
       expr: is_stackable
-      comment: "Boolean flag indicating whether the rule can be stacked with other rules; impacts combined pricing adjustment analysis."
-    - name: "rule_priority"
-      expr: rule_priority
-      comment: "Priority ranking of the rule when multiple rules apply; used to analyse rule conflict resolution."
+      comment: "Boolean flag indicating whether this rule can be combined with other rules. Non-stackable rules require careful priority management."
+    - name: "currency_code"
+      expr: currency_code
+      comment: "ISO currency code for monetary rule threshold and adjustment measures."
+    - name: "effective_from"
+      expr: effective_from
+      comment: "Date from which the dynamic rate rule is effective. Used to track rule lifecycle and seasonal pricing strategy."
+    - name: "effective_until"
+      expr: effective_until
+      comment: "Date until which the dynamic rate rule is effective."
+    - name: "property_id"
+      expr: property_id
+      comment: "Foreign key to the property dimension. Primary grouping key for property-level dynamic pricing rule analysis."
+    - name: "market_segment_id"
+      expr: market_segment_id
+      comment: "Foreign key to the market segment dimension. Enables dynamic pricing rule analysis by market segment."
+    - name: "room_type_id"
+      expr: room_type_id
+      comment: "Foreign key to the room type dimension. Supports room-type-level dynamic pricing rule analysis."
   measures:
     - name: "avg_adjustment_value"
       expr: AVG(CAST(adjustment_value AS DOUBLE))
-      comment: "Average rate adjustment value applied by dynamic rate rules; measures pricing aggressiveness of automated rules."
+      comment: "Average rate adjustment value applied by dynamic pricing rules. Measures the typical magnitude of automated pricing changes; large values indicate aggressive dynamic pricing."
     - name: "avg_min_rate_floor"
       expr: AVG(CAST(min_rate_floor AS DOUBLE))
-      comment: "Average minimum rate floor set by dynamic rate rules; measures rate protection strategy across the portfolio."
+      comment: "Average minimum rate floor configured across dynamic rate rules. Monitors rate protection guardrails to prevent below-floor pricing."
     - name: "avg_max_rate_ceiling"
       expr: AVG(CAST(max_rate_ceiling AS DOUBLE))
-      comment: "Average maximum rate ceiling set by dynamic rate rules; measures rate cap strategy and revenue capture limits."
+      comment: "Average maximum rate ceiling configured across dynamic rate rules. Monitors rate cap guardrails to prevent price gouging and brand damage."
     - name: "avg_trigger_threshold_value"
       expr: AVG(CAST(trigger_threshold_value AS DOUBLE))
-      comment: "Average trigger threshold value (e.g. occupancy %, pickup count) that activates dynamic rate rules; calibration benchmark."
-    - name: "rate_floor_to_ceiling_spread"
-      expr: AVG(CAST(max_rate_ceiling AS DOUBLE)) - AVG(CAST(min_rate_floor AS DOUBLE))
-      comment: "Average spread between rate ceiling and floor across dynamic rate rules; measures dynamic pricing range flexibility."
-    - name: "stackable_rule_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN is_stackable = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of dynamic rate rules that are stackable; measures combined pricing adjustment risk and complexity."
-    - name: "approved_rule_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN approval_status = 'APPROVED' THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of dynamic rate rules with approved status; governance compliance metric for pricing rule management."
-    - name: "distinct_active_rules"
-      expr: COUNT(DISTINCT dynamic_rate_rule_id)
-      comment: "Count of distinct active dynamic rate rules; measures breadth of automated pricing coverage across the portfolio."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_travel_hospitality_v1`.`_metrics`.`revenue_rate_plan`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Revenue rate plan portfolio KPIs covering base rates, discount structures, commission costs, and rate plan eligibility attributes. Used by revenue management and distribution teams to evaluate rate plan mix, pricing strategy, and channel distribution effectiveness."
-  source: "`vibe_travel_hospitality_v1`.`revenue`.`revenue_rate_plan`"
-  filter: rate_status = 'ACTIVE'
-  dimensions:
-    - name: "effective_date"
-      expr: effective_date
-      comment: "Date from which the rate plan is effective; used for rate plan lifecycle and seasonal pricing analysis."
-    - name: "expiry_date"
-      expr: expiry_date
-      comment: "Date on which the rate plan expires; used for rate plan renewal pipeline management."
-    - name: "property_id"
-      expr: property_id
-      comment: "Property reference for property-level rate plan portfolio analysis."
-    - name: "market_segment_id"
-      expr: market_segment_id
-      comment: "Market segment reference for segment-level rate plan analysis."
-    - name: "distribution_channel_id"
-      expr: distribution_channel_id
-      comment: "Distribution channel reference for channel-level rate plan availability analysis."
-    - name: "rate_plan_type"
-      expr: rate_plan_type
-      comment: "Rate plan type (BAR, corporate, package, group, promotional) for rate mix analysis."
-    - name: "rate_category"
-      expr: rate_category
-      comment: "Rate category classification for portfolio segmentation and pricing strategy analysis."
-    - name: "meal_plan_type"
-      expr: meal_plan_type
-      comment: "Meal plan inclusion type (room-only, B&B, half-board, full-board) for package revenue analysis."
-    - name: "is_commissionable"
-      expr: is_commissionable
-      comment: "Boolean flag indicating whether the rate plan pays commission; impacts net revenue and distribution cost analysis."
-    - name: "is_refundable"
-      expr: is_refundable
-      comment: "Boolean flag for refundable rate plans; impacts cancellation revenue risk profile."
-    - name: "is_lra_eligible"
-      expr: is_lra_eligible
-      comment: "Boolean flag for Last Room Availability eligibility; measures inventory flexibility constraints."
-    - name: "gds_eligible"
-      expr: gds_eligible
-      comment: "Boolean flag for GDS distribution eligibility; measures global distribution reach of rate plans."
-    - name: "ota_eligible"
-      expr: ota_eligible
-      comment: "Boolean flag for OTA distribution eligibility; measures online channel distribution breadth."
-    - name: "loyalty_points_eligible"
-      expr: loyalty_points_eligible
-      comment: "Boolean flag for loyalty points accrual eligibility; measures loyalty programme integration in rate strategy."
-    - name: "tax_inclusive"
-      expr: tax_inclusive
-      comment: "Boolean flag indicating tax-inclusive pricing; impacts net revenue calculation and market positioning."
-  measures:
-    - name: "avg_base_rate_amount"
-      expr: AVG(CAST(base_rate_amount AS DOUBLE))
-      comment: "Average base rate amount across active rate plans; pricing benchmark for rate plan portfolio management."
-    - name: "avg_rate_floor_amount"
-      expr: AVG(CAST(rate_floor_amount AS DOUBLE))
-      comment: "Average rate floor amount; measures minimum rate protection strategy across the rate plan portfolio."
-    - name: "avg_rate_ceiling_amount"
-      expr: AVG(CAST(rate_ceiling_amount AS DOUBLE))
-      comment: "Average rate ceiling amount; measures maximum rate capture strategy across the rate plan portfolio."
-    - name: "avg_discount_pct"
-      expr: AVG(CAST(discount_pct AS DOUBLE))
-      comment: "Average discount percentage across rate plans; measures overall discount depth and pricing strategy aggressiveness."
-    - name: "avg_commission_pct"
-      expr: AVG(CAST(commission_pct AS DOUBLE))
-      comment: "Average commission percentage across commissionable rate plans; measures distribution cost burden on the rate portfolio."
-    - name: "rate_floor_to_ceiling_spread"
-      expr: AVG(CAST(rate_ceiling_amount AS DOUBLE)) - AVG(CAST(rate_floor_amount AS DOUBLE))
-      comment: "Average spread between rate ceiling and floor; measures dynamic pricing flexibility range in the rate plan portfolio."
-    - name: "commissionable_rate_plan_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN is_commissionable = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of active rate plans that are commissionable; measures distribution cost exposure across the portfolio."
-    - name: "non_refundable_rate_plan_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN is_refundable = FALSE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of active rate plans that are non-refundable; measures revenue certainty and cancellation risk profile."
-    - name: "gds_eligible_rate_plan_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN gds_eligible = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of rate plans distributed via GDS; measures global distribution reach and travel agent channel coverage."
-    - name: "ota_eligible_rate_plan_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN ota_eligible = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of rate plans distributed via OTA channels; measures online channel dependency and distribution mix."
-    - name: "loyalty_eligible_rate_plan_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN loyalty_points_eligible = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of rate plans eligible for loyalty points accrual; measures loyalty programme integration in pricing strategy."
-    - name: "distinct_active_rate_plans"
-      expr: COUNT(DISTINCT revenue_rate_plan_id)
-      comment: "Count of distinct active rate plans; measures rate plan portfolio breadth and complexity."
+      comment: "Average trigger threshold value across dynamic rate rules. Benchmarks the demand/pickup sensitivity levels at which automated pricing activates."
+    - name: "active_rule_count"
+      expr: COUNT(CASE WHEN rule_status = 'ACTIVE' THEN 1 END)
+      comment: "Count of active dynamic rate rules. Tracks the breadth of automated pricing coverage; used in RMS governance and audit reporting."
+    - name: "total_dynamic_rate_rules"
+      expr: COUNT(1)
+      comment: "Total count of dynamic rate rule records. Used to assess the scale of the automated pricing rule library."
 $$;

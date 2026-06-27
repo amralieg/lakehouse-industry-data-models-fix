@@ -1,192 +1,102 @@
--- Metric views for domain: quality | Business: Semiconductors | Version: 2 | Generated on: 2026-06-23 23:34:49
+-- Metric views for domain: quality | Business: Semiconductors | Version: 2 | Generated on: 2026-06-28 00:14:33
 
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_yield_record`
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_audit`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Wafer and die yield performance metrics tracking yield rates, defect density, and fallout across process steps, tools, and product nodes — core KPIs for fab efficiency and quality steering."
-  source: "`vibe_semiconductors_v1`.`quality`.`yield_record`"
+  comment: "Quality audit performance and compliance metrics for management system effectiveness"
+  source: "`vibe_semiconductors_v1`.`quality`.`audit`"
   dimensions:
-    - name: "process_node"
-      expr: process_node
-      comment: "Technology node (e.g. 7nm, 14nm) for yield segmentation by process generation."
-    - name: "yield_type"
-      expr: yield_type
-      comment: "Classification of yield measurement (wafer sort, final test, inline) for stage-level analysis."
-    - name: "measurement_stage"
-      expr: measurement_stage
-      comment: "Stage in the manufacturing flow where yield was measured (e.g. post-etch, post-CMP)."
-    - name: "fab_line"
-      expr: fab_line
-      comment: "Fab production line identifier for line-level yield benchmarking."
-    - name: "shift"
-      expr: shift
-      comment: "Production shift (day/night/weekend) to detect shift-based yield variation."
-    - name: "defect_type"
-      expr: defect_type
-      comment: "Category of defect driving yield loss for root-cause prioritization."
-    - name: "yield_loss_category"
-      expr: CAST(yield_loss_category AS STRING)
-      comment: "Yield loss classification bucket for Pareto analysis of loss drivers."
-    - name: "lot_status"
-      expr: lot_status
-      comment: "Current lot disposition status (pass/fail/hold) for operational triage."
-    - name: "quality_gate"
-      expr: quality_gate
-      comment: "Quality gate checkpoint name where yield was evaluated."
-    - name: "measurement_method"
-      expr: measurement_method
-      comment: "Measurement technique used (optical, e-beam, etc.) for method-level yield comparison."
+    - name: "audit_type"
+      expr: audit_type
+      comment: "Type of audit (internal, external, supplier, customer, etc.)"
+    - name: "audit_status"
+      expr: audit_status
+      comment: "Status of audit (planned, in progress, completed, closed)"
+    - name: "overall_result"
+      expr: overall_result
+      comment: "Overall result of audit (pass, fail, conditional)"
+    - name: "applicable_standard"
+      expr: applicable_standard
+      comment: "Standard audited against (ISO 9001, IATF 16949, etc.)"
+    - name: "audit_month"
+      expr: DATE_TRUNC('MONTH', audit_date)
+      comment: "Month when audit was conducted"
+    - name: "scheduled_month"
+      expr: DATE_TRUNC('MONTH', scheduled_date)
+      comment: "Month when audit was scheduled"
   measures:
-    - name: "avg_yield_percent"
-      expr: AVG(CAST(yield_percent AS DOUBLE))
-      comment: "Average die yield percentage across all lots — primary fab efficiency KPI tracked at every steering review."
-    - name: "avg_yield_target_percent"
-      expr: AVG(CAST(yield_target_percent AS DOUBLE))
-      comment: "Average yield target percentage, used to compute yield gap vs. target."
-    - name: "avg_yield_gap_percent"
-      expr: AVG(CAST(yield_gap_percent AS DOUBLE))
-      comment: "Average gap between actual and target yield — directly quantifies improvement opportunity and drives engineering investment decisions."
-    - name: "avg_defect_density_per_cm2"
-      expr: AVG(CAST(defect_density_per_cm2 AS DOUBLE))
-      comment: "Average defect density per cm² — leading indicator of process cleanliness and yield trajectory."
-    - name: "total_good_die"
-      expr: SUM(CAST(good_die_count AS DOUBLE))
-      comment: "Total good die produced — directly tied to revenue capacity and supply planning."
-    - name: "total_die_count"
-      expr: SUM(CAST(total_die_count AS DOUBLE))
-      comment: "Total die processed, used as denominator for yield rate calculations and capacity utilization."
-    - name: "total_defect_count"
-      expr: SUM(CAST(defect_count AS DOUBLE))
-      comment: "Total defect count across all lots — volume indicator for process excursion detection."
-    - name: "avg_fallout_rate"
-      expr: AVG(CAST(fallout_rate AS DOUBLE))
-      comment: "Average fallout rate (fraction of die lost) — operational KPI for process control and scrap cost management."
-    - name: "avg_bin_yield_pct"
-      expr: AVG(CAST(bin_yield_pct AS DOUBLE))
-      comment: "Average bin-level yield percentage for bin distribution analysis and product mix optimization."
-    - name: "lot_count"
+    - name: "total_audits"
       expr: COUNT(1)
-      comment: "Number of yield records (lots measured) — baseline volume metric for statistical significance assessment."
+      comment: "Total number of audits conducted"
+    - name: "unique_suppliers_audited"
+      expr: COUNT(DISTINCT supplier_id)
+      comment: "Number of unique suppliers audited"
+    - name: "unique_facilities_audited"
+      expr: COUNT(DISTINCT fab_facility_id)
+      comment: "Number of unique facilities audited"
+    - name: "avg_audit_score"
+      expr: AVG(CAST(score AS DOUBLE))
+      comment: "Average audit score across all audits"
 $$;
 
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_defect_record`
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_audit_performance`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Defect-level quality metrics tracking defect density, size, severity, and spatial distribution across wafers, process steps, and tools — drives root-cause prioritization and process improvement investment."
-  source: "`vibe_semiconductors_v1`.`quality`.`defect_record`"
+  comment: "Audit execution and timeliness metrics for executive quality oversight"
+  source: "`vibe_semiconductors_v1`.`quality`.`audit`"
   dimensions:
-    - name: "defect_classification"
-      expr: defect_classification
-      comment: "Defect type classification (particle, scratch, pattern, etc.) for Pareto-driven root-cause analysis."
-    - name: "defect_layer"
-      expr: defect_layer
-      comment: "Process layer where defect was detected for layer-level yield loss attribution."
-    - name: "defect_severity"
-      expr: defect_severity
-      comment: "Severity rating of the defect (critical/major/minor) for risk-based prioritization."
-    - name: "detection_method"
-      expr: detection_method
-      comment: "Inspection method used to detect the defect for method effectiveness benchmarking."
-    - name: "defect_status"
-      expr: defect_status
-      comment: "Current disposition status of the defect record for workflow tracking."
-    - name: "disposition"
-      expr: disposition
-      comment: "Final disposition decision (scrap/rework/use-as-is) for cost impact analysis."
-    - name: "root_cause"
-      expr: root_cause
-      comment: "Root cause classification for systematic defect elimination tracking."
-    - name: "bin_assignment"
-      expr: bin_assignment
-      comment: "Electrical bin assignment associated with the defect for yield-bin correlation."
-    - name: "repeatability_flag"
-      expr: CAST(repeatability_flag AS STRING)
-      comment: "Indicates whether the defect is a repeating pattern (systematic vs. random) — critical for process control decisions."
-    - name: "edge_exclusion_zone_flag"
-      expr: CAST(edge_exclusion_zone_flag AS STRING)
-      comment: "Flags defects in the wafer edge exclusion zone for edge-process optimization."
+    - name: "audit_type"
+      expr: audit_type
+      comment: "Type of audit (e.g., Internal, External)"
+    - name: "audit_month"
+      expr: DATE_TRUNC('month', record_audit_created)
+      comment: "Month of audit record creation"
   measures:
-    - name: "total_defect_count"
+    - name: "total_audits"
       expr: COUNT(1)
-      comment: "Total number of defect records — baseline volume KPI for defect rate trending and excursion detection."
-    - name: "avg_defect_area_um2"
-      expr: AVG(CAST(defect_area_um2 AS DOUBLE))
-      comment: "Average defect area in µm² — larger defects correlate with higher yield loss and drive process intervention thresholds."
-    - name: "avg_defect_size_nm"
-      expr: AVG(CAST(defect_size_nm AS DOUBLE))
-      comment: "Average defect size in nanometers — tracks process cleanliness and tool qualification status."
-    - name: "avg_defect_density_per_zone"
-      expr: AVG(CAST(defect_density_per_zone AS DOUBLE))
-      comment: "Average defect density per wafer zone — spatial density KPI for identifying systematic process or tool issues."
-    - name: "total_defect_area_um2"
-      expr: SUM(CAST(defect_area_um2 AS DOUBLE))
-      comment: "Total defect area across all records — aggregate impact measure for scrap cost estimation."
-    - name: "repeatability_defect_count"
-      expr: COUNT(CASE WHEN repeatability_flag = TRUE THEN 1 END)
-      comment: "Count of repeating (systematic) defects — systematic defects drive higher yield loss and require immediate engineering escalation."
-    - name: "critical_defect_count"
-      expr: COUNT(CASE WHEN defect_severity = 'critical' THEN 1 END)
-      comment: "Count of critical-severity defects — directly tied to customer escapes and reliability risk, triggers mandatory CAPA."
-    - name: "distinct_affected_wafers"
-      expr: COUNT(DISTINCT wafer_id)
-      comment: "Number of distinct wafers with defects — breadth-of-impact metric for excursion containment decisions."
+      comment: "Total number of audits recorded"
+    - name: "completed_audit_count"
+      expr: SUM(CASE WHEN audit_status = 'Completed' THEN 1 ELSE 0 END)
+      comment: "Count of audits that reached Completed status"
+    - name: "average_audit_duration_days"
+      expr: AVG(DATEDIFF(actual_end_date, actual_start_date))
+      comment: "Average duration of audits in days"
 $$;
 
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_dppm_record`
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_capa_effectiveness`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Defective parts per million (DPPM) quality metrics tracking customer-facing defect rates, shipment quality, and corrective action closure — key customer satisfaction and quality system KPIs."
-  source: "`vibe_semiconductors_v1`.`quality`.`dppm_record`"
+  comment: "CAPA creation and closure efficiency metrics for quality improvement"
+  source: "`vibe_semiconductors_v1`.`quality`.`capa_record`"
   dimensions:
-    - name: "notification_type"
-      expr: notification_type
-      comment: "Type of quality notification (customer return, field failure, incoming inspection) for defect source analysis."
-    - name: "closure_status"
-      expr: closure_status
-      comment: "CAPA closure status for tracking corrective action completion rates."
-    - name: "lifecycle_status"
-      expr: lifecycle_status
-      comment: "Record lifecycle status for pipeline and aging analysis."
-    - name: "root_cause"
-      expr: root_cause
-      comment: "Root cause classification for systematic defect elimination tracking."
-    - name: "part_number"
-      expr: part_number
-      comment: "Part number for product-level DPPM benchmarking and customer reporting."
-    - name: "is_kgd_certified"
-      expr: CAST(is_kgd_certified AS STRING)
-      comment: "Known Good Die certification flag for KGD-specific quality tracking."
-    - name: "compliance_iso9001"
-      expr: CAST(compliance_iso9001 AS STRING)
-      comment: "ISO 9001 compliance flag for regulatory quality reporting."
+    - name: "capa_type"
+      expr: capa_type
+      comment: "Type of corrective action (e.g., Process, Design)"
+    - name: "risk_level"
+      expr: risk_level
+      comment: "Risk level associated with the CAPA"
+    - name: "priority"
+      expr: priority
+      comment: "Priority of the CAPA"
+    - name: "created_month"
+      expr: DATE_TRUNC('month', created_timestamp)
+      comment: "Month when the CAPA record was created"
   measures:
-    - name: "avg_dppm_value"
-      expr: AVG(CAST(dppm_value AS DOUBLE))
-      comment: "Average DPPM value — primary customer-facing quality KPI reported at QBRs and used in supplier scorecards."
-    - name: "total_defective_units"
-      expr: SUM(CAST(defective_units AS DOUBLE))
-      comment: "Total defective units shipped — absolute volume of customer-impacting quality failures driving warranty and recall cost."
-    - name: "total_units_shipped"
-      expr: SUM(CAST(total_units_shipped AS DOUBLE))
-      comment: "Total units shipped in scope — denominator for DPPM rate calculation and shipment volume baseline."
-    - name: "avg_defect_rate"
-      expr: AVG(CAST(defect_rate AS DOUBLE))
-      comment: "Average defect rate across all DPPM records — trend KPI for quality system effectiveness."
-    - name: "avg_reject_rate"
-      expr: AVG(CAST(reject_rate AS DOUBLE))
-      comment: "Average rejection rate — incoming quality metric used to evaluate supplier and process performance."
-    - name: "open_dppm_record_count"
-      expr: COUNT(CASE WHEN closure_status != 'closed' THEN 1 END)
-      comment: "Count of open DPPM records — backlog KPI for quality team capacity and customer escalation risk."
-    - name: "dppm_record_count"
+    - name: "total_capa_records"
       expr: COUNT(1)
-      comment: "Total DPPM records in period — volume baseline for quality event frequency trending."
+      comment: "Total number of CAPA records created"
+    - name: "closed_capa_records"
+      expr: SUM(CASE WHEN capa_record_status = 'Closed' THEN 1 ELSE 0 END)
+      comment: "Number of CAPA records that have been closed"
+    - name: "average_time_to_close_days"
+      expr: AVG(DATEDIFF(closure_date, created_timestamp))
+      comment: "Average number of days from CAPA creation to closure"
 $$;
 
 CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_capa_record`
@@ -194,730 +104,194 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Corrective and Preventive Action (CAPA) metrics tracking quality system responsiveness, cost of poor quality, and corrective action effectiveness — critical for ISO 9001 compliance and continuous improvement governance."
+  comment: "Corrective and preventive action effectiveness metrics for quality improvement"
   source: "`vibe_semiconductors_v1`.`quality`.`capa_record`"
   dimensions:
     - name: "capa_type"
       expr: capa_type
-      comment: "CAPA classification (corrective vs. preventive) for action type distribution analysis."
+      comment: "Type of CAPA (corrective, preventive, or both)"
     - name: "capa_status"
       expr: capa_status
-      comment: "Current CAPA workflow status for pipeline and aging analysis."
+      comment: "Status of CAPA record (open, closed, in progress)"
     - name: "priority"
       expr: priority
-      comment: "CAPA priority level (critical/high/medium/low) for resource allocation decisions."
+      comment: "Priority level of CAPA"
+    - name: "risk_level"
+      expr: risk_level
+      comment: "Risk level associated with issue"
     - name: "severity"
       expr: severity
-      comment: "Severity of the quality event triggering the CAPA for risk-based prioritization."
-    - name: "risk_level"
-      expr: risk_level
-      comment: "Risk classification of the CAPA for escalation and governance decisions."
+      comment: "Severity of issue requiring CAPA"
     - name: "detection_phase"
       expr: detection_phase
-      comment: "Phase where the defect was detected (design/fab/test/field) for detection effectiveness analysis."
+      comment: "Phase where issue was detected"
     - name: "detection_source"
       expr: detection_source
-      comment: "Source system or process that triggered the CAPA for detection method benchmarking."
+      comment: "Source of issue detection (audit, inspection, customer, etc.)"
     - name: "root_cause_method"
       expr: root_cause_method
-      comment: "Root cause analysis method used (8D, 5-Why, Fishbone) for methodology effectiveness tracking."
+      comment: "Method used for root cause analysis (5-why, fishbone, etc.)"
     - name: "closure_approval_status"
       expr: closure_approval_status
-      comment: "Approval status of CAPA closure for governance and audit compliance."
-    - name: "department"
-      expr: department
-      comment: "Responsible department for CAPA ownership and accountability reporting."
+      comment: "Approval status for CAPA closure"
+    - name: "verification_result"
+      expr: verification_result
+      comment: "Result of effectiveness verification"
+    - name: "detection_month"
+      expr: DATE_TRUNC('MONTH', detection_date)
+      comment: "Month when issue was detected"
+    - name: "closure_month"
+      expr: DATE_TRUNC('MONTH', closure_date)
+      comment: "Month when CAPA was closed"
   measures:
-    - name: "total_capa_cost_actual"
+    - name: "total_capas"
+      expr: COUNT(1)
+      comment: "Total number of CAPA records"
+    - name: "unique_products_with_capa"
+      expr: COUNT(DISTINCT sku_id)
+      comment: "Number of unique products with CAPA records"
+    - name: "unique_lots_with_capa"
+      expr: COUNT(DISTINCT fabrication_wafer_lot_id)
+      comment: "Number of unique lots with CAPA records"
+    - name: "total_actual_cost"
       expr: SUM(CAST(cost_actual AS DOUBLE))
-      comment: "Total actual cost of poor quality (COPQ) across all CAPAs — direct financial impact of quality failures, reported to CFO and quality leadership."
-    - name: "total_capa_cost_estimate"
+      comment: "Total actual cost of CAPA implementation"
+    - name: "total_estimated_cost"
       expr: SUM(CAST(cost_estimate AS DOUBLE))
-      comment: "Total estimated CAPA cost for budget planning and quality investment justification."
-    - name: "avg_capa_cost_actual"
+      comment: "Total estimated cost of CAPA implementation"
+    - name: "avg_actual_cost"
       expr: AVG(CAST(cost_actual AS DOUBLE))
-      comment: "Average cost per CAPA — benchmarks cost efficiency of quality resolution processes."
-    - name: "open_capa_count"
-      expr: COUNT(CASE WHEN capa_status != 'closed' THEN 1 END)
-      comment: "Count of open CAPAs — quality system backlog KPI; high open counts signal systemic quality issues or resource constraints."
-    - name: "overdue_capa_count"
-      expr: COUNT(CASE WHEN due_date < CURRENT_DATE AND capa_status != 'closed' THEN 1 END)
-      comment: "Count of CAPAs past their due date — compliance risk indicator for ISO 9001 audits and customer quality reviews."
-    - name: "capa_count"
-      expr: COUNT(1)
-      comment: "Total CAPA records — volume baseline for quality event frequency and system load trending."
-    - name: "critical_priority_capa_count"
-      expr: COUNT(CASE WHEN priority = 'critical' THEN 1 END)
-      comment: "Count of critical-priority CAPAs — executive escalation metric for highest-risk quality events."
+      comment: "Average actual cost per CAPA"
+    - name: "avg_estimated_cost"
+      expr: AVG(CAST(cost_estimate AS DOUBLE))
+      comment: "Average estimated cost per CAPA"
 $$;
 
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_inspection_lot`
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_control_plan`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Incoming and in-process inspection lot quality metrics tracking acceptance rates, defect density, and yield at inspection gates — drives supplier qualification and process control decisions."
-  source: "`vibe_semiconductors_v1`.`quality`.`inspection_lot`"
+  comment: "Control plan coverage, DPPM performance, and specification compliance metrics. Drives process control system effectiveness and quality gate management."
+  source: "`vibe_semiconductors_v1`.`quality`.`control_plan`"
   dimensions:
-    - name: "inspection_type"
-      expr: inspection_type
-      comment: "Type of inspection (incoming, in-process, final) for stage-level quality analysis."
-    - name: "inspection_stage"
-      expr: inspection_stage
-      comment: "Manufacturing stage at which inspection occurred for process-step quality benchmarking."
-    - name: "inspection_result"
-      expr: inspection_result
-      comment: "Overall inspection outcome (pass/fail/conditional) for acceptance rate trending."
-    - name: "disposition"
-      expr: disposition
-      comment: "Lot disposition decision (accept/reject/rework) for material flow and scrap cost analysis."
-    - name: "lot_type"
-      expr: lot_type
-      comment: "Lot classification (production/qualification/engineering) for segmented quality reporting."
-    - name: "material_type"
-      expr: material_type
-      comment: "Material type for incoming quality analysis by material category."
-    - name: "technology_node"
-      expr: technology_node
-      comment: "Technology node for node-level quality benchmarking."
-    - name: "kgd_certified"
-      expr: CAST(kgd_certified AS STRING)
-      comment: "KGD certification status for known-good-die quality tracking."
-    - name: "iso_9001_compliant"
-      expr: CAST(iso_9001_compliant AS STRING)
-      comment: "ISO 9001 compliance flag for regulatory quality segmentation."
-    - name: "iatf_16949_compliant"
-      expr: CAST(iatf_16949_compliant AS STRING)
-      comment: "IATF 16949 compliance flag for automotive quality segmentation."
-  measures:
-    - name: "avg_yield_percent"
-      expr: AVG(CAST(yield_percent AS DOUBLE))
-      comment: "Average lot yield percentage at inspection — primary incoming and in-process quality KPI."
-    - name: "avg_defect_density"
-      expr: AVG(CAST(defect_density AS DOUBLE))
-      comment: "Average defect density per lot — leading indicator of supplier and process quality trends."
-    - name: "avg_measurement_value"
-      expr: AVG(CAST(measurement_value AS DOUBLE))
-      comment: "Average measured parameter value across inspection lots for process centering analysis."
-    - name: "total_lot_size"
-      expr: SUM(CAST(lot_size AS DOUBLE))
-      comment: "Total units inspected — volume baseline for acceptance rate and defect rate normalization."
-    - name: "pass_lot_count"
-      expr: COUNT(CASE WHEN inspection_result = 'pass' THEN 1 END)
-      comment: "Count of lots passing inspection — numerator for first-pass yield rate calculation."
-    - name: "fail_lot_count"
-      expr: COUNT(CASE WHEN inspection_result = 'fail' THEN 1 END)
-      comment: "Count of lots failing inspection — volume of quality escapes requiring disposition and CAPA."
-    - name: "inspection_lot_count"
-      expr: COUNT(1)
-      comment: "Total inspection lots processed — throughput baseline for inspection capacity planning."
-    - name: "kgd_certified_lot_count"
-      expr: COUNT(CASE WHEN kgd_certified = TRUE THEN 1 END)
-      comment: "Count of KGD-certified lots — supply availability metric for premium die customers."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_nonconformance_report`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Nonconformance report (NCR) metrics tracking quality escapes, financial impact, hold management, and corrective action responsiveness — core quality governance KPIs for ISO 9001 and customer quality reporting."
-  source: "`vibe_semiconductors_v1`.`quality`.`nonconformance_report`"
-  dimensions:
-    - name: "ncr_status"
-      expr: ncr_status
-      comment: "Current NCR workflow status for pipeline and aging analysis."
-    - name: "severity_level"
-      expr: severity_level
-      comment: "Severity classification of the nonconformance for risk-based prioritization."
-    - name: "priority"
-      expr: priority
-      comment: "NCR priority level for resource allocation and escalation decisions."
-    - name: "disposition"
-      expr: disposition
-      comment: "Disposition decision (scrap/rework/use-as-is/return) for material cost impact analysis."
-    - name: "hold_type"
-      expr: hold_type
-      comment: "Type of quality hold associated with the NCR for hold management reporting."
-    - name: "detection_point"
-      expr: detection_point
-      comment: "Process point where nonconformance was detected for detection effectiveness analysis."
-    - name: "corrective_action_status"
-      expr: corrective_action_status
-      comment: "Status of corrective action for CAPA closure rate tracking."
-    - name: "is_customer_impact"
-      expr: CAST(is_customer_impact AS STRING)
-      comment: "Flag indicating customer-impacting nonconformances for customer quality reporting and escalation."
-    - name: "compliance_standard"
-      expr: compliance_standard
-      comment: "Applicable compliance standard (ISO 9001, IATF 16949) for regulatory reporting segmentation."
-    - name: "mrb_decision"
-      expr: mrb_decision
-      comment: "Material Review Board decision for disposition outcome analysis."
-  measures:
-    - name: "total_financial_impact"
-      expr: SUM(CAST(impact_amount AS DOUBLE))
-      comment: "Total financial impact of nonconformances — direct cost of poor quality metric reported to finance and quality leadership."
-    - name: "avg_financial_impact"
-      expr: AVG(CAST(impact_amount AS DOUBLE))
-      comment: "Average financial impact per NCR — benchmarks cost severity of quality events for prioritization."
-    - name: "open_ncr_count"
-      expr: COUNT(CASE WHEN ncr_status != 'closed' THEN 1 END)
-      comment: "Count of open NCRs — quality backlog KPI; high counts signal systemic issues or insufficient resolution capacity."
-    - name: "customer_impact_ncr_count"
-      expr: COUNT(CASE WHEN is_customer_impact = TRUE THEN 1 END)
-      comment: "Count of customer-impacting NCRs — customer satisfaction risk metric requiring executive visibility."
-    - name: "ncr_count"
-      expr: COUNT(1)
-      comment: "Total NCR records — quality event frequency baseline for trend analysis and system load assessment."
-    - name: "on_hold_ncr_count"
-      expr: COUNT(CASE WHEN hold_type IS NOT NULL THEN 1 END)
-      comment: "Count of NCRs with active holds — material at risk metric for supply chain and production planning."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_reliability_test`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Reliability test metrics tracking failure rates, FIT rates, test coverage, and qualification outcomes — critical for product qualification, customer confidence, and regulatory compliance in semiconductor markets."
-  source: "`vibe_semiconductors_v1`.`quality`.`reliability_test`"
-  dimensions:
-    - name: "test_type"
-      expr: test_type
-      comment: "Reliability test type (HTOL, ELFR, ESD, latch-up, etc.) for test category performance benchmarking."
-    - name: "test_status"
-      expr: test_status
-      comment: "Current test execution status for pipeline and completion rate tracking."
-    - name: "test_result"
-      expr: test_result
-      comment: "Overall test outcome (pass/fail/inconclusive) for qualification success rate analysis."
-    - name: "qualification_type"
-      expr: qualification_type
-      comment: "Qualification program type (AEC-Q100, JEDEC, customer-specific) for standards-based reporting."
-    - name: "reliability_grade"
-      expr: reliability_grade
-      comment: "Reliability grade assigned (automotive/industrial/commercial) for product tier analysis."
-    - name: "failure_mechanism"
-      expr: failure_mechanism
-      comment: "Physical failure mechanism (electromigration, TDDB, HCI, etc.) for reliability physics analysis."
-    - name: "failure_mode"
-      expr: failure_mode
-      comment: "Failure mode classification for FMEA correlation and design improvement prioritization."
-    - name: "device_type"
-      expr: device_type
-      comment: "Device type under test for product-family reliability benchmarking."
-    - name: "overall_status"
-      expr: overall_status
-      comment: "Overall qualification program status for executive qualification dashboard."
-    - name: "is_kgd_certified"
-      expr: CAST(is_kgd_certified AS STRING)
-      comment: "KGD certification flag for known-good-die reliability tracking."
-  measures:
-    - name: "avg_fit_rate"
-      expr: AVG(CAST(fit_rate AS DOUBLE))
-      comment: "Average FIT (Failures In Time) rate — primary reliability KPI used in product datasheets, customer qualification, and warranty cost modeling."
-    - name: "avg_fit_rate_confidence"
-      expr: AVG(CAST(fit_rate_confidence AS DOUBLE))
-      comment: "Average FIT rate confidence level — statistical quality of reliability estimates for qualification report credibility."
-    - name: "avg_failure_time_hours"
-      expr: AVG(CAST(failure_time_hours AS DOUBLE))
-      comment: "Average time-to-failure in hours — MTTF proxy for reliability modeling and warranty reserve calculations."
-    - name: "avg_test_duration_hours"
-      expr: AVG(CAST(test_duration_hours AS DOUBLE))
-      comment: "Average test duration in hours — capacity planning metric for reliability lab scheduling."
-    - name: "avg_test_temperature_c"
-      expr: AVG(CAST(test_temperature_c AS DOUBLE))
-      comment: "Average test temperature in Celsius — stress condition tracking for test standardization and comparison."
-    - name: "avg_weibull_shape_parameter"
-      expr: AVG(CAST(weibull_shape_parameter AS DOUBLE))
-      comment: "Average Weibull shape parameter (beta) — characterizes failure distribution (infant mortality vs. wear-out) for reliability engineering decisions."
-    - name: "avg_weibull_scale_parameter"
-      expr: AVG(CAST(weibull_scale_parameter AS DOUBLE))
-      comment: "Average Weibull scale parameter (eta) — characteristic life estimate for product lifetime modeling."
-    - name: "pass_test_count"
-      expr: COUNT(CASE WHEN test_result = 'pass' THEN 1 END)
-      comment: "Count of passing reliability tests — qualification success rate numerator for program completion tracking."
-    - name: "fail_test_count"
-      expr: COUNT(CASE WHEN test_result = 'fail' THEN 1 END)
-      comment: "Count of failing reliability tests — triggers mandatory failure analysis and qualification hold decisions."
-    - name: "reliability_test_count"
-      expr: COUNT(1)
-      comment: "Total reliability tests executed — throughput baseline for qualification program progress tracking."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_spc_chart`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Statistical Process Control (SPC) chart metrics tracking process capability, out-of-control events, and control limit adherence — drives real-time process intervention and continuous improvement decisions."
-  source: "`vibe_semiconductors_v1`.`quality`.`spc_chart`"
-  dimensions:
-    - name: "chart_type"
-      expr: chart_type
-      comment: "SPC chart type (X-bar R, X-bar S, CUSUM, EWMA) for methodology-level analysis."
-    - name: "parameter_name"
-      expr: parameter_name
-      comment: "Process parameter being monitored (e.g. CD, thickness, overlay) for parameter-level SPC performance."
-    - name: "parameter_unit"
-      expr: parameter_unit
-      comment: "Unit of measure for the monitored parameter for dimensional analysis."
-    - name: "out_of_control_flag"
-      expr: CAST(out_of_control_flag AS STRING)
-      comment: "Flags out-of-control SPC events — primary trigger for process engineer intervention."
-    - name: "is_baseline"
-      expr: CAST(is_baseline AS STRING)
-      comment: "Indicates whether the chart represents a baseline period for capability benchmarking."
-    - name: "measurement_method"
-      expr: measurement_method
-      comment: "Measurement method used for SPC data collection for gauge R&R correlation."
-    - name: "shift"
-      expr: shift
-      comment: "Production shift for shift-based process variation analysis."
-    - name: "assignable_cause_code"
-      expr: assignable_cause_code
-      comment: "Root cause code assigned to out-of-control events for systematic cause elimination tracking."
-    - name: "spc_chart_status"
-      expr: spc_chart_status
-      comment: "Chart status (active/archived/suspended) for SPC coverage monitoring."
-  measures:
-    - name: "avg_measurement_value"
-      expr: AVG(CAST(measurement_value AS DOUBLE))
-      comment: "Average measured parameter value — process centering KPI for process control and capability analysis."
-    - name: "avg_center_line"
-      expr: AVG(CAST(center_line AS DOUBLE))
-      comment: "Average SPC center line value — process target tracking for drift detection."
-    - name: "avg_upper_control_limit"
-      expr: AVG(CAST(upper_control_limit AS DOUBLE))
-      comment: "Average upper control limit — process spread baseline for control limit tightening decisions."
-    - name: "avg_lower_control_limit"
-      expr: AVG(CAST(lower_control_limit AS DOUBLE))
-      comment: "Average lower control limit — process spread baseline for control limit tightening decisions."
-    - name: "avg_control_limit_upper"
-      expr: AVG(CAST(control_limit_upper AS DOUBLE))
-      comment: "Average computed upper control limit for cross-chart control band comparison."
-    - name: "avg_control_limit_lower"
-      expr: AVG(CAST(control_limit_lower AS DOUBLE))
-      comment: "Average computed lower control limit for cross-chart control band comparison."
-    - name: "out_of_control_event_count"
-      expr: COUNT(CASE WHEN out_of_control_flag = TRUE THEN 1 END)
-      comment: "Count of out-of-control SPC events — primary process stability KPI; high counts trigger mandatory process engineering review and potential lot holds."
-    - name: "total_spc_measurements"
-      expr: COUNT(1)
-      comment: "Total SPC measurements recorded — coverage metric for SPC program completeness and monitoring density."
-    - name: "distinct_parameters_monitored"
-      expr: COUNT(DISTINCT parameter_name)
-      comment: "Number of distinct process parameters under SPC control — breadth-of-coverage KPI for process control program maturity."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_supplier_quality_scorecard`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Supplier quality scorecard metrics tracking overall supplier performance, delivery conformance, incoming quality rates, and cost of poor quality — drives supplier development, qualification, and sourcing decisions."
-  source: "`vibe_semiconductors_v1`.`quality`.`supplier_quality_scorecard`"
-  dimensions:
-    - name: "scorecard_period"
-      expr: scorecard_period
-      comment: "Evaluation period (e.g. Q1-2024) for time-series supplier performance trending."
-    - name: "supplier_type"
-      expr: supplier_type
-      comment: "Supplier category (OSAT, material, equipment) for segment-level quality benchmarking."
-    - name: "tier_classification"
-      expr: tier_classification
-      comment: "Supplier tier (Tier 1/2/3) for tiered quality management and development prioritization."
-    - name: "trend_direction"
-      expr: trend_direction
-      comment: "Quality trend direction (improving/stable/declining) for proactive supplier management."
-    - name: "supplier_development_program"
-      expr: supplier_development_program
-      comment: "Active supplier development program for improvement initiative tracking."
-  measures:
-    - name: "avg_overall_quality_score"
-      expr: AVG(CAST(overall_quality_score AS DOUBLE))
-      comment: "Average overall supplier quality score — primary supplier performance KPI used in sourcing decisions and contract renewals."
-    - name: "avg_delivery_score"
-      expr: AVG(CAST(delivery_score AS DOUBLE))
-      comment: "Average delivery performance score — on-time delivery KPI for supply chain reliability assessment."
-    - name: "avg_kpi_incoming_quality_rate"
-      expr: AVG(CAST(kpi_incoming_quality_rate AS DOUBLE))
-      comment: "Average incoming quality rate KPI — measures fraction of incoming material meeting quality specifications."
-    - name: "avg_kpi_delivery_conformance"
-      expr: AVG(CAST(kpi_delivery_conformance AS DOUBLE))
-      comment: "Average delivery conformance KPI — measures supplier adherence to committed delivery schedules."
-    - name: "avg_kpi_cost_of_poor_quality"
-      expr: AVG(CAST(kpi_cost_of_poor_quality AS DOUBLE))
-      comment: "Average cost of poor quality KPI — financial impact of supplier quality failures for total cost of ownership analysis."
-    - name: "avg_kpi_responsiveness"
-      expr: AVG(CAST(kpi_responsiveness AS DOUBLE))
-      comment: "Average supplier responsiveness score — measures speed of corrective action response for quality event management."
-    - name: "supplier_scorecard_count"
-      expr: COUNT(1)
-      comment: "Total supplier scorecards issued — coverage metric for supplier quality program completeness."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_qualification_program`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Quality qualification program metrics tracking program completion rates, yield performance, DPPM targets, and budget utilization — drives product launch readiness and customer qualification decisions."
-  source: "`vibe_semiconductors_v1`.`quality`.`quality_qualification_program`"
-  dimensions:
-    - name: "program_status"
-      expr: program_status
-      comment: "Current qualification program status (in-progress/complete/on-hold) for pipeline management."
-    - name: "qualification_type"
-      expr: qualification_type
-      comment: "Qualification type (AEC-Q100, JEDEC, customer-specific) for standards-based program tracking."
-    - name: "qualification_standard"
-      expr: qualification_standard
-      comment: "Applicable qualification standard for compliance reporting."
-    - name: "program_category"
-      expr: program_category
-      comment: "Program category (new product, process change, re-qualification) for portfolio analysis."
-    - name: "risk_level"
-      expr: risk_level
-      comment: "Program risk level for executive escalation and resource prioritization."
-    - name: "overall_status"
-      expr: overall_status
-      comment: "Overall qualification program health status for executive dashboard."
-    - name: "regulatory_approval_status"
-      expr: regulatory_approval_status
-      comment: "Regulatory approval status for compliance-gated product launches."
-    - name: "kgd_certification_required"
-      expr: CAST(kgd_certification_required AS STRING)
-      comment: "Flag indicating KGD certification requirement for premium die qualification tracking."
-    - name: "lifecycle_status"
-      expr: lifecycle_status
-      comment: "Program lifecycle status for portfolio health monitoring."
-  measures:
-    - name: "avg_actual_yield_percent"
-      expr: AVG(CAST(actual_yield_percent AS DOUBLE))
-      comment: "Average actual yield achieved in qualification — measures whether qualification lots meet yield targets for production readiness."
-    - name: "avg_target_yield_percent"
-      expr: AVG(CAST(target_yield_percent AS DOUBLE))
-      comment: "Average target yield for qualification programs — baseline for yield gap analysis."
-    - name: "avg_dppm_actual"
-      expr: AVG(CAST(dppm_actual AS DOUBLE))
-      comment: "Average actual DPPM achieved in qualification — customer-facing quality metric for qualification approval decisions."
-    - name: "avg_dppm_target"
-      expr: AVG(CAST(dppm_target AS DOUBLE))
-      comment: "Average DPPM target for qualification programs — baseline for quality gap analysis."
-    - name: "total_program_budget_usd"
-      expr: SUM(CAST(program_budget_usd AS DOUBLE))
-      comment: "Total qualification program budget in USD — financial investment tracking for R&D and qualification cost management."
-    - name: "avg_program_budget_usd"
-      expr: AVG(CAST(program_budget_usd AS DOUBLE))
-      comment: "Average qualification program budget — benchmarks investment per qualification for portfolio prioritization."
-    - name: "active_program_count"
-      expr: COUNT(CASE WHEN program_status = 'in-progress' THEN 1 END)
-      comment: "Count of active qualification programs — pipeline capacity metric for qualification lab and engineering resource planning."
-    - name: "completed_program_count"
-      expr: COUNT(CASE WHEN program_status = 'complete' THEN 1 END)
-      comment: "Count of completed qualification programs — throughput KPI for qualification team productivity."
-    - name: "qualification_program_count"
-      expr: COUNT(1)
-      comment: "Total qualification programs — portfolio size baseline for capacity and investment planning."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_wafer_map`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Wafer map quality metrics tracking die yield, defect density, and KGD certification rates across wafers — foundational spatial quality KPIs for yield management and die bank planning."
-  source: "`vibe_semiconductors_v1`.`quality`.`wafer_map`"
-  dimensions:
-    - name: "map_status"
-      expr: map_status
-      comment: "Wafer map status (active/archived/pending) for data completeness tracking."
-    - name: "defect_type"
-      expr: defect_type
-      comment: "Defect type captured in the wafer map for defect-type yield loss attribution."
-    - name: "defect_zone"
-      expr: defect_zone
-      comment: "Spatial zone of defect concentration for systematic defect pattern identification."
-    - name: "flat_orientation"
-      expr: flat_orientation
-      comment: "Wafer flat/notch orientation for orientation-dependent process analysis."
-    - name: "is_kgd_certified"
-      expr: CAST(is_kgd_certified AS STRING)
-      comment: "KGD certification status for known-good-die supply planning."
-    - name: "compliance_iso9001"
-      expr: CAST(compliance_iso9001 AS STRING)
-      comment: "ISO 9001 compliance flag for quality system reporting."
-    - name: "compliance_iatf16949"
-      expr: CAST(compliance_iatf16949 AS STRING)
-      comment: "IATF 16949 compliance flag for automotive quality reporting."
-  measures:
-    - name: "avg_die_yield_percentage"
-      expr: AVG(CAST(die_yield_percentage AS DOUBLE))
-      comment: "Average die yield percentage per wafer map — primary wafer-level yield KPI for fab performance and revenue capacity planning."
-    - name: "avg_defect_density_per_sqmm"
-      expr: AVG(CAST(defect_density_per_sqmm AS DOUBLE))
-      comment: "Average defect density per mm² — process cleanliness KPI for tool and process qualification decisions."
-    - name: "avg_edge_exclusion_zone_mm"
-      expr: AVG(CAST(edge_exclusion_zone_mm AS DOUBLE))
-      comment: "Average edge exclusion zone in mm — process optimization metric for maximizing usable die area per wafer."
-    - name: "kgd_certified_wafer_count"
-      expr: COUNT(CASE WHEN is_kgd_certified = TRUE THEN 1 END)
-      comment: "Count of KGD-certified wafer maps — supply availability metric for premium die customers and die bank planning."
-    - name: "total_wafer_map_count"
-      expr: COUNT(1)
-      comment: "Total wafer maps generated — throughput baseline for wafer sort capacity and data completeness monitoring."
-    - name: "distinct_wafers_mapped"
-      expr: COUNT(DISTINCT wafer_id)
-      comment: "Number of distinct wafers with maps — coverage metric for wafer sort program completeness."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_wafer_zone`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Wafer zone quality metrics tracking spatial defect density, yield variation, and critical zone identification — enables spatial yield analysis for process optimization and equipment qualification."
-  source: "`vibe_semiconductors_v1`.`quality`.`wafer_zone`"
-  dimensions:
-    - name: "zone_type"
-      expr: zone_type
-      comment: "Zone classification (center, edge, ring, quadrant) for spatial yield pattern analysis."
-    - name: "zone_status"
-      expr: zone_status
-      comment: "Zone status for active monitoring coverage tracking."
-    - name: "shape"
-      expr: shape
-      comment: "Geometric shape of the zone (circular, rectangular, annular) for spatial analysis."
-    - name: "is_critical"
-      expr: CAST(is_critical AS STRING)
-      comment: "Flags critical zones with elevated defect risk for priority monitoring and process intervention."
-    - name: "process_step"
-      expr: process_step
-      comment: "Process step associated with zone defects for step-level spatial yield attribution."
-    - name: "responsible_team"
-      expr: responsible_team
-      comment: "Team responsible for zone quality for accountability and escalation routing."
-  measures:
-    - name: "avg_defect_density"
-      expr: AVG(CAST(defect_density AS DOUBLE))
-      comment: "Average defect density per wafer zone — spatial quality KPI for identifying systematic process or equipment signatures."
-    - name: "avg_typical_defect_density"
-      expr: AVG(CAST(typical_defect_density AS DOUBLE))
-      comment: "Average baseline (typical) defect density per zone — reference for excursion detection and control limit setting."
-    - name: "avg_yield_percent"
-      expr: AVG(CAST(yield_percent AS DOUBLE))
-      comment: "Average yield percentage per zone — spatial yield KPI for identifying yield-limiting zones and prioritizing process improvements."
-    - name: "avg_area_um2"
-      expr: AVG(CAST(area_um2 AS DOUBLE))
-      comment: "Average zone area in µm² — normalization factor for defect density calculations and zone size standardization."
-    - name: "critical_zone_count"
-      expr: COUNT(CASE WHEN is_critical = TRUE THEN 1 END)
-      comment: "Count of critical wafer zones — risk exposure metric for process control prioritization."
-    - name: "total_zone_count"
-      expr: COUNT(1)
-      comment: "Total wafer zones defined — coverage baseline for spatial monitoring program completeness."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_failure_analysis_report`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Failure analysis report metrics tracking analysis cycle time, failure mechanism distribution, and report closure rates — drives root-cause resolution speed and reliability improvement decisions."
-  source: "`vibe_semiconductors_v1`.`quality`.`failure_analysis_report`"
-  dimensions:
-    - name: "failure_analysis_report_status"
-      expr: failure_analysis_report_status
-      comment: "Current FA report status for pipeline and aging analysis."
-    - name: "report_type"
-      expr: report_type
-      comment: "FA report type (customer return, internal, reliability) for source-based analysis."
-    - name: "failure_mechanism"
-      expr: failure_mechanism
-      comment: "Physical failure mechanism identified for reliability physics trending and design feedback."
-    - name: "failure_severity"
-      expr: failure_severity
-      comment: "Severity of the failure for risk-based prioritization of analysis resources."
-    - name: "analysis_method"
-      expr: analysis_method
-      comment: "FA analysis method (SEM, TEM, FIB, OBIRCH) for method effectiveness benchmarking."
-    - name: "analysis_technique"
-      expr: analysis_technique
-      comment: "Specific analysis technique for detailed methodology tracking."
+    - name: "control_plan_type"
+      expr: control_plan_type
+      comment: "Type of control plan (e.g., pre-launch, production, prototype) for NPI and production quality management."
+    - name: "control_plan_status"
+      expr: control_plan_status
+      comment: "Current status of the control plan for active coverage management."
+    - name: "plan_status"
+      expr: plan_status
+      comment: "Workflow status of the control plan record."
     - name: "approval_status"
       expr: approval_status
-      comment: "Report approval status for quality system compliance tracking."
-    - name: "root_cause"
-      expr: root_cause
-      comment: "Root cause identified for systematic failure elimination tracking."
+      comment: "Approval status of the control plan for governance compliance."
+    - name: "risk_level"
+      expr: risk_level
+      comment: "Risk level assigned to the control plan for prioritized review and update management."
+    - name: "is_critical"
+      expr: is_critical
+      comment: "Whether the control plan covers a critical process step — drives mandatory review frequency."
+    - name: "control_method"
+      expr: control_method
+      comment: "Control method used (e.g., SPC, inspection, poka-yoke) for control strategy analysis."
+    - name: "effective_date_month"
+      expr: DATE_TRUNC('month', effective_date)
+      comment: "Month control plan became effective for coverage timeline management."
   measures:
-    - name: "open_far_count"
-      expr: COUNT(CASE WHEN failure_analysis_report_status != 'closed' THEN 1 END)
-      comment: "Count of open failure analysis reports — backlog KPI for FA lab capacity and customer response time risk."
-    - name: "total_far_count"
+    - name: "total_control_plans"
       expr: COUNT(1)
-      comment: "Total failure analysis reports — volume baseline for FA demand trending and resource planning."
-    - name: "distinct_failure_mechanisms"
-      expr: COUNT(DISTINCT failure_mechanism)
-      comment: "Number of distinct failure mechanisms identified — diversity metric for reliability risk portfolio assessment."
-    - name: "approved_far_count"
-      expr: COUNT(CASE WHEN approval_status = 'approved' THEN 1 END)
-      comment: "Count of approved FA reports — completion rate metric for FA program throughput and quality system compliance."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_metrology_measurement`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Quality metrology measurement metrics tracking measurement accuracy, process parameter distributions, and spec conformance — drives process control, tool qualification, and yield improvement decisions."
-  source: "`vibe_semiconductors_v1`.`quality`.`quality_metrology_measurement`"
-  dimensions:
-    - name: "measurement_type"
-      expr: measurement_type
-      comment: "Type of metrology measurement (CD-SEM, ellipsometry, profilometry) for method-level analysis."
-    - name: "measurement_unit"
-      expr: measurement_unit
-      comment: "Unit of measure for dimensional analysis and cross-parameter comparison."
-    - name: "parameter_name"
-      expr: parameter_name
-      comment: "Process parameter measured (e.g. CD, thickness, overlay) for parameter-level quality tracking."
-    - name: "pass_fail_status"
-      expr: pass_fail_status
-      comment: "Measurement pass/fail result for spec conformance rate analysis."
-    - name: "measurement_mode"
-      expr: measurement_mode
-      comment: "Measurement mode (inline, offline, monitor) for measurement program coverage analysis."
-    - name: "tool_qualification_status"
-      expr: tool_qualification_status
-      comment: "Qualification status of the measurement tool for data quality assurance."
-    - name: "site_map_type"
-      expr: site_map_type
-      comment: "Site map pattern used for measurement for spatial coverage analysis."
-    - name: "process_step"
-      expr: process_step
-      comment: "Process step at which measurement was taken for step-level process control."
-  measures:
-    - name: "avg_measurement_value"
-      expr: AVG(CAST(measurement_value AS DOUBLE))
-      comment: "Average measured parameter value — process centering KPI for process control and capability analysis."
+      comment: "Total control plans — measures process quality control coverage breadth."
+    - name: "avg_dppm_actual"
+      expr: AVG(CAST(dppm_actual AS DOUBLE))
+      comment: "Average actual DPPM across control plans — measures process quality performance against control plan targets."
+    - name: "avg_dppm_target"
+      expr: AVG(CAST(dppm_target AS DOUBLE))
+      comment: "Average DPPM target across control plans for quality commitment benchmarking."
     - name: "avg_target_value"
       expr: AVG(CAST(target_value AS DOUBLE))
-      comment: "Average target value for measured parameters — baseline for process centering gap analysis."
-    - name: "avg_spec_upper_limit"
-      expr: AVG(CAST(spec_upper_limit AS DOUBLE))
-      comment: "Average upper specification limit — process window baseline for capability analysis."
-    - name: "avg_spec_lower_limit"
-      expr: AVG(CAST(spec_lower_limit AS DOUBLE))
-      comment: "Average lower specification limit — process window baseline for capability analysis."
-    - name: "avg_measurement_uncertainty"
-      expr: AVG(CAST(measurement_uncertainty AS DOUBLE))
-      comment: "Average measurement uncertainty — gauge capability KPI for measurement system qualification and data reliability assessment."
-    - name: "pass_measurement_count"
-      expr: COUNT(CASE WHEN pass_fail_status = 'pass' THEN 1 END)
-      comment: "Count of passing measurements — spec conformance volume for process capability trending."
-    - name: "fail_measurement_count"
-      expr: COUNT(CASE WHEN pass_fail_status = 'fail' THEN 1 END)
-      comment: "Count of failing measurements — out-of-spec volume triggering process engineer review and potential lot holds."
-    - name: "total_measurement_count"
-      expr: COUNT(1)
-      comment: "Total metrology measurements — monitoring density baseline for process control program coverage assessment."
+      comment: "Average target parameter value across control plans for process centering analysis."
+    - name: "avg_tolerance_lower"
+      expr: AVG(CAST(tolerance_lower AS DOUBLE))
+      comment: "Average lower tolerance limit across control plans for process window analysis."
+    - name: "avg_tolerance_upper"
+      expr: AVG(CAST(tolerance_upper AS DOUBLE))
+      comment: "Average upper tolerance limit across control plans for process window analysis."
+    - name: "critical_control_plan_count"
+      expr: COUNT(CASE WHEN is_critical = TRUE THEN 1 END)
+      comment: "Number of critical control plans — measures coverage of high-risk process steps requiring mandatory quality controls."
 $$;
 
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_hold`
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_customer_complaint`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Quality hold metrics tracking hold volume, affected quantities, hold duration, and resolution rates — drives material risk management, supply chain impact assessment, and quality system responsiveness."
-  source: "`vibe_semiconductors_v1`.`quality`.`quality_hold`"
+  comment: "Customer complaint tracking and resolution metrics for customer satisfaction management"
+  source: "`vibe_semiconductors_v1`.`quality`.`customer_complaint`"
   dimensions:
-    - name: "hold_type"
-      expr: hold_type
-      comment: "Type of quality hold (process, material, customer, compliance) for hold category analysis."
-    - name: "hold_status"
-      expr: hold_status
-      comment: "Current hold status (active/released/escalated) for hold pipeline management."
-    - name: "hold_category"
-      expr: hold_category
-      comment: "Hold category for Pareto analysis of hold drivers."
-    - name: "hold_reason_code"
-      expr: hold_reason_code
-      comment: "Standardized hold reason code for systematic hold cause analysis."
+    - name: "complaint_type"
+      expr: complaint_type
+      comment: "Type of customer complaint (quality, delivery, documentation, etc.)"
+    - name: "complaint_category"
+      expr: complaint_category
+      comment: "Category of complaint for trend analysis"
+    - name: "complaint_status"
+      expr: complaint_status
+      comment: "Status of complaint (open, closed, pending investigation)"
+    - name: "severity"
+      expr: severity
+      comment: "Severity level of complaint (critical, high, medium, low)"
     - name: "priority"
       expr: priority
-      comment: "Hold priority level for resource allocation and escalation decisions."
+      comment: "Priority level for complaint resolution"
     - name: "resolution_status"
       expr: resolution_status
-      comment: "Hold resolution status for closure rate tracking."
-    - name: "affected_entity_type"
-      expr: affected_entity_type
-      comment: "Type of entity on hold (lot, wafer, die bank) for material impact categorization."
-    - name: "is_kgd_certified"
-      expr: CAST(is_kgd_certified AS STRING)
-      comment: "KGD certification status of held material for premium die supply impact assessment."
+      comment: "Status of complaint resolution"
+    - name: "corrective_action_status"
+      expr: corrective_action_status
+      comment: "Status of corrective action implementation"
+    - name: "escalation_level"
+      expr: escalation_level
+      comment: "Escalation level of complaint"
+    - name: "source_channel"
+      expr: source_channel
+      comment: "Channel through which complaint was received"
+    - name: "warranty_claim_flag"
+      expr: warranty_claim_flag
+      comment: "Flag indicating if complaint includes warranty claim"
+    - name: "received_month"
+      expr: DATE_TRUNC('MONTH', received_date)
+      comment: "Month when complaint was received"
+    - name: "resolution_month"
+      expr: DATE_TRUNC('MONTH', resolution_date)
+      comment: "Month when complaint was resolved"
   measures:
-    - name: "total_affected_quantity"
-      expr: SUM(CAST(affected_quantity AS DOUBLE))
-      comment: "Total units/lots on quality hold — material at risk metric directly impacting supply availability and revenue."
-    - name: "active_hold_count"
-      expr: COUNT(CASE WHEN hold_status = 'active' THEN 1 END)
-      comment: "Count of active quality holds — real-time supply risk KPI for operations and customer service escalation."
-    - name: "total_hold_count"
+    - name: "total_complaints"
       expr: COUNT(1)
-      comment: "Total quality holds issued — volume baseline for hold frequency trending and quality system load assessment."
-    - name: "released_hold_count"
-      expr: COUNT(CASE WHEN hold_status = 'released' THEN 1 END)
-      comment: "Count of released holds — resolution throughput metric for quality team responsiveness."
-    - name: "kgd_material_on_hold_count"
-      expr: COUNT(CASE WHEN is_kgd_certified = TRUE THEN 1 END)
-      comment: "Count of KGD-certified material on hold — premium die supply risk metric requiring priority resolution."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_audit`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Quality audit metrics tracking audit outcomes, nonconformance rates, and corrective action responsiveness — drives quality system maturity assessment and regulatory compliance governance."
-  source: "`vibe_semiconductors_v1`.`quality`.`audit`"
-  dimensions:
-    - name: "audit_type"
-      expr: audit_type
-      comment: "Audit type (internal, supplier, customer, regulatory) for audit program portfolio analysis."
-    - name: "audit_status"
-      expr: audit_status
-      comment: "Current audit status for pipeline and completion rate tracking."
-    - name: "overall_result"
-      expr: overall_result
-      comment: "Overall audit result (pass/fail/conditional) for quality system health assessment."
-    - name: "applicable_standard"
-      expr: applicable_standard
-      comment: "Applicable quality standard (ISO 9001, IATF 16949, JEDEC) for standards-based compliance reporting."
-    - name: "scope"
-      expr: scope
-      comment: "Audit scope for coverage analysis and gap identification."
-    - name: "result"
-      expr: result
-      comment: "Detailed audit result classification for outcome distribution analysis."
-  measures:
-    - name: "total_audit_count"
-      expr: COUNT(1)
-      comment: "Total audits conducted — quality program activity baseline for audit frequency and coverage tracking."
-    - name: "pass_audit_count"
-      expr: COUNT(CASE WHEN overall_result = 'pass' THEN 1 END)
-      comment: "Count of passing audits — quality system compliance rate numerator for regulatory and customer reporting."
-    - name: "fail_audit_count"
-      expr: COUNT(CASE WHEN overall_result = 'fail' THEN 1 END)
-      comment: "Count of failing audits — compliance risk indicator triggering mandatory CAPA and management review."
-    - name: "open_audit_count"
-      expr: COUNT(CASE WHEN audit_status != 'closed' THEN 1 END)
-      comment: "Count of open audits — audit backlog metric for quality team capacity planning."
-    - name: "distinct_standards_audited"
-      expr: COUNT(DISTINCT applicable_standard)
-      comment: "Number of distinct quality standards covered by audits — compliance program breadth metric for regulatory coverage assessment."
+      comment: "Total number of customer complaints"
+    - name: "unique_customers_with_complaints"
+      expr: COUNT(DISTINCT account_id)
+      comment: "Number of unique customers with complaints"
+    - name: "unique_products_with_complaints"
+      expr: COUNT(DISTINCT ic_catalog_id)
+      comment: "Number of unique products with complaints"
+    - name: "total_cost_impact"
+      expr: SUM(CAST(cost_net AS DOUBLE))
+      comment: "Total net cost impact of customer complaints"
+    - name: "avg_cost_per_complaint"
+      expr: AVG(CAST(cost_net AS DOUBLE))
+      comment: "Average net cost per customer complaint"
+    - name: "avg_dppm_impact"
+      expr: AVG(CAST(dppm_impact AS DOUBLE))
+      comment: "Average DPPM impact of complaints"
+    - name: "complaints_with_escalation"
+      expr: SUM(CASE WHEN escalation_flag = TRUE THEN 1 ELSE 0 END)
+      comment: "Count of complaints that were escalated"
+    - name: "complaints_with_regulatory_report"
+      expr: SUM(CASE WHEN regulatory_report_flag = TRUE THEN 1 ELSE 0 END)
+      comment: "Count of complaints requiring regulatory reporting"
 $$;
 
 CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_defect_cluster`
@@ -925,53 +299,1244 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Defect cluster metrics tracking systematic defect patterns, yield impact, and cluster severity — enables identification of equipment signatures and process excursions driving systematic yield loss."
+  comment: "Defect cluster spatial analysis metrics for equipment fingerprinting, process excursion detection, and yield loss attribution to specific tools or process steps."
   source: "`vibe_semiconductors_v1`.`quality`.`defect_cluster`"
   dimensions:
     - name: "cluster_type"
       expr: cluster_type
-      comment: "Defect cluster type (ring, arc, edge, random) for pattern-based root cause analysis."
-    - name: "defect_pattern"
-      expr: defect_pattern
-      comment: "Specific defect pattern signature for equipment and process correlation."
+      comment: "Type of defect cluster (e.g., random, systematic, edge) for yield loss mechanism classification."
+    - name: "cluster_pattern_type"
+      expr: cluster_pattern_type
+      comment: "Pattern type of the cluster for equipment fingerprinting and root cause identification."
+    - name: "cluster_classification"
+      expr: cluster_classification
+      comment: "Classification of the cluster for risk tiering and corrective action prioritization."
+    - name: "defect_cluster_status"
+      expr: defect_cluster_status
+      comment: "Current status of the defect cluster record for investigation management."
     - name: "root_cause_category"
       expr: root_cause_category
-      comment: "Root cause category for systematic defect elimination prioritization."
+      comment: "Root cause category of the cluster for systemic process improvement tracking."
     - name: "severity_level"
       expr: severity_level
-      comment: "Cluster severity level for risk-based prioritization of investigation resources."
-    - name: "review_status"
-      expr: review_status
-      comment: "Engineering review status for cluster investigation pipeline management."
+      comment: "Severity level of the defect cluster for risk-tiered escalation."
     - name: "is_critical"
-      expr: CAST(is_critical AS STRING)
-      comment: "Flags critical defect clusters requiring immediate process engineering intervention."
+      expr: is_critical
+      comment: "Whether the cluster is classified as critical for yield — drives immediate process intervention."
     - name: "is_customer_reported"
-      expr: CAST(is_customer_reported AS STRING)
-      comment: "Flags customer-reported clusters for customer satisfaction impact tracking."
-    - name: "customer_impact_flag"
-      expr: CAST(customer_impact_flag AS STRING)
-      comment: "Indicates customer-impacting clusters for escalation prioritization."
-    - name: "associated_process_step"
-      expr: associated_process_step
-      comment: "Process step associated with the cluster for step-level yield loss attribution."
+      expr: is_customer_reported
+      comment: "Whether the cluster was reported by a customer — signals field quality escape requiring urgent action."
+    - name: "cluster_creation_date_month"
+      expr: DATE_TRUNC('month', cluster_creation_date)
+      comment: "Month of cluster creation for excursion trend analysis."
   measures:
+    - name: "total_defect_clusters"
+      expr: COUNT(1)
+      comment: "Total defect clusters identified — measures systematic defect occurrence frequency for process health monitoring."
+    - name: "avg_cluster_area_mm2"
+      expr: AVG(CAST(cluster_area_mm2 AS DOUBLE))
+      comment: "Average defect cluster area in mm² — quantifies spatial extent of systematic defects for yield impact estimation."
+    - name: "avg_density"
+      expr: AVG(CAST(density AS DOUBLE))
+      comment: "Average defect density within clusters — measures defect concentration severity for process control."
     - name: "avg_impact_yield_percent"
       expr: AVG(CAST(impact_yield_percent AS DOUBLE))
-      comment: "Average yield impact percentage per defect cluster — quantifies revenue impact of systematic defects for prioritization of engineering resources."
+      comment: "Average yield impact percentage per cluster — directly quantifies yield loss attributable to systematic defects."
     - name: "avg_dppm"
       expr: AVG(CAST(dppm AS DOUBLE))
-      comment: "Average DPPM associated with defect clusters — customer-facing quality impact metric for cluster severity assessment."
+      comment: "Average DPPM associated with defect clusters — links spatial defect patterns to customer-facing quality metrics."
     - name: "avg_measurement_value"
       expr: AVG(CAST(measurement_value AS DOUBLE))
-      comment: "Average cluster measurement value for quantitative cluster characterization and trend tracking."
+      comment: "Average measurement value associated with clusters for process parameter correlation analysis."
     - name: "critical_cluster_count"
       expr: COUNT(CASE WHEN is_critical = TRUE THEN 1 END)
-      comment: "Count of critical defect clusters — highest-priority yield loss drivers requiring immediate process engineering action."
+      comment: "Number of critical defect clusters — drives immediate process intervention and equipment qualification actions."
     - name: "customer_reported_cluster_count"
       expr: COUNT(CASE WHEN is_customer_reported = TRUE THEN 1 END)
-      comment: "Count of customer-reported defect clusters — customer satisfaction risk metric for quality escalation management."
-    - name: "total_cluster_count"
+      comment: "Customer-reported defect clusters — measures field quality escape rate from systematic defects."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_defect_record`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Defect tracking and yield impact metrics for wafer and die-level quality analysis"
+  source: "`vibe_semiconductors_v1`.`quality`.`defect_record`"
+  dimensions:
+    - name: "defect_type"
+      expr: defect_type
+      comment: "Classification of defect (particle, scratch, void, etc.)"
+    - name: "defect_category"
+      expr: defect_category
+      comment: "High-level defect category for trend analysis"
+    - name: "defect_severity"
+      expr: defect_severity
+      comment: "Severity level of defect (critical, major, minor)"
+    - name: "detection_method"
+      expr: detection_method
+      comment: "Method used to detect the defect (optical, e-beam, etc.)"
+    - name: "defect_layer"
+      expr: defect_layer
+      comment: "Process layer where defect was detected"
+    - name: "disposition"
+      expr: disposition
+      comment: "Disposition decision for defective material"
+    - name: "root_cause"
+      expr: root_cause
+      comment: "Identified root cause of defect"
+    - name: "detection_month"
+      expr: DATE_TRUNC('MONTH', detection_timestamp)
+      comment: "Month when defect was detected"
+    - name: "detection_week"
+      expr: DATE_TRUNC('WEEK', detection_timestamp)
+      comment: "Week when defect was detected"
+  measures:
+    - name: "total_defects"
       expr: COUNT(1)
-      comment: "Total defect clusters identified — systematic defect volume baseline for process stability trending."
+      comment: "Total number of defect records"
+    - name: "unique_wafers_with_defects"
+      expr: COUNT(DISTINCT wafer_id)
+      comment: "Number of unique wafers with detected defects"
+    - name: "unique_lots_with_defects"
+      expr: COUNT(DISTINCT fabrication_wafer_lot_id)
+      comment: "Number of unique lots with detected defects"
+    - name: "avg_defect_size_um"
+      expr: AVG(CAST(defect_size_um AS DOUBLE))
+      comment: "Average defect size in micrometers"
+    - name: "avg_defect_density_per_zone"
+      expr: AVG(CAST(defect_density_per_zone AS DOUBLE))
+      comment: "Average defect density per wafer zone"
+    - name: "total_defect_area_um2"
+      expr: SUM(CAST(defect_area_um2 AS DOUBLE))
+      comment: "Total defect area across all records in square micrometers"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_dppm_record`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Defective parts per million tracking for customer quality and compliance"
+  source: "`vibe_semiconductors_v1`.`quality`.`dppm_record`"
+  dimensions:
+    - name: "measurement_period"
+      expr: measurement_period
+      comment: "Time period for DPPM measurement (monthly, quarterly, etc.)"
+    - name: "dppm_record_status"
+      expr: dppm_record_status
+      comment: "Status of DPPM record (open, closed, under review)"
+    - name: "compliance_iso9001"
+      expr: compliance_iso9001
+      comment: "ISO 9001 compliance status for this DPPM record"
+    - name: "closure_status"
+      expr: closure_status
+      comment: "Closure status of DPPM issue"
+    - name: "notification_type"
+      expr: notification_type
+      comment: "Type of quality notification associated with DPPM"
+    - name: "period_start_month"
+      expr: DATE_TRUNC('MONTH', period_start_date)
+      comment: "Month when measurement period started"
+    - name: "period_end_month"
+      expr: DATE_TRUNC('MONTH', period_end_date)
+      comment: "Month when measurement period ended"
+  measures:
+    - name: "total_dppm_records"
+      expr: COUNT(1)
+      comment: "Total number of DPPM records"
+    - name: "unique_customers_with_dppm"
+      expr: COUNT(DISTINCT account_id)
+      comment: "Number of unique customers with DPPM issues"
+    - name: "unique_products_with_dppm"
+      expr: COUNT(DISTINCT ic_catalog_id)
+      comment: "Number of unique products with DPPM issues"
+    - name: "avg_dppm_value"
+      expr: AVG(CAST(dppm_value AS DOUBLE))
+      comment: "Average defective parts per million across all records"
+    - name: "total_defective_units"
+      expr: SUM(CAST(defective_units AS BIGINT))
+      comment: "Total count of defective units reported"
+    - name: "total_units_shipped"
+      expr: SUM(CAST(total_units_shipped AS BIGINT))
+      comment: "Total count of units shipped in measurement period"
+    - name: "avg_target_dppm"
+      expr: AVG(CAST(target_dppm AS DOUBLE))
+      comment: "Average target DPPM threshold"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_failure_analysis_report`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Failure analysis report cycle time, failure mechanism distribution, and closure metrics. Drives root cause resolution speed and product reliability improvement."
+  source: "`vibe_semiconductors_v1`.`quality`.`failure_analysis_report`"
+  dimensions:
+    - name: "failure_analysis_report_status"
+      expr: failure_analysis_report_status
+      comment: "Current status of the failure analysis report for cycle time and backlog management."
+    - name: "report_type"
+      expr: report_type
+      comment: "Type of failure analysis report (e.g., field return, reliability, process) for program segmentation."
+    - name: "failure_mechanism"
+      expr: failure_mechanism
+      comment: "Physical failure mechanism identified (e.g., electromigration, oxide breakdown) for reliability physics analysis."
+    - name: "failure_mode"
+      expr: failure_mode
+      comment: "Failure mode classification for FMEA correlation and design improvement prioritization."
+    - name: "failure_severity"
+      expr: failure_severity
+      comment: "Severity of the failure for risk-tiered investigation resource allocation."
+    - name: "analysis_technique"
+      expr: analysis_technique
+      comment: "Analytical technique used (e.g., SEM, TEM, FIB) for capability and resource planning."
+    - name: "approval_status"
+      expr: approval_status
+      comment: "Approval status of the report for release and customer communication management."
+    - name: "report_status"
+      expr: report_status
+      comment: "Publication status of the failure analysis report."
+    - name: "analysis_date_month"
+      expr: DATE_TRUNC('month', analysis_date)
+      comment: "Month of failure analysis for trend and backlog analysis."
+  measures:
+    - name: "total_failure_analysis_reports"
+      expr: COUNT(1)
+      comment: "Total failure analysis reports — measures FA throughput and quality issue investigation capacity."
+    - name: "open_fa_report_count"
+      expr: COUNT(CASE WHEN failure_analysis_report_status NOT IN ('Closed', 'Approved', 'Cancelled') THEN 1 END)
+      comment: "Open failure analysis reports — measures FA backlog and unresolved quality risk exposure."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_fmea_record`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Failure Mode and Effects Analysis (FMEA) risk metrics for proactive quality risk management, design and process robustness assessment, and qualification readiness."
+  source: "`vibe_semiconductors_v1`.`quality`.`fmea_record`"
+  dimensions:
+    - name: "fmea_type"
+      expr: fmea_type
+      comment: "Type of FMEA (e.g., DFMEA, PFMEA) for design vs. process risk segmentation."
+    - name: "fmea_record_status"
+      expr: fmea_record_status
+      comment: "Current status of the FMEA record for program completeness tracking."
+    - name: "risk_category"
+      expr: risk_category
+      comment: "Risk category of the failure mode for risk portfolio management."
+    - name: "severity"
+      expr: severity
+      comment: "Severity rating of the failure effect for risk prioritization."
+    - name: "failure_mode"
+      expr: failure_mode
+      comment: "Identified failure mode for cross-product failure pattern analysis."
+    - name: "failure_effect"
+      expr: failure_effect
+      comment: "Effect of the failure mode on the product or customer for impact assessment."
+    - name: "detection_method"
+      expr: detection_method
+      comment: "Detection method for the failure mode, informing test and inspection strategy."
+    - name: "is_critical"
+      expr: is_critical
+      comment: "Whether the failure mode is classified as critical — drives mandatory corrective action and design review."
+    - name: "effective_date_month"
+      expr: DATE_TRUNC('month', effective_date)
+      comment: "Month FMEA became effective for program timeline tracking."
+  measures:
+    - name: "total_fmea_records"
+      expr: COUNT(1)
+      comment: "Total FMEA records — measures risk analysis coverage across products and processes."
+    - name: "critical_failure_mode_count"
+      expr: COUNT(CASE WHEN is_critical = TRUE THEN 1 END)
+      comment: "Number of critical failure modes identified — directly drives design and process improvement investment priorities."
+    - name: "open_fmea_count"
+      expr: COUNT(CASE WHEN fmea_record_status NOT IN ('Closed', 'Approved', 'Cancelled') THEN 1 END)
+      comment: "Open FMEA records requiring action — measures risk management backlog and qualification readiness gaps."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_inspection_lot`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Inspection lot quality metrics for incoming and in-process quality control"
+  source: "`vibe_semiconductors_v1`.`quality`.`inspection_lot`"
+  dimensions:
+    - name: "inspection_type"
+      expr: inspection_type
+      comment: "Type of inspection (incoming, in-process, final, etc.)"
+    - name: "inspection_stage"
+      expr: inspection_stage
+      comment: "Stage of inspection in manufacturing flow"
+    - name: "inspection_result"
+      expr: inspection_result
+      comment: "Result of inspection (pass, fail, conditional)"
+    - name: "disposition"
+      expr: disposition
+      comment: "Disposition decision for inspected lot"
+    - name: "lot_type"
+      expr: lot_type
+      comment: "Type of lot inspected"
+    - name: "material_type"
+      expr: material_type
+      comment: "Type of material inspected"
+    - name: "kgd_certified"
+      expr: kgd_certified
+      comment: "Known Good Die certification flag"
+    - name: "iso_9001_compliant"
+      expr: iso_9001_compliant
+      comment: "ISO 9001 compliance flag"
+    - name: "iatf_16949_compliant"
+      expr: iatf_16949_compliant
+      comment: "IATF 16949 compliance flag"
+    - name: "jedec_reliability_compliant"
+      expr: jedec_reliability_compliant
+      comment: "JEDEC reliability compliance flag"
+    - name: "measurement_month"
+      expr: DATE_TRUNC('MONTH', measurement_timestamp)
+      comment: "Month when inspection was performed"
+  measures:
+    - name: "total_inspection_lots"
+      expr: COUNT(1)
+      comment: "Total number of inspection lots"
+    - name: "unique_products_inspected"
+      expr: COUNT(DISTINCT ic_catalog_id)
+      comment: "Number of unique products inspected"
+    - name: "unique_suppliers_inspected"
+      expr: COUNT(DISTINCT supplier_id)
+      comment: "Number of unique suppliers with inspected material"
+    - name: "avg_lot_size"
+      expr: AVG(CAST(lot_size AS BIGINT))
+      comment: "Average lot size inspected"
+    - name: "avg_yield_percent"
+      expr: AVG(CAST(yield_percent AS DOUBLE))
+      comment: "Average yield percentage across inspection lots"
+    - name: "avg_defect_density"
+      expr: AVG(CAST(defect_density AS DOUBLE))
+      comment: "Average defect density across inspection lots"
+    - name: "avg_wafer_size_mm"
+      expr: AVG(CAST(wafer_size_mm AS DOUBLE))
+      comment: "Average wafer size in millimeters"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_mrb_meeting`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Material Review Board (MRB) meeting volume, disposition decision, and throughput metrics. Drives nonconforming material disposition cycle time and quality governance effectiveness."
+  source: "`vibe_semiconductors_v1`.`quality`.`mrb_meeting`"
+  dimensions:
+    - name: "meeting_type"
+      expr: meeting_type
+      comment: "Type of MRB meeting (e.g., regular, emergency, virtual) for meeting cadence analysis."
+    - name: "meeting_status"
+      expr: meeting_status
+      comment: "Current status of the MRB meeting for governance tracking."
+    - name: "mrb_meeting_status"
+      expr: mrb_meeting_status
+      comment: "Workflow status of the MRB meeting record."
+    - name: "disposition_decision"
+      expr: disposition_decision
+      comment: "Disposition decision made (e.g., scrap, rework, use-as-is) for material cost impact analysis."
+    - name: "meeting_date_month"
+      expr: DATE_TRUNC('month', meeting_date)
+      comment: "Month of MRB meeting for governance cadence and throughput trend analysis."
+  measures:
+    - name: "total_mrb_meetings"
+      expr: COUNT(1)
+      comment: "Total MRB meetings held — measures quality governance activity and nonconforming material disposition throughput."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_nonconformance_report`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Nonconformance tracking and corrective action metrics for quality management"
+  source: "`vibe_semiconductors_v1`.`quality`.`nonconformance_report`"
+  dimensions:
+    - name: "nonconformance_type"
+      expr: nonconformance_type
+      comment: "Type of nonconformance (material, process, documentation, etc.)"
+    - name: "ncr_status"
+      expr: ncr_status
+      comment: "Status of nonconformance report (open, closed, pending)"
+    - name: "severity_level"
+      expr: severity_level
+      comment: "Severity level of nonconformance (critical, major, minor)"
+    - name: "disposition_decision"
+      expr: disposition_decision
+      comment: "Disposition decision for nonconforming material (scrap, rework, use-as-is, etc.)"
+    - name: "detection_point"
+      expr: detection_point
+      comment: "Point in process where nonconformance was detected"
+    - name: "corrective_action_status"
+      expr: corrective_action_status
+      comment: "Status of corrective action implementation"
+    - name: "mrb_decision"
+      expr: mrb_decision
+      comment: "Material Review Board decision"
+    - name: "customer_notification_required"
+      expr: customer_notification_required
+      comment: "Flag indicating if customer notification is required"
+    - name: "detected_month"
+      expr: DATE_TRUNC('MONTH', detected_date)
+      comment: "Month when nonconformance was detected"
+    - name: "report_month"
+      expr: DATE_TRUNC('MONTH', report_timestamp)
+      comment: "Month when NCR was reported"
+  measures:
+    - name: "total_ncrs"
+      expr: COUNT(1)
+      comment: "Total number of nonconformance reports"
+    - name: "unique_lots_with_ncr"
+      expr: COUNT(DISTINCT fabrication_wafer_lot_id)
+      comment: "Number of unique lots with nonconformances"
+    - name: "unique_products_with_ncr"
+      expr: COUNT(DISTINCT ic_catalog_id)
+      comment: "Number of unique products with nonconformances"
+    - name: "total_impact_amount"
+      expr: SUM(CAST(impact_amount AS DOUBLE))
+      comment: "Total financial impact of nonconformances"
+    - name: "avg_impact_amount"
+      expr: AVG(CAST(impact_amount AS DOUBLE))
+      comment: "Average financial impact per nonconformance"
+    - name: "ncrs_with_customer_impact"
+      expr: SUM(CASE WHEN is_customer_impact = TRUE THEN 1 ELSE 0 END)
+      comment: "Count of NCRs with customer impact"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_qualification_report`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Product qualification report outcomes, yield, and DPPM metrics. Drives new product introduction (NPI) gate decisions and customer qualification approval management."
+  source: "`vibe_semiconductors_v1`.`quality`.`qualification_report`"
+  dimensions:
+    - name: "report_type"
+      expr: report_type
+      comment: "Type of qualification report (e.g., initial qualification, re-qualification, customer-specific) for program segmentation."
+    - name: "qualification_report_status"
+      expr: qualification_report_status
+      comment: "Current status of the qualification report for NPI gate management."
+    - name: "overall_result"
+      expr: overall_result
+      comment: "Overall qualification result (pass/fail/conditional) for go/no-go decision support."
+    - name: "qualification_result"
+      expr: qualification_result
+      comment: "Detailed qualification result for compliance documentation."
+    - name: "approval_status"
+      expr: approval_status
+      comment: "Approval status of the qualification report for release management."
+    - name: "report_date_month"
+      expr: DATE_TRUNC('month', report_date)
+      comment: "Month of qualification report for NPI pipeline timeline tracking."
+    - name: "report_status"
+      expr: report_status
+      comment: "Publication status of the report for document management."
+  measures:
+    - name: "total_qualification_reports"
+      expr: COUNT(1)
+      comment: "Total qualification reports issued — measures NPI qualification throughput and program velocity."
+    - name: "avg_yield_percentage"
+      expr: AVG(CAST(yield_percentage AS DOUBLE))
+      comment: "Average yield percentage in qualification reports — primary NPI quality gate metric for product release decisions."
+    - name: "avg_dppm"
+      expr: AVG(CAST(dppm AS DOUBLE))
+      comment: "Average DPPM in qualification reports — customer-facing quality commitment metric for product release approval."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_audit_finding`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Quality audit finding severity, recurrence, and closure metrics. Drives quality system improvement prioritization and regulatory compliance risk management."
+  source: "`vibe_semiconductors_v1`.`quality`.`quality_audit_finding`"
+  dimensions:
+    - name: "finding_type"
+      expr: finding_type
+      comment: "Type of audit finding (e.g., major nonconformance, minor nonconformance, observation) for risk tiering."
+    - name: "finding_category"
+      expr: finding_category
+      comment: "Category of the finding for systemic quality issue pattern analysis."
+    - name: "finding_classification"
+      expr: finding_classification
+      comment: "Classification of the finding for compliance reporting."
+    - name: "finding_status"
+      expr: finding_status
+      comment: "Current status of the finding for closure rate management."
+    - name: "quality_audit_finding_status"
+      expr: quality_audit_finding_status
+      comment: "Workflow status of the audit finding record."
+    - name: "severity"
+      expr: severity
+      comment: "Severity of the finding for risk-tiered corrective action prioritization."
+    - name: "severity_level"
+      expr: severity_level
+      comment: "Detailed severity level for granular risk analysis."
+    - name: "audit_type"
+      expr: audit_type
+      comment: "Type of audit that generated the finding for audit program effectiveness analysis."
+    - name: "is_repeat_issue"
+      expr: is_repeat_issue
+      comment: "Whether the finding is a repeat issue — repeat findings signal systemic quality system failures."
+    - name: "closure_status"
+      expr: closure_status
+      comment: "Closure status of the finding for corrective action completion tracking."
+    - name: "audit_date_month"
+      expr: DATE_TRUNC('month', audit_date)
+      comment: "Month of audit finding for trend and recurrence analysis."
+  measures:
+    - name: "total_audit_findings"
+      expr: COUNT(1)
+      comment: "Total audit findings — primary quality system gap metric for compliance program management."
+    - name: "avg_audit_score"
+      expr: AVG(CAST(audit_score AS DOUBLE))
+      comment: "Average audit score associated with findings — measures quality system performance level."
+    - name: "repeat_finding_count"
+      expr: COUNT(CASE WHEN is_repeat_issue = TRUE THEN 1 END)
+      comment: "Number of repeat audit findings — high repeat rate signals ineffective corrective actions and systemic quality system weakness."
+    - name: "open_finding_count"
+      expr: COUNT(CASE WHEN finding_status NOT IN ('Closed', 'Cancelled') THEN 1 END)
+      comment: "Open audit findings requiring corrective action — measures compliance risk backlog."
+    - name: "corrective_action_required_count"
+      expr: COUNT(CASE WHEN corrective_action_required = TRUE THEN 1 END)
+      comment: "Findings requiring corrective action — drives CAPA workload planning and quality system improvement investment."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_hold`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Quality hold volume, duration, and affected quantity metrics. Drives material flow risk management, hold resolution cycle time, and compliance with quality gate requirements."
+  source: "`vibe_semiconductors_v1`.`quality`.`quality_hold`"
+  dimensions:
+    - name: "hold_type"
+      expr: hold_type
+      comment: "Type of quality hold (e.g., process, material, customer) for hold category analysis."
+    - name: "hold_category"
+      expr: hold_category
+      comment: "Category of the hold for Pareto-driven hold reduction programs."
+    - name: "hold_status"
+      expr: hold_status
+      comment: "Current status of the hold for active hold management."
+    - name: "quality_hold_status"
+      expr: quality_hold_status
+      comment: "Workflow status of the quality hold record."
+    - name: "hold_reason_code"
+      expr: hold_reason_code
+      comment: "Standardized reason code for the hold, enabling systemic hold cause analysis."
+    - name: "priority"
+      expr: priority
+      comment: "Priority of the hold for resolution urgency management."
+    - name: "resolution_status"
+      expr: resolution_status
+      comment: "Resolution status of the hold for closure rate tracking."
+    - name: "hold_placed_timestamp_month"
+      expr: DATE_TRUNC('month', hold_placed_timestamp)
+      comment: "Month hold was placed for hold volume trend analysis."
+    - name: "affected_entity_type"
+      expr: affected_entity_type
+      comment: "Type of entity affected by the hold (e.g., wafer lot, finished good) for impact scoping."
+  measures:
+    - name: "total_quality_holds"
+      expr: COUNT(1)
+      comment: "Total quality holds placed — primary material flow risk KPI. High hold volume signals systemic quality issues."
+    - name: "total_affected_quantity"
+      expr: SUM(CAST(affected_quantity AS DOUBLE))
+      comment: "Total units/lots affected by quality holds — quantifies material at risk and potential revenue impact."
+    - name: "active_hold_count"
+      expr: COUNT(CASE WHEN hold_status NOT IN ('Released', 'Cancelled') THEN 1 END)
+      comment: "Number of active quality holds — measures current material flow obstruction and quality risk exposure."
+    - name: "kgd_certified_hold_count"
+      expr: COUNT(CASE WHEN is_kgd_certified = TRUE THEN 1 END)
+      comment: "Quality holds on KGD-certified material — critical for die bank availability and customer shipment risk management."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_kgd_certification`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Known Good Die (KGD) certification metrics for die-level quality assurance, customer qualification compliance, and die bank inventory quality management."
+  source: "`vibe_semiconductors_v1`.`quality`.`quality_kgd_certification`"
+  dimensions:
+    - name: "certification_status"
+      expr: certification_status
+      comment: "Current KGD certification status (e.g., certified, expired, pending) for die bank eligibility management."
+    - name: "quality_kgd_certification_status"
+      expr: quality_kgd_certification_status
+      comment: "Workflow status of the KGD certification record."
+    - name: "kgd_grade"
+      expr: kgd_grade
+      comment: "KGD quality grade for die tiering and customer allocation decisions."
+    - name: "kgd_level"
+      expr: kgd_level
+      comment: "KGD certification level for compliance tier management."
+    - name: "certification_standard"
+      expr: certification_standard
+      comment: "Applicable certification standard (e.g., JEDEC, customer-specific) for compliance reporting."
+    - name: "test_type"
+      expr: test_type
+      comment: "Type of test used for KGD certification (e.g., burn-in, parametric screen) for methodology analysis."
+    - name: "burn_in_status"
+      expr: burn_in_status
+      comment: "Burn-in test status for infant mortality screening effectiveness tracking."
+    - name: "reliability_grade"
+      expr: reliability_grade
+      comment: "Reliability grade of the certified die for customer-facing quality communication."
+    - name: "certification_date_month"
+      expr: DATE_TRUNC('month', certification_date)
+      comment: "Month of KGD certification for certification volume trend analysis."
+    - name: "compliance_jedec"
+      expr: compliance_jedec
+      comment: "Whether the certification meets JEDEC standards — critical for industry-standard compliance reporting."
+  measures:
+    - name: "total_kgd_certifications"
+      expr: COUNT(1)
+      comment: "Total KGD certifications issued — measures die bank quality certification throughput."
+    - name: "avg_kgd_yield_percent"
+      expr: AVG(CAST(kgd_yield_percent AS DOUBLE))
+      comment: "Average KGD yield percentage — primary die-level quality KPI for die bank value and customer supply planning."
+    - name: "avg_dppm_value"
+      expr: AVG(CAST(dppm_value AS DOUBLE))
+      comment: "Average DPPM value for KGD-certified die — customer-facing quality metric for die supply agreements."
+    - name: "avg_test_coverage_percent"
+      expr: AVG(CAST(test_coverage_percent AS DOUBLE))
+      comment: "Average test coverage percentage — measures thoroughness of KGD screening for quality assurance."
+    - name: "avg_test_duration_hours"
+      expr: AVG(CAST(test_duration_hours AS DOUBLE))
+      comment: "Average KGD test duration in hours for certification cycle time and capacity planning."
+    - name: "avg_test_temperature_c"
+      expr: AVG(CAST(test_temperature_c AS DOUBLE))
+      comment: "Average test temperature for KGD certification, used to validate stress condition compliance."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_metrology_measurement`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Quality metrology measurement accuracy, specification compliance, and process centering metrics. Drives process control effectiveness and measurement system analysis."
+  source: "`vibe_semiconductors_v1`.`quality`.`quality_metrology_measurement`"
+  dimensions:
+    - name: "measurement_type"
+      expr: measurement_type
+      comment: "Type of metrology measurement (e.g., CD, overlay, film thickness) for parameter-level quality analysis."
+    - name: "parameter_name"
+      expr: parameter_name
+      comment: "Name of the measured parameter for process control coverage analysis."
+    - name: "measurement_unit"
+      expr: measurement_unit
+      comment: "Unit of measurement for dimensional analysis and cross-tool comparison."
+    - name: "quality_metrology_measurement_status"
+      expr: quality_metrology_measurement_status
+      comment: "Status of the measurement record for data quality management."
+    - name: "pass_fail_status"
+      expr: pass_fail_status
+      comment: "Pass/fail status of the measurement against specification limits."
+    - name: "in_spec_flag"
+      expr: in_spec_flag
+      comment: "Whether the measurement is within specification — primary quality gate flag."
+    - name: "within_spec_flag"
+      expr: within_spec_flag
+      comment: "Secondary in-specification flag for cross-validation of measurement compliance."
+    - name: "measurement_mode"
+      expr: measurement_mode
+      comment: "Measurement mode (e.g., inline, offline) for measurement strategy analysis."
+    - name: "site_map_type"
+      expr: site_map_type
+      comment: "Type of site map used for measurement, enabling spatial measurement coverage analysis."
+    - name: "measurement_timestamp_month"
+      expr: DATE_TRUNC('month', measurement_timestamp)
+      comment: "Month of measurement for process centering trend analysis."
+  measures:
+    - name: "avg_measured_value"
+      expr: AVG(CAST(measured_value AS DOUBLE))
+      comment: "Average measured parameter value — primary process centering metric for SPC and process control."
+    - name: "avg_measurement_value"
+      expr: AVG(CAST(measurement_value AS DOUBLE))
+      comment: "Average measurement value for cross-validation and process window analysis."
+    - name: "avg_target_value"
+      expr: AVG(CAST(target_value AS DOUBLE))
+      comment: "Average target value for measurements, used to assess process centering against design intent."
+    - name: "avg_lower_spec_limit"
+      expr: AVG(CAST(lower_spec_limit AS DOUBLE))
+      comment: "Average lower specification limit across measurements for process window analysis."
+    - name: "avg_upper_spec_limit"
+      expr: AVG(CAST(upper_spec_limit AS DOUBLE))
+      comment: "Average upper specification limit for process window and capability analysis."
+    - name: "avg_measurement_uncertainty"
+      expr: AVG(CAST(measurement_uncertainty AS DOUBLE))
+      comment: "Average measurement uncertainty — critical for gauge R&R and measurement system analysis (MSA)."
+    - name: "out_of_spec_measurement_count"
+      expr: COUNT(CASE WHEN in_spec_flag = FALSE THEN 1 END)
+      comment: "Number of out-of-specification measurements — primary quality gate failure metric driving process intervention."
+    - name: "total_measurements"
+      expr: COUNT(1)
+      comment: "Total metrology measurements taken — measures inspection coverage and data density for process control."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_notification`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Quality notification volume, escalation, and resolution metrics for quality event management and customer impact tracking."
+  source: "`vibe_semiconductors_v1`.`quality`.`quality_notification`"
+  dimensions:
+    - name: "notification_type"
+      expr: notification_type
+      comment: "Type of quality notification (e.g., process excursion, customer complaint, supplier issue) for event categorization."
+    - name: "notification_status"
+      expr: notification_status
+      comment: "Current status of the notification for pipeline management."
+    - name: "quality_notification_status"
+      expr: quality_notification_status
+      comment: "Workflow status of the quality notification record."
+    - name: "severity"
+      expr: severity
+      comment: "Severity of the quality event for risk-tiered escalation management."
+    - name: "priority"
+      expr: priority
+      comment: "Priority of the notification for resolution urgency management."
+    - name: "escalation_level"
+      expr: escalation_level
+      comment: "Escalation level of the notification for executive visibility management."
+    - name: "is_customer_impact"
+      expr: is_customer_impact
+      comment: "Whether the notification has customer impact — drives customer communication and satisfaction risk management."
+    - name: "is_repeat_issue"
+      expr: is_repeat_issue
+      comment: "Whether this is a repeat quality issue — signals systemic quality system failures."
+    - name: "notification_date_month"
+      expr: DATE_TRUNC('month', notification_date)
+      comment: "Month of notification for quality event trend analysis."
+  measures:
+    - name: "total_quality_notifications"
+      expr: COUNT(1)
+      comment: "Total quality notifications — primary quality event volume KPI for quality system activity monitoring."
+    - name: "avg_defect_rate_ppm"
+      expr: AVG(CAST(defect_rate_ppm AS DOUBLE))
+      comment: "Average defect rate in PPM from quality notifications — links event management to quantitative quality performance."
+    - name: "avg_measurement_value"
+      expr: AVG(CAST(measurement_value AS DOUBLE))
+      comment: "Average measurement value from quality notifications for process parameter excursion analysis."
+    - name: "customer_impact_notification_count"
+      expr: COUNT(CASE WHEN is_customer_impact = TRUE THEN 1 END)
+      comment: "Notifications with customer impact — drives customer communication prioritization and satisfaction risk management."
+    - name: "repeat_issue_notification_count"
+      expr: COUNT(CASE WHEN is_repeat_issue = TRUE THEN 1 END)
+      comment: "Repeat issue notifications — measures systemic quality problem recurrence rate for corrective action effectiveness."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_qualification_program`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Quality qualification program status, yield performance, DPPM targets, and budget metrics. Drives NPI investment decisions and qualification program portfolio management."
+  source: "`vibe_semiconductors_v1`.`quality`.`quality_qualification_program`"
+  dimensions:
+    - name: "qualification_type"
+      expr: qualification_type
+      comment: "Type of qualification program (e.g., JEDEC, AEC-Q100, customer-specific) for compliance portfolio management."
+    - name: "program_status"
+      expr: program_status
+      comment: "Current status of the qualification program for NPI pipeline management."
+    - name: "quality_qualification_program_status"
+      expr: quality_qualification_program_status
+      comment: "Workflow status of the qualification program record."
+    - name: "program_category"
+      expr: program_category
+      comment: "Category of the qualification program for portfolio segmentation."
+    - name: "qualification_standard"
+      expr: qualification_standard
+      comment: "Applicable qualification standard for compliance coverage analysis."
+    - name: "risk_level"
+      expr: risk_level
+      comment: "Risk level of the qualification program for resource prioritization."
+    - name: "lifecycle_status"
+      expr: lifecycle_status
+      comment: "Lifecycle stage of the program for portfolio health management."
+    - name: "planned_start_date_month"
+      expr: DATE_TRUNC('month', planned_start_date)
+      comment: "Month of planned program start for NPI timeline planning."
+    - name: "overall_status"
+      expr: overall_status
+      comment: "Overall program health status for executive dashboard reporting."
+  measures:
+    - name: "total_qualification_programs"
+      expr: COUNT(1)
+      comment: "Total qualification programs — measures NPI qualification pipeline breadth and program portfolio size."
+    - name: "avg_actual_yield_percent"
+      expr: AVG(CAST(actual_yield_percent AS DOUBLE))
+      comment: "Average actual yield percentage across qualification programs — primary NPI quality performance KPI."
+    - name: "avg_target_yield_percent"
+      expr: AVG(CAST(target_yield_percent AS DOUBLE))
+      comment: "Average target yield percentage for qualification programs, used to assess performance against plan."
+    - name: "avg_dppm_actual"
+      expr: AVG(CAST(dppm_actual AS DOUBLE))
+      comment: "Average actual DPPM across qualification programs — customer-facing quality metric for product release decisions."
+    - name: "avg_dppm_target"
+      expr: AVG(CAST(dppm_target AS DOUBLE))
+      comment: "Average DPPM target for qualification programs, used to assess quality commitment achievement."
+    - name: "total_program_budget_usd"
+      expr: SUM(CAST(program_budget_usd AS DOUBLE))
+      comment: "Total qualification program budget in USD — drives R&D and NPI investment planning decisions."
+    - name: "avg_program_budget_usd"
+      expr: AVG(CAST(program_budget_usd AS DOUBLE))
+      comment: "Average qualification program budget for cost benchmarking and resource allocation."
+    - name: "active_program_count"
+      expr: COUNT(CASE WHEN program_status NOT IN ('Completed', 'Cancelled', 'On Hold') THEN 1 END)
+      comment: "Number of active qualification programs — measures NPI pipeline activity and qualification capacity demand."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_spec`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Quality specification coverage, tolerance window, and compliance metrics. Drives specification management effectiveness and process capability assessment."
+  source: "`vibe_semiconductors_v1`.`quality`.`quality_spec`"
+  dimensions:
+    - name: "spec_type"
+      expr: spec_type
+      comment: "Type of quality specification (e.g., electrical, mechanical, visual) for specification portfolio management."
+    - name: "quality_spec_status"
+      expr: quality_spec_status
+      comment: "Current status of the quality specification for active coverage management."
+    - name: "spec_status"
+      expr: spec_status
+      comment: "Publication status of the specification for document management."
+    - name: "approval_status"
+      expr: approval_status
+      comment: "Approval status of the specification for governance compliance."
+    - name: "parameter_name"
+      expr: parameter_name
+      comment: "Name of the quality parameter specified for parameter-level coverage analysis."
+    - name: "process_node"
+      expr: process_node
+      comment: "Technology node the specification applies to for node-level quality requirement management."
+    - name: "product_family"
+      expr: product_family
+      comment: "Product family the specification covers for product-level quality management."
+    - name: "test_type"
+      expr: test_type
+      comment: "Test type associated with the specification for test coverage analysis."
+    - name: "effective_from_month"
+      expr: DATE_TRUNC('month', effective_from)
+      comment: "Month specification became effective for specification lifecycle management."
+  measures:
+    - name: "total_quality_specs"
+      expr: COUNT(1)
+      comment: "Total quality specifications — measures specification coverage breadth across products and processes."
+    - name: "avg_nominal_value"
+      expr: AVG(CAST(nominal_value AS DOUBLE))
+      comment: "Average nominal specification value for process centering benchmarking."
+    - name: "avg_lower_spec_limit"
+      expr: AVG(CAST(lower_spec_limit AS DOUBLE))
+      comment: "Average lower specification limit for process window analysis."
+    - name: "avg_upper_spec_limit"
+      expr: AVG(CAST(upper_spec_limit AS DOUBLE))
+      comment: "Average upper specification limit for process window analysis."
+    - name: "avg_lower_limit"
+      expr: AVG(CAST(lower_limit AS DOUBLE))
+      comment: "Average lower limit across specifications for tolerance window analysis."
+    - name: "avg_upper_limit"
+      expr: AVG(CAST(upper_limit AS DOUBLE))
+      comment: "Average upper limit across specifications for tolerance window analysis."
+    - name: "avg_target_value"
+      expr: AVG(CAST(target_value AS DOUBLE))
+      comment: "Average target value across specifications for process centering goal management."
+    - name: "avg_measurement_accuracy_percent"
+      expr: AVG(CAST(measurement_accuracy_percent AS DOUBLE))
+      comment: "Average measurement accuracy percentage — measures metrology system capability relative to specification requirements."
+    - name: "avg_measurement_variance_percent"
+      expr: AVG(CAST(measurement_variance_percent AS DOUBLE))
+      comment: "Average measurement variance percentage for gauge R&R and measurement system analysis."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_reliability_test`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Reliability test performance and failure analysis metrics for product qualification"
+  source: "`vibe_semiconductors_v1`.`quality`.`reliability_test`"
+  dimensions:
+    - name: "test_type"
+      expr: test_type
+      comment: "Type of reliability test (HTOL, HAST, TC, etc.)"
+    - name: "test_status"
+      expr: test_status
+      comment: "Status of reliability test (in progress, completed, failed)"
+    - name: "qualification_type"
+      expr: qualification_type
+      comment: "Type of qualification (new product, process change, etc.)"
+    - name: "test_standard"
+      expr: test_standard
+      comment: "Standard used for reliability testing (JEDEC, AEC, etc.)"
+    - name: "failure_mode"
+      expr: failure_mode
+      comment: "Mode of failure observed in test"
+    - name: "failure_mechanism"
+      expr: failure_mechanism
+      comment: "Mechanism of failure"
+    - name: "reliability_grade"
+      expr: reliability_grade
+      comment: "Reliability grade assigned based on test results"
+    - name: "compliance_jedec"
+      expr: compliance_jedec
+      comment: "JEDEC compliance flag"
+    - name: "compliance_iso_9001"
+      expr: compliance_iso_9001
+      comment: "ISO 9001 compliance flag"
+    - name: "test_month"
+      expr: DATE_TRUNC('MONTH', test_execution_timestamp)
+      comment: "Month when test was executed"
+  measures:
+    - name: "total_reliability_tests"
+      expr: COUNT(1)
+      comment: "Total number of reliability tests"
+    - name: "unique_products_tested"
+      expr: COUNT(DISTINCT ic_catalog_id)
+      comment: "Number of unique products with reliability tests"
+    - name: "unique_lots_tested"
+      expr: COUNT(DISTINCT fabrication_wafer_lot_id)
+      comment: "Number of unique lots with reliability tests"
+    - name: "avg_test_duration_hours"
+      expr: AVG(CAST(test_duration_hours AS DOUBLE))
+      comment: "Average test duration in hours"
+    - name: "avg_test_temperature_c"
+      expr: AVG(CAST(test_temperature_c AS DOUBLE))
+      comment: "Average test temperature in Celsius"
+    - name: "avg_test_humidity_percent"
+      expr: AVG(CAST(test_humidity_percent AS DOUBLE))
+      comment: "Average test humidity percentage"
+    - name: "avg_fit_rate"
+      expr: AVG(CAST(fit_rate AS DOUBLE))
+      comment: "Average failures in time rate"
+    - name: "avg_weibull_shape"
+      expr: AVG(CAST(weibull_shape_parameter AS DOUBLE))
+      comment: "Average Weibull shape parameter for failure distribution"
+    - name: "avg_weibull_scale"
+      expr: AVG(CAST(weibull_scale_parameter AS DOUBLE))
+      comment: "Average Weibull scale parameter for failure distribution"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_spc_chart`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Statistical Process Control (SPC) chart metrics for process stability monitoring, Cpk trending, and out-of-control event management. Core process quality steering KPI."
+  source: "`vibe_semiconductors_v1`.`quality`.`spc_chart`"
+  dimensions:
+    - name: "chart_type"
+      expr: chart_type
+      comment: "SPC chart type (e.g., X-bar R, CUSUM, EWMA) for control methodology analysis."
+    - name: "parameter_name"
+      expr: parameter_name
+      comment: "Process parameter being monitored (e.g., CD, thickness, resistivity) for parameter-level SPC coverage."
+    - name: "spc_chart_status"
+      expr: spc_chart_status
+      comment: "Current status of the SPC chart for active monitoring coverage management."
+    - name: "out_of_control_flag"
+      expr: out_of_control_flag
+      comment: "Whether the chart has an active out-of-control signal — primary SPC alert dimension."
+    - name: "assignable_cause_code"
+      expr: assignable_cause_code
+      comment: "Assignable cause code for out-of-control events, enabling root cause pattern analysis."
+    - name: "measurement_method"
+      expr: measurement_method
+      comment: "Measurement method used for SPC data collection."
+    - name: "shift"
+      expr: shift
+      comment: "Production shift for shift-level process stability comparison."
+    - name: "effective_start_date_month"
+      expr: DATE_TRUNC('month', effective_start_date)
+      comment: "Month the SPC chart became effective for control plan coverage trending."
+    - name: "is_baseline"
+      expr: is_baseline
+      comment: "Whether this chart represents the baseline control limits for process capability benchmarking."
+  measures:
+    - name: "avg_cpk"
+      expr: AVG(CAST(cpk AS DOUBLE))
+      comment: "Average process capability index (Cpk) — primary process quality KPI. Cpk < 1.33 triggers process improvement investment."
+    - name: "avg_cpk_value"
+      expr: AVG(CAST(cpk_value AS DOUBLE))
+      comment: "Average Cpk value from the cpk_value column for cross-validation of process capability."
+    - name: "avg_measurement_value"
+      expr: AVG(CAST(measurement_value AS DOUBLE))
+      comment: "Average measured parameter value for process centering analysis."
+    - name: "avg_center_line"
+      expr: AVG(CAST(center_line AS DOUBLE))
+      comment: "Average SPC center line value, used to assess process mean stability over time."
+    - name: "avg_upper_control_limit"
+      expr: AVG(CAST(upper_control_limit AS DOUBLE))
+      comment: "Average upper control limit across charts, used for control limit consistency auditing."
+    - name: "avg_lower_control_limit"
+      expr: AVG(CAST(lower_control_limit AS DOUBLE))
+      comment: "Average lower control limit across charts for process window analysis."
+    - name: "out_of_control_event_count"
+      expr: COUNT(CASE WHEN out_of_control_flag = TRUE THEN 1 END)
+      comment: "Number of out-of-control SPC events — primary process excursion KPI driving immediate corrective action."
+    - name: "total_spc_charts"
+      expr: COUNT(1)
+      comment: "Total SPC charts in the system — measures SPC coverage breadth across the process flow."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_supplier_quality_scorecard`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Supplier quality performance metrics for vendor management and development"
+  source: "`vibe_semiconductors_v1`.`quality`.`supplier_quality_scorecard`"
+  dimensions:
+    - name: "scorecard_status"
+      expr: scorecard_status
+      comment: "Status of supplier scorecard (active, archived, under review)"
+    - name: "scorecard_period"
+      expr: scorecard_period
+      comment: "Period covered by scorecard (monthly, quarterly, annual)"
+    - name: "overall_rating"
+      expr: overall_rating
+      comment: "Overall supplier rating (excellent, good, acceptable, poor)"
+    - name: "rating_grade"
+      expr: rating_grade
+      comment: "Letter grade assigned to supplier"
+    - name: "tier_classification"
+      expr: tier_classification
+      comment: "Supplier tier classification (tier 1, tier 2, etc.)"
+    - name: "supplier_type"
+      expr: supplier_type
+      comment: "Type of supplier (material, equipment, service, etc.)"
+    - name: "trend_direction"
+      expr: trend_direction
+      comment: "Trend direction of supplier performance (improving, stable, declining)"
+    - name: "evaluation_period_start_month"
+      expr: DATE_TRUNC('MONTH', evaluation_period_start)
+      comment: "Month when evaluation period started"
+    - name: "evaluation_period_end_month"
+      expr: DATE_TRUNC('MONTH', evaluation_period_end)
+      comment: "Month when evaluation period ended"
+  measures:
+    - name: "total_scorecards"
+      expr: COUNT(1)
+      comment: "Total number of supplier scorecards"
+    - name: "unique_suppliers_scored"
+      expr: COUNT(DISTINCT supplier_id)
+      comment: "Number of unique suppliers with scorecards"
+    - name: "avg_overall_quality_score"
+      expr: AVG(CAST(overall_quality_score AS DOUBLE))
+      comment: "Average overall quality score across suppliers"
+    - name: "avg_quality_score"
+      expr: AVG(CAST(quality_score AS DOUBLE))
+      comment: "Average quality component score"
+    - name: "avg_delivery_score"
+      expr: AVG(CAST(delivery_score AS DOUBLE))
+      comment: "Average delivery component score"
+    - name: "avg_dppm_value"
+      expr: AVG(CAST(dppm_value AS DOUBLE))
+      comment: "Average defective parts per million from suppliers"
+    - name: "avg_on_time_delivery_percent"
+      expr: AVG(CAST(on_time_delivery_percent AS DOUBLE))
+      comment: "Average on-time delivery percentage"
+    - name: "avg_ppm_defect_rate"
+      expr: AVG(CAST(ppm_defect_rate AS DOUBLE))
+      comment: "Average parts per million defect rate"
+    - name: "total_cost_of_poor_quality"
+      expr: SUM(CAST(kpi_cost_of_poor_quality AS DOUBLE))
+      comment: "Total cost of poor quality from suppliers"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_wafer_map`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Wafer map yield and die distribution metrics for spatial quality analysis"
+  source: "`vibe_semiconductors_v1`.`quality`.`wafer_map`"
+  dimensions:
+    - name: "map_status"
+      expr: map_status
+      comment: "Status of wafer map (active, archived, superseded)"
+    - name: "map_type"
+      expr: map_type
+      comment: "Type of wafer map (probe, final test, etc.)"
+    - name: "map_format"
+      expr: map_format
+      comment: "Format of wafer map data"
+    - name: "flat_orientation"
+      expr: flat_orientation
+      comment: "Orientation of wafer flat"
+    - name: "kgd_certified"
+      expr: is_kgd_certified
+      comment: "Known Good Die certification flag"
+    - name: "compliance_iso9001"
+      expr: compliance_iso9001
+      comment: "ISO 9001 compliance flag"
+    - name: "compliance_iatf16949"
+      expr: compliance_iatf16949
+      comment: "IATF 16949 compliance flag"
+    - name: "map_generation_month"
+      expr: DATE_TRUNC('MONTH', map_generation_timestamp)
+      comment: "Month when wafer map was generated"
+  measures:
+    - name: "total_wafer_maps"
+      expr: COUNT(1)
+      comment: "Total number of wafer maps"
+    - name: "unique_wafers_mapped"
+      expr: COUNT(DISTINCT wafer_id)
+      comment: "Number of unique wafers with maps"
+    - name: "unique_lots_mapped"
+      expr: COUNT(DISTINCT fabrication_wafer_lot_id)
+      comment: "Number of unique lots with wafer maps"
+    - name: "avg_yield_percent"
+      expr: AVG(CAST(yield_percent AS DOUBLE))
+      comment: "Average yield percentage across wafer maps"
+    - name: "avg_die_yield_percentage"
+      expr: AVG(CAST(die_yield_percentage AS DOUBLE))
+      comment: "Average die yield percentage"
+    - name: "avg_defect_density_per_sqmm"
+      expr: AVG(CAST(defect_density_per_sqmm AS DOUBLE))
+      comment: "Average defect density per square millimeter"
+    - name: "avg_edge_exclusion_zone_mm"
+      expr: AVG(CAST(edge_exclusion_zone_mm AS DOUBLE))
+      comment: "Average edge exclusion zone in millimeters"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_wafer_zone`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Wafer zone-level yield and defect density metrics for spatial process analysis, enabling identification of radial yield patterns and equipment-induced defect signatures."
+  source: "`vibe_semiconductors_v1`.`quality`.`wafer_zone`"
+  dimensions:
+    - name: "zone_type"
+      expr: zone_type
+      comment: "Type of wafer zone (e.g., center, edge, ring) for spatial yield pattern analysis."
+    - name: "zone_name"
+      expr: zone_name
+      comment: "Name of the wafer zone for human-readable spatial reporting."
+    - name: "wafer_zone_status"
+      expr: wafer_zone_status
+      comment: "Current status of the wafer zone record."
+    - name: "zone_status"
+      expr: zone_status
+      comment: "Operational status of the zone for active monitoring management."
+    - name: "radial_position"
+      expr: radial_position
+      comment: "Radial position classification of the zone for center-to-edge yield gradient analysis."
+    - name: "radius_band"
+      expr: radius_band
+      comment: "Radius band grouping for aggregated radial yield analysis."
+    - name: "shape"
+      expr: shape
+      comment: "Geometric shape of the zone (e.g., annular, rectangular) for spatial analysis."
+    - name: "is_critical"
+      expr: is_critical
+      comment: "Whether the zone is designated as critical for yield — drives inspection frequency and process control priority."
+    - name: "process_step"
+      expr: process_step
+      comment: "Process step associated with the zone measurement for step-level spatial yield attribution."
+    - name: "effective_start_date_month"
+      expr: DATE_TRUNC('month', effective_start_date)
+      comment: "Month zone definition became effective for historical spatial yield trending."
+  measures:
+    - name: "avg_yield_percent"
+      expr: AVG(CAST(yield_percent AS DOUBLE))
+      comment: "Average yield percentage by wafer zone — enables spatial yield gradient analysis to identify process non-uniformity."
+    - name: "avg_zone_yield_percent"
+      expr: AVG(CAST(zone_yield_percent AS DOUBLE))
+      comment: "Average zone-specific yield percentage for granular spatial quality reporting."
+    - name: "avg_defect_density"
+      expr: AVG(CAST(defect_density AS DOUBLE))
+      comment: "Average defect density per zone — identifies high-defect zones for targeted process improvement."
+    - name: "avg_typical_defect_density"
+      expr: AVG(CAST(typical_defect_density AS DOUBLE))
+      comment: "Average typical defect density baseline per zone, used to detect excursions above historical norms."
+    - name: "avg_area_um2"
+      expr: AVG(CAST(area_um2 AS DOUBLE))
+      comment: "Average zone area in square micrometers for yield normalization and die count estimation."
+    - name: "avg_inner_radius_mm"
+      expr: AVG(CAST(inner_radius_mm AS DOUBLE))
+      comment: "Average inner radius of wafer zones for process window and exclusion zone optimization."
+    - name: "avg_outer_radius_mm"
+      expr: AVG(CAST(outer_radius_mm AS DOUBLE))
+      comment: "Average outer radius of wafer zones for spatial coverage analysis."
+    - name: "critical_zone_count"
+      expr: COUNT(CASE WHEN is_critical = TRUE THEN 1 END)
+      comment: "Number of critical wafer zones under active monitoring — measures spatial quality control coverage."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`quality_yield_record`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Wafer and lot yield performance metrics for manufacturing efficiency analysis"
+  source: "`vibe_semiconductors_v1`.`quality`.`yield_record`"
+  dimensions:
+    - name: "yield_stage"
+      expr: yield_stage
+      comment: "Stage of manufacturing where yield was measured (probe, final test, etc.)"
+    - name: "yield_type"
+      expr: yield_type
+      comment: "Type of yield measurement (parametric, functional, etc.)"
+    - name: "process_node"
+      expr: process_node
+      comment: "Technology node for yield analysis"
+    - name: "fab_line"
+      expr: fab_line
+      comment: "Fabrication line where wafer was processed"
+    - name: "measurement_stage"
+      expr: measurement_stage
+      comment: "Stage where measurement was taken"
+    - name: "quality_gate"
+      expr: quality_gate
+      comment: "Quality gate checkpoint for yield assessment"
+    - name: "yield_loss_category"
+      expr: yield_loss_category
+      comment: "Category of yield loss for root cause analysis"
+    - name: "measurement_month"
+      expr: DATE_TRUNC('MONTH', measurement_date)
+      comment: "Month when yield was measured"
+    - name: "measurement_week"
+      expr: DATE_TRUNC('WEEK', measurement_date)
+      comment: "Week when yield was measured"
+  measures:
+    - name: "total_yield_records"
+      expr: COUNT(1)
+      comment: "Total number of yield measurement records"
+    - name: "unique_wafers_measured"
+      expr: COUNT(DISTINCT wafer_id)
+      comment: "Number of unique wafers with yield measurements"
+    - name: "unique_lots_measured"
+      expr: COUNT(DISTINCT fabrication_wafer_lot_id)
+      comment: "Number of unique lots with yield measurements"
+    - name: "avg_yield_percent"
+      expr: AVG(CAST(yield_percent AS DOUBLE))
+      comment: "Average yield percentage across all measurements"
+    - name: "avg_yield_gap_percent"
+      expr: AVG(CAST(yield_gap_percent AS DOUBLE))
+      comment: "Average gap between actual and target yield"
+    - name: "total_good_die"
+      expr: SUM(CAST(good_die_count AS BIGINT))
+      comment: "Total count of good die across all wafers"
+    - name: "total_die_measured"
+      expr: SUM(CAST(total_die_count AS BIGINT))
+      comment: "Total count of die measured across all wafers"
+    - name: "avg_defect_density_per_cm2"
+      expr: AVG(CAST(defect_density_per_cm2 AS DOUBLE))
+      comment: "Average defect density per square centimeter"
 $$;

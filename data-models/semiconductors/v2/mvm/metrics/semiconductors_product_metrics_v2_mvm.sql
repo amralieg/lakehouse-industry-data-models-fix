@@ -1,4 +1,4 @@
--- Metric views for domain: product | Business: Semiconductors | Version: 2 | Generated on: 2026-06-24 02:09:37
+-- Metric views for domain: product | Business: Semiconductors | Version: 2 | Generated on: 2026-06-27 11:25:39
 
 CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_bom`
 WITH METRICS
@@ -14,8 +14,6 @@ AS $$
       expr: approval_date
     - name: "Base Unit Of Measure"
       expr: base_unit_of_measure
-    - name: "Bom Number"
-      expr: bom_number
     - name: "Bom Status"
       expr: bom_status
     - name: "Bom Type"
@@ -40,6 +38,8 @@ AS $$
       expr: eol_date
     - name: "Explosion Type"
       expr: explosion_type
+    - name: "External Bom Reference"
+      expr: external_bom_reference
   measures:
     - name: "Row Count"
       expr: COUNT(1)
@@ -79,6 +79,8 @@ AS $$
       expr: assembly_process_code
     - name: "Bom Level"
       expr: bom_level
+    - name: "Bom Line Status"
+      expr: bom_line_status
     - name: "Component Description"
       expr: component_description
     - name: "Component Part Number"
@@ -101,8 +103,6 @@ AS $$
       expr: effectivity_start_date
     - name: "Engineering Change Order Number"
       expr: engineering_change_order_number
-    - name: "Itar Controlled Flag"
-      expr: itar_controlled_flag
   measures:
     - name: "Row Count"
       expr: COUNT(1)
@@ -148,6 +148,8 @@ AS $$
       expr: certification_status
     - name: "Certification Type"
       expr: certification_type
+    - name: "Compliance Cert Status"
+      expr: compliance_cert_status
     - name: "Compliance Notes"
       expr: compliance_notes
     - name: "Conflict Minerals Declaration"
@@ -160,8 +162,6 @@ AS $$
       expr: ear_controlled
     - name: "Effective Date"
       expr: effective_date
-    - name: "Environmental Standard"
-      expr: environmental_standard
   measures:
     - name: "Row Count"
       expr: COUNT(1)
@@ -197,14 +197,14 @@ AS $$
       expr: eol_announcement_date
     - name: "Fab Site Code"
       expr: fab_site_code
+    - name: "Family Status"
+      expr: family_status
     - name: "Family Type"
       expr: family_type
     - name: "Hierarchy Level"
       expr: hierarchy_level
     - name: "Ip Core Count"
       expr: ip_core_count
-    - name: "Itar Controlled Flag"
-      expr: itar_controlled_flag
   measures:
     - name: "Row Count"
       expr: COUNT(1)
@@ -260,18 +260,18 @@ AS $$
       expr: first_silicon_date
     - name: "Hts Code"
       expr: hts_code
+    - name: "Ic Catalog Status"
+      expr: ic_catalog_status
     - name: "Internal Part Number"
       expr: internal_part_number
     - name: "Is Active"
       expr: is_active
     - name: "Itar Controlled"
       expr: itar_controlled
+    - name: "Last Modified Timestamp"
+      expr: last_modified_timestamp
     - name: "Last Ship Date"
       expr: last_ship_date
-    - name: "Last Time Buy Date"
-      expr: last_time_buy_date
-    - name: "Lead Free Compliant"
-      expr: lead_free_compliant
   measures:
     - name: "Row Count"
       expr: COUNT(1)
@@ -331,6 +331,8 @@ AS $$
       expr: eol_announcement_date
     - name: "Export Control Classification"
       expr: export_control_classification
+    - name: "Foundry Source"
+      expr: foundry_source
     - name: "Last Modified Timestamp"
       expr: last_modified_timestamp
     - name: "Lifecycle Stage"
@@ -341,16 +343,14 @@ AS $$
       expr: ltb_deadline_date
     - name: "Metal Layer Count"
       expr: metal_layer_count
+    - name: "Model Lineage Source"
+      expr: model_lineage_source
     - name: "Modified By User"
       expr: modified_by_user
     - name: "Multi Patterning Layers"
       expr: multi_patterning_layers
     - name: "Node Code"
       expr: node_code
-    - name: "Node Generation"
-      expr: node_generation
-    - name: "Node Name"
-      expr: node_name
   measures:
     - name: "Row Count"
       expr: COUNT(1)
@@ -400,20 +400,20 @@ AS $$
       expr: interface_protocols
     - name: "Io Count"
       expr: io_count
+    - name: "Last Modified Timestamp"
+      expr: last_modified_timestamp
     - name: "Memory Configuration"
       expr: memory_configuration
+    - name: "Model Lineage Source"
+      expr: model_lineage_source
     - name: "Modified Timestamp"
       expr: modified_timestamp
     - name: "Notes"
       expr: notes
     - name: "Operating Condition Corner"
       expr: operating_condition_corner
-    - name: "Reach Compliant"
-      expr: reach_compliant
-    - name: "Rohs Compliant"
-      expr: rohs_compliant
-    - name: "Security Features"
-      expr: security_features
+    - name: "Product Spec Status"
+      expr: product_spec_status
   measures:
     - name: "Row Count"
       expr: COUNT(1)

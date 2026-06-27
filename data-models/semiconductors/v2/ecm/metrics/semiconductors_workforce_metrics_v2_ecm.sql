@@ -1,65 +1,56 @@
--- Metric views for domain: workforce | Business: Semiconductors | Version: 2 | Generated on: 2026-06-23 23:34:49
+-- Metric views for domain: workforce | Business: Semiconductors | Version: 2 | Generated on: 2026-06-28 00:14:33
 
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`workforce_employee`
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`workforce_cleanroom_access`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Core workforce headcount and compensation analytics. Provides executive-level visibility into workforce composition, compensation spend, and talent distribution across the organization."
-  source: "`vibe_semiconductors_v1`.`workforce`.`employee`"
+  comment: "Cleanroom access authorization and compliance metrics for fab security and contamination control"
+  source: "`vibe_semiconductors_v1`.`workforce`.`cleanroom_access`"
   dimensions:
-    - name: "employment_type"
-      expr: employment_type
-      comment: "Full-time, part-time, or contract classification for workforce segmentation."
-    - name: "department"
-      expr: department
-      comment: "Organizational department for headcount and cost analysis."
-    - name: "job_title"
-      expr: job_title
-      comment: "Job title for role-level workforce distribution analysis."
-    - name: "location"
-      expr: location
-      comment: "Physical work location for geographic workforce distribution."
-    - name: "employee_status"
-      expr: employee_status
-      comment: "Active, terminated, or on-leave status for workforce availability analysis."
-    - name: "salary_grade"
-      expr: salary_grade
-      comment: "Salary grade band for compensation equity and budget analysis."
-    - name: "organization_level"
-      expr: organization_level
-      comment: "Hierarchical level within the organization for span-of-control analysis."
-    - name: "hire_year"
-      expr: DATE_TRUNC('YEAR', hire_date)
-      comment: "Year of hire for tenure cohort and attrition trend analysis."
-    - name: "education_level"
-      expr: education_level
-      comment: "Highest education attained for talent pipeline and skills gap analysis."
+    - name: "access_status"
+      expr: access_status
+      comment: "Current access authorization status"
+    - name: "cleanroom_access_status"
+      expr: cleanroom_access_status
+      comment: "Detailed cleanroom access status for compliance tracking"
+    - name: "access_level"
+      expr: access_level
+      comment: "Level of cleanroom access granted"
+    - name: "cleanroom_class"
+      expr: cleanroom_class
+      comment: "ISO cleanroom classification for contamination control"
+    - name: "cleanroom_zone"
+      expr: cleanroom_zone
+      comment: "Specific cleanroom zone for area-based access control"
+    - name: "gowning_certification_status"
+      expr: gowning_certification_status
+      comment: "Status of gowning certification for contamination prevention"
+    - name: "qualification_status"
+      expr: qualification_status
+      comment: "Overall qualification status for access eligibility"
+    - name: "foreign_national_flag"
+      expr: CASE WHEN foreign_national THEN 'Foreign National' ELSE 'Domestic' END
+      comment: "Foreign national status for export control compliance"
+    - name: "is_temporary_flag"
+      expr: CASE WHEN is_temporary THEN 'Temporary' ELSE 'Permanent' END
+      comment: "Whether access is temporary for visitor management"
   measures:
-    - name: "total_headcount"
-      expr: COUNT(DISTINCT employee_id)
-      comment: "Total number of distinct employees. Primary workforce sizing KPI used in capacity planning and budget allocation."
-    - name: "active_headcount"
-      expr: COUNT(DISTINCT CASE WHEN employee_status = 'Active' THEN employee_id END)
-      comment: "Count of currently active employees. Drives operational capacity and resource availability decisions."
-    - name: "total_compensation_spend"
-      expr: SUM(CAST(compensation_amount AS DOUBLE))
-      comment: "Total compensation spend across all employees. Core financial KPI for workforce cost management and budget forecasting."
-    - name: "avg_compensation_per_employee"
-      expr: AVG(CAST(compensation_amount AS DOUBLE))
-      comment: "Average compensation per employee. Used for compensation benchmarking and equity analysis across departments and grades."
-    - name: "overtime_eligible_headcount"
-      expr: COUNT(DISTINCT CASE WHEN overtime_eligible = TRUE THEN employee_id END)
-      comment: "Number of employees eligible for overtime. Informs labor cost risk and scheduling decisions."
-    - name: "union_member_headcount"
-      expr: COUNT(DISTINCT CASE WHEN union_member_flag = TRUE THEN employee_id END)
-      comment: "Count of union-member employees. Critical for labor relations, contract negotiations, and compliance tracking."
-    - name: "itar_eligible_headcount"
-      expr: COUNT(DISTINCT CASE WHEN itar_eligibility = TRUE THEN employee_id END)
-      comment: "Count of ITAR-eligible employees. Directly governs which employees can work on export-controlled semiconductor programs."
-    - name: "ear_eligible_headcount"
-      expr: COUNT(DISTINCT CASE WHEN ear_eligibility = TRUE THEN employee_id END)
-      comment: "Count of EAR-eligible employees. Governs access to export-controlled technology and informs compliance risk posture."
+    - name: "total_access_records"
+      expr: COUNT(DISTINCT cleanroom_access_id)
+      comment: "Total cleanroom access records for access management tracking"
+    - name: "active_access_count"
+      expr: COUNT(DISTINCT CASE WHEN access_status = 'Active' THEN cleanroom_access_id END)
+      comment: "Count of active access authorizations for current capacity planning"
+    - name: "gowning_certified_count"
+      expr: COUNT(DISTINCT CASE WHEN gowning_certification_flag THEN cleanroom_access_id END)
+      comment: "Count of gowning-certified personnel for contamination control compliance"
+    - name: "gowning_certification_rate_pct"
+      expr: ROUND(100.0 * COUNT(DISTINCT CASE WHEN gowning_certification_flag THEN cleanroom_access_id END) / NULLIF(COUNT(DISTINCT cleanroom_access_id), 0), 2)
+      comment: "Percentage of personnel with gowning certification for quality assurance"
+    - name: "foreign_national_count"
+      expr: COUNT(DISTINCT CASE WHEN foreign_national THEN cleanroom_access_id END)
+      comment: "Count of foreign national access records for export control monitoring"
 $$;
 
 CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`workforce_compensation`
@@ -67,532 +58,111 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Compensation structure and spend analytics. Enables executives to monitor total compensation cost, bonus accruals, equity grants, and pay equity across the workforce."
+  comment: "Compensation and total rewards metrics for budget planning and equity analysis"
   source: "`vibe_semiconductors_v1`.`workforce`.`compensation`"
   dimensions:
     - name: "compensation_type"
       expr: compensation_type
-      comment: "Type of compensation (base, bonus, equity) for spend category analysis."
-    - name: "employment_type"
-      expr: employment_type
-      comment: "Employment classification for compensation cost segmentation."
-    - name: "department_code"
-      expr: department_code
-      comment: "Department for compensation cost allocation and budget variance analysis."
-    - name: "pay_grade"
-      expr: pay_grade
-      comment: "Pay grade band for compensation equity and market benchmarking."
-    - name: "pay_frequency"
-      expr: pay_frequency
-      comment: "Payroll frequency (monthly, bi-weekly) for cash flow planning."
-    - name: "currency_code"
-      expr: currency_code
-      comment: "Currency for multi-currency compensation cost consolidation."
+      comment: "Type of compensation (base, bonus, equity)"
     - name: "compensation_status"
       expr: compensation_status
-      comment: "Status of the compensation record for active vs. historical analysis."
+      comment: "Status of compensation record (active, pending, historical)"
+    - name: "pay_grade"
+      expr: pay_grade
+      comment: "Pay grade level for equity analysis"
+    - name: "salary_grade"
+      expr: salary_grade
+      comment: "Salary grade classification"
+    - name: "employment_type"
+      expr: employment_type
+      comment: "Employment type for compensation segmentation"
+    - name: "currency_code"
+      expr: currency_code
+      comment: "Currency of compensation for multi-currency reporting"
     - name: "effective_year"
-      expr: DATE_TRUNC('YEAR', effective_date)
-      comment: "Effective year for compensation trend and annual review cycle analysis."
-    - name: "shift_type"
-      expr: shift_type
-      comment: "Shift type for shift-differential cost analysis in fab operations."
+      expr: YEAR(effective_date)
+      comment: "Year compensation became effective for trend analysis"
+    - name: "is_current_flag"
+      expr: CASE WHEN is_current THEN 'Current' ELSE 'Historical' END
+      comment: "Whether compensation record is currently active"
   measures:
     - name: "total_base_salary"
-      expr: SUM(CAST(base_salary_amount AS DOUBLE))
-      comment: "Total base salary spend. Primary fixed labor cost KPI for budget planning and headcount ROI analysis."
-    - name: "avg_base_salary"
-      expr: AVG(CAST(base_salary_amount AS DOUBLE))
-      comment: "Average base salary per compensation record. Used for pay equity analysis and market benchmarking."
-    - name: "total_bonus_accrual"
+      expr: SUM(CAST(base_salary AS DOUBLE))
+      comment: "Total base salary expense for budget planning"
+    - name: "total_bonus_amount"
       expr: SUM(CAST(bonus_amount AS DOUBLE))
-      comment: "Total bonus accrual across all employees. Drives variable compensation budget and P&L impact forecasting."
-    - name: "avg_bonus_target_percent"
+      comment: "Total bonus payout for variable compensation analysis"
+    - name: "total_equity_amount"
+      expr: SUM(CAST(equity_amount AS DOUBLE))
+      comment: "Total equity grant value for long-term incentive tracking"
+    - name: "avg_base_salary"
+      expr: AVG(CAST(base_salary AS DOUBLE))
+      comment: "Average base salary for market competitiveness analysis"
+    - name: "avg_bonus_target_pct"
       expr: AVG(CAST(bonus_target_percent AS DOUBLE))
-      comment: "Average bonus target as a percentage of base. Benchmarks incentive plan competitiveness across grades and departments."
-    - name: "total_equity_grant_value"
-      expr: SUM(CAST(equity_grant_amount AS DOUBLE))
-      comment: "Total equity grant value issued. Key retention and long-term incentive cost metric for executive compensation review."
-    - name: "total_shift_differential_cost"
-      expr: SUM(CAST(shift_differential_amount AS DOUBLE))
-      comment: "Total shift differential pay. Quantifies the premium cost of running 24/7 fab operations across multiple shifts."
-    - name: "total_variable_compensation_actual"
-      expr: SUM(CAST(variable_compensation_actual AS DOUBLE))
-      comment: "Total actual variable compensation paid. Compared against target to assess incentive plan payout efficiency."
-    - name: "total_variable_compensation_target"
-      expr: SUM(CAST(variable_compensation_target AS DOUBLE))
-      comment: "Total targeted variable compensation. Used as denominator for payout ratio analysis against actual variable pay."
-    - name: "equity_eligible_headcount"
-      expr: COUNT(DISTINCT CASE WHEN equity_grant_eligibility = TRUE THEN compensation_employee_id END)
-      comment: "Number of employees eligible for equity grants. Informs retention risk and long-term incentive program scope."
+      comment: "Average bonus target percentage for incentive plan design"
+    - name: "total_compensation_records"
+      expr: COUNT(DISTINCT compensation_id)
+      comment: "Count of compensation records for data quality monitoring"
+    - name: "equity_eligible_count"
+      expr: COUNT(DISTINCT CASE WHEN equity_grant_eligibility THEN compensation_id END)
+      comment: "Count of equity-eligible compensation records for equity program sizing"
 $$;
 
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`workforce_time_entry`
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`workforce_competency`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Labor hours and cost analytics for workforce productivity and billing. Provides operational visibility into regular, overtime, and billable hours to drive scheduling efficiency and cost control."
-  source: "`vibe_semiconductors_v1`.`workforce`.`time_entry`"
+  comment: "Workforce competency and skills proficiency metrics. Used by HR and operations leadership to identify skills gaps, manage certification compliance, and ensure the workforce has the technical competencies required for advanced semiconductor manufacturing."
+  source: "`vibe_semiconductors_v1`.`workforce`.`competency`"
   dimensions:
-    - name: "labor_category"
-      expr: labor_category
-      comment: "Labor category (direct, indirect, R&D) for cost allocation and project charging."
-    - name: "cost_center_code"
-      expr: cost_center_code
-      comment: "Cost center for labor cost allocation to financial reporting units."
-    - name: "shift_code"
-      expr: shift_code
-      comment: "Shift identifier for shift-level productivity and overtime analysis."
-    - name: "time_entry_type"
-      expr: time_entry_type
-      comment: "Type of time entry (regular, overtime, absence) for workforce availability analysis."
-    - name: "approval_status"
-      expr: approval_status
-      comment: "Approval status for identifying unapproved time that may affect payroll accuracy."
-    - name: "billing_status"
-      expr: billing_status
-      comment: "Billing status for tracking billable vs. non-billable labor cost recovery."
-    - name: "absence_type"
-      expr: absence_type
-      comment: "Type of absence for workforce availability and leave liability analysis."
-    - name: "work_date_month"
-      expr: DATE_TRUNC('MONTH', work_date)
-      comment: "Month of work for trend analysis of labor hours and costs."
-    - name: "labor_grade"
-      expr: labor_grade
-      comment: "Labor grade for cost rate analysis and workforce mix optimization."
+    - name: "competency_status"
+      expr: competency_status
+      comment: "Current status of the competency record (Active, Expired, In Progress) for competency coverage analysis."
+    - name: "competency_category"
+      expr: competency_category
+      comment: "Category of competency (Technical, Safety, Leadership, Process) for skills portfolio analysis."
+    - name: "competency_level"
+      expr: competency_level
+      comment: "Level of competency achieved (Awareness, Practitioner, Expert) for skills depth analysis."
+    - name: "certification_status"
+      expr: certification_status
+      comment: "Status of the associated certification (Valid, Expired, Pending) for certification compliance tracking."
+    - name: "skill_criticality"
+      expr: skill_criticality
+      comment: "Criticality of the skill (Critical, High, Medium, Low) for workforce risk and succession planning."
+    - name: "export_control_relevant"
+      expr: export_control_relevant
+      comment: "Whether the competency is relevant to export-controlled technology, requiring additional access controls."
+    - name: "assessment_date_month"
+      expr: DATE_TRUNC('MONTH', assessment_date)
+      comment: "Month of competency assessment for trend analysis of skills development velocity."
+    - name: "record_status"
+      expr: record_status
+      comment: "Record-level status for data quality and active record filtering."
   measures:
-    - name: "total_hours_worked"
-      expr: SUM(CAST(hours_worked AS DOUBLE))
-      comment: "Total hours worked across all employees. Primary workforce productivity and capacity utilization KPI."
-    - name: "total_regular_hours"
-      expr: SUM(CAST(regular_hours AS DOUBLE))
-      comment: "Total regular (non-overtime) hours. Baseline for workforce capacity planning and scheduling efficiency."
-    - name: "total_overtime_hours"
-      expr: SUM(CAST(overtime_hours AS DOUBLE))
-      comment: "Total overtime hours logged. Signals workforce strain, scheduling gaps, and incremental labor cost risk."
-    - name: "overtime_rate"
-      expr: ROUND(100.0 * SUM(CAST(overtime_hours AS DOUBLE)) / NULLIF(SUM(CAST(hours_worked AS DOUBLE)), 0), 2)
-      comment: "Overtime as a percentage of total hours worked. Key efficiency KPI — high rates indicate understaffing or demand spikes in fab operations."
-    - name: "total_labor_cost"
-      expr: SUM(CAST(labor_amount AS DOUBLE))
-      comment: "Total labor cost across all time entries. Core financial KPI for workforce cost management and project profitability."
-    - name: "avg_labor_rate"
-      expr: AVG(CAST(labor_rate AS DOUBLE))
-      comment: "Average labor rate per hour. Used for cost benchmarking and workforce mix optimization decisions."
-    - name: "total_absence_hours"
-      expr: SUM(CAST(absence_duration_hours AS DOUBLE))
-      comment: "Total hours lost to absence. Drives workforce availability planning and absence management interventions."
-    - name: "total_shift_differential_hours"
-      expr: SUM(CAST(shift_differential_hours AS DOUBLE))
-      comment: "Total hours attracting shift differential pay. Quantifies the operational cost premium of running multi-shift fab operations."
-    - name: "billable_hours"
-      expr: SUM(CASE WHEN is_billable = TRUE THEN hours_worked ELSE 0 END)
-      comment: "Total billable hours. Drives revenue recognition for NRE and customer-funded programs."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`workforce_training`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Training completion, compliance, and effectiveness analytics. Tracks mandatory training adherence, assessment performance, and workforce skill development critical for fab safety and regulatory compliance."
-  source: "`vibe_semiconductors_v1`.`workforce`.`training`"
-  dimensions:
-    - name: "training_category"
-      expr: training_category
-      comment: "Training category (safety, technical, compliance) for program effectiveness analysis."
-    - name: "training_status"
-      expr: training_status
-      comment: "Completion status for identifying training gaps and compliance risk."
-    - name: "delivery_mode"
-      expr: delivery_mode
-      comment: "Delivery method (in-person, e-learning, OJT) for training effectiveness benchmarking."
-    - name: "pass_fail_status"
-      expr: pass_fail_status
-      comment: "Pass/fail outcome for identifying training effectiveness and retraining needs."
-    - name: "compliance_requirement"
-      expr: compliance_requirement
-      comment: "Regulatory or policy requirement driving the training for compliance gap analysis."
-    - name: "enrollment_month"
-      expr: DATE_TRUNC('MONTH', enrollment_date)
-      comment: "Month of enrollment for training pipeline and capacity planning."
-    - name: "completion_month"
-      expr: DATE_TRUNC('MONTH', completion_date)
-      comment: "Month of completion for training throughput trend analysis."
-  measures:
-    - name: "total_training_enrollments"
-      expr: COUNT(DISTINCT training_id)
-      comment: "Total training enrollments. Baseline for training program reach and workforce development investment."
-    - name: "mandatory_training_completions"
-      expr: COUNT(DISTINCT CASE WHEN mandatory_flag = TRUE AND training_status = 'Completed' THEN training_id END)
-      comment: "Count of completed mandatory training records. Critical compliance KPI — gaps expose the organization to regulatory and safety risk."
-    - name: "mandatory_training_compliance_rate"
-      expr: ROUND(100.0 * COUNT(DISTINCT CASE WHEN mandatory_flag = TRUE AND training_status = 'Completed' THEN training_id END) / NULLIF(COUNT(DISTINCT CASE WHEN mandatory_flag = TRUE THEN training_id END), 0), 2)
-      comment: "Percentage of mandatory training records completed. Executive compliance KPI — below threshold triggers regulatory risk escalation."
-    - name: "avg_assessment_score"
-      expr: AVG(CAST(assessment_score AS DOUBLE))
-      comment: "Average assessment score across training completions. Measures training effectiveness and knowledge retention."
-    - name: "training_pass_rate"
-      expr: ROUND(100.0 * COUNT(DISTINCT CASE WHEN pass_fail_status = 'Pass' THEN training_id END) / NULLIF(COUNT(DISTINCT training_id), 0), 2)
-      comment: "Percentage of training attempts that result in a pass. Identifies courses with high failure rates requiring curriculum redesign."
-    - name: "overdue_mandatory_training_count"
-      expr: COUNT(DISTINCT CASE WHEN mandatory_flag = TRUE AND training_status != 'Completed' AND compliance_deadline < CURRENT_DATE() THEN training_id END)
-      comment: "Count of overdue mandatory training records. Immediate action trigger for compliance remediation and audit risk mitigation."
-    - name: "avg_assessment_pass_threshold"
-      expr: AVG(CAST(assessment_pass_threshold AS DOUBLE))
-      comment: "Average passing threshold across training programs. Benchmarks rigor of training standards across the organization."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`workforce_safety_event`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Workplace safety incident analytics for fab operations. Tracks incident rates, severity, and investigation status to drive safety culture improvements and OSHA compliance."
-  source: "`vibe_semiconductors_v1`.`workforce`.`safety_event`"
-  dimensions:
-    - name: "event_type"
-      expr: event_type
-      comment: "Type of safety event (injury, near-miss, chemical exposure) for risk categorization."
-    - name: "incident_type"
-      expr: incident_type
-      comment: "Specific incident classification for root cause and prevention analysis."
-    - name: "severity"
-      expr: severity
-      comment: "Severity level for prioritizing corrective actions and resource allocation."
-    - name: "incident_status"
-      expr: incident_status
-      comment: "Investigation and resolution status for open incident tracking."
-    - name: "cleanroom_zone"
-      expr: cleanroom_zone
-      comment: "Cleanroom zone where the incident occurred for location-based safety risk analysis."
-    - name: "injury_type"
-      expr: injury_type
-      comment: "Type of injury for ergonomic and safety program targeting."
-    - name: "root_cause"
-      expr: root_cause
-      comment: "Root cause classification for systemic safety improvement programs."
-    - name: "event_month"
-      expr: DATE_TRUNC('MONTH', event_date)
-      comment: "Month of event for safety trend analysis and seasonal risk identification."
-    - name: "regulatory_reporting_status"
-      expr: regulatory_reporting_status
-      comment: "OSHA/regulatory reporting status for compliance obligation tracking."
-  measures:
-    - name: "total_safety_incidents"
-      expr: COUNT(DISTINCT safety_event_id)
-      comment: "Total safety incidents recorded. Primary safety performance KPI used in executive safety dashboards and regulatory reporting."
-    - name: "osha_recordable_incidents"
-      expr: COUNT(DISTINCT CASE WHEN osha_recordable_flag = TRUE THEN safety_event_id END)
-      comment: "Count of OSHA-recordable incidents. Directly drives OSHA 300 log compliance and regulatory filing obligations."
-    - name: "near_miss_incidents"
-      expr: COUNT(DISTINCT CASE WHEN near_miss_flag = TRUE THEN safety_event_id END)
-      comment: "Count of near-miss events. Leading indicator of safety culture health — high near-miss reporting signals proactive safety behavior."
-    - name: "total_incident_cost"
-      expr: SUM(CAST(cost_estimate AS DOUBLE))
-      comment: "Total estimated cost of safety incidents. Quantifies financial impact of safety failures for insurance and risk management decisions."
-    - name: "avg_incident_cost"
-      expr: AVG(CAST(cost_estimate AS DOUBLE))
-      comment: "Average cost per safety incident. Benchmarks incident severity and informs safety investment ROI calculations."
-    - name: "open_investigations_count"
-      expr: COUNT(DISTINCT CASE WHEN investigation_status != 'Closed' THEN safety_event_id END)
-      comment: "Count of incidents with open investigations. Operational KPI for safety team workload and regulatory response timeliness."
-    - name: "osha_recordable_rate"
-      expr: ROUND(100.0 * COUNT(DISTINCT CASE WHEN osha_recordable_flag = TRUE THEN safety_event_id END) / NULLIF(COUNT(DISTINCT safety_event_id), 0), 2)
-      comment: "Percentage of incidents that are OSHA-recordable. Tracks severity profile of the incident portfolio over time."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`workforce_talent_acquisition`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Talent acquisition pipeline and recruiting effectiveness analytics. Tracks open requisitions, time-to-fill, and recruiting spend to optimize workforce growth and critical role fulfillment."
-  source: "`vibe_semiconductors_v1`.`workforce`.`talent_acquisition`"
-  dimensions:
-    - name: "requisition_status"
-      expr: requisition_status
-      comment: "Current status of the requisition (open, filled, cancelled) for pipeline health monitoring."
-    - name: "requisition_type"
-      expr: requisition_type
-      comment: "Type of requisition (backfill, new headcount, contractor conversion) for workforce planning analysis."
-    - name: "talent_acquisition_status"
-      expr: talent_acquisition_status
-      comment: "Overall acquisition status for funnel conversion analysis."
-    - name: "source_channel"
-      expr: source_channel
-      comment: "Recruiting source channel for cost-per-hire and channel effectiveness analysis."
-    - name: "priority"
-      expr: priority
-      comment: "Requisition priority for resource allocation and time-to-fill SLA management."
-    - name: "currency_code"
-      expr: currency_code
-      comment: "Currency for multi-currency recruiting budget analysis."
-    - name: "posted_month"
-      expr: DATE_TRUNC('MONTH', posted_timestamp)
-      comment: "Month requisition was posted for recruiting pipeline trend analysis."
-    - name: "job_profile_name"
-      expr: job_profile_name
-      comment: "Job profile for role-level hiring velocity and market availability analysis."
-  measures:
-    - name: "total_open_requisitions"
-      expr: COUNT(DISTINCT CASE WHEN requisition_status = 'Open' THEN talent_acquisition_id END)
-      comment: "Total open job requisitions. Primary talent pipeline KPI — high open counts signal capacity risk for fab operations."
-    - name: "total_requisitions"
-      expr: COUNT(DISTINCT talent_acquisition_id)
-      comment: "Total requisitions across all statuses. Baseline for recruiting volume and workforce growth rate analysis."
-    - name: "total_recruiting_budget"
-      expr: SUM(CAST(budget_amount AS DOUBLE))
-      comment: "Total recruiting budget allocated. Drives cost-per-hire analysis and recruiting investment efficiency."
-    - name: "avg_recruiting_budget_per_req"
-      expr: AVG(CAST(budget_amount AS DOUBLE))
-      comment: "Average recruiting budget per requisition. Benchmarks recruiting investment by role type and priority."
-    - name: "confidential_requisition_count"
-      expr: COUNT(DISTINCT CASE WHEN is_confidential = TRUE THEN talent_acquisition_id END)
-      comment: "Count of confidential requisitions. Tracks sensitive executive and strategic hiring activity requiring restricted access."
-    - name: "fill_rate"
-      expr: ROUND(100.0 * COUNT(DISTINCT CASE WHEN requisition_status = 'Filled' THEN talent_acquisition_id END) / NULLIF(COUNT(DISTINCT talent_acquisition_id), 0), 2)
-      comment: "Percentage of requisitions successfully filled. Core recruiting effectiveness KPI for workforce planning and capacity management."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`workforce_qualification`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Workforce certification and qualification compliance analytics. Tracks active certifications, expiry risk, and regulatory mandate coverage critical for fab operator compliance and audit readiness."
-  source: "`vibe_semiconductors_v1`.`workforce`.`workforce_qualification`"
-  dimensions:
-    - name: "certification_type"
-      expr: certification_type
-      comment: "Type of certification (safety, technical, regulatory) for compliance coverage analysis."
-    - name: "qualification_status"
-      expr: qualification_status
-      comment: "Current qualification status for active vs. expired certification tracking."
-    - name: "issuing_body"
-      expr: issuing_body
-      comment: "Certifying authority for credential validity and renewal source analysis."
-    - name: "workforce_qualification_status"
-      expr: workforce_qualification_status
-      comment: "Overall record status for active qualification portfolio management."
-    - name: "scope"
-      expr: scope
-      comment: "Scope of qualification (process, equipment, safety) for coverage gap analysis."
-    - name: "expiry_year"
-      expr: DATE_TRUNC('YEAR', expiry_date)
-      comment: "Year of expiry for renewal pipeline planning and compliance risk forecasting."
-  measures:
-    - name: "active_qualifications"
-      expr: COUNT(DISTINCT CASE WHEN is_active = TRUE THEN workforce_qualification_id END)
-      comment: "Count of currently active qualifications. Baseline for workforce compliance coverage and audit readiness."
-    - name: "expiring_qualifications_90_days"
-      expr: COUNT(DISTINCT CASE WHEN expiry_date BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), 90) THEN workforce_qualification_id END)
-      comment: "Qualifications expiring within 90 days. Proactive compliance risk KPI — triggers renewal workflows before regulatory gaps occur."
-    - name: "expired_qualifications"
-      expr: COUNT(DISTINCT CASE WHEN expiry_date < CURRENT_DATE() AND is_active = TRUE THEN workforce_qualification_id END)
-      comment: "Count of expired but still-active qualifications. Critical compliance gap metric requiring immediate remediation."
-    - name: "regulatory_mandate_qualifications"
-      expr: COUNT(DISTINCT CASE WHEN regulatory_mandate_flag = TRUE THEN workforce_qualification_id END)
-      comment: "Count of qualifications driven by regulatory mandate. Scopes the compliance obligation portfolio for audit and regulatory reporting."
-    - name: "renewal_required_count"
-      expr: COUNT(DISTINCT CASE WHEN renewal_required = TRUE THEN workforce_qualification_id END)
-      comment: "Count of qualifications requiring renewal. Drives renewal workload planning and training resource allocation."
-    - name: "qualification_compliance_rate"
-      expr: ROUND(100.0 * COUNT(DISTINCT CASE WHEN is_active = TRUE AND expiry_date >= CURRENT_DATE() THEN workforce_qualification_id END) / NULLIF(COUNT(DISTINCT CASE WHEN is_active = TRUE THEN workforce_qualification_id END), 0), 2)
-      comment: "Percentage of active qualifications that are current (not expired). Executive compliance health KPI for regulatory audit readiness."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`workforce_fab_operator_qualification`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Fab operator qualification and tool certification analytics. Tracks operator readiness, qualification coverage, and expiry risk for critical fab equipment to ensure production continuity and safety compliance."
-  source: "`vibe_semiconductors_v1`.`workforce`.`fab_operator_qualification`"
-  dimensions:
-    - name: "qualification_status"
-      expr: qualification_status
-      comment: "Current qualification status (qualified, suspended, expired) for operator readiness analysis."
-    - name: "qualification_type"
-      expr: qualification_type
-      comment: "Type of qualification (initial, requalification, cross-training) for training program analysis."
-    - name: "qualification_level"
-      expr: qualification_level
-      comment: "Proficiency level for operator capability tiering and advanced task assignment."
-    - name: "equipment_group"
-      expr: equipment_group
-      comment: "Equipment group for cross-training coverage and single-point-of-failure risk analysis."
-    - name: "skill_category"
-      expr: skill_category
-      comment: "Skill category for workforce capability gap analysis by process area."
-    - name: "process_step_code"
-      expr: process_step_code
-      comment: "Process step for operator coverage analysis at critical fab process steps."
-    - name: "shift_qualification"
-      expr: shift_qualification
-      comment: "Shift for which the operator is qualified — critical for 24/7 fab coverage planning."
-    - name: "certified_year"
-      expr: DATE_TRUNC('YEAR', certified_date)
-      comment: "Year of certification for qualification cohort and renewal cycle analysis."
-  measures:
-    - name: "total_qualified_operators"
-      expr: COUNT(DISTINCT CASE WHEN qualification_status = 'Qualified' AND is_active = TRUE THEN employee_id END)
-      comment: "Total currently qualified and active fab operators. Primary production capacity KPI — insufficient qualified operators halt fab operations."
-    - name: "suspended_operator_count"
-      expr: COUNT(DISTINCT CASE WHEN suspension_flag = TRUE THEN fab_operator_qualification_id END)
-      comment: "Count of suspended operator qualifications. Operational risk KPI — suspended operators reduce available capacity and may signal safety issues."
-    - name: "expiring_qualifications_60_days"
-      expr: COUNT(DISTINCT CASE WHEN expiry_date BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), 60) THEN fab_operator_qualification_id END)
-      comment: "Operator qualifications expiring within 60 days. Proactive capacity risk KPI — triggers requalification scheduling before production impact."
-    - name: "total_qualification_records"
-      expr: COUNT(DISTINCT fab_operator_qualification_id)
-      comment: "Total operator qualification records. Baseline for qualification portfolio size and cross-training coverage analysis."
-    - name: "active_qualification_rate"
-      expr: ROUND(100.0 * COUNT(DISTINCT CASE WHEN is_active = TRUE THEN fab_operator_qualification_id END) / NULLIF(COUNT(DISTINCT fab_operator_qualification_id), 0), 2)
-      comment: "Percentage of qualification records that are currently active. Tracks qualification portfolio health and requalification program effectiveness."
-    - name: "overdue_requalification_count"
-      expr: COUNT(DISTINCT CASE WHEN requalification_due_date < CURRENT_DATE() AND is_active = TRUE THEN fab_operator_qualification_id END)
-      comment: "Count of overdue requalifications. Critical compliance and safety KPI — overdue requalifications expose the fab to audit findings and safety risk."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`workforce_shift_schedule`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Shift scheduling and labor cost analytics for fab operations. Tracks scheduled hours, overtime authorization, and labor cost by shift to optimize 24/7 fab staffing efficiency."
-  source: "`vibe_semiconductors_v1`.`workforce`.`shift_schedule`"
-  dimensions:
-    - name: "shift_type"
-      expr: shift_type
-      comment: "Shift type (day, swing, night) for shift-level cost and productivity analysis."
-    - name: "shift_schedule_status"
-      expr: shift_schedule_status
-      comment: "Schedule status for active vs. cancelled shift tracking."
-    - name: "work_area"
-      expr: work_area
-      comment: "Work area within the fab for area-level staffing coverage analysis."
-    - name: "cost_center_code"
-      expr: cost_center_code
-      comment: "Cost center for shift labor cost allocation to financial reporting."
-    - name: "schedule_month"
-      expr: DATE_TRUNC('MONTH', schedule_date)
-      comment: "Month of schedule for labor cost trend and staffing level analysis."
-  measures:
-    - name: "total_scheduled_labor_cost"
-      expr: SUM(CAST(labor_cost AS DOUBLE))
-      comment: "Total scheduled labor cost across all shifts. Core fab operations cost KPI for budget variance and workforce cost management."
-    - name: "avg_labor_cost_per_shift"
-      expr: AVG(CAST(labor_cost AS DOUBLE))
-      comment: "Average labor cost per shift schedule record. Benchmarks shift cost efficiency and informs staffing model optimization."
-    - name: "total_overtime_hours_scheduled"
-      expr: SUM(CAST(overtime_hours AS DOUBLE))
-      comment: "Total overtime hours scheduled. Signals chronic understaffing or demand spikes requiring headcount or scheduling intervention."
-    - name: "overtime_authorized_shifts"
-      expr: COUNT(DISTINCT CASE WHEN overtime_authorized = TRUE THEN shift_schedule_id END)
-      comment: "Count of shifts with authorized overtime. Tracks management-approved overtime for budget accountability and labor cost control."
-    - name: "overtime_authorization_rate"
-      expr: ROUND(100.0 * COUNT(DISTINCT CASE WHEN overtime_authorized = TRUE THEN shift_schedule_id END) / NULLIF(COUNT(DISTINCT shift_schedule_id), 0), 2)
-      comment: "Percentage of shifts with authorized overtime. High rates indicate structural understaffing requiring headcount investment."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`workforce_cleanroom_access`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Cleanroom access control and compliance analytics. Tracks active access grants, export control compliance, and safety induction status to manage fab security and regulatory obligations."
-  source: "`vibe_semiconductors_v1`.`workforce`.`cleanroom_access`"
-  dimensions:
-    - name: "access_level"
-      expr: access_level
-      comment: "Access level granted for tiered cleanroom access management."
-    - name: "cleanroom_access_status"
-      expr: cleanroom_access_status
-      comment: "Current access status (active, revoked, expired) for access portfolio management."
-    - name: "cleanroom_class"
-      expr: cleanroom_class
-      comment: "ISO cleanroom class for access control by contamination sensitivity."
-    - name: "zone"
-      expr: zone
-      comment: "Cleanroom zone for granular access control and occupancy analysis."
-    - name: "export_control_category"
-      expr: export_control_category
-      comment: "Export control classification for ITAR/EAR access restriction compliance."
-    - name: "qualification_status"
-      expr: qualification_status
-      comment: "Qualification status for access eligibility compliance tracking."
-    - name: "granted_year"
-      expr: DATE_TRUNC('YEAR', granted_date)
-      comment: "Year access was granted for access lifecycle and renewal trend analysis."
-  measures:
-    - name: "active_access_grants"
-      expr: COUNT(DISTINCT CASE WHEN is_active = TRUE THEN cleanroom_access_id END)
-      comment: "Total active cleanroom access grants. Primary security KPI for access portfolio management and audit compliance."
-    - name: "temporary_access_grants"
-      expr: COUNT(DISTINCT CASE WHEN is_temporary = TRUE AND is_active = TRUE THEN cleanroom_access_id END)
-      comment: "Count of active temporary access grants. Tracks short-term access risk and ensures timely revocation of temporary permissions."
-    - name: "foreign_national_access_count"
-      expr: COUNT(DISTINCT CASE WHEN foreign_national = TRUE AND is_active = TRUE THEN cleanroom_access_id END)
-      comment: "Count of active access grants for foreign nationals. Critical export control compliance KPI for ITAR/EAR technology access management."
-    - name: "ehs_cleared_access_rate"
-      expr: ROUND(100.0 * COUNT(DISTINCT CASE WHEN ehs_clearance_status = TRUE AND is_active = TRUE THEN cleanroom_access_id END) / NULLIF(COUNT(DISTINCT CASE WHEN is_active = TRUE THEN cleanroom_access_id END), 0), 2)
-      comment: "Percentage of active access holders with current EHS clearance. Safety compliance KPI — below 100% indicates uncleared personnel with active fab access."
-    - name: "safety_induction_compliance_rate"
-      expr: ROUND(100.0 * COUNT(DISTINCT CASE WHEN safety_induction_completed = TRUE AND is_active = TRUE THEN cleanroom_access_id END) / NULLIF(COUNT(DISTINCT CASE WHEN is_active = TRUE THEN cleanroom_access_id END), 0), 2)
-      comment: "Percentage of active access holders who have completed safety induction. Regulatory compliance KPI for fab safety program adherence."
-    - name: "expiring_access_30_days"
-      expr: COUNT(DISTINCT CASE WHEN expiry_timestamp BETWEEN CURRENT_TIMESTAMP() AND TIMESTAMPADD(DAY, 30, CURRENT_TIMESTAMP()) AND is_active = TRUE THEN cleanroom_access_id END)
-      comment: "Access grants expiring within 30 days. Proactive security KPI to prevent unauthorized access lapses or unplanned production disruptions."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`workforce_employment_event`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Workforce movement and attrition analytics. Tracks hiring, termination, promotion, and transfer events to measure organizational agility, attrition risk, and compensation change velocity."
-  source: "`vibe_semiconductors_v1`.`workforce`.`employment_event`"
-  dimensions:
-    - name: "event_type"
-      expr: event_type
-      comment: "Type of employment event (hire, termination, promotion, transfer) for workforce movement analysis."
-    - name: "event_status"
-      expr: event_status
-      comment: "Processing status of the event for workflow completion tracking."
-    - name: "reason_code"
-      expr: reason_code
-      comment: "Reason code for the event — critical for voluntary vs. involuntary termination analysis."
-    - name: "new_organization"
-      expr: new_organization
-      comment: "Destination organization for transfer and promotion flow analysis."
-    - name: "currency_code"
-      expr: currency_code
-      comment: "Currency for compensation change amount analysis."
-    - name: "event_month"
-      expr: DATE_TRUNC('MONTH', event_date)
-      comment: "Month of event for workforce movement trend and attrition rate analysis."
-  measures:
-    - name: "total_employment_events"
-      expr: COUNT(DISTINCT employment_event_id)
-      comment: "Total employment events processed. Baseline for workforce movement volume and HR operational workload."
-    - name: "termination_events"
-      expr: COUNT(DISTINCT CASE WHEN event_type = 'Termination' THEN employment_event_id END)
-      comment: "Count of termination events. Primary attrition KPI — high termination counts in critical fab roles signal retention risk."
-    - name: "promotion_events"
-      expr: COUNT(DISTINCT CASE WHEN event_type = 'Promotion' THEN employment_event_id END)
-      comment: "Count of promotion events. Tracks internal career mobility and talent development program effectiveness."
-    - name: "total_compensation_change_value"
-      expr: SUM(CAST(compensation_change_amount AS DOUBLE))
-      comment: "Total compensation change amount across all employment events. Quantifies the financial impact of workforce movements on the compensation budget."
-    - name: "avg_compensation_change_per_event"
-      expr: AVG(CAST(compensation_change_amount AS DOUBLE))
-      comment: "Average compensation change per employment event. Benchmarks the magnitude of compensation adjustments for budget forecasting."
-    - name: "hire_events"
-      expr: COUNT(DISTINCT CASE WHEN event_type = 'Hire' THEN employment_event_id END)
-      comment: "Count of new hire events. Tracks workforce growth rate and recruiting pipeline conversion effectiveness."
+    - name: "total_competency_records"
+      expr: COUNT(1)
+      comment: "Total number of competency records. Baseline metric for competency program coverage."
+    - name: "active_competencies"
+      expr: COUNT(CASE WHEN competency_status = 'Active' THEN 1 END)
+      comment: "Count of currently active competency records. Primary metric for workforce skills coverage."
+    - name: "expired_certifications"
+      expr: COUNT(CASE WHEN certification_status = 'Expired' THEN 1 END)
+      comment: "Count of competency records with expired certifications. Compliance risk metric requiring renewal action."
+    - name: "avg_proficiency_score"
+      expr: AVG(CAST(proficiency_score AS DOUBLE))
+      comment: "Average proficiency score across all competency assessments. Used to benchmark workforce skills level against targets."
+    - name: "total_skill_training_hours"
+      expr: SUM(CAST(skill_training_hours AS DOUBLE))
+      comment: "Total training hours invested in skill development. Used for training ROI and L&D budget effectiveness analysis."
+    - name: "export_control_relevant_competencies"
+      expr: COUNT(CASE WHEN export_control_relevant = TRUE THEN 1 END)
+      comment: "Count of competencies relevant to export-controlled technology. Used for access control and compliance program scoping."
+    - name: "unique_employees_with_competencies"
+      expr: COUNT(DISTINCT employee_id)
+      comment: "Count of distinct employees with competency records. Measures competency program reach across the workforce."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`workforce_contractor_engagement`
@@ -600,49 +170,199 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Contractor workforce cost and compliance analytics. Tracks contractor spend, engagement status, and compliance obligations to manage contingent workforce risk and cost in fab operations."
+  comment: "Contractor and contingent workforce metrics for flexible capacity management and cost control"
   source: "`vibe_semiconductors_v1`.`workforce`.`contractor_engagement`"
   dimensions:
-    - name: "contractor_type"
-      expr: contractor_type
-      comment: "Type of contractor (staff augmentation, SOW, consulting) for spend category analysis."
     - name: "engagement_status"
       expr: engagement_status
-      comment: "Current engagement status for active contractor portfolio management."
+      comment: "Status of contractor engagement (active, completed, terminated)"
+    - name: "contractor_engagement_status"
+      expr: contractor_engagement_status
+      comment: "Detailed engagement status for lifecycle tracking"
+    - name: "contractor_type"
+      expr: contractor_type
+      comment: "Type of contractor (individual, agency, consulting firm)"
     - name: "engagement_type"
       expr: engagement_type
-      comment: "Engagement model for contract structure and billing analysis."
-    - name: "currency_code"
-      expr: currency_code
-      comment: "Currency for multi-currency contractor spend consolidation."
+      comment: "Type of engagement (project-based, staff augmentation)"
+    - name: "contract_status"
+      expr: contract_status
+      comment: "Status of contract for compliance tracking"
     - name: "export_control_status"
       expr: export_control_status
-      comment: "Export control compliance status for ITAR/EAR contractor access management."
-    - name: "nda_status"
-      expr: nda_status
-      comment: "NDA execution status for IP protection compliance tracking."
-    - name: "engagement_start_month"
-      expr: DATE_TRUNC('MONTH', engagement_start_date)
-      comment: "Month engagement started for contractor pipeline and spend trend analysis."
+      comment: "Export control clearance status for compliance"
+    - name: "background_check_status"
+      expr: background_check_status
+      comment: "Background check status for security compliance"
+    - name: "start_year"
+      expr: YEAR(start_date)
+      comment: "Year engagement started for trend analysis"
   measures:
-    - name: "total_contractor_contract_value"
-      expr: SUM(CAST(total_contract_value AS DOUBLE))
-      comment: "Total contracted value across all contractor engagements. Core contingent workforce spend KPI for budget management and make-vs-buy decisions."
-    - name: "avg_hourly_rate"
-      expr: AVG(CAST(hourly_rate_usd AS DOUBLE))
-      comment: "Average contractor hourly rate in USD. Benchmarks contractor cost competitiveness and informs rate negotiation strategies."
-    - name: "avg_billing_rate"
-      expr: AVG(CAST(billing_rate AS DOUBLE))
-      comment: "Average billing rate across contractor engagements. Used for contractor cost benchmarking and agency rate management."
-    - name: "active_contractor_engagements"
+    - name: "total_engagements"
+      expr: COUNT(DISTINCT contractor_engagement_id)
+      comment: "Total contractor engagements for contingent workforce sizing"
+    - name: "active_engagement_count"
       expr: COUNT(DISTINCT CASE WHEN engagement_status = 'Active' THEN contractor_engagement_id END)
-      comment: "Count of active contractor engagements. Tracks contingent workforce size for capacity planning and compliance scope."
-    - name: "ear_contract_count"
-      expr: COUNT(DISTINCT CASE WHEN is_ear_contract = TRUE THEN contractor_engagement_id END)
-      comment: "Count of EAR-regulated contractor engagements. Scopes export control compliance obligations for the contingent workforce."
-    - name: "itar_contract_count"
-      expr: COUNT(DISTINCT CASE WHEN is_it_ar_contract = TRUE THEN contractor_engagement_id END)
-      comment: "Count of ITAR-regulated contractor engagements. Critical compliance KPI for technology access control and export license management."
+      comment: "Count of active engagements for current contingent capacity"
+    - name: "total_contract_value"
+      expr: SUM(CAST(total_contract_value AS DOUBLE))
+      comment: "Total contract value for contingent workforce spend analysis"
+    - name: "avg_bill_rate"
+      expr: AVG(CAST(bill_rate AS DOUBLE))
+      comment: "Average bill rate for cost benchmarking"
+    - name: "avg_hourly_rate"
+      expr: AVG(CAST(hourly_rate AS DOUBLE))
+      comment: "Average hourly rate for rate card management"
+    - name: "export_control_cleared_count"
+      expr: COUNT(DISTINCT CASE WHEN export_control_cleared THEN contractor_engagement_id END)
+      comment: "Count of export-control-cleared contractors for compliance capacity"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`workforce_employee`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Core employee headcount and demographic metrics for workforce planning and compliance reporting"
+  source: "`vibe_semiconductors_v1`.`workforce`.`employee`"
+  dimensions:
+    - name: "employee_status"
+      expr: employee_status
+      comment: "Current employment status (active, terminated, on leave)"
+    - name: "employment_type"
+      expr: employment_type
+      comment: "Employment classification (full-time, part-time, contractor)"
+    - name: "department"
+      expr: department
+      comment: "Department assignment for organizational analysis"
+    - name: "location"
+      expr: location
+      comment: "Geographic location of employee"
+    - name: "job_title"
+      expr: job_title
+      comment: "Current job title"
+    - name: "hire_year"
+      expr: YEAR(hire_date)
+      comment: "Year employee was hired for tenure analysis"
+    - name: "clearance_level"
+      expr: clearance_level
+      comment: "Security clearance level for export control compliance"
+    - name: "ear_eligibility_flag"
+      expr: CASE WHEN ear_eligibility THEN 'Eligible' ELSE 'Not Eligible' END
+      comment: "Export Administration Regulations eligibility status"
+    - name: "itar_eligibility_flag"
+      expr: CASE WHEN itar_eligibility THEN 'Eligible' ELSE 'Not Eligible' END
+      comment: "International Traffic in Arms Regulations eligibility status"
+    - name: "overtime_eligible_flag"
+      expr: CASE WHEN overtime_eligible THEN 'Eligible' ELSE 'Not Eligible' END
+      comment: "Overtime eligibility for labor cost planning"
+  measures:
+    - name: "total_headcount"
+      expr: COUNT(DISTINCT employee_id)
+      comment: "Total unique employee count for workforce capacity planning"
+    - name: "active_headcount"
+      expr: COUNT(DISTINCT CASE WHEN employee_status = 'Active' THEN employee_id END)
+      comment: "Count of active employees for operational capacity analysis"
+    - name: "avg_tenure_years"
+      expr: AVG(DATEDIFF(CURRENT_DATE(), hire_date) / 365.25)
+      comment: "Average employee tenure in years for retention analysis"
+    - name: "avg_compensation_amount"
+      expr: AVG(CAST(compensation_amount AS DOUBLE))
+      comment: "Average compensation per employee for budget planning"
+    - name: "total_compensation_cost"
+      expr: SUM(CAST(compensation_amount AS DOUBLE))
+      comment: "Total compensation expense for financial planning"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`workforce_employee_turnover`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Turnover and tenure metrics to assess workforce stability and retention effectiveness"
+  source: "`vibe_semiconductors_v1`.`workforce`.`employee`"
+  dimensions:
+    - name: "department"
+      expr: department
+      comment: "Department of the employee"
+    - name: "location"
+      expr: location
+      comment: "Geographic location of the employee"
+    - name: "hire_year"
+      expr: YEAR(hire_date)
+      comment: "Year of hire"
+    - name: "termination_year"
+      expr: YEAR(termination_date)
+      comment: "Year of termination (if applicable)"
+  measures:
+    - name: "total_employees"
+      expr: COUNT(1)
+      comment: "Total number of employee records"
+    - name: "terminated_employees"
+      expr: COUNT(CASE WHEN termination_date IS NOT NULL THEN 1 END)
+      comment: "Count of employees who have terminated"
+    - name: "avg_tenure_days"
+      expr: AVG(CASE WHEN termination_date IS NOT NULL THEN DATEDIFF(termination_date, hire_date) END)
+      comment: "Average tenure in days for terminated employees"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`workforce_employment_event`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Workforce movement and lifecycle event metrics including hires, terminations, promotions, and transfers. Used by HR leadership to monitor attrition, internal mobility, and organizational change velocity."
+  source: "`vibe_semiconductors_v1`.`workforce`.`employment_event`"
+  dimensions:
+    - name: "event_type"
+      expr: event_type
+      comment: "Type of employment event (Hire, Termination, Promotion, Transfer, Leave) for event-level segmentation."
+    - name: "event_status"
+      expr: event_status
+      comment: "Current status of the employment event (Pending, Approved, Completed) for pipeline tracking."
+    - name: "event_reason"
+      expr: event_reason
+      comment: "Business reason for the employment event, used for root-cause attrition and mobility analysis."
+    - name: "reason_code"
+      expr: reason_code
+      comment: "Standardized reason code for the event, enabling consistent cross-period trend analysis."
+    - name: "new_location"
+      expr: new_location
+      comment: "New location after the event, used for geographic workforce flow analysis."
+    - name: "new_organization"
+      expr: new_organization
+      comment: "New organizational unit after the event, used for internal mobility and org health metrics."
+    - name: "effective_date_month"
+      expr: DATE_TRUNC('MONTH', effective_date)
+      comment: "Month the employment event became effective, used for trend and seasonality analysis."
+    - name: "event_date_quarter"
+      expr: DATE_TRUNC('QUARTER', event_date)
+      comment: "Quarter of the employment event for quarterly workforce movement reporting."
+  measures:
+    - name: "total_employment_events"
+      expr: COUNT(1)
+      comment: "Total number of employment events. Baseline measure for workforce movement volume."
+    - name: "hire_events"
+      expr: COUNT(CASE WHEN event_type = 'Hire' THEN 1 END)
+      comment: "Count of hire events. Used to track recruiting throughput and workforce growth rate."
+    - name: "termination_events"
+      expr: COUNT(CASE WHEN event_type = 'Termination' THEN 1 END)
+      comment: "Count of termination events. Primary input to voluntary and involuntary attrition rate calculations."
+    - name: "promotion_events"
+      expr: COUNT(CASE WHEN event_type = 'Promotion' THEN 1 END)
+      comment: "Count of promotion events. Measures internal career progression velocity and talent development effectiveness."
+    - name: "transfer_events"
+      expr: COUNT(CASE WHEN event_type = 'Transfer' THEN 1 END)
+      comment: "Count of transfer events. Indicates internal mobility and organizational agility."
+    - name: "total_compensation_change_amount"
+      expr: SUM(CAST(compensation_change_amount AS DOUBLE))
+      comment: "Total compensation change amount across all employment events. Measures total payroll impact of workforce movements."
+    - name: "avg_compensation_change_amount"
+      expr: AVG(CAST(compensation_change_amount AS DOUBLE))
+      comment: "Average compensation change per employment event. Used to benchmark promotion and merit increase levels."
+    - name: "pending_approval_events"
+      expr: COUNT(CASE WHEN event_status = 'Pending' THEN 1 END)
+      comment: "Count of employment events awaiting approval. Operational metric for HR process cycle time and bottleneck identification."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`workforce_export_control`
@@ -650,44 +370,392 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Export control compliance analytics for the workforce. Tracks ITAR/EAR eligibility, screening status, and authorization coverage to manage technology access risk in semiconductor operations."
+  comment: "Export control compliance metrics for the workforce. Used by legal, compliance, and HR leadership to ensure all employees with access to controlled semiconductor technology have valid authorizations, preventing regulatory violations."
   source: "`vibe_semiconductors_v1`.`workforce`.`export_control`"
   dimensions:
     - name: "export_control_status"
       expr: export_control_status
-      comment: "Overall export control status for workforce compliance portfolio management."
-    - name: "classification"
-      expr: classification
-      comment: "Export control classification for technology access tier analysis."
-    - name: "itar_authorization_status"
-      expr: itar_authorization_status
-      comment: "ITAR authorization status for controlled technology access compliance."
-    - name: "ear_license_status"
-      expr: ear_license_status
-      comment: "EAR license status for export-controlled technology access management."
+      comment: "Current export control status of the employee record (Cleared, Pending, Expired, Restricted)."
+    - name: "control_status"
+      expr: control_status
+      comment: "Detailed control status for export compliance workflow tracking."
+    - name: "citizenship_country"
+      expr: citizenship_country
+      comment: "Employee citizenship country for deemed export analysis and license requirement determination."
     - name: "nationality"
       expr: nationality
-      comment: "Employee nationality for export control jurisdiction and license requirement analysis."
+      comment: "Employee nationality for export control screening and deemed export license assessment."
     - name: "visa_type"
       expr: visa_type
-      comment: "Visa type for deemed export compliance and technology access restriction analysis."
-    - name: "screening_year"
-      expr: DATE_TRUNC('YEAR', screening_date)
-      comment: "Year of screening for rescreening cycle compliance tracking."
+      comment: "Visa type for foreign national employees, critical for deemed export license requirement determination."
+    - name: "itar_eligible"
+      expr: itar_eligible
+      comment: "Whether the employee is ITAR-eligible. Critical for access control to ITAR-controlled semiconductor technology."
+    - name: "ear_eligible"
+      expr: ear_eligible
+      comment: "Whether the employee is EAR-eligible. Required for access to EAR-controlled technology and equipment."
+    - name: "deemed_export_flag"
+      expr: deemed_export_flag
+      comment: "Whether the employee is subject to deemed export rules, requiring a license for technology access."
+    - name: "screening_status"
+      expr: screening_status
+      comment: "Status of the export control screening (Pending, Cleared, Flagged) for compliance pipeline management."
+    - name: "expiry_date_month"
+      expr: DATE_TRUNC('MONTH', expiry_date)
+      comment: "Month of authorization expiry for proactive renewal planning and compliance risk management."
   measures:
-    - name: "total_screened_employees"
-      expr: COUNT(DISTINCT export_employee_id)
-      comment: "Total employees with export control screening records. Baseline for export control program coverage and compliance scope."
-    - name: "itar_eligible_count"
-      expr: COUNT(DISTINCT CASE WHEN itar_eligible_flag = TRUE THEN export_employee_id END)
-      comment: "Count of ITAR-eligible employees. Governs which employees can access ITAR-controlled semiconductor technology and programs."
-    - name: "ear_license_required_count"
-      expr: COUNT(DISTINCT CASE WHEN ear_license_required = TRUE THEN export_employee_id END)
-      comment: "Count of employees requiring EAR licenses. Scopes the license management workload and compliance obligation portfolio."
-    - name: "overdue_rescreening_count"
-      expr: COUNT(DISTINCT CASE WHEN periodic_rescreening_due_date < CURRENT_DATE() THEN export_employee_id END)
-      comment: "Count of employees overdue for periodic rescreening. Critical compliance risk KPI — overdue screenings expose the organization to export violation liability."
-    - name: "itar_eligible_rate"
-      expr: ROUND(100.0 * COUNT(DISTINCT CASE WHEN itar_eligible_flag = TRUE THEN export_employee_id END) / NULLIF(COUNT(DISTINCT export_employee_id), 0), 2)
-      comment: "Percentage of screened employees who are ITAR-eligible. Tracks the available pool for ITAR-controlled program staffing."
+    - name: "total_export_control_records"
+      expr: COUNT(1)
+      comment: "Total number of export control records. Baseline metric for export control program coverage."
+    - name: "itar_eligible_employees"
+      expr: COUNT(CASE WHEN itar_eligible = TRUE THEN 1 END)
+      comment: "Count of ITAR-eligible employees. Critical for staffing ITAR-controlled semiconductor programs and facilities."
+    - name: "ear_eligible_employees"
+      expr: COUNT(CASE WHEN ear_eligible = TRUE THEN 1 END)
+      comment: "Count of EAR-eligible employees. Required for EAR-controlled technology access planning."
+    - name: "deemed_export_employees"
+      expr: COUNT(CASE WHEN deemed_export_flag = TRUE THEN 1 END)
+      comment: "Count of employees subject to deemed export rules. Measures compliance exposure requiring active license management."
+    - name: "license_required_employees"
+      expr: COUNT(CASE WHEN license_required_flag = TRUE THEN 1 END)
+      comment: "Count of employees requiring an export license. Directly measures compliance workload and regulatory risk."
+    - name: "ear_license_required_employees"
+      expr: COUNT(CASE WHEN ear_license_required = TRUE THEN 1 END)
+      comment: "Count of employees requiring an EAR license. Used for EAR compliance program scope and resource planning."
+    - name: "pending_screening_employees"
+      expr: COUNT(CASE WHEN screening_status = 'Pending' THEN 1 END)
+      comment: "Count of employees with pending export control screening. Operational metric for compliance backlog management."
+    - name: "unique_screened_employees"
+      expr: COUNT(DISTINCT employee_id)
+      comment: "Count of distinct employees with export control records. Measures export control program coverage breadth."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`workforce_fab_operator_qualification`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Fab operator qualification and certification metrics for production readiness and compliance"
+  source: "`vibe_semiconductors_v1`.`workforce`.`fab_operator_qualification`"
+  dimensions:
+    - name: "qualification_status"
+      expr: qualification_status
+      comment: "Status of operator qualification (qualified, pending, expired)"
+    - name: "qualification_type"
+      expr: qualification_type
+      comment: "Type of qualification for skill segmentation"
+    - name: "qualification_level"
+      expr: qualification_level
+      comment: "Level of qualification (basic, intermediate, advanced)"
+    - name: "process_area"
+      expr: process_area
+      comment: "Process area for which operator is qualified"
+    - name: "equipment_group_code"
+      expr: equipment_group_code
+      comment: "Equipment group for tool-specific qualification tracking"
+    - name: "skill_category"
+      expr: skill_category
+      comment: "Category of skill for competency mapping"
+    - name: "qualification_year"
+      expr: YEAR(qualification_date)
+      comment: "Year qualification was achieved for trend analysis"
+    - name: "recertification_required_flag"
+      expr: CASE WHEN recertification_required_flag THEN 'Recertification Required' ELSE 'No Recertification' END
+      comment: "Whether recertification is required for compliance tracking"
+  measures:
+    - name: "total_qualifications"
+      expr: COUNT(DISTINCT fab_operator_qualification_id)
+      comment: "Total operator qualifications for workforce capability assessment"
+    - name: "active_qualification_count"
+      expr: COUNT(DISTINCT CASE WHEN qualification_status = 'Active' THEN fab_operator_qualification_id END)
+      comment: "Count of active qualifications for current production capacity"
+    - name: "expired_qualification_count"
+      expr: COUNT(DISTINCT CASE WHEN qualification_status = 'Expired' THEN fab_operator_qualification_id END)
+      comment: "Count of expired qualifications for recertification planning"
+    - name: "qualification_rate_pct"
+      expr: ROUND(100.0 * COUNT(DISTINCT CASE WHEN qualification_status = 'Active' THEN fab_operator_qualification_id END) / NULLIF(COUNT(DISTINCT fab_operator_qualification_id), 0), 2)
+      comment: "Percentage of qualifications that are active for readiness assessment"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`workforce_org_unit`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Organizational unit structure and headcount budget metrics. Used by HR, finance, and executive leadership to monitor organizational design, headcount budget adherence, and cost center efficiency."
+  source: "`vibe_semiconductors_v1`.`workforce`.`org_unit`"
+  dimensions:
+    - name: "org_unit_status"
+      expr: org_unit_status
+      comment: "Current status of the org unit (Active, Inactive, Restructuring) for organizational health monitoring."
+    - name: "org_unit_type"
+      expr: org_unit_type
+      comment: "Type of org unit (Department, Division, Team, Business Unit) for organizational structure analysis."
+    - name: "functional_area"
+      expr: functional_area
+      comment: "Functional area (Engineering, Operations, Finance, HR) for cross-functional headcount and cost analysis."
+    - name: "region"
+      expr: region
+      comment: "Geographic region of the org unit for regional workforce distribution and cost analysis."
+    - name: "hierarchy_level"
+      expr: hierarchy_level
+      comment: "Hierarchical level of the org unit for span-of-control and organizational depth analysis."
+    - name: "is_cost_center"
+      expr: is_cost_center
+      comment: "Whether the org unit is a cost center, used for financial reporting and cost allocation."
+    - name: "is_global"
+      expr: is_global
+      comment: "Whether the org unit operates globally, used for international workforce and compliance analysis."
+  measures:
+    - name: "total_org_units"
+      expr: COUNT(1)
+      comment: "Total number of organizational units. Baseline metric for organizational complexity and span-of-control analysis."
+    - name: "total_budget_amount"
+      expr: SUM(CAST(budget_amount AS DOUBLE))
+      comment: "Total budget allocated across all org units. Primary financial metric for organizational cost management."
+    - name: "avg_budget_per_org_unit"
+      expr: AVG(CAST(budget_amount AS DOUBLE))
+      comment: "Average budget per org unit. Used for budget equity analysis and resource allocation benchmarking."
+    - name: "cost_center_org_units"
+      expr: COUNT(CASE WHEN is_cost_center = TRUE THEN 1 END)
+      comment: "Count of org units designated as cost centers. Used for financial reporting structure and cost allocation planning."
+    - name: "global_org_units"
+      expr: COUNT(CASE WHEN is_global = TRUE THEN 1 END)
+      comment: "Count of globally operating org units. Used for international workforce compliance and governance planning."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`workforce_shift_schedule`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Shift scheduling and labor cost metrics for fab operations. Used by operations management to monitor shift coverage, overtime exposure, and labor cost efficiency in 24/7 semiconductor manufacturing environments."
+  source: "`vibe_semiconductors_v1`.`workforce`.`shift_schedule`"
+  dimensions:
+    - name: "shift_schedule_status"
+      expr: shift_schedule_status
+      comment: "Current status of the shift schedule (Active, Draft, Cancelled) for operational schedule management."
+    - name: "shift_type"
+      expr: shift_type
+      comment: "Type of shift (Day, Night, Swing, Weekend) for shift-level labor cost and coverage analysis."
+    - name: "work_area"
+      expr: work_area
+      comment: "Work area associated with the shift schedule for area-level staffing coverage analysis."
+    - name: "cost_center_code"
+      expr: cost_center_code
+      comment: "Cost center for shift labor cost attribution and departmental budget tracking."
+    - name: "overtime_authorized"
+      expr: overtime_authorized
+      comment: "Whether overtime is authorized for this schedule, used for overtime cost control and approval compliance."
+    - name: "schedule_date_month"
+      expr: DATE_TRUNC('MONTH', schedule_date)
+      comment: "Month of the schedule date for monthly labor planning and cost trend analysis."
+    - name: "rotation_group"
+      expr: rotation_group
+      comment: "Rotation group for shift rotation analysis and equitable schedule distribution."
+  measures:
+    - name: "total_shift_schedules"
+      expr: COUNT(1)
+      comment: "Total number of shift schedule records. Baseline metric for scheduling volume."
+    - name: "total_scheduled_hours"
+      expr: SUM(CAST(scheduled_hours AS DOUBLE))
+      comment: "Total scheduled hours across all shift records. Primary capacity planning metric for fab operations."
+    - name: "total_overtime_hours"
+      expr: SUM(CAST(overtime_hours AS DOUBLE))
+      comment: "Total overtime hours scheduled. Key metric for overtime cost exposure and staffing adequacy assessment."
+    - name: "total_hours_per_week"
+      expr: SUM(CAST(hours_per_week AS DOUBLE))
+      comment: "Total weekly hours across all scheduled employees. Used for workforce capacity and labor cost planning."
+    - name: "total_labor_cost"
+      expr: SUM(CAST(labor_cost AS DOUBLE))
+      comment: "Total labor cost from shift schedules. Primary financial metric for fab operations labor budget management."
+    - name: "avg_labor_cost_per_schedule"
+      expr: AVG(CAST(labor_cost AS DOUBLE))
+      comment: "Average labor cost per shift schedule record. Used for cost efficiency benchmarking across shifts and areas."
+    - name: "overtime_authorized_schedules"
+      expr: COUNT(CASE WHEN overtime_authorized = TRUE THEN 1 END)
+      comment: "Count of schedules with authorized overtime. Used to monitor overtime approval compliance and cost exposure."
+    - name: "unique_scheduled_employees"
+      expr: COUNT(DISTINCT employee_id)
+      comment: "Count of distinct employees with shift schedules. Measures active scheduling coverage across the workforce."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`workforce_talent_acquisition`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Recruiting and hiring metrics for talent pipeline management and time-to-fill analysis"
+  source: "`vibe_semiconductors_v1`.`workforce`.`talent_acquisition`"
+  dimensions:
+    - name: "requisition_status"
+      expr: requisition_status
+      comment: "Status of requisition (open, filled, cancelled)"
+    - name: "talent_acquisition_status"
+      expr: talent_acquisition_status
+      comment: "Detailed acquisition status for pipeline tracking"
+    - name: "requisition_type"
+      expr: requisition_type
+      comment: "Type of requisition (new hire, backfill, expansion)"
+    - name: "application_stage"
+      expr: application_stage
+      comment: "Current stage in hiring process for funnel analysis"
+    - name: "offer_status"
+      expr: offer_status
+      comment: "Status of offer (pending, accepted, declined)"
+    - name: "source_channel"
+      expr: source_channel
+      comment: "Recruiting source channel for sourcing effectiveness"
+    - name: "priority"
+      expr: priority
+      comment: "Priority level of requisition for resource allocation"
+    - name: "open_year"
+      expr: YEAR(open_date)
+      comment: "Year requisition was opened for trend analysis"
+    - name: "open_month"
+      expr: DATE_TRUNC('MONTH', open_date)
+      comment: "Month requisition was opened for monthly hiring reporting"
+  measures:
+    - name: "total_requisitions"
+      expr: COUNT(DISTINCT talent_acquisition_id)
+      comment: "Total requisitions for hiring volume tracking"
+    - name: "open_requisition_count"
+      expr: COUNT(DISTINCT CASE WHEN requisition_status = 'Open' THEN talent_acquisition_id END)
+      comment: "Count of open requisitions for current hiring pipeline"
+    - name: "filled_requisition_count"
+      expr: COUNT(DISTINCT CASE WHEN requisition_status = 'Filled' THEN talent_acquisition_id END)
+      comment: "Count of filled requisitions for hiring success measurement"
+    - name: "offer_accepted_count"
+      expr: COUNT(DISTINCT CASE WHEN offer_accepted_flag THEN talent_acquisition_id END)
+      comment: "Count of accepted offers for offer acceptance rate calculation"
+    - name: "offer_acceptance_rate_pct"
+      expr: ROUND(100.0 * COUNT(DISTINCT CASE WHEN offer_accepted_flag THEN talent_acquisition_id END) / NULLIF(COUNT(DISTINCT CASE WHEN offer_extended_flag THEN talent_acquisition_id END), 0), 2)
+      comment: "Offer acceptance rate for recruiting effectiveness evaluation"
+    - name: "avg_time_to_fill_days"
+      expr: AVG(DATEDIFF(close_date, open_date))
+      comment: "Average days to fill requisition for hiring efficiency measurement"
+    - name: "total_offer_amount"
+      expr: SUM(CAST(offer_amount AS DOUBLE))
+      comment: "Total offer amounts for hiring budget tracking"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`workforce_time_entry`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Labor hours and productivity metrics for capacity planning and cost allocation"
+  source: "`vibe_semiconductors_v1`.`workforce`.`time_entry`"
+  dimensions:
+    - name: "entry_type"
+      expr: entry_type
+      comment: "Type of time entry (regular, overtime, absence)"
+    - name: "time_entry_type"
+      expr: time_entry_type
+      comment: "Classification of time entry for labor reporting"
+    - name: "labor_category"
+      expr: labor_category
+      comment: "Labor category for cost allocation"
+    - name: "cost_center"
+      expr: cost_center
+      comment: "Cost center for financial allocation"
+    - name: "approval_status"
+      expr: approval_status
+      comment: "Approval status of time entry for payroll processing"
+    - name: "work_year"
+      expr: YEAR(work_date)
+      comment: "Year of work for trend analysis"
+    - name: "work_month"
+      expr: DATE_TRUNC('MONTH', work_date)
+      comment: "Month of work for monthly labor reporting"
+    - name: "is_billable_flag"
+      expr: CASE WHEN is_billable THEN 'Billable' ELSE 'Non-Billable' END
+      comment: "Whether time is billable to customer for revenue recognition"
+    - name: "shift_code"
+      expr: shift_code
+      comment: "Shift identifier for shift differential analysis"
+  measures:
+    - name: "total_hours_worked"
+      expr: SUM(CAST(hours_worked AS DOUBLE))
+      comment: "Total labor hours for capacity utilization analysis"
+    - name: "total_regular_hours"
+      expr: SUM(CAST(regular_hours AS DOUBLE))
+      comment: "Total regular hours for baseline capacity planning"
+    - name: "total_overtime_hours"
+      expr: SUM(CAST(overtime_hours AS DOUBLE))
+      comment: "Total overtime hours for cost control and fatigue risk management"
+    - name: "total_labor_cost"
+      expr: SUM(CAST(labor_amount AS DOUBLE))
+      comment: "Total labor cost for financial planning and project costing"
+    - name: "avg_hours_per_entry"
+      expr: AVG(CAST(hours_worked AS DOUBLE))
+      comment: "Average hours per time entry for productivity benchmarking"
+    - name: "overtime_rate_pct"
+      expr: ROUND(100.0 * SUM(CAST(overtime_hours AS DOUBLE)) / NULLIF(SUM(CAST(hours_worked AS DOUBLE)), 0), 2)
+      comment: "Percentage of total hours that are overtime for labor efficiency monitoring"
+    - name: "total_time_entries"
+      expr: COUNT(DISTINCT time_entry_id)
+      comment: "Count of time entries for data quality and compliance auditing"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`workforce_qualification`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Workforce qualification and certification coverage metrics. Used by HR, operations, and compliance leadership to ensure employees hold required qualifications for regulated semiconductor manufacturing and export-controlled programs."
+  source: "`vibe_semiconductors_v1`.`workforce`.`workforce_qualification`"
+  dimensions:
+    - name: "qualification_status"
+      expr: qualification_status
+      comment: "Current status of the qualification (Active, Expired, Suspended, Pending) for compliance gap analysis."
+    - name: "qualification_type"
+      expr: qualification_type
+      comment: "Type of qualification (Certification, License, Internal, Regulatory) for program-level coverage analysis."
+    - name: "workforce_qualification_status"
+      expr: workforce_qualification_status
+      comment: "Operational status of the workforce qualification record for active qualification tracking."
+    - name: "certification_type"
+      expr: certification_type
+      comment: "Type of certification held (ISO, OSHA, EAR, ITAR, Process-Specific) for regulatory compliance mapping."
+    - name: "proficiency_level"
+      expr: proficiency_level
+      comment: "Proficiency level achieved (Beginner, Intermediate, Advanced, Expert) for skills gap analysis."
+    - name: "regulatory_mandate_flag"
+      expr: regulatory_mandate_flag
+      comment: "Whether the qualification is mandated by a regulatory body, used to prioritize compliance remediation."
+    - name: "recertification_required"
+      expr: recertification_required
+      comment: "Whether recertification is required, used to forecast future qualification renewal workload."
+    - name: "expiry_date_month"
+      expr: DATE_TRUNC('MONTH', expiry_date)
+      comment: "Month of qualification expiry for proactive renewal planning and compliance risk management."
+    - name: "qualification_date_month"
+      expr: DATE_TRUNC('MONTH', qualification_date)
+      comment: "Month the qualification was granted for qualification attainment trend analysis."
+  measures:
+    - name: "total_qualifications"
+      expr: COUNT(1)
+      comment: "Total number of workforce qualification records. Baseline metric for qualification program coverage."
+    - name: "active_qualifications"
+      expr: COUNT(CASE WHEN qualification_status = 'Active' THEN 1 END)
+      comment: "Count of currently active qualifications. Primary metric for workforce compliance readiness."
+    - name: "expired_qualifications"
+      expr: COUNT(CASE WHEN qualification_status = 'Expired' THEN 1 END)
+      comment: "Count of expired qualifications. Critical compliance risk metric requiring immediate remediation action."
+    - name: "regulatory_mandated_qualifications"
+      expr: COUNT(CASE WHEN regulatory_mandate_flag = TRUE THEN 1 END)
+      comment: "Count of regulatory-mandated qualifications. Used to scope compliance audit exposure and remediation priority."
+    - name: "qualifications_requiring_renewal"
+      expr: COUNT(CASE WHEN recertification_required = TRUE THEN 1 END)
+      comment: "Count of qualifications requiring recertification. Used for training capacity planning and compliance scheduling."
+    - name: "unique_qualified_employees"
+      expr: COUNT(DISTINCT employee_id)
+      comment: "Count of distinct employees holding at least one qualification. Measures qualification program reach."
+    - name: "unique_qualification_types"
+      expr: COUNT(DISTINCT qualification_type)
+      comment: "Count of distinct qualification types in the workforce. Measures breadth of competency coverage."
+    - name: "compliance_flagged_qualifications"
+      expr: COUNT(CASE WHEN compliance_flag = TRUE THEN 1 END)
+      comment: "Count of qualifications with a compliance flag raised. Immediate action metric for compliance officers."
 $$;

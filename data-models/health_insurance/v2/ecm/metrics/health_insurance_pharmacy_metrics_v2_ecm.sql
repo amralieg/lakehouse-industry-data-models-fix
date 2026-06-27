@@ -1,98 +1,84 @@
--- Metric views for domain: pharmacy | Business: Health_Insurance | Version: 2 | Generated on: 2026-06-23 00:30:14
+-- Metric views for domain: pharmacy | Business: Health Insurance | Version: 2 | Generated on: 2026-06-28 00:14:33
 
 CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`pharmacy_benefit_accumulator`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Benefit Accumulator business metrics"
+  comment: "Member pharmacy benefit accumulator metrics tracking deductible, out-of-pocket, and Part D benefit phase progress. Critical for member cost-sharing management, CMS reconciliation, and benefit design evaluation."
   source: "`vibe_health_insurance_v1`.`pharmacy`.`benefit_accumulator`"
+  filter: is_active = TRUE
   dimensions:
-    - name: "Accumulator Reset Date"
-      expr: accumulator_reset_date
-    - name: "Accumulator Source System"
-      expr: accumulator_source_system
-    - name: "Accumulator Status"
-      expr: accumulator_status
-    - name: "Accumulator Version"
-      expr: accumulator_version
-    - name: "Benefit Period End Date"
-      expr: benefit_period_end_date
-    - name: "Benefit Period Start Date"
-      expr: benefit_period_start_date
-    - name: "Cms Reconciliation Status"
-      expr: cms_reconciliation_status
-    - name: "Coordination Of Benefits Type"
-      expr: coordination_of_benefits_type
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Eob Generated Flag"
-      expr: eob_generated_flag
-    - name: "Formulary Tier Applied"
-      expr: formulary_tier_applied
-    - name: "Is Deductible Met"
-      expr: is_deductible_met
-    - name: "Is Moop Met"
-      expr: is_moop_met
-    - name: "Last Adjudication Timestamp"
-      expr: last_adjudication_timestamp
-    - name: "Line Of Business"
+    - name: "line_of_business"
       expr: line_of_business
-    - name: "Lis Level"
+      comment: "Line of business (Medicare Part D, Commercial, Medicaid) for benefit accumulator segmentation."
+    - name: "part_d_benefit_phase"
+      expr: part_d_benefit_phase
+      comment: "Current Part D benefit phase (deductible, initial coverage, coverage gap, catastrophic) for CMS reporting."
+    - name: "lis_level"
       expr: lis_level
+      comment: "Low Income Subsidy level for equity and access analysis of low-income member populations."
+    - name: "is_deductible_met"
+      expr: is_deductible_met
+      comment: "Flag indicating whether the member has met their deductible. Drives benefit phase transition analysis."
+    - name: "is_moop_met"
+      expr: is_moop_met
+      comment: "Flag indicating whether the member has met their maximum out-of-pocket limit. Critical for catastrophic coverage activation."
+    - name: "cms_reconciliation_status"
+      expr: cms_reconciliation_status
+      comment: "CMS reconciliation status for Part D DIR and TROOP reporting compliance."
+    - name: "benefit_period_start_month"
+      expr: DATE_TRUNC('month', benefit_period_start_date)
+      comment: "Benefit period start month for annual accumulator reset and plan year analysis."
+    - name: "accumulator_status"
+      expr: accumulator_status
+      comment: "Current status of the accumulator record for data quality and operational monitoring."
   measures:
-    - name: "Row Count"
+    - name: "total_deductible_applied"
+      expr: SUM(CAST(deductible_applied_amt AS DOUBLE))
+      comment: "Total deductible amounts applied across all member accumulators. Measures benefit phase progression and cost-sharing exposure."
+    - name: "total_oop_applied"
+      expr: SUM(CAST(oop_applied_amt AS DOUBLE))
+      comment: "Total out-of-pocket amounts applied. Primary member financial burden metric for benefit design evaluation."
+    - name: "total_troop_applied"
+      expr: SUM(CAST(troop_applied_amt AS DOUBLE))
+      comment: "Total True Out-of-Pocket (TrOOP) amounts applied. Required for CMS Part D DIR reconciliation and TROOP reporting."
+    - name: "total_catastrophic_applied"
+      expr: SUM(CAST(catastrophic_applied_amt AS DOUBLE))
+      comment: "Total catastrophic coverage amounts applied. Measures high-cost member exposure and CMS reinsurance liability."
+    - name: "total_coverage_gap_discount_applied"
+      expr: SUM(CAST(coverage_gap_discount_applied_amt AS DOUBLE))
+      comment: "Total manufacturer coverage gap discounts applied. Tracks Part D coverage gap discount program utilization."
+    - name: "total_specialty_drug_applied"
+      expr: SUM(CAST(specialty_drug_applied_amt AS DOUBLE))
+      comment: "Total specialty drug cost applied to accumulators. Measures specialty drug cost-sharing burden on members."
+    - name: "total_hsa_eligible_applied"
+      expr: SUM(CAST(hsa_eligible_applied_amt AS DOUBLE))
+      comment: "Total HSA-eligible amounts applied. Supports HDHP/HSA benefit design compliance reporting."
+    - name: "total_icl_applied"
+      expr: SUM(CAST(icl_applied_amt AS DOUBLE))
+      comment: "Total Initial Coverage Limit amounts applied. Tracks Part D coverage gap entry threshold progression."
+    - name: "total_mail_order_applied"
+      expr: SUM(CAST(mail_order_applied_amt AS DOUBLE))
+      comment: "Total mail-order amounts applied to accumulators. Measures mail-order channel utilization and cost-sharing."
+    - name: "avg_oop_applied_per_member"
+      expr: AVG(CAST(oop_applied_amt AS DOUBLE))
+      comment: "Average out-of-pocket amount applied per member accumulator record. Benchmarks member cost burden across populations."
+    - name: "members_at_moop"
+      expr: COUNT(CASE WHEN is_moop_met = TRUE THEN 1 END)
+      comment: "Number of members who have reached their maximum out-of-pocket limit. Drives catastrophic coverage cost projections."
+    - name: "members_at_deductible"
+      expr: COUNT(CASE WHEN is_deductible_met = TRUE THEN 1 END)
+      comment: "Number of members who have met their deductible. Measures benefit phase transition volume for actuarial modeling."
+    - name: "total_accumulator_records"
       expr: COUNT(1)
-    - name: "Distinct Benefit Accumulator"
-      expr: COUNT(DISTINCT benefit_accumulator_id)
-    - name: "Total Catastrophic Applied Amt"
-      expr: SUM(catastrophic_applied_amt)
-    - name: "Average Catastrophic Applied Amt"
-      expr: AVG(catastrophic_applied_amt)
-    - name: "Total Catastrophic Limit Amt"
-      expr: SUM(catastrophic_limit_amt)
-    - name: "Average Catastrophic Limit Amt"
-      expr: AVG(catastrophic_limit_amt)
-    - name: "Total Coverage Gap Discount Applied Amt"
-      expr: SUM(coverage_gap_discount_applied_amt)
-    - name: "Average Coverage Gap Discount Applied Amt"
-      expr: AVG(coverage_gap_discount_applied_amt)
-    - name: "Total Deductible Applied Amt"
-      expr: SUM(deductible_applied_amt)
-    - name: "Average Deductible Applied Amt"
-      expr: AVG(deductible_applied_amt)
-    - name: "Total Deductible Limit Amt"
-      expr: SUM(deductible_limit_amt)
-    - name: "Average Deductible Limit Amt"
-      expr: AVG(deductible_limit_amt)
-    - name: "Total Family Deductible Applied Amt"
-      expr: SUM(family_deductible_applied_amt)
-    - name: "Average Family Deductible Applied Amt"
-      expr: AVG(family_deductible_applied_amt)
-    - name: "Total Family Oop Applied Amt"
-      expr: SUM(family_oop_applied_amt)
-    - name: "Average Family Oop Applied Amt"
-      expr: AVG(family_oop_applied_amt)
-    - name: "Total Hsa Eligible Applied Amt"
-      expr: SUM(hsa_eligible_applied_amt)
-    - name: "Average Hsa Eligible Applied Amt"
-      expr: AVG(hsa_eligible_applied_amt)
-    - name: "Total Icl Applied Amt"
-      expr: SUM(icl_applied_amt)
-    - name: "Average Icl Applied Amt"
-      expr: AVG(icl_applied_amt)
-    - name: "Total Icl Limit Amt"
-      expr: SUM(icl_limit_amt)
-    - name: "Average Icl Limit Amt"
-      expr: AVG(icl_limit_amt)
-    - name: "Total Lis Copay Tier"
-      expr: SUM(lis_copay_tier)
-    - name: "Average Lis Copay Tier"
-      expr: AVG(lis_copay_tier)
-    - name: "Total Mail Order Applied Amt"
-      expr: SUM(mail_order_applied_amt)
-    - name: "Average Mail Order Applied Amt"
-      expr: AVG(mail_order_applied_amt)
+      comment: "Total active accumulator records. Baseline for member benefit tracking completeness and data quality monitoring."
+    - name: "total_family_oop_applied"
+      expr: SUM(CAST(family_oop_applied_amt AS DOUBLE))
+      comment: "Total family-level out-of-pocket amounts applied. Measures aggregate family cost-sharing for family plan benefit design."
+    - name: "total_third_party_applied"
+      expr: SUM(CAST(third_party_applied_amt AS DOUBLE))
+      comment: "Total third-party (manufacturer copay assistance) amounts applied. Tracks accumulator adjustment program (AAP) exposure."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`pharmacy_claim_line`
@@ -100,220 +86,80 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Claim Line business metrics"
+  comment: "Pharmacy claim line-level financial and clinical metrics covering drug cost components, COB, and specialty drug utilization. Provides granular ingredient-level analytics for formulary management and cost trend analysis."
   source: "`vibe_health_insurance_v1`.`pharmacy`.`claim_line`"
+  filter: record_status = 'active'
   dimensions:
-    - name: "Adjudication Timestamp"
-      expr: adjudication_timestamp
-    - name: "Catastrophic Coverage Indicator"
-      expr: catastrophic_coverage_indicator
-    - name: "Cob Sequence"
-      expr: cob_sequence
-    - name: "Compound Indicator"
-      expr: compound_indicator
-    - name: "Coverage Gap Indicator"
-      expr: coverage_gap_indicator
-    - name: "Days Supply"
-      expr: days_supply
-    - name: "Dispense As Written Code"
-      expr: dispense_as_written_code
-    - name: "Dispensed Date"
-      expr: dispensed_date
-    - name: "Drug Coverage Status"
-      expr: drug_coverage_status
-    - name: "Dur Conflict Code"
-      expr: dur_conflict_code
-    - name: "Dur Outcome Code"
-      expr: dur_outcome_code
-    - name: "Fill Number"
-      expr: fill_number
-    - name: "Formulary Tier"
+    - name: "formulary_tier"
       expr: formulary_tier
-    - name: "Generic Indicator"
-      expr: generic_indicator
-    - name: "Line Sequence Number"
-      expr: line_sequence_number
-    - name: "Line Status"
+      comment: "Formulary tier of the dispensed drug for tier-mix and cost-sharing analysis at the line level."
+    - name: "pharmacy_channel"
+      expr: pharmacy_channel
+      comment: "Dispensing channel (retail, mail, specialty) for channel economics analysis."
+    - name: "line_status"
       expr: line_status
+      comment: "Claim line status (paid, reversed, adjusted) for adjudication pipeline monitoring."
+    - name: "specialty_drug_indicator"
+      expr: specialty_drug_indicator
+      comment: "Flag for specialty drug claim lines — highest cost category requiring dedicated management."
+    - name: "generic_indicator"
+      expr: generic_indicator
+      comment: "Flag for generic drug dispensing. Tracks generic dispensing rate, a key formulary cost management KPI."
+    - name: "low_income_subsidy_indicator"
+      expr: low_income_subsidy_indicator
+      comment: "Flag for LIS (Low Income Subsidy) claim lines for equity and CMS subsidy reporting."
+    - name: "coverage_gap_indicator"
+      expr: coverage_gap_indicator
+      comment: "Flag for claim lines in the Part D coverage gap phase for benefit phase cost analysis."
+    - name: "catastrophic_coverage_indicator"
+      expr: catastrophic_coverage_indicator
+      comment: "Flag for claim lines in catastrophic coverage phase — highest CMS reinsurance liability."
+    - name: "dispensed_month"
+      expr: DATE_TRUNC('month', dispensed_date)
+      comment: "Month of dispensing for claim line trend analysis."
+    - name: "step_therapy_indicator"
+      expr: step_therapy_indicator
+      comment: "Flag indicating step therapy was applied to this claim line."
   measures:
-    - name: "Row Count"
+    - name: "total_plan_paid_amount"
+      expr: SUM(CAST(plan_paid_amount AS DOUBLE))
+      comment: "Total plan-paid amount at the claim line level. Granular drug-level cost KPI for formulary management."
+    - name: "total_ingredient_cost"
+      expr: SUM(CAST(ingredient_cost_amount AS DOUBLE))
+      comment: "Total ingredient cost at the claim line level. Primary drug acquisition cost metric for formulary economics."
+    - name: "total_dispensing_fee"
+      expr: SUM(CAST(dispensing_fee_amount AS DOUBLE))
+      comment: "Total dispensing fees at the claim line level. Measures pharmacy network dispensing cost by channel and tier."
+    - name: "total_patient_pay"
+      expr: SUM(CAST(patient_pay_amount AS DOUBLE))
+      comment: "Total patient out-of-pocket payments at the claim line level. Measures member cost burden by drug and tier."
+    - name: "total_gross_drug_cost"
+      expr: SUM(CAST(gross_drug_cost_amount AS DOUBLE))
+      comment: "Total gross drug cost before rebates and discounts. Baseline for net cost calculation and rebate ROI analysis."
+    - name: "total_manufacturer_discount"
+      expr: SUM(CAST(manufacturer_discount_amount AS DOUBLE))
+      comment: "Total manufacturer discounts applied at the claim line level. Measures coverage gap discount program financial impact."
+    - name: "total_other_payer_amount"
+      expr: SUM(CAST(other_payer_amount AS DOUBLE))
+      comment: "Total other payer amounts at the claim line level. Measures COB recovery at the drug level."
+    - name: "total_true_oop_amount"
+      expr: SUM(CAST(true_oop_amount AS DOUBLE))
+      comment: "Total True Out-of-Pocket (TrOOP) amounts at the claim line level. Required for CMS Part D TROOP accumulation reporting."
+    - name: "total_sales_tax"
+      expr: SUM(CAST(sales_tax_amount AS DOUBLE))
+      comment: "Total sales tax at the claim line level for state tax compliance reporting."
+    - name: "avg_quantity_dispensed"
+      expr: AVG(CAST(quantity_dispensed AS DOUBLE))
+      comment: "Average quantity dispensed per claim line. Benchmarks dispensing patterns against quantity limits."
+    - name: "generic_dispensing_rate"
+      expr: COUNT(CASE WHEN generic_indicator = TRUE THEN 1 END) / NULLIF(COUNT(1), 0)
+      comment: "Ratio of generic to total claim lines. Key formulary cost management KPI — higher rates indicate effective generic substitution."
+    - name: "specialty_drug_cost_share"
+      expr: SUM(CASE WHEN specialty_drug_indicator = TRUE THEN plan_paid_amount ELSE 0 END) / NULLIF(SUM(CAST(plan_paid_amount AS DOUBLE)), 0)
+      comment: "Proportion of total plan-paid amount attributable to specialty drugs. Measures specialty drug cost concentration for budget management."
+    - name: "total_claim_lines"
       expr: COUNT(1)
-    - name: "Distinct Claim Line"
-      expr: COUNT(DISTINCT claim_line_id)
-    - name: "Total Basis Of Cost Determination"
-      expr: SUM(basis_of_cost_determination)
-    - name: "Average Basis Of Cost Determination"
-      expr: AVG(basis_of_cost_determination)
-    - name: "Total Dispensing Fee Amount"
-      expr: SUM(dispensing_fee_amount)
-    - name: "Average Dispensing Fee Amount"
-      expr: AVG(dispensing_fee_amount)
-    - name: "Total Gross Drug Cost Amount"
-      expr: SUM(gross_drug_cost_amount)
-    - name: "Average Gross Drug Cost Amount"
-      expr: AVG(gross_drug_cost_amount)
-    - name: "Total Incentive Amount"
-      expr: SUM(incentive_amount)
-    - name: "Average Incentive Amount"
-      expr: AVG(incentive_amount)
-    - name: "Total Ingredient Cost Amount"
-      expr: SUM(ingredient_cost_amount)
-    - name: "Average Ingredient Cost Amount"
-      expr: AVG(ingredient_cost_amount)
-    - name: "Total Low Income Subsidy Indicator"
-      expr: SUM(low_income_subsidy_indicator)
-    - name: "Average Low Income Subsidy Indicator"
-      expr: AVG(low_income_subsidy_indicator)
-    - name: "Total Manufacturer Discount Amount"
-      expr: SUM(manufacturer_discount_amount)
-    - name: "Average Manufacturer Discount Amount"
-      expr: AVG(manufacturer_discount_amount)
-    - name: "Total Other Payer Amount"
-      expr: SUM(other_payer_amount)
-    - name: "Average Other Payer Amount"
-      expr: AVG(other_payer_amount)
-    - name: "Total Patient Pay Amount"
-      expr: SUM(patient_pay_amount)
-    - name: "Average Patient Pay Amount"
-      expr: AVG(patient_pay_amount)
-    - name: "Total Plan Paid Amount"
-      expr: SUM(plan_paid_amount)
-    - name: "Average Plan Paid Amount"
-      expr: AVG(plan_paid_amount)
-    - name: "Total Quantity Dispensed"
-      expr: SUM(quantity_dispensed)
-    - name: "Average Quantity Dispensed"
-      expr: AVG(quantity_dispensed)
-    - name: "Total Sales Tax Amount"
-      expr: SUM(sales_tax_amount)
-    - name: "Average Sales Tax Amount"
-      expr: AVG(sales_tax_amount)
-$$;
-
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`pharmacy_dispensing_pharmacy`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Dispensing Pharmacy business metrics"
-  source: "`vibe_health_insurance_v1`.`pharmacy`.`dispensing_pharmacy`"
-  dimensions:
-    - name: "Accepts Electronic Prescriptions"
-      expr: accepts_electronic_prescriptions
-    - name: "Address Line1"
-      expr: address_line1
-    - name: "Address Line2"
-      expr: address_line2
-    - name: "Chain Independent Flag"
-      expr: chain_independent_flag
-    - name: "Chain Organization Name"
-      expr: chain_organization_name
-    - name: "City"
-      expr: city
-    - name: "Cold Chain Certified"
-      expr: cold_chain_certified
-    - name: "Contract Effective Date"
-      expr: contract_effective_date
-    - name: "Contract Termination Date"
-      expr: contract_termination_date
-    - name: "Contract Type"
-      expr: contract_type
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Dispensing State Code"
-      expr: dispensing_state_code
-    - name: "Doing Business As Name"
-      expr: doing_business_as_name
-    - name: "Fax Number"
-      expr: fax_number
-    - name: "Line Of Business"
-      expr: line_of_business
-    - name: "Mail Order Capable"
-      expr: mail_order_capable
-  measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Dispensing Pharmacy"
-      expr: COUNT(DISTINCT dispensing_pharmacy_id)
-    - name: "Total Awp Discount Percent"
-      expr: SUM(awp_discount_percent)
-    - name: "Average Awp Discount Percent"
-      expr: AVG(awp_discount_percent)
-    - name: "Total Dispensing Fee Amount"
-      expr: SUM(dispensing_fee_amount)
-    - name: "Average Dispensing Fee Amount"
-      expr: AVG(dispensing_fee_amount)
-    - name: "Total Ingredient Cost Basis"
-      expr: SUM(ingredient_cost_basis)
-    - name: "Average Ingredient Cost Basis"
-      expr: AVG(ingredient_cost_basis)
-    - name: "Total Ncpdp Provider Number"
-      expr: SUM(ncpdp_provider_number)
-    - name: "Average Ncpdp Provider Number"
-      expr: AVG(ncpdp_provider_number)
-$$;
-
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`pharmacy_drug_master`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Drug Master business metrics"
-  source: "`vibe_health_insurance_v1`.`pharmacy`.`drug_master`"
-  dimensions:
-    - name: "Atc Code"
-      expr: atc_code
-    - name: "Awp Effective Date"
-      expr: awp_effective_date
-    - name: "Brand Name"
-      expr: brand_name
-    - name: "Controlled Substance Schedule"
-      expr: controlled_substance_schedule
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Dea Number Required"
-      expr: dea_number_required
-    - name: "Dosage Form"
-      expr: dosage_form
-    - name: "Drug Class Code"
-      expr: drug_class_code
-    - name: "Drug Class Name"
-      expr: drug_class_name
-    - name: "Drug Name"
-      expr: drug_name
-    - name: "Drug Status"
-      expr: drug_status
-    - name: "Drug Type"
-      expr: drug_type
-    - name: "Effective Date"
-      expr: effective_date
-    - name: "Fda Approval Status"
-      expr: fda_approval_status
-    - name: "Generic Name"
-      expr: generic_name
-    - name: "Gpi Code"
-      expr: gpi_code
-  measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Drug Master"
-      expr: COUNT(DISTINCT drug_master_id)
-    - name: "Total Awp Unit Price"
-      expr: SUM(awp_unit_price)
-    - name: "Average Awp Unit Price"
-      expr: AVG(awp_unit_price)
-    - name: "Total Package Size"
-      expr: SUM(package_size)
-    - name: "Average Package Size"
-      expr: AVG(package_size)
-    - name: "Total Route Of Administration"
-      expr: SUM(route_of_administration)
-    - name: "Average Route Of Administration"
-      expr: AVG(route_of_administration)
-    - name: "Total Wac Unit Price"
-      expr: SUM(wac_unit_price)
-    - name: "Average Wac Unit Price"
-      expr: AVG(wac_unit_price)
+      comment: "Total pharmacy claim lines. Baseline utilization volume metric for trend and capacity analysis."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`pharmacy_drug_pricing`
@@ -321,90 +167,62 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Drug Pricing business metrics"
+  comment: "Drug pricing analytics covering AWP, WAC, MAC, and RBP price benchmarks across formulary tiers and dispensing channels. Drives formulary economics, PBM contract performance, and cost management strategy."
   source: "`vibe_health_insurance_v1`.`pharmacy`.`drug_pricing`"
+  filter: is_active = TRUE
   dimensions:
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Currency Code"
-      expr: currency_code
-    - name: "Days Supply"
-      expr: days_supply
-    - name: "Dea Schedule"
-      expr: dea_schedule
-    - name: "Dispensing Channel"
-      expr: dispensing_channel
-    - name: "Effective Date"
-      expr: effective_date
-    - name: "Expiration Date"
-      expr: expiration_date
-    - name: "Formulary Tier"
+    - name: "price_type"
+      expr: price_type
+      comment: "Type of drug price (AWP, WAC, MAC, RBP) for pricing benchmark comparison."
+    - name: "formulary_tier"
       expr: formulary_tier
-    - name: "Mac List Version"
-      expr: mac_list_version
-    - name: "Mac Methodology"
-      expr: mac_methodology
-    - name: "Multi Source Code"
+      comment: "Formulary tier for tier-level pricing analysis and cost-sharing design."
+    - name: "dispensing_channel"
+      expr: dispensing_channel
+      comment: "Dispensing channel (retail, mail, specialty) for channel-specific pricing analysis."
+    - name: "multi_source_code"
       expr: multi_source_code
-    - name: "Package Size Uom"
-      expr: package_size_uom
-    - name: "Pricing File Date"
-      expr: pricing_file_date
-    - name: "Pricing File Name"
-      expr: pricing_file_name
-    - name: "Pricing Source"
-      expr: pricing_source
-    - name: "Pricing Status"
+      comment: "Multi-source code indicating brand vs. generic availability for generic substitution economics."
+    - name: "pricing_status"
       expr: pricing_status
+      comment: "Current pricing record status for active price file management."
+    - name: "pricing_source"
+      expr: pricing_source
+      comment: "Source of pricing data (Medi-Span, Red Book, FDB) for data provenance and benchmark validation."
+    - name: "effective_month"
+      expr: DATE_TRUNC('month', effective_date)
+      comment: "Month of price effective date for drug price inflation trend analysis."
+    - name: "currency_code"
+      expr: currency_code
+      comment: "Currency code for multi-currency pricing environments."
   measures:
-    - name: "Row Count"
+    - name: "avg_awp_price"
+      expr: AVG(CAST(awp_price AS DOUBLE))
+      comment: "Average AWP (Average Wholesale Price) across drug pricing records. Benchmark for PBM discount negotiation and formulary economics."
+    - name: "avg_wac_price"
+      expr: AVG(CAST(wac_price AS DOUBLE))
+      comment: "Average WAC (Wholesale Acquisition Cost) across drug pricing records. Manufacturer list price benchmark for rebate and discount analysis."
+    - name: "avg_mac_price"
+      expr: AVG(CAST(mac_price AS DOUBLE))
+      comment: "Average MAC (Maximum Allowable Cost) price. Measures generic drug cost ceiling effectiveness for plan cost management."
+    - name: "avg_rbp_price"
+      expr: AVG(CAST(rbp_price AS DOUBLE))
+      comment: "Average Reference-Based Pricing (RBP) price. Tracks alternative pricing methodology adoption and cost impact."
+    - name: "avg_unit_price"
+      expr: AVG(CAST(unit_price AS DOUBLE))
+      comment: "Average contracted unit price across all pricing records. Primary drug cost benchmark for formulary and PBM contract management."
+    - name: "avg_awp_discount_pct"
+      expr: AVG(CAST(awp_discount_pct AS DOUBLE))
+      comment: "Average AWP discount percentage negotiated. Measures PBM contract discount depth and formulary savings effectiveness."
+    - name: "avg_dispensing_fee"
+      expr: AVG(CAST(dispensing_fee AS DOUBLE))
+      comment: "Average dispensing fee across pricing records. Benchmarks pharmacy network dispensing cost by channel and tier."
+    - name: "avg_price_change_pct"
+      expr: AVG(CAST(price_change_pct AS DOUBLE))
+      comment: "Average price change percentage from prior period. Tracks drug price inflation trends for actuarial and budget planning."
+    - name: "total_pricing_records"
       expr: COUNT(1)
-    - name: "Distinct Drug Pricing"
-      expr: COUNT(DISTINCT drug_pricing_id)
-    - name: "Total Awp Discount Pct"
-      expr: SUM(awp_discount_pct)
-    - name: "Average Awp Discount Pct"
-      expr: AVG(awp_discount_pct)
-    - name: "Total Awp Price"
-      expr: SUM(awp_price)
-    - name: "Average Awp Price"
-      expr: AVG(awp_price)
-    - name: "Total Dispensing Fee"
-      expr: SUM(dispensing_fee)
-    - name: "Average Dispensing Fee"
-      expr: AVG(dispensing_fee)
-    - name: "Total Mac Price"
-      expr: SUM(mac_price)
-    - name: "Average Mac Price"
-      expr: AVG(mac_price)
-    - name: "Total Package Size"
-      expr: SUM(package_size)
-    - name: "Average Package Size"
-      expr: AVG(package_size)
-    - name: "Total Price Change Pct"
-      expr: SUM(price_change_pct)
-    - name: "Average Price Change Pct"
-      expr: AVG(price_change_pct)
-    - name: "Total Price Type"
-      expr: SUM(price_type)
-    - name: "Average Price Type"
-      expr: AVG(price_type)
-    - name: "Total Prior Unit Price"
-      expr: SUM(prior_unit_price)
-    - name: "Average Prior Unit Price"
-      expr: AVG(prior_unit_price)
-    - name: "Total Rbp Price"
-      expr: SUM(rbp_price)
-    - name: "Average Rbp Price"
-      expr: AVG(rbp_price)
-    - name: "Total Unit Price"
-      expr: SUM(unit_price)
-    - name: "Average Unit Price"
-      expr: AVG(unit_price)
-    - name: "Total Wac Price"
-      expr: SUM(wac_price)
-    - name: "Average Wac Price"
-      expr: AVG(wac_price)
+      comment: "Total active drug pricing records. Measures formulary pricing file completeness and coverage."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`pharmacy_drug_rebate`
@@ -412,94 +230,71 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Drug Rebate business metrics"
+  comment: "Drug rebate financial performance metrics covering contracted vs. received rebate amounts, reconciliation status, and manufacturer performance. Directly impacts pharmacy net cost and MLR calculations."
   source: "`vibe_health_insurance_v1`.`pharmacy`.`drug_rebate`"
+  filter: record_status = 'active'
   dimensions:
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Currency Code"
-      expr: currency_code
-    - name: "Dispute Reason"
-      expr: dispute_reason
-    - name: "Dispute Resolution Date"
-      expr: dispute_resolution_date
-    - name: "Drug Tier"
-      expr: drug_tier
-    - name: "Gl Account Code"
-      expr: gl_account_code
-    - name: "Invoice Date"
-      expr: invoice_date
-    - name: "Line Of Business"
+    - name: "rebate_type"
+      expr: rebate_type
+      comment: "Type of rebate (base, performance, market share) for rebate program mix analysis."
+    - name: "line_of_business"
       expr: line_of_business
-    - name: "Manufacturer Name"
-      expr: manufacturer_name
-    - name: "Ndc Code"
-      expr: ndc_code
-    - name: "Part D Indicator"
-      expr: part_d_indicator
-    - name: "Performance Target Met Indicator"
-      expr: performance_target_met_indicator
-    - name: "Prior Auth Required Indicator"
-      expr: prior_auth_required_indicator
-    - name: "Reconciliation Status"
+      comment: "Line of business for rebate allocation and MLR reporting by segment."
+    - name: "reconciliation_status"
       expr: reconciliation_status
-    - name: "Source System Code"
-      expr: source_system_code
-    - name: "Specialty Drug Indicator"
+      comment: "Rebate reconciliation status (pending, reconciled, disputed) for cash flow and liability management."
+    - name: "therapeutic_class_code"
+      expr: therapeutic_class_code
+      comment: "Therapeutic drug class for rebate analysis by clinical category and formulary strategy."
+    - name: "mlr_rebate_category"
+      expr: mlr_rebate_category
+      comment: "MLR rebate category classification required for CMS MLR reporting and rebate pass-through calculations."
+    - name: "part_d_indicator"
+      expr: part_d_indicator
+      comment: "Flag indicating Part D rebate for CMS DIR reporting and Part D financial reconciliation."
+    - name: "specialty_drug_indicator"
       expr: specialty_drug_indicator
+      comment: "Specialty drug flag for specialty rebate program performance tracking."
+    - name: "rebate_period_start_month"
+      expr: DATE_TRUNC('month', rebate_period_start_date)
+      comment: "Rebate period start month for quarterly and annual rebate trend analysis."
+    - name: "performance_target_met_indicator"
+      expr: performance_target_met_indicator
+      comment: "Flag indicating whether manufacturer performance targets were met, triggering performance rebate payments."
   measures:
-    - name: "Row Count"
+    - name: "total_calculated_rebate_amount"
+      expr: SUM(CAST(calculated_rebate_amount AS DOUBLE))
+      comment: "Total calculated rebate amount based on contracted rates and utilization. Primary rebate revenue projection KPI."
+    - name: "total_invoiced_amount"
+      expr: SUM(CAST(invoiced_amount AS DOUBLE))
+      comment: "Total rebate amount invoiced to manufacturers. Measures rebate billing completeness and cash flow timing."
+    - name: "total_received_amount"
+      expr: SUM(CAST(received_amount AS DOUBLE))
+      comment: "Total rebate amount actually received from manufacturers. Tracks cash collection vs. invoiced amounts."
+    - name: "total_pass_through_amount"
+      expr: SUM(CAST(pass_through_amount AS DOUBLE))
+      comment: "Total rebate amounts passed through to clients or members. Measures rebate pass-through program compliance."
+    - name: "total_variance_amount"
+      expr: SUM(CAST(variance_amount AS DOUBLE))
+      comment: "Total variance between calculated and received rebate amounts. Identifies manufacturer underpayment and dispute triggers."
+    - name: "avg_contracted_rebate_rate"
+      expr: AVG(CAST(contracted_rebate_rate AS DOUBLE))
+      comment: "Average contracted rebate rate across all rebate agreements. Benchmarks formulary negotiation effectiveness."
+    - name: "avg_market_share_pct"
+      expr: AVG(CAST(market_share_pct AS DOUBLE))
+      comment: "Average market share percentage across rebate contracts. Tracks formulary positioning and market share rebate eligibility."
+    - name: "total_utilization_units"
+      expr: SUM(CAST(utilization_units AS DOUBLE))
+      comment: "Total drug utilization units underlying rebate calculations. Validates rebate invoice accuracy against claims data."
+    - name: "rebate_collection_rate"
+      expr: SUM(CAST(received_amount AS DOUBLE)) / NULLIF(SUM(CAST(invoiced_amount AS DOUBLE)), 0)
+      comment: "Ratio of received to invoiced rebate amounts. Measures manufacturer payment compliance and collection effectiveness."
+    - name: "total_rebate_records"
       expr: COUNT(1)
-    - name: "Distinct Drug Rebate"
-      expr: COUNT(DISTINCT drug_rebate_id)
-    - name: "Total Awp Unit Price"
-      expr: SUM(awp_unit_price)
-    - name: "Average Awp Unit Price"
-      expr: AVG(awp_unit_price)
-    - name: "Total Calculated Rebate Amount"
-      expr: SUM(calculated_rebate_amount)
-    - name: "Average Calculated Rebate Amount"
-      expr: AVG(calculated_rebate_amount)
-    - name: "Total Contracted Rebate Rate"
-      expr: SUM(contracted_rebate_rate)
-    - name: "Average Contracted Rebate Rate"
-      expr: AVG(contracted_rebate_rate)
-    - name: "Total Invoiced Amount"
-      expr: SUM(invoiced_amount)
-    - name: "Average Invoiced Amount"
-      expr: AVG(invoiced_amount)
-    - name: "Total Market Share Pct"
-      expr: SUM(market_share_pct)
-    - name: "Average Market Share Pct"
-      expr: AVG(market_share_pct)
-    - name: "Total Mlr Rebate Category"
-      expr: SUM(mlr_rebate_category)
-    - name: "Average Mlr Rebate Category"
-      expr: AVG(mlr_rebate_category)
-    - name: "Total Pass Through Amount"
-      expr: SUM(pass_through_amount)
-    - name: "Average Pass Through Amount"
-      expr: AVG(pass_through_amount)
-    - name: "Total Payment Due Date"
-      expr: SUM(payment_due_date)
-    - name: "Average Payment Due Date"
-      expr: AVG(payment_due_date)
-    - name: "Total Payment Received Date"
-      expr: SUM(payment_received_date)
-    - name: "Average Payment Received Date"
-      expr: AVG(payment_received_date)
-    - name: "Total Rebate Invoice Number"
-      expr: SUM(rebate_invoice_number)
-    - name: "Average Rebate Invoice Number"
-      expr: AVG(rebate_invoice_number)
-    - name: "Total Rebate Period End Date"
-      expr: SUM(rebate_period_end_date)
-    - name: "Average Rebate Period End Date"
-      expr: AVG(rebate_period_end_date)
-    - name: "Total Rebate Period Start Date"
-      expr: SUM(rebate_period_start_date)
-    - name: "Average Rebate Period Start Date"
-      expr: AVG(rebate_period_start_date)
+      comment: "Total rebate records. Baseline for rebate program coverage and manufacturer contract completeness."
+    - name: "disputed_rebate_count"
+      expr: COUNT(CASE WHEN dispute_reason IS NOT NULL THEN 1 END)
+      comment: "Number of rebate records with active disputes. Tracks manufacturer dispute volume and resolution pipeline."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`pharmacy_dur_alert`
@@ -507,180 +302,62 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Dur Alert business metrics"
+  comment: "Drug utilization review (DUR) alert metrics tracking clinical safety interventions, override patterns, and adjudication outcomes. Critical for patient safety, clinical program effectiveness, and regulatory compliance."
   source: "`vibe_health_insurance_v1`.`pharmacy`.`dur_alert`"
+  filter: record_status = 'active'
   dimensions:
-    - name: "Adjudication Outcome"
-      expr: adjudication_outcome
-    - name: "Alert Generated Timestamp"
-      expr: alert_generated_timestamp
-    - name: "Alert Status"
-      expr: alert_status
-    - name: "Alert Type Code"
+    - name: "alert_type_code"
       expr: alert_type_code
-    - name: "Alert Type Description"
-      expr: alert_type_description
-    - name: "Clinical Significance Code"
+      comment: "DUR alert type (drug-drug interaction, drug-disease, duplicate therapy) for clinical safety category analysis."
+    - name: "alert_status"
+      expr: alert_status
+      comment: "Current alert status (open, overridden, resolved) for DUR program operational monitoring."
+    - name: "clinical_significance_code"
       expr: clinical_significance_code
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Days Since Last Fill"
-      expr: days_since_last_fill
-    - name: "Days Supply"
-      expr: days_supply
-    - name: "Dispensing Date"
-      expr: dispensing_date
-    - name: "Dispensing Pharmacy Npi"
-      expr: dispensing_pharmacy_npi
-    - name: "Drug Database Source"
-      expr: drug_database_source
-    - name: "Drug Database Version"
-      expr: drug_database_version
-    - name: "Drug Name"
-      expr: drug_name
-    - name: "Drug Ndc"
-      expr: drug_ndc
-    - name: "Dur Program Type"
+      comment: "Clinical significance level of the DUR alert for severity-weighted safety analysis."
+    - name: "severity_level_code"
+      expr: severity_level_code
+      comment: "Severity level of the drug interaction or clinical issue for risk stratification."
+    - name: "adjudication_outcome"
+      expr: adjudication_outcome
+      comment: "Adjudication outcome following DUR alert (paid, rejected, overridden) for claims processing impact analysis."
+    - name: "dur_program_type"
       expr: dur_program_type
+      comment: "DUR program type (prospective, retrospective, concurrent) for program effectiveness comparison."
+    - name: "pa_required_flag"
+      expr: pa_required_flag
+      comment: "Flag indicating PA was required as a result of the DUR alert. Measures DUR-to-PA escalation rate."
+    - name: "alert_month"
+      expr: DATE_TRUNC('month', dispensing_date)
+      comment: "Month of dispensing date for DUR alert trend analysis over time."
+    - name: "step_therapy_flag"
+      expr: step_therapy_flag
+      comment: "Flag indicating step therapy was triggered by the DUR alert."
   measures:
-    - name: "Row Count"
+    - name: "total_dur_alerts"
       expr: COUNT(1)
-    - name: "Distinct Dur Alert"
-      expr: COUNT(DISTINCT dur_alert_id)
-    - name: "Total Prescribed Quantity"
-      expr: SUM(prescribed_quantity)
-    - name: "Average Prescribed Quantity"
-      expr: AVG(prescribed_quantity)
-    - name: "Total Quantity Dispensed"
-      expr: SUM(quantity_dispensed)
-    - name: "Average Quantity Dispensed"
-      expr: AVG(quantity_dispensed)
-$$;
-
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`pharmacy_formulary`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Formulary business metrics"
-  source: "`vibe_health_insurance_v1`.`pharmacy`.`formulary`"
-  dimensions:
-    - name: "Formulary Category"
-      expr: formulary_category
-    - name: "Change Notification Date"
-      expr: change_notification_date
-    - name: "Cms Formulary Code"
-      expr: cms_formulary_code
-    - name: "Formulary Code"
-      expr: formulary_code
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Formulary Description"
-      expr: formulary_description
-    - name: "Drug Count"
-      expr: drug_count
-    - name: "Drug Utilization Review Ind"
-      expr: drug_utilization_review_ind
-    - name: "Effective Date"
-      expr: effective_date
-    - name: "Formulary Status"
-      expr: formulary_status
-    - name: "Formulary Type"
-      expr: formulary_type
-    - name: "Generic Substitution Policy"
-      expr: generic_substitution_policy
-    - name: "Is Aca Compliant"
-      expr: is_aca_compliant
-    - name: "Is Cms Part D"
-      expr: is_cms_part_d
-    - name: "Last Review Date"
-      expr: last_review_date
-    - name: "Lob Code"
-      expr: lob_code
-  measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Formulary"
-      expr: COUNT(DISTINCT formulary_id)
-    - name: "Total Low Income Subsidy Ind"
-      expr: SUM(low_income_subsidy_ind)
-    - name: "Average Low Income Subsidy Ind"
-      expr: AVG(low_income_subsidy_ind)
-$$;
-
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`pharmacy_formulary_drug_tier`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Formulary Drug Tier business metrics"
-  source: "`vibe_health_insurance_v1`.`pharmacy`.`formulary_drug_tier`"
-  dimensions:
-    - name: "Benefit Year"
-      expr: benefit_year
-    - name: "Coverage Status"
-      expr: coverage_status
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Dispensing Channel"
-      expr: dispensing_channel
-    - name: "Drug Tier Change Reason"
-      expr: drug_tier_change_reason
-    - name: "Dur Alert Type"
-      expr: dur_alert_type
-    - name: "Effective Date"
-      expr: effective_date
-    - name: "Formulary Status Code"
-      expr: formulary_status_code
-    - name: "Lob Code"
-      expr: lob_code
-    - name: "Mac Pricing Applicable"
-      expr: mac_pricing_applicable
-    - name: "Ndc Code"
-      expr: ndc_code
-    - name: "Pa Criteria Description"
-      expr: pa_criteria_description
-    - name: "Pa Type"
-      expr: pa_type
-    - name: "Pbm Formulary Code"
-      expr: pbm_formulary_code
-    - name: "Prior Auth Required"
-      expr: prior_auth_required
-    - name: "Ql Clinical Basis"
-      expr: ql_clinical_basis
-  measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Formulary Drug Tier"
-      expr: COUNT(DISTINCT formulary_drug_tier_id)
-    - name: "Total Coinsurance Rate"
-      expr: SUM(coinsurance_rate)
-    - name: "Average Coinsurance Rate"
-      expr: AVG(coinsurance_rate)
-    - name: "Total Copay Mail Order"
-      expr: SUM(copay_mail_order)
-    - name: "Average Copay Mail Order"
-      expr: AVG(copay_mail_order)
-    - name: "Total Copay Retail 30"
-      expr: SUM(copay_retail_30)
-    - name: "Average Copay Retail 30"
-      expr: AVG(copay_retail_30)
-    - name: "Total Copay Retail 90"
-      expr: SUM(copay_retail_90)
-    - name: "Average Copay Retail 90"
-      expr: AVG(copay_retail_90)
-    - name: "Total Deductible Applies"
-      expr: SUM(deductible_applies)
-    - name: "Average Deductible Applies"
-      expr: AVG(deductible_applies)
-    - name: "Total Ql Max Quantity"
-      expr: SUM(ql_max_quantity)
-    - name: "Average Ql Max Quantity"
-      expr: AVG(ql_max_quantity)
-    - name: "Total St Clinical Rationale"
-      expr: SUM(st_clinical_rationale)
-    - name: "Average St Clinical Rationale"
-      expr: AVG(st_clinical_rationale)
+      comment: "Total DUR alerts generated. Baseline patient safety metric measuring clinical intervention volume."
+    - name: "override_count"
+      expr: COUNT(CASE WHEN override_code IS NOT NULL THEN 1 END)
+      comment: "Number of DUR alerts overridden by pharmacists or prescribers. High override rates may indicate alert fatigue or inappropriate criteria."
+    - name: "override_rate"
+      expr: COUNT(CASE WHEN override_code IS NOT NULL THEN 1 END) / NULLIF(COUNT(1), 0)
+      comment: "Ratio of overridden to total DUR alerts. Key clinical safety KPI — high rates signal alert fatigue and patient safety risk."
+    - name: "pa_escalation_rate"
+      expr: COUNT(CASE WHEN pa_required_flag = TRUE THEN 1 END) / NULLIF(COUNT(1), 0)
+      comment: "Rate of DUR alerts escalating to prior authorization. Measures DUR program clinical rigor and PA workload impact."
+    - name: "quantity_limit_alert_count"
+      expr: COUNT(CASE WHEN quantity_limit_flag = TRUE THEN 1 END)
+      comment: "Number of DUR alerts triggered by quantity limit violations. Tracks quantity limit program effectiveness."
+    - name: "avg_prescribed_quantity"
+      expr: AVG(CAST(prescribed_quantity AS DOUBLE))
+      comment: "Average prescribed quantity at time of DUR alert. Benchmarks prescribing patterns against clinical quantity limits."
+    - name: "avg_quantity_dispensed"
+      expr: AVG(CAST(quantity_dispensed AS DOUBLE))
+      comment: "Average quantity dispensed when DUR alert was generated. Measures dispensing compliance with clinical safety thresholds."
+    - name: "distinct_member_alert_count"
+      expr: COUNT(DISTINCT member_identity_id)
+      comment: "Number of unique members with DUR alerts. Measures patient safety program reach and high-risk member identification."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`pharmacy_formulary_exception`
@@ -688,117 +365,65 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Formulary Exception business metrics"
+  comment: "Formulary exception and coverage determination metrics tracking approval rates, denial patterns, and CMS compliance. Directly impacts member access, regulatory compliance, and formulary design decisions."
   source: "`vibe_health_insurance_v1`.`pharmacy`.`formulary_exception`"
+  filter: record_status = 'active'
   dimensions:
-    - name: "Appeal Rights Notification Date"
-      expr: appeal_rights_notification_date
-    - name: "Appeal Rights Notified"
-      expr: appeal_rights_notified
-    - name: "Clinical Justification"
-      expr: clinical_justification
-    - name: "Cms Coverage Determination Type"
-      expr: cms_coverage_determination_type
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Current Drug Tier"
-      expr: current_drug_tier
-    - name: "Days Supply Requested"
-      expr: days_supply_requested
-    - name: "Decision Date"
-      expr: decision_date
-    - name: "Decision Timestamp"
-      expr: decision_timestamp
-    - name: "Denial Reason Code"
+    - name: "exception_status"
+      expr: exception_status
+      comment: "Current status of the formulary exception request (approved, denied, pending) for pipeline management."
+    - name: "exception_type"
+      expr: exception_type
+      comment: "Type of exception (formulary, tier, coverage determination) for exception program mix analysis."
+    - name: "denial_reason_code"
       expr: denial_reason_code
-    - name: "Denial Reason Description"
-      expr: denial_reason_description
-    - name: "Diagnosis Code"
-      expr: diagnosis_code
-    - name: "Drug Name"
-      expr: drug_name
-    - name: "Drug Ndc"
-      expr: drug_ndc
-    - name: "Effective End Date"
-      expr: effective_end_date
-    - name: "Effective Start Date"
-      expr: effective_start_date
+      comment: "Denial reason code for identifying top denial drivers and formulary improvement opportunities."
+    - name: "line_of_business"
+      expr: line_of_business
+      comment: "Line of business for exception volume segmentation across Medicare, Medicaid, and Commercial."
+    - name: "is_expedited"
+      expr: is_expedited
+      comment: "Flag for expedited exception requests requiring 72-hour turnaround per CMS Part D regulations."
+    - name: "cms_coverage_determination_type"
+      expr: cms_coverage_determination_type
+      comment: "CMS coverage determination type for Part D regulatory compliance classification."
+    - name: "requestor_type"
+      expr: requestor_type
+      comment: "Who submitted the exception request (member, prescriber, pharmacy) for access channel analysis."
+    - name: "request_month"
+      expr: DATE_TRUNC('month', request_date)
+      comment: "Month of exception request for trend analysis of formulary exception volume."
+    - name: "appeal_rights_notified"
+      expr: appeal_rights_notified
+      comment: "Flag indicating member was notified of appeal rights. CMS compliance requirement for all adverse determinations."
   measures:
-    - name: "Row Count"
+    - name: "total_exception_requests"
       expr: COUNT(1)
-    - name: "Distinct Formulary Exception"
-      expr: COUNT(DISTINCT formulary_exception_id)
-    - name: "Total Quantity Requested"
-      expr: SUM(quantity_requested)
-    - name: "Average Quantity Requested"
-      expr: AVG(quantity_requested)
-$$;
-
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`pharmacy_mac_list`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Mac List business metrics"
-  source: "`vibe_health_insurance_v1`.`pharmacy`.`mac_list`"
-  dimensions:
-    - name: "Brand Name"
-      expr: brand_name
-    - name: "Dosage Form"
-      expr: dosage_form
-    - name: "Dosage Strength Unit"
-      expr: dosage_strength_unit
-    - name: "Drug Category"
-      expr: drug_category
-    - name: "Drug Class"
-      expr: drug_class
-    - name: "Drug Code"
-      expr: drug_code
-    - name: "Drug Code Description"
-      expr: drug_code_description
-    - name: "Drug Code Type"
-      expr: drug_code_type
-    - name: "Drug Description"
-      expr: drug_description
-    - name: "Drug Form Code"
-      expr: drug_form_code
-    - name: "Drug Form Description"
-      expr: drug_form_description
-    - name: "Drug Name"
-      expr: drug_name
-    - name: "Drug Status"
-      expr: drug_status
-    - name: "Drug Strength Code"
-      expr: drug_strength_code
-    - name: "Drug Strength Description"
-      expr: drug_strength_description
-    - name: "Drug Therapeutic Class Code"
-      expr: drug_therapeutic_class_code
-  measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Mac List"
-      expr: COUNT(DISTINCT mac_list_id)
-    - name: "Total Dosage Strength Value"
-      expr: SUM(dosage_strength_value)
-    - name: "Average Dosage Strength Value"
-      expr: AVG(dosage_strength_value)
-    - name: "Total Mac Price"
-      expr: SUM(mac_price)
-    - name: "Average Mac Price"
-      expr: AVG(mac_price)
-    - name: "Total Mac Unit Price"
-      expr: SUM(mac_unit_price)
-    - name: "Average Mac Unit Price"
-      expr: AVG(mac_unit_price)
-    - name: "Total Mac Value"
-      expr: SUM(mac_value)
-    - name: "Average Mac Value"
-      expr: AVG(mac_value)
-    - name: "Total Package Size Value"
-      expr: SUM(package_size_value)
-    - name: "Average Package Size Value"
-      expr: AVG(package_size_value)
+      comment: "Total formulary exception requests. Baseline metric for formulary access barrier measurement."
+    - name: "approved_exception_count"
+      expr: COUNT(CASE WHEN exception_status = 'approved' THEN 1 END)
+      comment: "Number of approved formulary exceptions. Measures formulary flexibility and member access outcomes."
+    - name: "denied_exception_count"
+      expr: COUNT(CASE WHEN exception_status = 'denied' THEN 1 END)
+      comment: "Number of denied formulary exceptions. Tracks denial volume for regulatory scrutiny and formulary design review."
+    - name: "exception_approval_rate"
+      expr: COUNT(CASE WHEN exception_status = 'approved' THEN 1 END) / NULLIF(COUNT(1), 0)
+      comment: "Ratio of approved to total exception requests. Key formulary access KPI and CMS compliance indicator."
+    - name: "appeal_rights_notification_compliance_rate"
+      expr: COUNT(CASE WHEN appeal_rights_notified = TRUE THEN 1 END) / NULLIF(COUNT(1), 0)
+      comment: "Rate of timely appeal rights notification. CMS Part D compliance requirement — failure triggers regulatory penalties."
+    - name: "expedited_exception_count"
+      expr: COUNT(CASE WHEN is_expedited = TRUE THEN 1 END)
+      comment: "Number of expedited exception requests. Tracks urgent access volume for CMS 72-hour turnaround compliance."
+    - name: "supporting_doc_received_rate"
+      expr: COUNT(CASE WHEN supporting_doc_received = TRUE THEN 1 END) / NULLIF(COUNT(1), 0)
+      comment: "Rate of exceptions with supporting documentation received. Measures documentation completeness for clinical review quality."
+    - name: "avg_requested_quantity"
+      expr: AVG(CAST(quantity_requested AS DOUBLE))
+      comment: "Average quantity requested in formulary exceptions. Benchmarks exception request patterns against formulary quantity limits."
+    - name: "distinct_member_exception_count"
+      expr: COUNT(DISTINCT member_identity_id)
+      comment: "Number of unique members filing formulary exceptions. Measures formulary access barrier breadth across the member population."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`pharmacy_mtm_service`
@@ -806,50 +431,65 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Mtm Service business metrics"
+  comment: "Medication Therapy Management (MTM) service performance metrics covering enrollment, completion rates, and CMS Star Ratings impact. MTM is a CMS-mandated Part D program directly tied to Star Ratings and quality bonuses."
   source: "`vibe_health_insurance_v1`.`pharmacy`.`mtm_service`"
+  filter: record_status = 'active'
   dimensions:
-    - name: "Chronic Condition Count"
-      expr: chronic_condition_count
-    - name: "Cmr Completion Date"
-      expr: cmr_completion_date
-    - name: "Cms Reporting Period"
-      expr: cms_reporting_period
-    - name: "Contact Attempt Count"
-      expr: contact_attempt_count
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Disenrollment Date"
-      expr: disenrollment_date
-    - name: "Drug Therapy Problem Type"
-      expr: drug_therapy_problem_type
-    - name: "Dur Outcome Code"
-      expr: dur_outcome_code
-    - name: "Eligibility Determination Date"
-      expr: eligibility_determination_date
-    - name: "Enrollment Date"
-      expr: enrollment_date
-    - name: "Follow Up Date"
-      expr: follow_up_date
-    - name: "Follow Up Required Flag"
+    - name: "service_type"
+      expr: service_type
+      comment: "MTM service type (CMR, TMR, MAP) for service mix and CMS reporting analysis."
+    - name: "service_status"
+      expr: service_status
+      comment: "Current MTM service status for program pipeline and completion tracking."
+    - name: "service_delivery_channel"
+      expr: service_delivery_channel
+      comment: "Delivery channel (phone, in-person, telehealth) for MTM service access and cost analysis."
+    - name: "opt_out_flag"
+      expr: opt_out_flag
+      comment: "Flag for members who opted out of MTM. Tracks opt-out rates for program engagement strategy."
+    - name: "star_measure_eligible_flag"
+      expr: star_measure_eligible_flag
+      comment: "Flag indicating the MTM service is eligible for CMS Star Ratings credit. Directly impacts quality bonus payments."
+    - name: "follow_up_required_flag"
       expr: follow_up_required_flag
-    - name: "Follow Up Status"
-      expr: follow_up_status
-    - name: "Intervention Count"
-      expr: intervention_count
-    - name: "Last Contact Attempt Date"
-      expr: last_contact_attempt_date
-    - name: "Map Item Count"
-      expr: map_item_count
+      comment: "Flag for MTM services requiring follow-up. Tracks care coordination workload and member engagement continuity."
+    - name: "cms_reporting_period"
+      expr: cms_reporting_period
+      comment: "CMS reporting period for MTM performance measurement and Star Ratings submission."
+    - name: "service_month"
+      expr: DATE_TRUNC('month', service_date)
+      comment: "Month of MTM service delivery for trend analysis and CMS reporting period alignment."
   measures:
-    - name: "Row Count"
+    - name: "total_mtm_services"
       expr: COUNT(1)
-    - name: "Distinct Mtm Service"
-      expr: COUNT(DISTINCT mtm_service_id)
-    - name: "Total Estimated Annual Drug Cost"
-      expr: SUM(estimated_annual_drug_cost)
-    - name: "Average Estimated Annual Drug Cost"
-      expr: AVG(estimated_annual_drug_cost)
+      comment: "Total MTM services delivered. Baseline CMS Part D program compliance and Star Ratings volume metric."
+    - name: "cmr_completion_count"
+      expr: COUNT(CASE WHEN cmr_completion_date IS NOT NULL THEN 1 END)
+      comment: "Number of Comprehensive Medication Reviews (CMRs) completed. Primary CMS Star Ratings MTM measure — directly impacts quality bonus."
+    - name: "opt_out_rate"
+      expr: COUNT(CASE WHEN opt_out_flag = TRUE THEN 1 END) / NULLIF(COUNT(1), 0)
+      comment: "Rate of member opt-outs from MTM program. High opt-out rates reduce Star Ratings performance and CMS quality bonuses."
+    - name: "star_eligible_service_rate"
+      expr: COUNT(CASE WHEN star_measure_eligible_flag = TRUE THEN 1 END) / NULLIF(COUNT(1), 0)
+      comment: "Proportion of MTM services eligible for CMS Star Ratings credit. Measures program quality and CMS bonus payment eligibility."
+    - name: "avg_chronic_condition_count"
+      expr: AVG(CAST(chronic_condition_count AS DOUBLE))
+      comment: "Average number of chronic conditions per MTM-enrolled member. Measures disease burden of MTM population for program targeting."
+    - name: "avg_estimated_annual_drug_cost"
+      expr: AVG(CAST(estimated_annual_drug_cost AS DOUBLE))
+      comment: "Average estimated annual drug cost per MTM member. Measures high-cost member concentration and MTM program ROI potential."
+    - name: "avg_intervention_count"
+      expr: AVG(CAST(intervention_count AS DOUBLE))
+      comment: "Average number of drug therapy interventions per MTM service. Measures clinical intensity and pharmacist engagement depth."
+    - name: "avg_service_duration_minutes"
+      expr: AVG(CAST(service_duration_minutes AS DOUBLE))
+      comment: "Average MTM service duration in minutes. Benchmarks service quality and pharmacist productivity."
+    - name: "distinct_member_mtm_count"
+      expr: COUNT(DISTINCT member_subscriber_id)
+      comment: "Number of unique members receiving MTM services. Measures MTM program reach relative to eligible population."
+    - name: "prescriber_notification_rate"
+      expr: COUNT(CASE WHEN prescriber_notification_flag = TRUE THEN 1 END) / NULLIF(COUNT(1), 0)
+      comment: "Rate of MTM services with prescriber notification. Measures care coordination completeness and clinical communication compliance."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`pharmacy_part_d_submission`
@@ -857,58 +497,65 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Part D Submission business metrics"
+  comment: "CMS Part D submission compliance and financial metrics covering PDE submission rates, reconciliation status, and DIR/RAF financial impacts. Critical for CMS regulatory compliance and Part D financial management."
   source: "`vibe_health_insurance_v1`.`pharmacy`.`part_d_submission`"
+  filter: record_status = 'active'
   dimensions:
-    - name: "Accepted Record Count"
-      expr: accepted_record_count
-    - name: "Batch Number"
-      expr: batch_number
-    - name: "Benefit Year"
-      expr: benefit_year
-    - name: "Clearinghouse Tracking Number"
-      expr: clearinghouse_tracking_number
-    - name: "Cms Contract Number"
-      expr: cms_contract_number
-    - name: "Cms Region Code"
-      expr: cms_region_code
-    - name: "Cms Response Code"
-      expr: cms_response_code
-    - name: "Cms Response Date"
-      expr: cms_response_date
-    - name: "Cms Response Description"
-      expr: cms_response_description
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Edi Interchange Control Number"
-      expr: edi_interchange_control_number
-    - name: "Error Detail"
-      expr: error_detail
-    - name: "Hcc Record Count"
-      expr: hcc_record_count
-    - name: "Is Resubmission"
-      expr: is_resubmission
-    - name: "Is Timely Submission"
-      expr: is_timely_submission
-    - name: "Line Of Business"
+    - name: "submission_status"
+      expr: submission_status
+      comment: "CMS submission status (accepted, rejected, pending) for compliance pipeline monitoring."
+    - name: "submission_type"
+      expr: submission_type
+      comment: "Type of Part D submission (PDE, DIR, reconciliation) for submission program mix analysis."
+    - name: "reconciliation_status"
+      expr: reconciliation_status
+      comment: "Reconciliation status for DIR and TROOP reconciliation compliance tracking."
+    - name: "line_of_business"
       expr: line_of_business
+      comment: "Line of business for Part D submission segmentation."
+    - name: "is_resubmission"
+      expr: is_resubmission
+      comment: "Flag for resubmissions, indicating prior submission failures requiring correction."
+    - name: "is_timely_submission"
+      expr: is_timely_submission
+      comment: "Flag indicating whether submission met CMS deadline. Timely submission is a CMS compliance requirement."
+    - name: "benefit_year"
+      expr: benefit_year
+      comment: "Benefit year for annual Part D submission trend and reconciliation analysis."
+    - name: "submission_month"
+      expr: DATE_TRUNC('month', submission_date)
+      comment: "Month of submission for trend analysis of Part D filing volume and compliance."
   measures:
-    - name: "Row Count"
+    - name: "total_submissions"
       expr: COUNT(1)
-    - name: "Distinct Part D Submission"
-      expr: COUNT(DISTINCT part_d_submission_id)
-    - name: "Total Cgdp Invoice Amount"
-      expr: SUM(cgdp_invoice_amount)
-    - name: "Average Cgdp Invoice Amount"
-      expr: AVG(cgdp_invoice_amount)
-    - name: "Total Dir Amount"
-      expr: SUM(dir_amount)
-    - name: "Average Dir Amount"
-      expr: AVG(dir_amount)
-    - name: "Total Raf Impact Amount"
-      expr: SUM(raf_impact_amount)
-    - name: "Average Raf Impact Amount"
-      expr: AVG(raf_impact_amount)
+      comment: "Total Part D submissions. Baseline CMS compliance volume metric."
+    - name: "total_dir_amount"
+      expr: SUM(CAST(dir_amount AS DOUBLE))
+      comment: "Total Direct and Indirect Remuneration (DIR) amounts reported. Critical CMS Part D financial reconciliation KPI."
+    - name: "total_raf_impact_amount"
+      expr: SUM(CAST(raf_impact_amount AS DOUBLE))
+      comment: "Total Risk Adjustment Factor (RAF) financial impact from Part D submissions. Drives CMS payment reconciliation."
+    - name: "total_cgdp_invoice_amount"
+      expr: SUM(CAST(cgdp_invoice_amount AS DOUBLE))
+      comment: "Total Coverage Gap Discount Program invoice amounts. Tracks manufacturer discount program financial flows."
+    - name: "timely_submission_rate"
+      expr: COUNT(CASE WHEN is_timely_submission = TRUE THEN 1 END) / NULLIF(COUNT(1), 0)
+      comment: "Rate of timely CMS Part D submissions. CMS compliance KPI — late submissions trigger penalties and audit risk."
+    - name: "resubmission_rate"
+      expr: COUNT(CASE WHEN is_resubmission = TRUE THEN 1 END) / NULLIF(COUNT(1), 0)
+      comment: "Rate of resubmissions indicating prior submission failures. High rates signal data quality or system issues."
+    - name: "avg_pde_record_count"
+      expr: AVG(CAST(pde_record_count AS DOUBLE))
+      comment: "Average PDE record count per submission batch. Benchmarks submission completeness and batch sizing."
+    - name: "total_accepted_records"
+      expr: SUM(CAST(accepted_record_count AS DOUBLE))
+      comment: "Total CMS-accepted PDE records. Measures submission acceptance volume for Part D payment eligibility."
+    - name: "total_rejected_records"
+      expr: SUM(CAST(rejected_record_count AS DOUBLE))
+      comment: "Total CMS-rejected PDE records. Tracks rejection volume for data quality remediation and resubmission prioritization."
+    - name: "rejection_rate"
+      expr: SUM(CAST(rejected_record_count AS DOUBLE)) / NULLIF(SUM(CAST(total_record_count AS DOUBLE)), 0)
+      comment: "Ratio of rejected to total PDE records. CMS data quality KPI — high rejection rates risk Part D payment clawbacks."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`pharmacy_pbm_contract`
@@ -916,382 +563,65 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Pbm Contract business metrics"
+  comment: "PBM contract performance and economics metrics covering discount guarantees, rebate commitments, and contract compliance. PBM contracts are the primary lever for pharmacy cost management and represent significant financial commitments."
   source: "`vibe_health_insurance_v1`.`pharmacy`.`pbm_contract`"
+  filter: is_active = TRUE
   dimensions:
-    - name: "Amendment Date"
-      expr: amendment_date
-    - name: "Audit Frequency"
-      expr: audit_frequency
-    - name: "Audit Rights Flag"
-      expr: audit_rights_flag
-    - name: "Auto Renewal Flag"
-      expr: auto_renewal_flag
-    - name: "Cms Contract Number"
-      expr: cms_contract_number
-    - name: "Contract Name"
-      expr: contract_name
-    - name: "Contract Number"
-      expr: contract_number
-    - name: "Contract Owner Name"
-      expr: contract_owner_name
-    - name: "Contract Status"
+    - name: "contract_status"
       expr: contract_status
-    - name: "Contract Type"
+      comment: "Current PBM contract status for active contract portfolio management."
+    - name: "contract_type"
       expr: contract_type
-    - name: "Contract Version"
-      expr: contract_version
-    - name: "Dur Program Flag"
-      expr: dur_program_flag
-    - name: "Effective Date"
-      expr: effective_date
-    - name: "Governing State Code"
-      expr: governing_state_code
-    - name: "Lob Scope"
+      comment: "Type of PBM contract (full-service, carve-out, ASO) for contract mix and governance analysis."
+    - name: "lob_scope"
       expr: lob_scope
-    - name: "Mac List Reference"
-      expr: mac_list_reference
+      comment: "Line of business scope covered by the PBM contract for contract coverage analysis."
+    - name: "mail_order_flag"
+      expr: mail_order_flag
+      comment: "Flag indicating mail order services are included in the PBM contract."
+    - name: "specialty_pharmacy_flag"
+      expr: specialty_pharmacy_flag
+      comment: "Flag indicating specialty pharmacy services are included in the PBM contract."
+    - name: "performance_guarantee_flag"
+      expr: performance_guarantee_flag
+      comment: "Flag indicating the PBM contract includes performance guarantees. Drives PBM accountability and financial risk sharing."
+    - name: "auto_renewal_flag"
+      expr: auto_renewal_flag
+      comment: "Flag for auto-renewal contracts requiring proactive termination notice management."
+    - name: "effective_year"
+      expr: DATE_TRUNC('year', effective_date)
+      comment: "Contract effective year for contract portfolio vintage analysis and renewal planning."
   measures:
-    - name: "Row Count"
+    - name: "total_pbm_contracts"
       expr: COUNT(1)
-    - name: "Distinct Pbm Contract"
-      expr: COUNT(DISTINCT pbm_contract_id)
-    - name: "Total Awp Discount Mail Pct"
-      expr: SUM(awp_discount_mail_pct)
-    - name: "Average Awp Discount Mail Pct"
-      expr: AVG(awp_discount_mail_pct)
-    - name: "Total Awp Discount Retail Pct"
-      expr: SUM(awp_discount_retail_pct)
-    - name: "Average Awp Discount Retail Pct"
-      expr: AVG(awp_discount_retail_pct)
-    - name: "Total Dispensing Fee Mail Order"
-      expr: SUM(dispensing_fee_mail_order)
-    - name: "Average Dispensing Fee Mail Order"
-      expr: AVG(dispensing_fee_mail_order)
-    - name: "Total Dispensing Fee Retail"
-      expr: SUM(dispensing_fee_retail)
-    - name: "Average Dispensing Fee Retail"
-      expr: AVG(dispensing_fee_retail)
-    - name: "Total Dispensing Fee Specialty"
-      expr: SUM(dispensing_fee_specialty)
-    - name: "Average Dispensing Fee Specialty"
-      expr: AVG(dispensing_fee_specialty)
-    - name: "Total Generic Dispensing Rate Guarantee"
-      expr: SUM(generic_dispensing_rate_guarantee)
-    - name: "Average Generic Dispensing Rate Guarantee"
-      expr: AVG(generic_dispensing_rate_guarantee)
-    - name: "Total Ingredient Cost Basis"
-      expr: SUM(ingredient_cost_basis)
-    - name: "Average Ingredient Cost Basis"
-      expr: AVG(ingredient_cost_basis)
-    - name: "Total Mail Order Penetration Guarantee"
-      expr: SUM(mail_order_penetration_guarantee)
-    - name: "Average Mail Order Penetration Guarantee"
-      expr: AVG(mail_order_penetration_guarantee)
-    - name: "Total Rebate Guarantee Pmpm"
-      expr: SUM(rebate_guarantee_pmpm)
-    - name: "Average Rebate Guarantee Pmpm"
-      expr: AVG(rebate_guarantee_pmpm)
-    - name: "Total Rebate Pass Through Pct"
-      expr: SUM(rebate_pass_through_pct)
-    - name: "Average Rebate Pass Through Pct"
-      expr: AVG(rebate_pass_through_pct)
-    - name: "Total Rebate Reconciliation Lag Days"
-      expr: SUM(rebate_reconciliation_lag_days)
-    - name: "Average Rebate Reconciliation Lag Days"
-      expr: AVG(rebate_reconciliation_lag_days)
-    - name: "Total Rebate Settlement Frequency"
-      expr: SUM(rebate_settlement_frequency)
-    - name: "Average Rebate Settlement Frequency"
-      expr: AVG(rebate_settlement_frequency)
-$$;
-
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`pharmacy_pharmacy_claim`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Pharmacy Claim business metrics"
-  source: "`vibe_health_insurance_v1`.`pharmacy`.`pharmacy_claim`"
-  dimensions:
-    - name: "Adjudication Timestamp"
-      expr: adjudication_timestamp
-    - name: "Claim Number"
-      expr: claim_number
-    - name: "Claim Status"
-      expr: claim_status
-    - name: "Cob Indicator"
-      expr: cob_indicator
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Daw Code"
-      expr: daw_code
-    - name: "Days Supply"
-      expr: days_supply
-    - name: "Dispensing Pharmacy Npi"
-      expr: dispensing_pharmacy_npi
-    - name: "Dur Outcome Code"
-      expr: dur_outcome_code
-    - name: "Fhir Medication"
-      expr: fhir_medication
-    - name: "Fhir Quantity"
-      expr: fhir_quantity
-    - name: "Fhir Status"
-      expr: fhir_status
-    - name: "Fhir Subject"
-      expr: fhir_subject
-    - name: "Fill Date"
-      expr: fill_date
-    - name: "Formulary Tier"
-      expr: formulary_tier
-    - name: "Is 340b Claim"
-      expr: is_340b_claim
-  measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Pharmacy Claim"
-      expr: COUNT(DISTINCT pharmacy_claim_id)
-    - name: "Total Basis Of Cost Determination"
-      expr: SUM(basis_of_cost_determination)
-    - name: "Average Basis Of Cost Determination"
-      expr: AVG(basis_of_cost_determination)
-    - name: "Total Deductible Applied"
-      expr: SUM(deductible_applied)
-    - name: "Average Deductible Applied"
-      expr: AVG(deductible_applied)
-    - name: "Total Dispensing Fee"
-      expr: SUM(dispensing_fee)
-    - name: "Average Dispensing Fee"
-      expr: AVG(dispensing_fee)
-    - name: "Total Ingredient Cost"
-      expr: SUM(ingredient_cost)
-    - name: "Average Ingredient Cost"
-      expr: AVG(ingredient_cost)
-    - name: "Total Member Coinsurance"
-      expr: SUM(member_coinsurance)
-    - name: "Average Member Coinsurance"
-      expr: AVG(member_coinsurance)
-    - name: "Total Member Copay"
-      expr: SUM(member_copay)
-    - name: "Average Member Copay"
-      expr: AVG(member_copay)
-    - name: "Total Other Payer Amount"
-      expr: SUM(other_payer_amount)
-    - name: "Average Other Payer Amount"
-      expr: AVG(other_payer_amount)
-    - name: "Total Plan Paid Amount"
-      expr: SUM(plan_paid_amount)
-    - name: "Average Plan Paid Amount"
-      expr: AVG(plan_paid_amount)
-    - name: "Total Quantity Dispensed"
-      expr: SUM(quantity_dispensed)
-    - name: "Average Quantity Dispensed"
-      expr: AVG(quantity_dispensed)
-    - name: "Total Sales Tax"
-      expr: SUM(sales_tax)
-    - name: "Average Sales Tax"
-      expr: AVG(sales_tax)
-$$;
-
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`pharmacy_pharmacy_contract`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Pharmacy Contract business metrics"
-  source: "`vibe_health_insurance_v1`.`pharmacy`.`pharmacy_contract`"
-  dimensions:
-    - name: "Accreditation Type"
-      expr: accreditation_type
-    - name: "Audit Frequency"
-      expr: audit_frequency
-    - name: "Audit Rights Indicator"
-      expr: audit_rights_indicator
-    - name: "Auto Renewal Indicator"
-      expr: auto_renewal_indicator
-    - name: "Contract Number"
-      expr: contract_number
-    - name: "Contract Status"
-      expr: contract_status
-    - name: "Contract Type"
-      expr: contract_type
-    - name: "Credentialing Required Indicator"
-      expr: credentialing_required_indicator
-    - name: "Days Supply Mail Max"
-      expr: days_supply_mail_max
-    - name: "Days Supply Retail Max"
-      expr: days_supply_retail_max
-    - name: "Dispensing Channel"
-      expr: dispensing_channel
-    - name: "Effective Date"
-      expr: effective_date
-    - name: "Executed Date"
-      expr: executed_date
-    - name: "Last Amended Date"
-      expr: last_amended_date
-    - name: "Line Of Business"
-      expr: line_of_business
-    - name: "Mail Order Indicator"
-      expr: mail_order_indicator
-  measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Pharmacy Contract"
-      expr: COUNT(DISTINCT pharmacy_contract_id)
-    - name: "Total Awp Discount Pct"
-      expr: SUM(awp_discount_pct)
-    - name: "Average Awp Discount Pct"
-      expr: AVG(awp_discount_pct)
-    - name: "Total Dispensing Fee Mail Order"
-      expr: SUM(dispensing_fee_mail_order)
-    - name: "Average Dispensing Fee Mail Order"
-      expr: AVG(dispensing_fee_mail_order)
-    - name: "Total Dispensing Fee Retail"
-      expr: SUM(dispensing_fee_retail)
-    - name: "Average Dispensing Fee Retail"
-      expr: AVG(dispensing_fee_retail)
-    - name: "Total Dispensing Fee Specialty"
-      expr: SUM(dispensing_fee_specialty)
-    - name: "Average Dispensing Fee Specialty"
-      expr: AVG(dispensing_fee_specialty)
-    - name: "Total Generic Awp Discount Pct"
-      expr: SUM(generic_awp_discount_pct)
-    - name: "Average Generic Awp Discount Pct"
-      expr: AVG(generic_awp_discount_pct)
-    - name: "Total Generic Dispensing Rate Target"
-      expr: SUM(generic_dispensing_rate_target)
-    - name: "Average Generic Dispensing Rate Target"
-      expr: AVG(generic_dispensing_rate_target)
-    - name: "Total Ingredient Cost Basis"
-      expr: SUM(ingredient_cost_basis)
-    - name: "Average Ingredient Cost Basis"
-      expr: AVG(ingredient_cost_basis)
-    - name: "Total Ncpdp Provider Number"
-      expr: SUM(ncpdp_provider_number)
-    - name: "Average Ncpdp Provider Number"
-      expr: AVG(ncpdp_provider_number)
-    - name: "Total Wac Discount Pct"
-      expr: SUM(wac_discount_pct)
-    - name: "Average Wac Discount Pct"
-      expr: AVG(wac_discount_pct)
-$$;
-
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`pharmacy_prior_authorization`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Prior Authorization business metrics"
-  source: "`vibe_health_insurance_v1`.`pharmacy`.`prior_authorization`"
-  dimensions:
-    - name: "Appeal Indicator"
-      expr: appeal_indicator
-    - name: "Approved Days Supply"
-      expr: approved_days_supply
-    - name: "Approved Refills"
-      expr: approved_refills
-    - name: "Clinical Criteria Code"
-      expr: clinical_criteria_code
-    - name: "Clinical Criteria Version"
-      expr: clinical_criteria_version
-    - name: "Cms Part D Reportable"
-      expr: cms_part_d_reportable
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Criteria Met"
-      expr: criteria_met
-    - name: "Decision Timestamp"
-      expr: decision_timestamp
-    - name: "Denial Reason Code"
-      expr: denial_reason_code
-    - name: "Denial Reason Description"
-      expr: denial_reason_description
-    - name: "Dispensing Channel"
-      expr: dispensing_channel
-    - name: "Drug Ndc"
-      expr: drug_ndc
-    - name: "Drug Tier"
-      expr: drug_tier
-    - name: "Dur Outcome Code"
-      expr: dur_outcome_code
-    - name: "Effective End Date"
-      expr: effective_end_date
-  measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Prior Authorization"
-      expr: COUNT(DISTINCT prior_authorization_id)
-    - name: "Total Approved Quantity"
-      expr: SUM(approved_quantity)
-    - name: "Average Approved Quantity"
-      expr: AVG(approved_quantity)
-$$;
-
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`pharmacy_specialty_drug_program`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Specialty Drug Program business metrics"
-  source: "`vibe_health_insurance_v1`.`pharmacy`.`specialty_drug_program`"
-  dimensions:
-    - name: "Accumulator Adjustment Flag"
-      expr: accumulator_adjustment_flag
-    - name: "Clinical Management Required Flag"
-      expr: clinical_management_required_flag
-    - name: "Cms Part D Specialty Tier Flag"
-      expr: cms_part_d_specialty_tier_flag
-    - name: "Cold Chain Required Flag"
-      expr: cold_chain_required_flag
-    - name: "Copay Assistance Flag"
-      expr: copay_assistance_flag
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Drug Utilization Review Type"
-      expr: drug_utilization_review_type
-    - name: "Effective Date"
-      expr: effective_date
-    - name: "Foundation Grant Flag"
-      expr: foundation_grant_flag
-    - name: "Hub Services Enrollment Flag"
-      expr: hub_services_enrollment_flag
-    - name: "Icd Condition Codes"
-      expr: icd_condition_codes
-    - name: "Last Updated Timestamp"
-      expr: last_updated_timestamp
-    - name: "Limited Distribution Flag"
-      expr: limited_distribution_flag
-    - name: "Line Of Business"
-      expr: line_of_business
-    - name: "Mail Order Allowed Flag"
-      expr: mail_order_allowed_flag
-    - name: "Max Days Supply"
-      expr: max_days_supply
-  measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Specialty Drug Program"
-      expr: COUNT(DISTINCT specialty_drug_program_id)
-    - name: "Total Awp Discount Pct"
-      expr: SUM(awp_discount_pct)
-    - name: "Average Awp Discount Pct"
-      expr: AVG(awp_discount_pct)
-    - name: "Total Copay Assistance Max Benefit Amount"
-      expr: SUM(copay_assistance_max_benefit_amount)
-    - name: "Average Copay Assistance Max Benefit Amount"
-      expr: AVG(copay_assistance_max_benefit_amount)
-    - name: "Total Copay Assistance Program Name"
-      expr: SUM(copay_assistance_program_name)
-    - name: "Average Copay Assistance Program Name"
-      expr: AVG(copay_assistance_program_name)
-    - name: "Total Dispensing Fee Amount"
-      expr: SUM(dispensing_fee_amount)
-    - name: "Average Dispensing Fee Amount"
-      expr: AVG(dispensing_fee_amount)
-    - name: "Total Wac Discount Pct"
-      expr: SUM(wac_discount_pct)
-    - name: "Average Wac Discount Pct"
-      expr: AVG(wac_discount_pct)
+      comment: "Total active PBM contracts. Baseline for PBM vendor portfolio management and contract governance."
+    - name: "avg_awp_discount_retail_pct"
+      expr: AVG(CAST(awp_discount_retail_pct AS DOUBLE))
+      comment: "Average AWP discount percentage for retail dispensing. Primary PBM contract economics KPI for retail drug cost management."
+    - name: "avg_awp_discount_mail_pct"
+      expr: AVG(CAST(awp_discount_mail_pct AS DOUBLE))
+      comment: "Average AWP discount percentage for mail order dispensing. Benchmarks mail-order channel economics and PBM contract value."
+    - name: "avg_rebate_guarantee_pmpm"
+      expr: AVG(CAST(rebate_guarantee_pmpm AS DOUBLE))
+      comment: "Average guaranteed rebate PMPM across PBM contracts. Measures contracted rebate revenue commitment for financial planning."
+    - name: "avg_rebate_pass_through_pct"
+      expr: AVG(CAST(rebate_pass_through_pct AS DOUBLE))
+      comment: "Average rebate pass-through percentage. Measures PBM transparency and rebate sharing with plan sponsors."
+    - name: "avg_generic_dispensing_rate_guarantee"
+      expr: AVG(CAST(generic_dispensing_rate_guarantee AS DOUBLE))
+      comment: "Average guaranteed generic dispensing rate. Measures PBM commitment to generic substitution and formulary cost management."
+    - name: "avg_mail_order_penetration_guarantee"
+      expr: AVG(CAST(mail_order_penetration_guarantee AS DOUBLE))
+      comment: "Average guaranteed mail order penetration rate. Tracks PBM commitment to mail-order channel adoption for cost savings."
+    - name: "avg_dispensing_fee_retail"
+      expr: AVG(CAST(dispensing_fee_retail AS DOUBLE))
+      comment: "Average contracted retail dispensing fee. Benchmarks pharmacy network dispensing cost across PBM contracts."
+    - name: "avg_dispensing_fee_specialty"
+      expr: AVG(CAST(dispensing_fee_specialty AS DOUBLE))
+      comment: "Average contracted specialty dispensing fee. Tracks specialty pharmacy cost management across PBM agreements."
+    - name: "performance_guarantee_contract_count"
+      expr: COUNT(CASE WHEN performance_guarantee_flag = TRUE THEN 1 END)
+      comment: "Number of PBM contracts with performance guarantees. Measures PBM accountability program scope and financial risk sharing."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`pharmacy_claim`
@@ -1299,110 +629,314 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Core pharmacy claims metrics covering cost, utilization, member cost-sharing, and operational KPIs for pharmacy benefit management."
+  comment: "Core pharmacy claims metrics tracking prescription utilization, cost, and financial performance across dispensing channels and formulary tiers"
   source: "`vibe_health_insurance_v1`.`pharmacy`.`pharmacy_claim`"
   dimensions:
-    - name: "fill_date"
-      expr: fill_date
-      comment: "Date the prescription was filled/dispensed."
-    - name: "fill_month"
-      expr: DATE_TRUNC('month', fill_date)
-      comment: "Month in which the prescription was filled, for trend analysis."
-    - name: "fill_year"
-      expr: YEAR(fill_date)
-      comment: "Year in which the prescription was filled."
     - name: "claim_status"
       expr: claim_status
-      comment: "Current adjudication status of the pharmacy claim (paid, reversed, rejected, etc.)."
-    - name: "line_of_business"
-      expr: line_of_business
-      comment: "Line of business (Commercial, Medicare, Medicaid, Exchange) for segment analysis."
+      comment: "Current adjudication status of the pharmacy claim (approved, denied, pending, reversed)"
     - name: "pharmacy_channel"
       expr: pharmacy_channel
-      comment: "Dispensing channel — retail, mail order, or specialty pharmacy."
+      comment: "Dispensing channel (retail, mail order, specialty pharmacy)"
     - name: "formulary_tier"
       expr: formulary_tier
-      comment: "Formulary tier of the dispensed drug (generic, preferred brand, non-preferred, specialty)."
-    - name: "daw_code"
-      expr: daw_code
-      comment: "Dispense As Written code indicating substitution behavior."
-    - name: "is_compound_claim"
-      expr: is_compound_claim
-      comment: "Whether the claim is for a compounded medication."
+      comment: "Formulary tier assigned to the dispensed drug (generic, preferred brand, non-preferred, specialty)"
+    - name: "line_of_business"
+      expr: line_of_business
+      comment: "Line of business (Commercial, Medicare, Medicaid, Exchange)"
+    - name: "fill_month"
+      expr: DATE_TRUNC('MONTH', fill_date)
+      comment: "Month when prescription was filled, for trend analysis"
+    - name: "fill_year"
+      expr: YEAR(fill_date)
+      comment: "Year when prescription was filled"
     - name: "is_340b_claim"
       expr: is_340b_claim
-      comment: "Whether the claim was processed under the 340B drug pricing program."
+      comment: "Indicator whether claim qualifies for 340B drug pricing program"
+    - name: "is_compound_claim"
+      expr: is_compound_claim
+      comment: "Indicator whether claim is for a compounded medication"
     - name: "cob_indicator"
       expr: cob_indicator
-      comment: "Coordination of Benefits indicator — whether another payer is involved."
-    - name: "dur_outcome_code"
-      expr: dur_outcome_code
-      comment: "Drug Utilization Review outcome code from adjudication."
-    - name: "reject_code"
-      expr: reject_code
-      comment: "NCPDP reject code if the claim was rejected."
+      comment: "Coordination of benefits indicator (other payer involved)"
+    - name: "basis_of_cost_determination"
+      expr: basis_of_cost_determination
+      comment: "Pricing methodology used (AWP, MAC, WAC, ingredient cost)"
   measures:
     - name: "total_claims"
       expr: COUNT(1)
-      comment: "Total number of pharmacy claims submitted — baseline volume metric."
-    - name: "total_ingredient_cost"
-      expr: SUM(CAST(ingredient_cost AS DOUBLE))
-      comment: "Total ingredient cost across all claims — primary drug spend measure."
+      comment: "Total number of pharmacy claims processed"
     - name: "total_plan_paid_amount"
       expr: SUM(CAST(plan_paid_amount AS DOUBLE))
-      comment: "Total amount paid by the health plan — key financial liability metric."
-    - name: "total_member_copay"
-      expr: SUM(CAST(member_copay AS DOUBLE))
-      comment: "Total member copayment amounts — member cost-sharing burden."
-    - name: "total_member_coinsurance"
-      expr: SUM(CAST(member_coinsurance AS DOUBLE))
-      comment: "Total member coinsurance amounts — additional member cost-sharing."
-    - name: "total_deductible_applied"
-      expr: SUM(CAST(deductible_applied AS DOUBLE))
-      comment: "Total deductible amounts applied to pharmacy claims."
+      comment: "Total amount paid by health plan for pharmacy claims"
+    - name: "total_ingredient_cost"
+      expr: SUM(CAST(ingredient_cost AS DOUBLE))
+      comment: "Total ingredient cost across all pharmacy claims"
     - name: "total_dispensing_fee"
       expr: SUM(CAST(dispensing_fee AS DOUBLE))
-      comment: "Total dispensing fees paid to pharmacies."
+      comment: "Total dispensing fees paid to pharmacies"
+    - name: "total_member_copay"
+      expr: SUM(CAST(member_copay AS DOUBLE))
+      comment: "Total member copayment amounts collected at point of sale"
+    - name: "total_member_coinsurance"
+      expr: SUM(CAST(member_coinsurance AS DOUBLE))
+      comment: "Total member coinsurance amounts (percentage-based cost sharing)"
+    - name: "total_deductible_applied"
+      expr: SUM(CAST(deductible_applied AS DOUBLE))
+      comment: "Total deductible amounts applied to pharmacy claims"
     - name: "total_other_payer_amount"
       expr: SUM(CAST(other_payer_amount AS DOUBLE))
-      comment: "Total amounts paid by other payers under coordination of benefits."
+      comment: "Total amounts paid by other payers in COB scenarios"
     - name: "total_sales_tax"
       expr: SUM(CAST(sales_tax AS DOUBLE))
-      comment: "Total sales tax on pharmacy claims."
+      comment: "Total sales tax collected on pharmacy claims"
     - name: "total_quantity_dispensed"
       expr: SUM(CAST(quantity_dispensed AS DOUBLE))
-      comment: "Total units/quantity of medication dispensed across all claims."
-    - name: "avg_ingredient_cost_per_claim"
-      expr: AVG(CAST(ingredient_cost AS DOUBLE))
-      comment: "Average ingredient cost per claim — unit cost efficiency indicator."
+      comment: "Total quantity of medication units dispensed across all claims"
     - name: "avg_plan_paid_per_claim"
       expr: AVG(CAST(plan_paid_amount AS DOUBLE))
-      comment: "Average plan paid amount per claim — plan cost efficiency KPI."
-    - name: "avg_member_copay_per_claim"
+      comment: "Average plan payment per pharmacy claim"
+    - name: "avg_ingredient_cost_per_claim"
+      expr: AVG(CAST(ingredient_cost AS DOUBLE))
+      comment: "Average ingredient cost per pharmacy claim"
+    - name: "avg_member_copay"
       expr: AVG(CAST(member_copay AS DOUBLE))
-      comment: "Average member copay per claim — member affordability indicator."
-    - name: "avg_days_supply_per_claim"
+      comment: "Average member copayment per claim"
+    - name: "avg_days_supply"
       expr: AVG(CAST(days_supply AS DOUBLE))
-      comment: "Average days supply per claim — adherence and fill pattern indicator."
+      comment: "Average days supply per prescription fill"
     - name: "unique_prescribers"
       expr: COUNT(DISTINCT prescriber_npi)
-      comment: "Distinct prescribers generating pharmacy claims — prescriber network breadth."
+      comment: "Distinct count of prescribers writing prescriptions"
     - name: "unique_pharmacies"
-      expr: COUNT(DISTINCT dispensing_pharmacy_id)
-      comment: "Distinct dispensing pharmacies used — pharmacy network utilization."
+      expr: COUNT(DISTINCT dispensing_pharmacy_npi)
+      comment: "Distinct count of pharmacies dispensing prescriptions"
     - name: "unique_drugs"
       expr: COUNT(DISTINCT ndc)
-      comment: "Distinct NDC codes dispensed — formulary breadth utilization."
-    - name: "compound_claim_count"
-      expr: SUM(CASE WHEN is_compound_claim = TRUE THEN 1 ELSE 0 END)
-      comment: "Count of compound claims — monitors high-cost compound utilization."
-    - name: "claims_340b_count"
-      expr: SUM(CASE WHEN is_340b_claim = TRUE THEN 1 ELSE 0 END)
-      comment: "Count of 340B program claims — tracks 340B utilization and savings opportunity."
-    - name: "cob_claim_count"
-      expr: SUM(CASE WHEN cob_indicator = TRUE THEN 1 ELSE 0 END)
-      comment: "Count of claims with coordination of benefits — COB recovery opportunity."
+      comment: "Distinct count of NDC codes dispensed"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`pharmacy_claim_financials`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Core pharmacy claim financial performance metrics covering plan spend, member cost-sharing, ingredient cost, and dispensing economics. Primary fact table for pharmacy cost management and trend analysis."
+  source: "`vibe_health_insurance_v1`.`pharmacy`.`pharmacy_claim2`"
+  filter: record_status = 'active'
+  dimensions:
+    - name: "pharmacy_channel"
+      expr: pharmacy_channel
+      comment: "Dispensing channel (retail, mail order, specialty) for channel-mix analysis."
+    - name: "formulary_tier"
+      expr: formulary_tier
+      comment: "Formulary tier of the dispensed drug, used to analyze tier-mix and cost-sharing patterns."
+    - name: "line_of_business"
+      expr: line_of_business
+      comment: "Line of business (Medicare, Medicaid, Commercial) for LOB-level cost segmentation."
+    - name: "claim_status"
+      expr: claim_status
+      comment: "Claim processing status (paid, reversed, pended) for adjudication pipeline monitoring."
+    - name: "is_340b_claim"
+      expr: is_340b_claim
+      comment: "Flag indicating whether the claim was processed under the 340B drug pricing program."
+    - name: "is_compound_claim"
+      expr: is_compound_claim
+      comment: "Flag for compound drug claims, which carry higher cost and clinical risk."
+    - name: "fill_month"
+      expr: DATE_TRUNC('month', fill_date)
+      comment: "Month of drug fill date for trend analysis of pharmacy spend over time."
+    - name: "cob_indicator"
+      expr: cob_indicator
+      comment: "Coordination of benefits indicator — identifies claims with secondary payer involvement."
+    - name: "step_therapy_override"
+      expr: step_therapy_override
+      comment: "Flag indicating step therapy protocol was overridden, relevant for clinical compliance monitoring."
+  measures:
+    - name: "total_plan_paid_amount"
+      expr: SUM(CAST(plan_paid_amount AS DOUBLE))
+      comment: "Total amount paid by the health plan across all pharmacy claims. Primary pharmacy cost KPI for budget management and trend reporting."
+    - name: "total_ingredient_cost"
+      expr: SUM(CAST(ingredient_cost AS DOUBLE))
+      comment: "Total ingredient cost (drug acquisition cost) across all claims. Drives formulary management and rebate strategy decisions."
+    - name: "total_member_copay"
+      expr: SUM(CAST(member_copay AS DOUBLE))
+      comment: "Total member copay collected. Measures member cost-sharing burden and benefit design effectiveness."
+    - name: "total_member_coinsurance"
+      expr: SUM(CAST(member_coinsurance AS DOUBLE))
+      comment: "Total member coinsurance collected. Combined with copay, reflects total member out-of-pocket exposure."
+    - name: "total_dispensing_fee"
+      expr: SUM(CAST(dispensing_fee AS DOUBLE))
+      comment: "Total dispensing fees paid to pharmacies. Key component of pharmacy network cost management."
+    - name: "total_other_payer_amount"
+      expr: SUM(CAST(other_payer_amount AS DOUBLE))
+      comment: "Total amount paid by other payers (COB). Measures coordination of benefits recovery effectiveness."
+    - name: "total_deductible_applied"
+      expr: SUM(CAST(deductible_applied AS DOUBLE))
+      comment: "Total deductible amounts applied to pharmacy claims. Informs benefit design and member cost-sharing analysis."
+    - name: "total_sales_tax"
+      expr: SUM(CAST(sales_tax AS DOUBLE))
+      comment: "Total sales tax on pharmacy claims. Relevant for state-specific tax compliance and cost reporting."
+    - name: "avg_plan_paid_per_claim"
+      expr: AVG(CAST(plan_paid_amount AS DOUBLE))
+      comment: "Average plan-paid amount per pharmacy claim. Benchmark for cost-per-claim trend and outlier detection."
+    - name: "avg_ingredient_cost_per_claim"
+      expr: AVG(CAST(ingredient_cost AS DOUBLE))
+      comment: "Average ingredient cost per claim. Tracks drug cost inflation and formulary tier-shift impact."
+    - name: "avg_days_supply"
+      expr: AVG(CAST(days_supply AS DOUBLE))
+      comment: "Average days supply dispensed per claim. Higher values indicate mail-order adoption and medication adherence."
     - name: "avg_quantity_dispensed"
       expr: AVG(CAST(quantity_dispensed AS DOUBLE))
-      comment: "Average quantity dispensed per claim — utilization intensity measure."
+      comment: "Average quantity dispensed per claim. Used to detect quantity limit compliance and dispensing pattern anomalies."
+    - name: "total_claim_count"
+      expr: COUNT(1)
+      comment: "Total number of pharmacy claims processed. Baseline volume metric for utilization trend analysis."
+    - name: "distinct_member_count"
+      expr: COUNT(DISTINCT member_identity_id)
+      comment: "Count of unique members with pharmacy claims. Measures pharmacy program reach and per-member utilization."
+    - name: "cob_claim_count"
+      expr: COUNT(CASE WHEN cob_indicator = TRUE THEN 1 END)
+      comment: "Number of claims with coordination of benefits. Tracks COB program effectiveness and secondary payer recovery volume."
+    - name: "step_therapy_override_count"
+      expr: COUNT(CASE WHEN step_therapy_override = TRUE THEN 1 END)
+      comment: "Number of claims where step therapy was overridden. Clinical compliance KPI for UM program integrity."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`pharmacy_prior_authorization`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Pharmacy prior authorization performance metrics covering approval rates, denial patterns, and clinical criteria compliance. Critical for UM program effectiveness, CMS Part D compliance, and member access management."
+  source: "`vibe_health_insurance_v1`.`pharmacy`.`prior_authorization`"
+  filter: record_status = 'active'
+  dimensions:
+    - name: "pa_status"
+      expr: pa_status
+      comment: "Prior authorization status (approved, denied, pending, appealed) for pipeline and outcome analysis."
+    - name: "pa_type"
+      expr: pa_type
+      comment: "Type of prior authorization request (new, renewal, exception) for workload and trend analysis."
+    - name: "denial_reason_code"
+      expr: denial_reason_code
+      comment: "Denial reason code for identifying top denial drivers and clinical criteria improvement opportunities."
+    - name: "drug_tier"
+      expr: drug_tier
+      comment: "Formulary tier of the requested drug for PA volume analysis by tier."
+    - name: "lob"
+      expr: lob
+      comment: "Line of business for PA performance segmentation across Medicare, Medicaid, and Commercial."
+    - name: "specialty_drug_flag"
+      expr: specialty_drug_flag
+      comment: "Flag for specialty drug PAs, which have higher cost and clinical complexity."
+    - name: "step_therapy_required"
+      expr: step_therapy_required
+      comment: "Flag indicating step therapy was required as part of the PA criteria."
+    - name: "request_month"
+      expr: DATE_TRUNC('month', request_date)
+      comment: "Month of PA request for trend analysis of authorization volume and turnaround times."
+    - name: "cms_part_d_reportable"
+      expr: cms_part_d_reportable
+      comment: "Flag for CMS Part D reportable PAs, required for coverage determination compliance reporting."
+  measures:
+    - name: "total_pa_requests"
+      expr: COUNT(1)
+      comment: "Total prior authorization requests. Baseline UM workload metric for staffing and capacity planning."
+    - name: "approved_pa_count"
+      expr: COUNT(CASE WHEN pa_status = 'approved' THEN 1 END)
+      comment: "Number of approved prior authorizations. Measures approval volume and formulary access rates."
+    - name: "denied_pa_count"
+      expr: COUNT(CASE WHEN pa_status = 'denied' THEN 1 END)
+      comment: "Number of denied prior authorizations. Tracks denial volume for clinical criteria review and member impact assessment."
+    - name: "pa_approval_rate"
+      expr: COUNT(CASE WHEN pa_status = 'approved' THEN 1 END) / NULLIF(COUNT(1), 0)
+      comment: "Ratio of approved to total PA requests. Key UM effectiveness KPI and CMS compliance indicator."
+    - name: "pa_denial_rate"
+      expr: COUNT(CASE WHEN pa_status = 'denied' THEN 1 END) / NULLIF(COUNT(1), 0)
+      comment: "Ratio of denied to total PA requests. Monitors denial rate trends for regulatory scrutiny and member access equity."
+    - name: "appeal_rate"
+      expr: COUNT(CASE WHEN appeal_indicator = TRUE THEN 1 END) / NULLIF(COUNT(1), 0)
+      comment: "Ratio of PA decisions that were appealed. High appeal rates signal problematic denial criteria or member dissatisfaction."
+    - name: "criteria_met_rate"
+      expr: COUNT(CASE WHEN criteria_met = TRUE THEN 1 END) / NULLIF(COUNT(1), 0)
+      comment: "Proportion of PAs where clinical criteria were met. Measures clinical criteria appropriateness and formulary design effectiveness."
+    - name: "step_therapy_completed_rate"
+      expr: COUNT(CASE WHEN step_therapy_completed = TRUE THEN 1 END) / NULLIF(COUNT(CASE WHEN step_therapy_required = TRUE THEN 1 END), 0)
+      comment: "Rate of step therapy completion among PAs requiring it. Measures step therapy protocol adherence and clinical compliance."
+    - name: "avg_approved_quantity"
+      expr: AVG(CAST(approved_quantity AS DOUBLE))
+      comment: "Average quantity approved per PA. Benchmarks dispensing quantity decisions against requested amounts."
+    - name: "avg_requested_quantity"
+      expr: AVG(CAST(requested_quantity AS DOUBLE))
+      comment: "Average quantity requested per PA. Tracks prescriber ordering patterns and quantity limit program effectiveness."
+    - name: "distinct_member_pa_count"
+      expr: COUNT(DISTINCT member_subscriber_id)
+      comment: "Number of unique members with PA requests. Measures PA program reach and per-member authorization burden."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`pharmacy_specialty_drug_program`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Specialty drug program performance metrics covering program enrollment, cost management, and clinical management requirements. Specialty drugs represent the highest per-unit cost category and require dedicated program oversight."
+  source: "`vibe_health_insurance_v1`.`pharmacy`.`specialty_drug_program`"
+  filter: is_active = TRUE
+  dimensions:
+    - name: "program_status"
+      expr: program_status
+      comment: "Current specialty drug program status for active program portfolio management."
+    - name: "program_type"
+      expr: program_type
+      comment: "Type of specialty drug program (REMS, hub services, limited distribution) for program mix analysis."
+    - name: "therapeutic_category"
+      expr: therapeutic_category
+      comment: "Therapeutic category of the specialty drug for clinical and cost analysis by disease area."
+    - name: "line_of_business"
+      expr: line_of_business
+      comment: "Line of business for specialty drug program segmentation."
+    - name: "cms_part_d_specialty_tier_flag"
+      expr: cms_part_d_specialty_tier_flag
+      comment: "Flag for CMS Part D specialty tier designation, triggering specific cost-sharing and PA requirements."
+    - name: "prior_auth_required_flag"
+      expr: prior_auth_required_flag
+      comment: "Flag indicating PA is required for this specialty drug program."
+    - name: "rems_required_flag"
+      expr: rems_required_flag
+      comment: "Flag for REMS (Risk Evaluation and Mitigation Strategy) requirement — highest clinical risk specialty drugs."
+    - name: "cold_chain_required_flag"
+      expr: cold_chain_required_flag
+      comment: "Flag for cold chain storage requirement, impacting dispensing network and logistics costs."
+    - name: "copay_assistance_flag"
+      expr: copay_assistance_flag
+      comment: "Flag for manufacturer copay assistance availability, relevant for accumulator adjustment program management."
+  measures:
+    - name: "total_specialty_programs"
+      expr: COUNT(1)
+      comment: "Total active specialty drug programs. Measures specialty formulary breadth and clinical management program scope."
+    - name: "avg_awp_discount_pct"
+      expr: AVG(CAST(awp_discount_pct AS DOUBLE))
+      comment: "Average AWP discount percentage for specialty drugs. Measures specialty drug pricing negotiation effectiveness."
+    - name: "avg_wac_discount_pct"
+      expr: AVG(CAST(wac_discount_pct AS DOUBLE))
+      comment: "Average WAC discount percentage for specialty drugs. Benchmarks specialty drug cost management against manufacturer list prices."
+    - name: "avg_dispensing_fee"
+      expr: AVG(CAST(dispensing_fee_amount AS DOUBLE))
+      comment: "Average dispensing fee for specialty drug programs. Tracks specialty pharmacy network cost management."
+    - name: "avg_copay_assistance_max_benefit"
+      expr: AVG(CAST(copay_assistance_max_benefit_amount AS DOUBLE))
+      comment: "Average maximum copay assistance benefit amount. Measures manufacturer copay assistance program value and accumulator adjustment exposure."
+    - name: "rems_program_count"
+      expr: COUNT(CASE WHEN rems_required_flag = TRUE THEN 1 END)
+      comment: "Number of specialty programs requiring REMS. Tracks highest-risk specialty drug portfolio for clinical oversight prioritization."
+    - name: "pa_required_program_count"
+      expr: COUNT(CASE WHEN prior_auth_required_flag = TRUE THEN 1 END)
+      comment: "Number of specialty programs requiring prior authorization. Measures PA program scope for UM workload planning."
+    - name: "copay_assistance_program_count"
+      expr: COUNT(CASE WHEN copay_assistance_flag = TRUE THEN 1 END)
+      comment: "Number of specialty programs with manufacturer copay assistance. Tracks accumulator adjustment program exposure and member cost-sharing impact."
+    - name: "limited_distribution_program_count"
+      expr: COUNT(CASE WHEN limited_distribution_flag = TRUE THEN 1 END)
+      comment: "Number of limited distribution specialty drug programs. Measures network adequacy risk for specialty pharmacy access."
 $$;

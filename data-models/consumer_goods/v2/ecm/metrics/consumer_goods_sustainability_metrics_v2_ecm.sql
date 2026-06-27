@@ -1,78 +1,56 @@
--- Metric views for domain: sustainability | Business: Consumer_Goods | Version: 2 | Generated on: 2026-06-23 23:45:49
+-- Metric views for domain: sustainability | Business: Consumer Goods | Version: 2 | Generated on: 2026-06-28 00:14:33
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`sustainability_biodiversity_impact`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Biodiversity Impact business metrics"
+  comment: "Biodiversity impact KPIs tracking land use, net biodiversity scores, and TNFD risk classifications. Used by sustainability teams to manage nature-related risks and meet TNFD and SBTN disclosure requirements."
   source: "`vibe_consumer_goods_v1`.`sustainability`.`biodiversity_impact`"
   dimensions:
-    - name: "Approval Date"
-      expr: approval_date
-    - name: "Approved By"
-      expr: approved_by
-    - name: "Assessment Date"
-      expr: assessment_date
-    - name: "Assessment Status"
-      expr: assessment_status
-    - name: "Assessment Version"
-      expr: assessment_version
-    - name: "Assessor Email"
-      expr: assessor_email
-    - name: "Assessor Name"
-      expr: assessor_name
-    - name: "Biodiversity Risk Level"
-      expr: biodiversity_risk_level
-    - name: "Biodiversity Score Method"
-      expr: biodiversity_score_method
-    - name: "Biodiversity Impact Category"
+    - name: "biodiversity_impact_category"
       expr: biodiversity_impact_category
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Data Quality Flag"
-      expr: data_quality_flag
-    - name: "Geographic Location"
-      expr: geographic_location
-    - name: "Habitat Type"
-      expr: habitat_type
-    - name: "Impact Category"
-      expr: impact_category
-    - name: "Impact Type"
+      comment: "Category of biodiversity impact (habitat loss, species impact, water quality) for nature risk segmentation."
+    - name: "impact_type"
       expr: impact_type
+      comment: "Type of biodiversity impact (direct, indirect, cumulative) for TNFD impact materiality assessment."
+    - name: "impact_severity"
+      expr: impact_severity
+      comment: "Severity of the biodiversity impact for risk prioritization and mitigation planning."
+    - name: "ecosystem_type"
+      expr: ecosystem_type
+      comment: "Type of ecosystem affected (forest, wetland, grassland, marine) for ecosystem-specific conservation targeting."
+    - name: "tnfd_risk_classification"
+      expr: tnfd_risk_classification
+      comment: "TNFD risk classification for nature-related financial disclosure alignment."
+    - name: "tnfd_disclosure_flag"
+      expr: tnfd_disclosure_flag
+      comment: "Flag for TNFD-reportable impacts. Tracks nature disclosure obligations."
+    - name: "biodiversity_impact_status"
+      expr: biodiversity_impact_status
+      comment: "Status of the biodiversity impact record for data quality and reporting completeness."
+    - name: "net_positive_impact_flag"
+      expr: net_positive_impact_flag
+      comment: "Flag indicating net positive biodiversity outcome. Tracks nature-positive strategy progress."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Biodiversity Impact"
+    - name: "avg_net_biodiversity_impact_score"
+      expr: AVG(CAST(net_biodiversity_impact_score AS DOUBLE))
+      comment: "Average net biodiversity impact score. Primary TNFD and SBTN KPI for nature-positive strategy tracking."
+    - name: "total_land_use_area_ha"
+      expr: SUM(CAST(land_use_area_ha AS DOUBLE))
+      comment: "Total land use area in hectares. Tracks physical footprint and land dependency for TNFD disclosure."
+    - name: "total_protected_area_proximity_km"
+      expr: AVG(CAST(protected_area_proximity_km AS DOUBLE))
+      comment: "Average proximity to protected areas in km. Tracks nature-related location risk for TNFD physical risk assessment."
+    - name: "net_positive_impact_count"
+      expr: COUNT(DISTINCT CASE WHEN net_positive_impact_flag = TRUE THEN biodiversity_impact_id END)
+      comment: "Number of impacts assessed as net positive. Tracks nature-positive strategy attainment."
+    - name: "tnfd_reportable_impact_count"
+      expr: COUNT(DISTINCT CASE WHEN tnfd_disclosure_flag = TRUE THEN biodiversity_impact_id END)
+      comment: "Number of TNFD-reportable biodiversity impacts. Tracks nature disclosure obligations and reporting completeness."
+    - name: "total_impact_count"
       expr: COUNT(DISTINCT biodiversity_impact_id)
-    - name: "Total Habitat Area Affected Hectares"
-      expr: SUM(habitat_area_affected_hectares)
-    - name: "Average Habitat Area Affected Hectares"
-      expr: AVG(habitat_area_affected_hectares)
-    - name: "Total Impact Score"
-      expr: SUM(impact_score)
-    - name: "Average Impact Score"
-      expr: AVG(impact_score)
-    - name: "Total Land Use Area Ha"
-      expr: SUM(land_use_area_ha)
-    - name: "Average Land Use Area Ha"
-      expr: AVG(land_use_area_ha)
-    - name: "Total Net Biodiversity Impact Score"
-      expr: SUM(net_biodiversity_impact_score)
-    - name: "Average Net Biodiversity Impact Score"
-      expr: AVG(net_biodiversity_impact_score)
-    - name: "Total Protected Area Proximity Km"
-      expr: SUM(protected_area_proximity_km)
-    - name: "Average Protected Area Proximity Km"
-      expr: AVG(protected_area_proximity_km)
-    - name: "Total Proximity To Protected Area Km"
-      expr: SUM(proximity_to_protected_area_km)
-    - name: "Average Proximity To Protected Area Km"
-      expr: AVG(proximity_to_protected_area_km)
-    - name: "Total Restoration Area Hectares"
-      expr: SUM(restoration_area_hectares)
-    - name: "Average Restoration Area Hectares"
-      expr: AVG(restoration_area_hectares)
+      comment: "Total biodiversity impact assessments. Tracks coverage of nature risk assessment program."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`sustainability_carbon_emission`
@@ -80,86 +58,64 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Carbon Emission business metrics"
+  comment: "Core GHG emissions KPIs tracking total CO2e output by scope, source, and facility. Used by sustainability officers and CFOs to monitor decarbonization progress, set science-based targets, and report under GHG Protocol and CDP frameworks."
   source: "`vibe_consumer_goods_v1`.`sustainability`.`carbon_emission`"
   dimensions:
-    - name: "Activity Type"
-      expr: activity_type
-    - name: "Auditor Name"
-      expr: auditor_name
-    - name: "Calculation Method"
-      expr: calculation_method
-    - name: "Calculation Methodology"
-      expr: calculation_methodology
-    - name: "Cdp Reporting Flag"
-      expr: cdp_reporting_flag
-    - name: "Cdpr Reporting Flag"
-      expr: cdpr_reporting_flag
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Data Quality Flag"
-      expr: data_quality_flag
-    - name: "Data Source"
-      expr: data_source
-    - name: "Emission Factor Date"
-      expr: emission_factor_date
-    - name: "Emission Factor Source"
-      expr: emission_factor_source
-    - name: "Emission Factor Version"
-      expr: emission_factor_version
-    - name: "Emission Source"
-      expr: emission_source
-    - name: "Emission Source Category"
+    - name: "emission_scope"
+      expr: emission_scope
+      comment: "GHG Protocol scope classification (Scope 1, 2, or 3) for regulatory and voluntary reporting segmentation."
+    - name: "emission_source_category"
       expr: emission_source_category
-    - name: "Emission Timestamp"
-      expr: emission_timestamp
-    - name: "External Reporting Standard"
-      expr: external_reporting_standard
+      comment: "Category of emission source (e.g. combustion, electricity, logistics) enabling hotspot identification."
+    - name: "activity_type"
+      expr: activity_type
+      comment: "Type of business activity generating the emission, used to prioritize reduction initiatives."
+    - name: "carbon_emission_status"
+      expr: carbon_emission_status
+      comment: "Lifecycle status of the emission record (draft, verified, submitted) for data quality filtering."
+    - name: "verification_status"
+      expr: verification_status
+      comment: "Third-party verification status enabling separation of assured vs. unassured emissions data."
+    - name: "reporting_year"
+      expr: reporting_year
+      comment: "Fiscal or calendar year of the emission record for year-over-year trend analysis."
+    - name: "ghg_protocol_compliant"
+      expr: ghg_protocol_compliant
+      comment: "Flag indicating whether the record follows GHG Protocol methodology, used to filter for compliant reporting."
+    - name: "emission_factor_source"
+      expr: emission_factor_source
+      comment: "Source of the emission factor (e.g. IPCC, EPA, supplier-specific) for methodology transparency."
+    - name: "emission_timestamp_month"
+      expr: DATE_TRUNC('MONTH', emission_timestamp)
+      comment: "Month bucket of the emission event for trend and seasonality analysis."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Carbon Emission"
+    - name: "total_co2e_tonnes"
+      expr: SUM(CAST(co2e_quantity_tonnes AS DOUBLE))
+      comment: "Total CO2-equivalent emissions in tonnes. Primary KPI for decarbonization target tracking and regulatory disclosure."
+    - name: "total_ch4_tonnes"
+      expr: SUM(CAST(ch4_tonnes AS DOUBLE))
+      comment: "Total methane emissions in tonnes. Methane has 25x GWP vs CO2 and is a critical reduction lever for consumer goods supply chains."
+    - name: "total_n2o_tonnes"
+      expr: SUM(CAST(n2o_tonnes AS DOUBLE))
+      comment: "Total nitrous oxide emissions in tonnes. N2O has 298x GWP and is relevant for agricultural and packaging supply chains."
+    - name: "total_offset_quantity_tonnes"
+      expr: SUM(CAST(offset_quantity_tonnes AS DOUBLE))
+      comment: "Total CO2e tonnes offset through purchased carbon credits. Used to calculate net emissions position."
+    - name: "net_co2e_tonnes"
+      expr: SUM((CAST(co2e_quantity_tonnes AS DOUBLE)) - (CAST(offset_quantity_tonnes AS DOUBLE)))
+      comment: "Net CO2e after subtracting purchased offsets. The primary metric for net-zero progress reporting."
+    - name: "avg_emission_factor"
+      expr: AVG(CAST(emission_factor AS DOUBLE))
+      comment: "Average emission factor across records. Tracks improvement in emission intensity methodology over time."
+    - name: "total_energy_consumption_mwh"
+      expr: SUM(CAST(energy_consumption_mwh AS DOUBLE))
+      comment: "Total energy consumed in MWh associated with emission records. Supports energy-to-emissions intensity analysis."
+    - name: "verified_emission_record_count"
       expr: COUNT(DISTINCT carbon_emission_id)
-    - name: "Total Carbon Intensity Factor"
-      expr: SUM(carbon_intensity_factor)
-    - name: "Average Carbon Intensity Factor"
-      expr: AVG(carbon_intensity_factor)
-    - name: "Total Co2e Quantity Tonnes"
-      expr: SUM(co2e_quantity_tonnes)
-    - name: "Average Co2e Quantity Tonnes"
-      expr: AVG(co2e_quantity_tonnes)
-    - name: "Total Emission Factor"
-      expr: SUM(emission_factor)
-    - name: "Average Emission Factor"
-      expr: AVG(emission_factor)
-    - name: "Total Energy Consumption Mwh"
-      expr: SUM(energy_consumption_mwh)
-    - name: "Average Energy Consumption Mwh"
-      expr: AVG(energy_consumption_mwh)
-    - name: "Total Offset Quantity Tonnes"
-      expr: SUM(offset_quantity_tonnes)
-    - name: "Average Offset Quantity Tonnes"
-      expr: AVG(offset_quantity_tonnes)
-    - name: "Total Scope 1 Emissions Mt Co2e"
-      expr: SUM(scope_1_emissions_mt_co2e)
-    - name: "Average Scope 1 Emissions Mt Co2e"
-      expr: AVG(scope_1_emissions_mt_co2e)
-    - name: "Total Scope 2 Emissions Mt Co2e"
-      expr: SUM(scope_2_emissions_mt_co2e)
-    - name: "Average Scope 2 Emissions Mt Co2e"
-      expr: AVG(scope_2_emissions_mt_co2e)
-    - name: "Total Scope 3 Emissions Mt Co2e"
-      expr: SUM(scope_3_emissions_mt_co2e)
-    - name: "Average Scope 3 Emissions Mt Co2e"
-      expr: AVG(scope_3_emissions_mt_co2e)
-    - name: "Total Total Emissions Mt Co2e"
-      expr: SUM(total_emissions_mt_co2e)
-    - name: "Average Total Emissions Mt Co2e"
-      expr: AVG(total_emissions_mt_co2e)
-    - name: "Total Water Consumption M3"
-      expr: SUM(water_consumption_m3)
-    - name: "Average Water Consumption M3"
-      expr: AVG(water_consumption_m3)
+      comment: "Count of distinct emission records. Used to assess reporting coverage and completeness across facilities and activities."
+    - name: "avg_carbon_intensity_factor"
+      expr: AVG(CAST(carbon_intensity_factor AS DOUBLE))
+      comment: "Average carbon intensity factor across emission records. Tracks efficiency of emission reduction per unit of activity."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`sustainability_carbon_offset`
@@ -167,86 +123,58 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Carbon Offset business metrics"
+  comment: "Carbon offset portfolio KPIs tracking purchased, retired, and active offset credits. Used by sustainability and finance teams to manage net-zero commitments, offset spend, and registry compliance."
   source: "`vibe_consumer_goods_v1`.`sustainability`.`carbon_offset`"
   dimensions:
-    - name: "Alignment Type"
-      expr: alignment_type
-    - name: "Carbon Offset Status"
-      expr: carbon_offset_status
-    - name: "Compliance Flag"
-      expr: compliance_flag
-    - name: "Cost Currency Code"
-      expr: cost_currency_code
-    - name: "Country Code"
-      expr: country_code
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "External Reference Code"
-      expr: external_reference_code
-    - name: "Last Updated Timestamp"
-      expr: last_updated_timestamp
-    - name: "Notes"
-      expr: notes
-    - name: "Offset Standard"
-      expr: offset_standard
-    - name: "Offset Type"
+    - name: "offset_type"
       expr: offset_type
-    - name: "Project Description"
-      expr: project_description
-    - name: "Project Location"
-      expr: project_location
-    - name: "Project Name"
-      expr: project_name
-    - name: "Project Type"
+      comment: "Type of carbon offset project (e.g. reforestation, renewable energy, methane capture) for portfolio diversification analysis."
+    - name: "project_type"
       expr: project_type
-    - name: "Purchase Certificate Number"
-      expr: purchase_certificate_number
+      comment: "Underlying project category driving the offset, used to assess co-benefits and alignment with nature-based solutions."
+    - name: "carbon_offset_status"
+      expr: carbon_offset_status
+      comment: "Current status of the offset record (active, retired, expired) for portfolio management."
+    - name: "registry"
+      expr: registry
+      comment: "Carbon registry where the offset is registered (e.g. Gold Standard, Verra VCS) for credibility and compliance filtering."
+    - name: "project_country"
+      expr: project_country
+      comment: "Country of the offset project for geographic diversification and country-risk assessment."
+    - name: "vintage_year"
+      expr: vintage_year
+      comment: "Year the carbon reduction occurred. Vintage year affects offset quality and market pricing."
+    - name: "verification_standard"
+      expr: verification_standard
+      comment: "Standard used to verify the offset (e.g. ISO 14064, VCS) for assurance quality segmentation."
+    - name: "reporting_year"
+      expr: reporting_year
+      comment: "Reporting year for the offset purchase or retirement, used for annual disclosure alignment."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Carbon Offset"
+    - name: "total_offset_tonnes_co2e"
+      expr: SUM(CAST(offset_tonnes_co2e AS DOUBLE))
+      comment: "Total CO2e tonnes represented by purchased offsets. Core metric for net-zero gap analysis."
+    - name: "total_credit_quantity_purchased"
+      expr: SUM(CAST(credit_quantity_purchased AS DOUBLE))
+      comment: "Total offset credits purchased. Tracks procurement volume against annual offset strategy targets."
+    - name: "total_credit_quantity_retired"
+      expr: SUM(CAST(credit_quantity_retired AS DOUBLE))
+      comment: "Total offset credits retired (permanently cancelled). Retired credits are the only ones that count toward net-zero claims."
+    - name: "total_offset_cost"
+      expr: SUM(CAST(total_cost AS DOUBLE))
+      comment: "Total spend on carbon offsets. Critical for sustainability budget management and cost-per-tonne benchmarking."
+    - name: "avg_cost_per_tonne"
+      expr: AVG(CAST(cost_per_tonne AS DOUBLE))
+      comment: "Average cost per tonne of CO2e offset. Benchmarks procurement efficiency against market rates."
+    - name: "avg_price_per_tonne"
+      expr: AVG(CAST(price_per_tonne AS DOUBLE))
+      comment: "Average market price per tonne across the offset portfolio. Tracks portfolio valuation and market exposure."
+    - name: "retirement_rate_pct"
+      expr: ROUND(100.0 * SUM(CAST(credit_quantity_retired AS DOUBLE)) / NULLIF(SUM(CAST(credit_quantity_purchased AS DOUBLE)), 0), 2)
+      comment: "Percentage of purchased credits that have been retired. High retirement rate indicates active use of offsets toward net-zero claims rather than speculative holding."
+    - name: "active_offset_project_count"
       expr: COUNT(DISTINCT carbon_offset_id)
-    - name: "Total Cost Per Credit"
-      expr: SUM(cost_per_credit)
-    - name: "Average Cost Per Credit"
-      expr: AVG(cost_per_credit)
-    - name: "Total Cost Per Tonne"
-      expr: SUM(cost_per_tonne)
-    - name: "Average Cost Per Tonne"
-      expr: AVG(cost_per_tonne)
-    - name: "Total Credit Quantity Purchased"
-      expr: SUM(credit_quantity_purchased)
-    - name: "Average Credit Quantity Purchased"
-      expr: AVG(credit_quantity_purchased)
-    - name: "Total Credit Quantity Retired"
-      expr: SUM(credit_quantity_retired)
-    - name: "Average Credit Quantity Retired"
-      expr: AVG(credit_quantity_retired)
-    - name: "Total Credits Purchased Mt Co2e"
-      expr: SUM(credits_purchased_mt_co2e)
-    - name: "Average Credits Purchased Mt Co2e"
-      expr: AVG(credits_purchased_mt_co2e)
-    - name: "Total Credits Retired Mt Co2e"
-      expr: SUM(credits_retired_mt_co2e)
-    - name: "Average Credits Retired Mt Co2e"
-      expr: AVG(credits_retired_mt_co2e)
-    - name: "Total Offset Quantity Tonnes"
-      expr: SUM(offset_quantity_tonnes)
-    - name: "Average Offset Quantity Tonnes"
-      expr: AVG(offset_quantity_tonnes)
-    - name: "Total Total Cost"
-      expr: SUM(total_cost)
-    - name: "Average Total Cost"
-      expr: AVG(total_cost)
-    - name: "Total Total Cost Amount"
-      expr: SUM(total_cost_amount)
-    - name: "Average Total Cost Amount"
-      expr: AVG(total_cost_amount)
-    - name: "Total Unit Price"
-      expr: SUM(unit_price)
-    - name: "Average Unit Price"
-      expr: AVG(unit_price)
+      comment: "Number of distinct offset projects in the portfolio. Tracks diversification and coverage of the offset strategy."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`sustainability_circular_initiative`
@@ -254,94 +182,55 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Circular Initiative business metrics"
+  comment: "Circular economy initiative KPIs tracking material diversion, waste reduction, investment, and consumer participation. Used by sustainability and innovation teams to manage circular economy program ROI and target attainment."
   source: "`vibe_consumer_goods_v1`.`sustainability`.`circular_initiative`"
   dimensions:
-    - name: "Circular Initiative Status"
+    - name: "initiative_type"
+      expr: initiative_type
+      comment: "Type of circular initiative (recycling, reuse, refill, repair) for program portfolio management."
+    - name: "circularity_strategy"
+      expr: circularity_strategy
+      comment: "Circular economy strategy applied (reduce, reuse, recycle, recover) for Ellen MacArthur Framework alignment."
+    - name: "circular_initiative_status"
       expr: circular_initiative_status
-    - name: "Compliance Fsc Certified"
-      expr: compliance_fsc_certified
-    - name: "Compliance Rspo Certified"
-      expr: compliance_rspo_certified
-    - name: "Cost Savings Currency Code"
-      expr: cost_savings_currency_code
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Data Quality Status"
-      expr: data_quality_status
-    - name: "End Date"
-      expr: end_date
-    - name: "External Reference Code"
-      expr: external_reference_code
-    - name: "Geographic Scope"
+      comment: "Current status of the initiative for pipeline and resource management."
+    - name: "progress_status"
+      expr: progress_status
+      comment: "Progress status (on-track, behind, completed) for executive steering."
+    - name: "lifecycle_stage"
+      expr: lifecycle_stage
+      comment: "Lifecycle stage targeted by the initiative (design, production, use, end-of-life) for value chain coverage."
+    - name: "geographic_scope"
       expr: geographic_scope
-    - name: "Initiative Budget Currency"
-      expr: initiative_budget_currency
-    - name: "Initiative Code"
-      expr: initiative_code
-    - name: "Initiative Description"
-      expr: initiative_description
-    - name: "Initiative Name"
-      expr: initiative_name
-    - name: "Initiative Owner"
-      expr: initiative_owner
-    - name: "Initiative Owner Email"
-      expr: initiative_owner_email
-    - name: "Initiative Status"
-      expr: initiative_status
+      comment: "Geographic scope of the initiative for regional program management."
+    - name: "is_public_reportable"
+      expr: is_public_reportable
+      comment: "Flag for publicly reportable initiatives. Tracks transparency and external communication pipeline."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Circular Initiative"
+    - name: "total_material_diverted_tonnes"
+      expr: SUM(CAST(material_diverted_tonnes AS DOUBLE))
+      comment: "Total material diverted from waste streams through circular initiatives. Primary circular economy impact KPI."
+    - name: "total_material_recovered_tonnes"
+      expr: SUM(CAST(material_recovered_tonnes AS DOUBLE))
+      comment: "Total material recovered and re-entered into the value chain. Tracks circular material flow performance."
+    - name: "total_waste_reduction_tonnes"
+      expr: SUM(CAST(waste_reduction_tonnes AS DOUBLE))
+      comment: "Total waste reduction achieved through circular initiatives. Tracks absolute waste reduction contribution."
+    - name: "total_investment_amount"
+      expr: SUM(CAST(investment_amount AS DOUBLE))
+      comment: "Total investment in circular economy initiatives. Tracks financial commitment to circular transformation."
+    - name: "avg_consumer_participation_rate_pct"
+      expr: AVG(CAST(consumer_participation_rate_pct AS DOUBLE))
+      comment: "Average consumer participation rate in circular programs. Tracks consumer engagement and program adoption."
+    - name: "total_carbon_footprint_avoided_tonnes"
+      expr: SUM(CAST(carbon_footprint_avoided_tonnes AS DOUBLE))
+      comment: "Total CO2e avoided through circular initiatives. Links circular economy to climate targets."
+    - name: "total_energy_savings_mwh"
+      expr: SUM(CAST(energy_savings_mwh AS DOUBLE))
+      comment: "Total energy savings from circular initiatives in MWh. Tracks co-benefits of circular economy for energy targets."
+    - name: "active_initiative_count"
       expr: COUNT(DISTINCT circular_initiative_id)
-    - name: "Total Carbon Footprint Avoided Tonnes"
-      expr: SUM(carbon_footprint_avoided_tonnes)
-    - name: "Average Carbon Footprint Avoided Tonnes"
-      expr: AVG(carbon_footprint_avoided_tonnes)
-    - name: "Total Consumer Participation Rate Pct"
-      expr: SUM(consumer_participation_rate_pct)
-    - name: "Average Consumer Participation Rate Pct"
-      expr: AVG(consumer_participation_rate_pct)
-    - name: "Total Cost Savings Amount"
-      expr: SUM(cost_savings_amount)
-    - name: "Average Cost Savings Amount"
-      expr: AVG(cost_savings_amount)
-    - name: "Total Energy Savings Mwh"
-      expr: SUM(energy_savings_mwh)
-    - name: "Average Energy Savings Mwh"
-      expr: AVG(energy_savings_mwh)
-    - name: "Total Investment Amount Usd"
-      expr: SUM(investment_amount_usd)
-    - name: "Average Investment Amount Usd"
-      expr: AVG(investment_amount_usd)
-    - name: "Total Material Diverted Tonnes"
-      expr: SUM(material_diverted_tonnes)
-    - name: "Average Material Diverted Tonnes"
-      expr: AVG(material_diverted_tonnes)
-    - name: "Total Material Recovered Kg"
-      expr: SUM(material_recovered_kg)
-    - name: "Average Material Recovered Kg"
-      expr: AVG(material_recovered_kg)
-    - name: "Total Material Recovered Tonnes"
-      expr: SUM(material_recovered_tonnes)
-    - name: "Average Material Recovered Tonnes"
-      expr: AVG(material_recovered_tonnes)
-    - name: "Total Recycling Rate Percentage"
-      expr: SUM(recycling_rate_percentage)
-    - name: "Average Recycling Rate Percentage"
-      expr: AVG(recycling_rate_percentage)
-    - name: "Total Target Material Percentage"
-      expr: SUM(target_material_percentage)
-    - name: "Average Target Material Percentage"
-      expr: AVG(target_material_percentage)
-    - name: "Total Target Value"
-      expr: SUM(target_value)
-    - name: "Average Target Value"
-      expr: AVG(target_value)
-    - name: "Total Waste Reduction Tonnes"
-      expr: SUM(waste_reduction_tonnes)
-    - name: "Average Waste Reduction Tonnes"
-      expr: AVG(waste_reduction_tonnes)
+      comment: "Total number of circular economy initiatives. Tracks program breadth and portfolio coverage."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`sustainability_commitment_progress`
@@ -349,70 +238,55 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Commitment Progress business metrics"
+  comment: "Granular ESG commitment progress KPIs tracking measured values, variance to target, and trajectory status over reporting periods. Used by sustainability managers to identify at-risk commitments and course-correct."
   source: "`vibe_consumer_goods_v1`.`sustainability`.`commitment_progress`"
   dimensions:
-    - name: "Commentary"
-      expr: commentary
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Data Source System"
-      expr: data_source_system
-    - name: "Last Updated Timestamp"
-      expr: last_updated_timestamp
-    - name: "Measurement Date"
-      expr: measurement_date
-    - name: "Measurement Timestamp"
-      expr: measurement_timestamp
-    - name: "Measurement Unit"
-      expr: measurement_unit
-    - name: "Mitigation Actions"
-      expr: mitigation_actions
-    - name: "Notes"
-      expr: notes
-    - name: "On Track Flag"
+    - name: "commitment_progress_status"
+      expr: commitment_progress_status
+      comment: "Status of the progress record (on-track, behind, achieved) for operational triage."
+    - name: "trajectory_status"
+      expr: trajectory_status
+      comment: "Forward-looking trajectory assessment (improving, stable, deteriorating) for proactive intervention."
+    - name: "on_track_flag"
       expr: on_track_flag
-    - name: "Period End Date"
-      expr: period_end_date
-    - name: "Period Start Date"
-      expr: period_start_date
-    - name: "Period Type"
+      comment: "Boolean flag indicating whether the commitment is on track. Used for executive red/amber/green dashboards."
+    - name: "period_type"
       expr: period_type
-    - name: "Record Status"
-      expr: record_status
-    - name: "Reporting Boundary"
-      expr: reporting_boundary
-    - name: "Reporting Period End"
-      expr: reporting_period_end
+      comment: "Reporting period type (annual, quarterly, monthly) for cadence-appropriate analysis."
+    - name: "reporting_year"
+      expr: reporting_year
+      comment: "Reporting year for year-over-year progress comparison."
+    - name: "milestone_name"
+      expr: milestone_name
+      comment: "Named milestone within the commitment lifecycle for milestone-level tracking."
+    - name: "verification_status"
+      expr: verification_status
+      comment: "Verification status of the progress record for data assurance filtering."
+    - name: "reporting_period_start_date"
+      expr: reporting_period_start_date
+      comment: "Start date of the reporting period. Enables time-series analysis of progress cadence."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Commitment Progress"
+    - name: "avg_percentage_of_target"
+      expr: AVG(CAST(percentage_of_target AS DOUBLE))
+      comment: "Average percentage of target achieved across progress records. Primary KPI for ESG commitment health monitoring."
+    - name: "total_measured_value"
+      expr: SUM(CAST(measured_value AS DOUBLE))
+      comment: "Sum of measured values across progress records. Aggregated actual performance against ESG targets."
+    - name: "total_target_value"
+      expr: SUM(CAST(target_value AS DOUBLE))
+      comment: "Sum of target values across progress records. Denominator for aggregate attainment rate calculation."
+    - name: "total_variance"
+      expr: SUM(CAST(variance AS DOUBLE))
+      comment: "Total variance between actual and target values. Negative variance signals underperformance requiring executive attention."
+    - name: "avg_progress_pct"
+      expr: AVG(CAST(progress_pct AS DOUBLE))
+      comment: "Average progress percentage across all commitment progress records. Used in steering committee dashboards."
+    - name: "on_track_commitment_count"
+      expr: COUNT(DISTINCT CASE WHEN on_track_flag = TRUE THEN commitment_progress_id END)
+      comment: "Count of progress records flagged as on-track. Used to compute on-track rate for board ESG scorecards."
+    - name: "total_progress_record_count"
       expr: COUNT(DISTINCT commitment_progress_id)
-    - name: "Total Achievement Pct"
-      expr: SUM(achievement_pct)
-    - name: "Average Achievement Pct"
-      expr: AVG(achievement_pct)
-    - name: "Total Actual Value"
-      expr: SUM(actual_value)
-    - name: "Average Actual Value"
-      expr: AVG(actual_value)
-    - name: "Total Current Value"
-      expr: SUM(current_value)
-    - name: "Average Current Value"
-      expr: AVG(current_value)
-    - name: "Total Percentage Of Target"
-      expr: SUM(percentage_of_target)
-    - name: "Average Percentage Of Target"
-      expr: AVG(percentage_of_target)
-    - name: "Total Progress Percentage"
-      expr: SUM(progress_percentage)
-    - name: "Average Progress Percentage"
-      expr: AVG(progress_percentage)
-    - name: "Total Target Value"
-      expr: SUM(target_value)
-    - name: "Average Target Value"
-      expr: AVG(target_value)
+      comment: "Total number of progress records. Denominator for on-track rate and coverage completeness assessment."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`sustainability_deforestation_assessment`
@@ -420,74 +294,52 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Deforestation Assessment business metrics"
+  comment: "Deforestation risk assessment KPIs tracking EUDR compliance, forest cover change, and risk scores across commodity supply chains. Used by procurement and sustainability teams to manage deforestation-free sourcing obligations under EUDR and TNFD."
   source: "`vibe_consumer_goods_v1`.`sustainability`.`deforestation_assessment`"
   dimensions:
-    - name: "Assessment Approval Date"
-      expr: assessment_approval_date
-    - name: "Assessment Approved By"
-      expr: assessment_approved_by
-    - name: "Assessment Code"
-      expr: assessment_code
-    - name: "Assessment Created By"
-      expr: assessment_created_by
-    - name: "Assessment Date"
-      expr: assessment_date
-    - name: "Assessment Notes"
-      expr: assessment_notes
-    - name: "Assessment Review Date"
-      expr: assessment_review_date
-    - name: "Assessment Status"
+    - name: "assessment_status"
       expr: assessment_status
-    - name: "Certification Status"
-      expr: certification_status
-    - name: "Certification Type"
-      expr: certification_type
-    - name: "Certification Valid Until"
-      expr: certification_valid_until
-    - name: "Commodity Type"
+      comment: "Status of the deforestation assessment (pending, completed, escalated) for pipeline management."
+    - name: "eudr_compliance_status"
+      expr: eudr_compliance_status
+      comment: "EU Deforestation Regulation compliance status. Critical regulatory KPI with market access implications."
+    - name: "risk_level"
+      expr: risk_level
+      comment: "Deforestation risk level (low, medium, high) for supplier prioritization and due diligence."
+    - name: "commodity_type"
       expr: commodity_type
-    - name: "Corrective Action Plan"
-      expr: corrective_action_plan
-    - name: "Corrective Action Required Flag"
-      expr: corrective_action_required_flag
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Data Quality Status"
-      expr: data_quality_status
+      comment: "Commodity type assessed (palm oil, soy, beef, timber, cocoa, coffee, rubber) for EUDR-regulated commodity tracking."
+    - name: "deforestation_free_flag"
+      expr: deforestation_free_flag
+      comment: "Flag indicating deforestation-free status. Core EUDR and responsible sourcing compliance indicator."
+    - name: "eudr_compliant_flag"
+      expr: eudr_compliant_flag
+      comment: "EUDR compliance flag for regulatory reporting and market access management."
+    - name: "origin_country"
+      expr: origin_country
+      comment: "Country of origin for the assessed commodity. Used for country-level deforestation risk mapping."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Deforestation Assessment"
+    - name: "total_assessment_count"
       expr: COUNT(DISTINCT deforestation_assessment_id)
-    - name: "Total Carbon Emission Estimate Tonnes"
-      expr: SUM(carbon_emission_estimate_tonnes)
-    - name: "Average Carbon Emission Estimate Tonnes"
-      expr: AVG(carbon_emission_estimate_tonnes)
-    - name: "Total Certification Coverage Percent"
-      expr: SUM(certification_coverage_percent)
-    - name: "Average Certification Coverage Percent"
-      expr: AVG(certification_coverage_percent)
-    - name: "Total Energy Consumption Mwh"
-      expr: SUM(energy_consumption_mwh)
-    - name: "Average Energy Consumption Mwh"
-      expr: AVG(energy_consumption_mwh)
-    - name: "Total Forest Area Ha"
-      expr: SUM(forest_area_ha)
-    - name: "Average Forest Area Ha"
-      expr: AVG(forest_area_ha)
-    - name: "Total Forest Cover Change Percent"
-      expr: SUM(forest_cover_change_percent)
-    - name: "Average Forest Cover Change Percent"
-      expr: AVG(forest_cover_change_percent)
-    - name: "Total Risk Score"
-      expr: SUM(risk_score)
-    - name: "Average Risk Score"
-      expr: AVG(risk_score)
-    - name: "Total Water Usage M3"
-      expr: SUM(water_usage_m3)
-    - name: "Average Water Usage M3"
-      expr: AVG(water_usage_m3)
+      comment: "Total deforestation assessments conducted. Tracks supply chain due diligence coverage under EUDR."
+    - name: "eudr_compliant_count"
+      expr: COUNT(DISTINCT CASE WHEN eudr_compliant_flag = TRUE THEN deforestation_assessment_id END)
+      comment: "Number of assessments confirming EUDR compliance. Tracks regulatory compliance posture for EU market access."
+    - name: "eudr_compliance_rate_pct"
+      expr: ROUND(100.0 * COUNT(DISTINCT CASE WHEN eudr_compliant_flag = TRUE THEN deforestation_assessment_id END) / NULLIF(COUNT(DISTINCT deforestation_assessment_id), 0), 2)
+      comment: "Percentage of assessed supply chains that are EUDR compliant. Headline regulatory compliance KPI for EU market access."
+    - name: "avg_risk_score"
+      expr: AVG(CAST(risk_score AS DOUBLE))
+      comment: "Average deforestation risk score across assessments. Used to prioritize supplier engagement and due diligence resources."
+    - name: "avg_forest_cover_change_pct"
+      expr: AVG(CAST(forest_cover_change_percent AS DOUBLE))
+      comment: "Average forest cover change percentage across assessed areas. Tracks deforestation trend in supply sheds."
+    - name: "total_forest_area_ha"
+      expr: SUM(CAST(forest_area_ha AS DOUBLE))
+      comment: "Total forest area covered by assessments in hectares. Tracks scope of deforestation due diligence program."
+    - name: "high_risk_assessment_count"
+      expr: COUNT(DISTINCT CASE WHEN risk_level = 'High' THEN deforestation_assessment_id END)
+      comment: "Number of high-risk deforestation assessments. Drives supplier escalation and sourcing diversification decisions."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`sustainability_energy_certificate`
@@ -495,70 +347,49 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Energy Certificate business metrics"
+  comment: "Renewable energy certificate (REC/REGO/GO) portfolio KPIs tracking certified MWh, procurement costs, and retirement status. Used by sustainability and energy procurement teams to manage RE100 compliance and renewable energy claims."
   source: "`vibe_consumer_goods_v1`.`sustainability`.`energy_certificate`"
   dimensions:
-    - name: "Business Unit"
-      expr: business_unit
-    - name: "Certificate Name"
-      expr: certificate_name
-    - name: "Certificate Number"
-      expr: certificate_number
-    - name: "Certificate Type"
+    - name: "certificate_type"
       expr: certificate_type
-    - name: "Cost Currency Code"
-      expr: cost_currency_code
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Data Quality Status"
-      expr: data_quality_status
-    - name: "Energy Certificate Status"
-      expr: energy_certificate_status
-    - name: "Energy Source"
+      comment: "Type of energy certificate (REC, REGO, GO, I-REC) for market and regulatory segmentation."
+    - name: "energy_source"
       expr: energy_source
-    - name: "Expiration Date"
-      expr: expiration_date
-    - name: "Expiry Date"
-      expr: expiry_date
-    - name: "External Reference Code"
-      expr: external_reference_code
-    - name: "Generating Facility Location"
-      expr: generating_facility_location
-    - name: "Generating Facility Name"
-      expr: generating_facility_name
-    - name: "Generator Location"
-      expr: generator_location
-    - name: "Generator Name"
-      expr: generator_name
+      comment: "Renewable energy source (solar, wind, hydro, biomass) for technology portfolio management."
+    - name: "energy_certificate_status"
+      expr: energy_certificate_status
+      comment: "Current status of the certificate (active, retired, expired) for portfolio management."
+    - name: "vintage_year"
+      expr: vintage_year
+      comment: "Year of energy generation. Vintage year affects certificate quality and additionality claims."
+    - name: "issuing_body"
+      expr: issuing_body
+      comment: "Body that issued the certificate for credibility and market recognition assessment."
+    - name: "reporting_year"
+      expr: reporting_year
+      comment: "Reporting year for annual renewable energy disclosure."
+    - name: "iso_14001_compliance_flag"
+      expr: iso_14001_compliance_flag
+      comment: "ISO 14001 compliance flag for environmental management system alignment."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Energy Certificate"
+    - name: "total_mwh_certified"
+      expr: SUM(CAST(mwh_certified AS DOUBLE))
+      comment: "Total MWh of renewable energy certified. Primary RE100 and renewable energy target tracking KPI."
+    - name: "total_cost_amount"
+      expr: SUM(CAST(cost_amount AS DOUBLE))
+      comment: "Total cost of renewable energy certificates. Tracks financial investment in renewable energy procurement."
+    - name: "avg_renewable_energy_pct"
+      expr: AVG(CAST(renewable_energy_percentage AS DOUBLE))
+      comment: "Average renewable energy percentage across certificate records. Tracks RE100 portfolio composition."
+    - name: "active_certificate_count"
+      expr: COUNT(DISTINCT CASE WHEN energy_certificate_status = 'Active' THEN energy_certificate_id END)
+      comment: "Number of active renewable energy certificates. Tracks current renewable energy coverage."
+    - name: "total_certificate_count"
       expr: COUNT(DISTINCT energy_certificate_id)
-    - name: "Total Carbon Emission Factor"
-      expr: SUM(carbon_emission_factor)
-    - name: "Average Carbon Emission Factor"
-      expr: AVG(carbon_emission_factor)
-    - name: "Total Cost Amount"
-      expr: SUM(cost_amount)
-    - name: "Average Cost Amount"
-      expr: AVG(cost_amount)
-    - name: "Total Energy Amount Mwh"
-      expr: SUM(energy_amount_mwh)
-    - name: "Average Energy Amount Mwh"
-      expr: AVG(energy_amount_mwh)
-    - name: "Total Energy Mwh"
-      expr: SUM(energy_mwh)
-    - name: "Average Energy Mwh"
-      expr: AVG(energy_mwh)
-    - name: "Total Quantity Mwh"
-      expr: SUM(quantity_mwh)
-    - name: "Average Quantity Mwh"
-      expr: AVG(quantity_mwh)
-    - name: "Total Renewable Energy Percentage"
-      expr: SUM(renewable_energy_percentage)
-    - name: "Average Renewable Energy Percentage"
-      expr: AVG(renewable_energy_percentage)
+      comment: "Total renewable energy certificates in the portfolio. Tracks procurement program breadth."
+    - name: "avg_price_per_mwh"
+      expr: AVG(CAST(price_amount AS DOUBLE))
+      comment: "Average price per MWh of certified renewable energy. Benchmarks procurement efficiency against market rates."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`sustainability_energy_consumption`
@@ -566,90 +397,52 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Energy Consumption business metrics"
+  comment: "Energy efficiency and renewable energy KPIs tracking total consumption, renewable mix, and intensity ratios. Used by operations and sustainability teams to manage energy costs, meet RE100 targets, and report under GRI 302."
   source: "`vibe_consumer_goods_v1`.`sustainability`.`energy_consumption`"
   dimensions:
-    - name: "Consumption Reference"
-      expr: consumption_reference
-    - name: "Consumption Timestamp"
-      expr: consumption_timestamp
-    - name: "Consumption Unit"
-      expr: consumption_unit
-    - name: "Cost Currency Code"
-      expr: cost_currency_code
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Currency Code"
-      expr: currency_code
-    - name: "Data Quality Status"
-      expr: data_quality_status
-    - name: "Data Source System"
-      expr: data_source_system
-    - name: "Energy Consumption Status"
-      expr: energy_consumption_status
-    - name: "Energy Source"
-      expr: energy_source
-    - name: "Energy Type"
+    - name: "energy_type"
       expr: energy_type
-    - name: "Energy Unit"
-      expr: energy_unit
-    - name: "Is Renewable"
-      expr: is_renewable
-    - name: "Iso 50001 Compliance Flag"
+      comment: "Type of energy consumed (electricity, natural gas, steam, diesel) for source-specific reduction targeting."
+    - name: "energy_source"
+      expr: energy_source
+      comment: "Specific energy source for renewable vs. non-renewable segmentation."
+    - name: "energy_consumption_status"
+      expr: energy_consumption_status
+      comment: "Record status for data quality filtering in regulatory submissions."
+    - name: "scope"
+      expr: scope
+      comment: "GHG Protocol scope associated with the energy consumption for integrated emissions reporting."
+    - name: "iso_50001_compliance_flag"
       expr: iso_50001_compliance_flag
-    - name: "Last Updated Timestamp"
-      expr: last_updated_timestamp
-    - name: "Measurement Source"
-      expr: measurement_source
+      comment: "ISO 50001 energy management compliance flag for certification tracking."
+    - name: "reporting_year"
+      expr: reporting_year
+      comment: "Reporting year for annual energy disclosure and year-over-year trend analysis."
+    - name: "is_estimated"
+      expr: is_estimated
+      comment: "Flag indicating estimated vs. metered data. Used to assess data quality and prioritize metering investments."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Energy Consumption"
-      expr: COUNT(DISTINCT energy_consumption_id)
-    - name: "Total Carbon Emission Factor"
-      expr: SUM(carbon_emission_factor)
-    - name: "Average Carbon Emission Factor"
-      expr: AVG(carbon_emission_factor)
-    - name: "Total Consumption Amount"
-      expr: SUM(consumption_amount)
-    - name: "Average Consumption Amount"
-      expr: AVG(consumption_amount)
-    - name: "Total Consumption Kwh"
-      expr: SUM(consumption_kwh)
-    - name: "Average Consumption Kwh"
-      expr: AVG(consumption_kwh)
-    - name: "Total Cost Amount"
-      expr: SUM(cost_amount)
-    - name: "Average Cost Amount"
-      expr: AVG(cost_amount)
-    - name: "Total Data Quality Score"
-      expr: SUM(data_quality_score)
-    - name: "Average Data Quality Score"
-      expr: AVG(data_quality_score)
-    - name: "Total Energy Intensity Ratio"
-      expr: SUM(energy_intensity_ratio)
-    - name: "Average Energy Intensity Ratio"
-      expr: AVG(energy_intensity_ratio)
-    - name: "Total Energy Quantity"
-      expr: SUM(energy_quantity)
-    - name: "Average Energy Quantity"
-      expr: AVG(energy_quantity)
-    - name: "Total Renewable Energy Percentage"
-      expr: SUM(renewable_energy_percentage)
-    - name: "Average Renewable Energy Percentage"
-      expr: AVG(renewable_energy_percentage)
-    - name: "Total Renewable Percentage"
-      expr: SUM(renewable_percentage)
-    - name: "Average Renewable Percentage"
-      expr: AVG(renewable_percentage)
-    - name: "Total Tariff Rate"
-      expr: SUM(tariff_rate)
-    - name: "Average Tariff Rate"
-      expr: AVG(tariff_rate)
-    - name: "Total Total Cost"
-      expr: SUM(total_cost)
-    - name: "Average Total Cost"
-      expr: AVG(total_cost)
+    - name: "total_energy_quantity_kwh"
+      expr: SUM(CAST(energy_quantity AS DOUBLE))
+      comment: "Total energy consumed in kWh. Primary absolute energy KPI for GRI 302 and CDP Climate reporting."
+    - name: "total_renewable_kwh"
+      expr: SUM(CAST(renewable_kwh AS DOUBLE))
+      comment: "Total renewable energy consumed in kWh. Tracks RE100 and renewable energy target progress."
+    - name: "total_co2e_tonnes"
+      expr: SUM(CAST(co2e_tonnes AS DOUBLE))
+      comment: "Total CO2e emissions associated with energy consumption. Links energy use to Scope 2 emissions reporting."
+    - name: "avg_renewable_energy_pct"
+      expr: AVG(CAST(renewable_energy_percentage AS DOUBLE))
+      comment: "Average renewable energy percentage across consumption records. Tracks RE100 and clean energy transition progress."
+    - name: "avg_energy_intensity_ratio"
+      expr: AVG(CAST(energy_intensity_ratio AS DOUBLE))
+      comment: "Average energy intensity ratio (energy per unit of output). Normalizes energy use for efficiency benchmarking."
+    - name: "renewable_energy_share_pct"
+      expr: ROUND(100.0 * SUM(CAST(renewable_kwh AS DOUBLE)) / NULLIF(SUM(CAST(energy_quantity AS DOUBLE)), 0), 2)
+      comment: "Percentage of total energy from renewable sources. Headline RE100 and clean energy transition KPI."
+    - name: "total_energy_cost"
+      expr: SUM(CAST(cost_amount AS DOUBLE))
+      comment: "Total energy cost. Tracks financial exposure to energy price volatility and ROI of efficiency investments."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`sustainability_environmental_incident`
@@ -657,62 +450,52 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Environmental Incident business metrics"
+  comment: "Environmental incident KPIs tracking frequency, severity, cost, and remediation status of environmental events. Used by EHS, legal, and sustainability teams to manage regulatory risk, fines, and remediation obligations."
   source: "`vibe_consumer_goods_v1`.`sustainability`.`environmental_incident`"
   dimensions:
-    - name: "City"
-      expr: city
-    - name: "Closure Date"
-      expr: closure_date
-    - name: "Compliance Notes"
-      expr: compliance_notes
-    - name: "Compliance Status"
-      expr: compliance_status
-    - name: "Corrective Action"
-      expr: corrective_action
-    - name: "Corrective Action Taken"
-      expr: corrective_action_taken
-    - name: "Cost Currency"
-      expr: cost_currency
-    - name: "Country Code"
-      expr: country_code
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Environmental Impact Assessment"
-      expr: environmental_impact_assessment
-    - name: "Environmental Incident Status"
+    - name: "incident_type"
+      expr: incident_type
+      comment: "Type of environmental incident (spill, emission exceedance, permit violation) for risk categorization."
+    - name: "severity_level"
+      expr: severity_level
+      comment: "Severity classification of the incident (minor, moderate, major, critical) for escalation and resource prioritization."
+    - name: "environmental_incident_status"
       expr: environmental_incident_status
-    - name: "Incident Date"
-      expr: incident_date
-    - name: "Incident Description"
-      expr: incident_description
-    - name: "Incident Number"
-      expr: incident_number
-    - name: "Incident Severity"
-      expr: incident_severity
-    - name: "Incident Status"
-      expr: incident_status
+      comment: "Current status of the incident (open, under investigation, remediated, closed) for case management."
+    - name: "remediation_status"
+      expr: remediation_status
+      comment: "Status of remediation activities for tracking environmental restoration obligations."
+    - name: "regulatory_reportable_flag"
+      expr: regulatory_reportable_flag
+      comment: "Flag indicating regulatory reporting obligation. Tracks legal compliance exposure."
+    - name: "root_cause_category"
+      expr: root_cause_category
+      comment: "Root cause category for systemic issue identification and prevention program targeting."
+    - name: "incident_subtype"
+      expr: incident_subtype
+      comment: "Sub-classification of incident type for granular EHS program management."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Environmental Incident"
+    - name: "total_incident_count"
       expr: COUNT(DISTINCT environmental_incident_id)
-    - name: "Total Estimated Cost"
-      expr: SUM(estimated_cost)
-    - name: "Average Estimated Cost"
-      expr: AVG(estimated_cost)
-    - name: "Total Latitude"
-      expr: SUM(latitude)
-    - name: "Average Latitude"
-      expr: AVG(latitude)
-    - name: "Total Longitude"
-      expr: SUM(longitude)
-    - name: "Average Longitude"
-      expr: AVG(longitude)
-    - name: "Total Quantity Released"
-      expr: SUM(quantity_released)
-    - name: "Average Quantity Released"
-      expr: AVG(quantity_released)
+      comment: "Total number of environmental incidents. Primary EHS KPI for regulatory compliance and safety culture assessment."
+    - name: "total_estimated_cost"
+      expr: SUM(CAST(estimated_cost AS DOUBLE))
+      comment: "Total estimated cost of environmental incidents including remediation and fines. Tracks financial exposure from environmental risk."
+    - name: "total_fine_amount"
+      expr: SUM(CAST(fine_amount AS DOUBLE))
+      comment: "Total regulatory fines incurred from environmental incidents. Direct financial consequence of non-compliance."
+    - name: "total_quantity_released"
+      expr: SUM(CAST(quantity_released AS DOUBLE))
+      comment: "Total quantity of substance released in environmental incidents. Tracks environmental impact magnitude."
+    - name: "regulatory_reportable_incident_count"
+      expr: COUNT(DISTINCT CASE WHEN regulatory_reportable_flag = TRUE THEN environmental_incident_id END)
+      comment: "Number of incidents requiring regulatory reporting. Tracks legal compliance obligations and reputational risk."
+    - name: "open_incident_count"
+      expr: COUNT(DISTINCT CASE WHEN environmental_incident_status NOT IN ('Closed', 'Resolved') THEN environmental_incident_id END)
+      comment: "Number of open environmental incidents. Tracks outstanding remediation obligations and ongoing risk exposure."
+    - name: "avg_incident_cost"
+      expr: AVG(CAST(estimated_cost AS DOUBLE))
+      comment: "Average cost per environmental incident. Benchmarks incident severity and informs risk provisioning."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`sustainability_environmental_permit`
@@ -720,54 +503,46 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Environmental Permit business metrics"
+  comment: "Monitors environmental permit compliance, expiry risk, and emission/discharge limits to prevent regulatory violations and manage environmental license to operate."
   source: "`vibe_consumer_goods_v1`.`sustainability`.`environmental_permit`"
   dimensions:
-    - name: "Activity Description"
-      expr: activity_description
-    - name: "Compliance Status"
+    - name: "permit_type"
+      expr: permit_type
+      comment: "Type of environmental permit (e.g., air emission, water discharge, waste) for compliance domain tracking."
+    - name: "compliance_status"
       expr: compliance_status
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Effective Date"
-      expr: effective_date
-    - name: "Environmental Permit Status"
+      comment: "Current compliance status of the permit — primary KPI for regulatory risk management."
+    - name: "environmental_permit_status"
       expr: environmental_permit_status
-    - name: "Expiry Date"
-      expr: expiry_date
-    - name: "Inspection Status"
-      expr: inspection_status
-    - name: "Iso 14001 Linkage"
-      expr: iso_14001_linkage
-    - name: "Issue Date"
-      expr: issue_date
-    - name: "Issuing Authority"
+      comment: "Lifecycle status of the permit (e.g., active, expired, under renewal) for portfolio management."
+    - name: "renewal_status"
+      expr: renewal_status
+      comment: "Status of permit renewal process — proactive risk metric to prevent operational disruption."
+    - name: "issuing_authority"
       expr: issuing_authority
-    - name: "Last Inspection Date"
-      expr: last_inspection_date
-    - name: "Last Updated Timestamp"
-      expr: last_updated_timestamp
-    - name: "Limit Unit"
-      expr: limit_unit
-    - name: "Monitoring Frequency"
-      expr: monitoring_frequency
-    - name: "Next Inspection Date"
-      expr: next_inspection_date
-    - name: "Notes"
-      expr: notes
+      comment: "Regulatory authority issuing the permit for jurisdiction-specific compliance tracking."
+    - name: "regulatory_framework"
+      expr: regulatory_framework
+      comment: "Regulatory framework governing the permit for compliance program alignment."
+    - name: "inspection_status"
+      expr: inspection_status
+      comment: "Status of most recent regulatory inspection — indicates regulatory relationship health."
   measures:
-    - name: "Row Count"
+    - name: "total_permits"
       expr: COUNT(1)
-    - name: "Distinct Environmental Permit"
-      expr: COUNT(DISTINCT environmental_permit_id)
-    - name: "Total Discharge Limit"
-      expr: SUM(discharge_limit)
-    - name: "Average Discharge Limit"
-      expr: AVG(discharge_limit)
-    - name: "Total Emission Limit"
-      expr: SUM(emission_limit)
-    - name: "Average Emission Limit"
-      expr: AVG(emission_limit)
+      comment: "Total number of environmental permits — baseline for compliance portfolio management."
+    - name: "non_compliant_permit_count"
+      expr: COUNT(CASE WHEN compliance_status NOT IN ('compliant', 'in compliance') THEN environmental_permit_id END)
+      comment: "Number of permits with non-compliant status — critical risk metric for regulatory and operational management."
+    - name: "avg_emission_limit"
+      expr: AVG(CAST(emission_limit AS DOUBLE))
+      comment: "Average permitted emission limit across permits — benchmarks regulatory headroom for operational planning."
+    - name: "avg_discharge_limit"
+      expr: AVG(CAST(discharge_limit AS DOUBLE))
+      comment: "Average permitted discharge limit — measures regulatory constraints on water management operations."
+    - name: "compliance_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN compliance_status IN ('compliant', 'in compliance') THEN environmental_permit_id END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of permits in compliance — headline regulatory compliance KPI for executive and board reporting."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`sustainability_esg_audit`
@@ -775,54 +550,55 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Esg Audit business metrics"
+  comment: "ESG audit performance KPIs tracking audit scores, findings, and corrective action status across suppliers and facilities. Used by procurement, sustainability, and compliance teams to manage supply chain ESG risk."
   source: "`vibe_consumer_goods_v1`.`sustainability`.`esg_audit`"
   dimensions:
-    - name: "Audit Certification Status"
-      expr: audit_certification_status
-    - name: "Audit Date"
-      expr: audit_date
-    - name: "Audit Findings Summary"
-      expr: audit_findings_summary
-    - name: "Audit Location"
-      expr: audit_location
-    - name: "Audit Method"
-      expr: audit_method
-    - name: "Audit Number"
-      expr: audit_number
-    - name: "Audit Region"
-      expr: audit_region
-    - name: "Audit Report Reference"
-      expr: audit_report_reference
-    - name: "Audit Report Url"
-      expr: audit_report_url
-    - name: "Audit Result"
-      expr: audit_result
-    - name: "Audit Scope"
-      expr: audit_scope
-    - name: "Audit Scope Description"
-      expr: audit_scope_description
-    - name: "Audit Standard"
-      expr: audit_standard
-    - name: "Audit Status"
-      expr: audit_status
-    - name: "Audit Type"
+    - name: "audit_type"
       expr: audit_type
-    - name: "Auditing Body"
-      expr: auditing_body
+      comment: "Type of ESG audit (environmental, social, governance, combined) for pillar-specific risk management."
+    - name: "audit_status"
+      expr: audit_status
+      comment: "Current audit status (planned, in-progress, completed, overdue) for audit program management."
+    - name: "audit_standard"
+      expr: audit_standard
+      comment: "Audit standard applied (ISO 14001, SA8000, SMETA) for methodology and comparability."
+    - name: "compliance_status"
+      expr: compliance_status
+      comment: "Overall compliance outcome of the audit for supplier risk tiering."
+    - name: "corrective_action_status"
+      expr: corrective_action_status
+      comment: "Status of corrective action plans arising from audit findings. Tracks remediation progress."
+    - name: "esg_audit_status"
+      expr: esg_audit_status
+      comment: "Lifecycle status of the ESG audit record for pipeline management."
+    - name: "reporting_year"
+      expr: reporting_year
+      comment: "Reporting year for annual audit program coverage analysis."
+    - name: "audit_method"
+      expr: audit_method
+      comment: "Audit method (on-site, remote, documentary) for resource planning and risk calibration."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Esg Audit"
+    - name: "avg_audit_score"
+      expr: AVG(CAST(audit_score AS DOUBLE))
+      comment: "Average ESG audit score across all audits. Primary KPI for supply chain ESG performance benchmarking."
+    - name: "total_audit_count"
       expr: COUNT(DISTINCT esg_audit_id)
-    - name: "Total Audit Duration Hours"
-      expr: SUM(audit_duration_hours)
-    - name: "Average Audit Duration Hours"
-      expr: AVG(audit_duration_hours)
-    - name: "Total Overall Score"
-      expr: SUM(overall_score)
-    - name: "Average Overall Score"
-      expr: AVG(overall_score)
+      comment: "Total number of ESG audits conducted. Tracks audit program coverage and cadence."
+    - name: "avg_audit_duration_hours"
+      expr: AVG(CAST(audit_duration_hours AS DOUBLE))
+      comment: "Average audit duration in hours. Used for resource planning and audit efficiency benchmarking."
+    - name: "total_audit_cost"
+      expr: SUM(CAST(amount AS DOUBLE))
+      comment: "Total cost associated with ESG audits. Tracks sustainability assurance investment."
+    - name: "high_risk_audit_count"
+      expr: COUNT(DISTINCT CASE WHEN risk_severity IN ('High', 'Critical') THEN esg_audit_id END)
+      comment: "Number of audits with high or critical risk severity findings. Triggers supplier escalation and remediation programs."
+    - name: "carbon_emission_flagged_audit_count"
+      expr: COUNT(DISTINCT CASE WHEN carbon_emission_flag = TRUE THEN esg_audit_id END)
+      comment: "Number of audits flagging carbon emission issues. Identifies suppliers requiring decarbonization support."
+    - name: "waste_management_flagged_audit_count"
+      expr: COUNT(DISTINCT CASE WHEN waste_management_flag = TRUE THEN esg_audit_id END)
+      comment: "Number of audits flagging waste management issues. Drives supplier waste reduction programs."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`sustainability_esg_commitment`
@@ -830,54 +606,55 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Esg Commitment business metrics"
+  comment: "ESG commitment tracking KPIs measuring target-setting, progress, and disclosure status across environmental, social, and governance pillars. Used by the Chief Sustainability Officer and board to govern science-based targets and public commitments."
   source: "`vibe_consumer_goods_v1`.`sustainability`.`esg_commitment`"
   dimensions:
-    - name: "Approval Date"
-      expr: approval_date
-    - name: "Approved By"
-      expr: approved_by
-    - name: "Baseline Year"
-      expr: baseline_year
-    - name: "Commitment Code"
-      expr: commitment_code
-    - name: "Commitment Description"
-      expr: commitment_description
-    - name: "Commitment Name"
-      expr: commitment_name
-    - name: "Commitment Owner"
-      expr: commitment_owner
-    - name: "Commitment Scope"
-      expr: commitment_scope
-    - name: "Commitment Status"
-      expr: commitment_status
-    - name: "Commitment Type"
+    - name: "commitment_type"
       expr: commitment_type
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Disclosure Status"
-      expr: disclosure_status
-    - name: "Effective From"
-      expr: effective_from
-    - name: "Effective Until"
-      expr: effective_until
-    - name: "Esg Commitment Status"
+      comment: "Type of ESG commitment (e.g. net-zero, water neutrality, social equity) for pillar-level portfolio management."
+    - name: "pillar"
+      expr: pillar
+      comment: "ESG pillar (Environmental, Social, Governance) for board-level balanced scorecard reporting."
+    - name: "esg_commitment_status"
       expr: esg_commitment_status
-    - name: "External Reference Code"
-      expr: external_reference_code
+      comment: "Current status of the commitment (on-track, at-risk, achieved, missed) for executive escalation."
+    - name: "is_science_based_target"
+      expr: is_science_based_target
+      comment: "Flag indicating SBTi-aligned commitments, which carry higher credibility with investors and regulators."
+    - name: "reporting_framework"
+      expr: reporting_framework
+      comment: "Framework under which the commitment is reported (GRI, TCFD, CDP, SASB) for disclosure alignment."
+    - name: "target_year"
+      expr: target_year
+      comment: "Year by which the commitment target must be achieved. Used for timeline risk assessment."
+    - name: "scope"
+      expr: scope
+      comment: "Organizational scope of the commitment (global, regional, business unit) for boundary clarity."
+    - name: "public_disclosure_flag"
+      expr: public_disclosure_flag
+      comment: "Whether the commitment is publicly disclosed. Tracks transparency and reputational risk exposure."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Esg Commitment"
+    - name: "total_commitment_count"
       expr: COUNT(DISTINCT esg_commitment_id)
-    - name: "Total Baseline Value"
-      expr: SUM(baseline_value)
-    - name: "Average Baseline Value"
-      expr: AVG(baseline_value)
-    - name: "Total Target Value"
-      expr: SUM(target_value)
-    - name: "Average Target Value"
-      expr: AVG(target_value)
+      comment: "Total number of active ESG commitments. Tracks breadth of the sustainability agenda."
+    - name: "avg_progress_pct"
+      expr: AVG(CAST(progress_pct AS DOUBLE))
+      comment: "Average progress percentage across all commitments. Top-level indicator of ESG program health for board reporting."
+    - name: "total_target_value"
+      expr: SUM(CAST(target_value AS DOUBLE))
+      comment: "Sum of quantitative target values across commitments. Provides aggregate ambition level for investor communications."
+    - name: "total_current_value"
+      expr: SUM(CAST(current_value AS DOUBLE))
+      comment: "Sum of current achieved values across commitments. Compared against target_value to compute aggregate gap."
+    - name: "science_based_target_count"
+      expr: COUNT(DISTINCT CASE WHEN is_science_based_target = TRUE THEN esg_commitment_id END)
+      comment: "Number of SBTi-aligned commitments. Investors and ESG raters specifically track SBT adoption as a quality signal."
+    - name: "publicly_disclosed_commitment_count"
+      expr: COUNT(DISTINCT CASE WHEN public_disclosure_flag = TRUE THEN esg_commitment_id END)
+      comment: "Number of commitments publicly disclosed. Tracks transparency posture and reputational risk management."
+    - name: "avg_baseline_value"
+      expr: AVG(CAST(baseline_value AS DOUBLE))
+      comment: "Average baseline value at commitment inception. Used to contextualize progress relative to starting point."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`sustainability_esg_disclosure`
@@ -885,86 +662,55 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Esg Disclosure business metrics"
+  comment: "ESG disclosure KPIs tracking reported emissions, energy, water, and waste metrics across disclosure frameworks. Used by investor relations, legal, and sustainability teams to manage external reporting quality and completeness."
   source: "`vibe_consumer_goods_v1`.`sustainability`.`esg_disclosure`"
   dimensions:
-    - name: "Approval Date"
-      expr: approval_date
-    - name: "Approved By"
-      expr: approved_by
-    - name: "Assurance Level"
-      expr: assurance_level
-    - name: "Assurance Provider"
-      expr: assurance_provider
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Disclosure Framework"
+    - name: "disclosure_framework"
       expr: disclosure_framework
-    - name: "Disclosure Narrative"
-      expr: disclosure_narrative
-    - name: "Disclosure Period"
-      expr: disclosure_period
-    - name: "Disclosure Reference"
-      expr: disclosure_reference
-    - name: "Disclosure Status"
+      comment: "Reporting framework (GRI, CDP, TCFD, SASB, CSRD) for framework-specific disclosure management."
+    - name: "disclosure_status"
       expr: disclosure_status
-    - name: "Disclosure Topic"
-      expr: disclosure_topic
-    - name: "Disclosure Type"
-      expr: disclosure_type
-    - name: "Document Url"
-      expr: document_url
-    - name: "Esg Disclosure Status"
+      comment: "Status of the disclosure (draft, submitted, published) for disclosure pipeline management."
+    - name: "esg_disclosure_status"
       expr: esg_disclosure_status
-    - name: "External Assurance Flag"
-      expr: external_assurance_flag
-    - name: "Framework"
-      expr: framework
+      comment: "Lifecycle status of the ESG disclosure record for governance and approval tracking."
+    - name: "assurance_level"
+      expr: assurance_level
+      comment: "Level of external assurance (limited, reasonable, none) for disclosure credibility assessment."
+    - name: "reporting_year"
+      expr: reporting_year
+      comment: "Reporting year for annual disclosure comparison and trend analysis."
+    - name: "fsc_certified"
+      expr: fsc_certified
+      comment: "FSC certification status reported in the disclosure for responsible sourcing transparency."
+    - name: "rspo_certified"
+      expr: rspo_certified
+      comment: "RSPO certification status reported in the disclosure for palm oil responsible sourcing."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Esg Disclosure"
+    - name: "total_scope1_emissions"
+      expr: SUM(CAST(carbon_emissions_scope1 AS DOUBLE))
+      comment: "Total Scope 1 direct GHG emissions reported in disclosures. Primary regulatory and investor reporting metric."
+    - name: "total_scope2_emissions"
+      expr: SUM(CAST(carbon_emissions_scope2 AS DOUBLE))
+      comment: "Total Scope 2 indirect GHG emissions from purchased energy. Tracks renewable energy transition impact."
+    - name: "total_scope3_emissions"
+      expr: SUM(CAST(carbon_emissions_scope3 AS DOUBLE))
+      comment: "Total Scope 3 value chain GHG emissions. Largest emissions category for consumer goods companies."
+    - name: "total_carbon_emissions_disclosed"
+      expr: SUM(CAST(total_carbon_emissions AS DOUBLE))
+      comment: "Total carbon emissions across all scopes as disclosed. Headline climate disclosure metric."
+    - name: "avg_renewable_energy_pct_disclosed"
+      expr: AVG(CAST(renewable_energy_percentage AS DOUBLE))
+      comment: "Average renewable energy percentage as reported in disclosures. Tracks RE100 progress in external reporting."
+    - name: "avg_packaging_recyclability_rate"
+      expr: AVG(CAST(packaging_recyclability_rate AS DOUBLE))
+      comment: "Average packaging recyclability rate as disclosed. Tracks packaging sustainability claims in external reporting."
+    - name: "total_energy_consumption_disclosed"
+      expr: SUM(CAST(energy_consumption AS DOUBLE))
+      comment: "Total energy consumption as reported in ESG disclosures. Tracks GRI 302 reporting completeness."
+    - name: "total_disclosure_count"
       expr: COUNT(DISTINCT esg_disclosure_id)
-    - name: "Total Carbon Emissions Scope1"
-      expr: SUM(carbon_emissions_scope1)
-    - name: "Average Carbon Emissions Scope1"
-      expr: AVG(carbon_emissions_scope1)
-    - name: "Total Carbon Emissions Scope2"
-      expr: SUM(carbon_emissions_scope2)
-    - name: "Average Carbon Emissions Scope2"
-      expr: AVG(carbon_emissions_scope2)
-    - name: "Total Carbon Emissions Scope3"
-      expr: SUM(carbon_emissions_scope3)
-    - name: "Average Carbon Emissions Scope3"
-      expr: AVG(carbon_emissions_scope3)
-    - name: "Total Energy Consumption"
-      expr: SUM(energy_consumption)
-    - name: "Average Energy Consumption"
-      expr: AVG(energy_consumption)
-    - name: "Total Metric Value"
-      expr: SUM(metric_value)
-    - name: "Average Metric Value"
-      expr: AVG(metric_value)
-    - name: "Total Packaging Recyclability Rate"
-      expr: SUM(packaging_recyclability_rate)
-    - name: "Average Packaging Recyclability Rate"
-      expr: AVG(packaging_recyclability_rate)
-    - name: "Total Renewable Energy Percentage"
-      expr: SUM(renewable_energy_percentage)
-    - name: "Average Renewable Energy Percentage"
-      expr: AVG(renewable_energy_percentage)
-    - name: "Total Total Carbon Emissions"
-      expr: SUM(total_carbon_emissions)
-    - name: "Average Total Carbon Emissions"
-      expr: AVG(total_carbon_emissions)
-    - name: "Total Waste Generated"
-      expr: SUM(waste_generated)
-    - name: "Average Waste Generated"
-      expr: AVG(waste_generated)
-    - name: "Total Water Consumption"
-      expr: SUM(water_consumption)
-    - name: "Average Water Consumption"
-      expr: AVG(water_consumption)
+      comment: "Total ESG disclosures produced. Tracks reporting program coverage across frameworks and periods."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`sustainability_materiality_assessment`
@@ -972,74 +718,52 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Materiality Assessment business metrics"
+  comment: "ESG materiality assessment KPIs tracking topic scores, stakeholder importance, and business impact ratings. Used by sustainability and investor relations teams to prioritize ESG topics, align with double materiality requirements, and govern disclosure scope."
   source: "`vibe_consumer_goods_v1`.`sustainability`.`materiality_assessment`"
   dimensions:
-    - name: "Approval Date"
-      expr: approval_date
-    - name: "Assessment Code"
-      expr: assessment_code
-    - name: "Assessment Date"
-      expr: assessment_date
-    - name: "Assessment Methodology"
-      expr: assessment_methodology
-    - name: "Assessment Name"
-      expr: assessment_name
-    - name: "Assessment Type"
+    - name: "assessment_type"
       expr: assessment_type
-    - name: "Assessment Year"
+      comment: "Type of materiality assessment (single, double, impact) for CSRD and GRI alignment."
+    - name: "materiality_assessment_status"
+      expr: materiality_assessment_status
+      comment: "Status of the assessment for governance and approval tracking."
+    - name: "topic_category"
+      expr: topic_category
+      comment: "ESG topic category (climate, water, labor, governance) for pillar-level materiality analysis."
+    - name: "is_material_flag"
+      expr: is_material_flag
+      comment: "Flag indicating whether the topic is assessed as material. Core output of the materiality process."
+    - name: "priority_level"
+      expr: priority_level
+      comment: "Priority level of the material topic for resource allocation and disclosure prioritization."
+    - name: "risk_category"
+      expr: risk_category
+      comment: "Risk category associated with the material topic for integrated risk management."
+    - name: "assessment_year"
       expr: assessment_year
-    - name: "Comments"
-      expr: comments
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Data Source"
-      expr: data_source
-    - name: "Disclosure Priority"
-      expr: disclosure_priority
-    - name: "Effective Date"
-      expr: effective_date
-    - name: "Esg Topic"
-      expr: esg_topic
-    - name: "Expiration Date"
-      expr: expiration_date
-    - name: "External Certification"
-      expr: external_certification
-    - name: "Impact Category"
-      expr: impact_category
+      comment: "Year of the materiality assessment for trend analysis and reassessment cadence tracking."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Materiality Assessment"
+    - name: "avg_materiality_score"
+      expr: AVG(CAST(materiality_score AS DOUBLE))
+      comment: "Average materiality score across assessed topics. Tracks overall ESG materiality landscape for disclosure prioritization."
+    - name: "avg_business_impact_score"
+      expr: AVG(CAST(business_impact_score AS DOUBLE))
+      comment: "Average business impact score. Tracks financial materiality of ESG topics for CSRD double materiality compliance."
+    - name: "avg_stakeholder_importance_score"
+      expr: AVG(CAST(stakeholder_importance_score AS DOUBLE))
+      comment: "Average stakeholder importance score. Tracks impact materiality from stakeholder perspective for GRI and CSRD."
+    - name: "material_topic_count"
+      expr: COUNT(DISTINCT CASE WHEN is_material_flag = TRUE THEN materiality_assessment_id END)
+      comment: "Number of topics assessed as material. Tracks scope of ESG disclosure obligations."
+    - name: "total_topic_count"
       expr: COUNT(DISTINCT materiality_assessment_id)
-    - name: "Total Business Impact Score"
-      expr: SUM(business_impact_score)
-    - name: "Average Business Impact Score"
-      expr: AVG(business_impact_score)
-    - name: "Total Data Quality Score"
-      expr: SUM(data_quality_score)
-    - name: "Average Data Quality Score"
-      expr: AVG(data_quality_score)
-    - name: "Total Materiality Score"
-      expr: SUM(materiality_score)
-    - name: "Average Materiality Score"
-      expr: AVG(materiality_score)
-    - name: "Total Stakeholder Concern Score"
-      expr: SUM(stakeholder_concern_score)
-    - name: "Average Stakeholder Concern Score"
-      expr: AVG(stakeholder_concern_score)
-    - name: "Total Stakeholder Engagement Score"
-      expr: SUM(stakeholder_engagement_score)
-    - name: "Average Stakeholder Engagement Score"
-      expr: AVG(stakeholder_engagement_score)
-    - name: "Total Stakeholder Importance Score"
-      expr: SUM(stakeholder_importance_score)
-    - name: "Average Stakeholder Importance Score"
-      expr: AVG(stakeholder_importance_score)
-    - name: "Total Threshold Value"
-      expr: SUM(threshold_value)
-    - name: "Average Threshold Value"
-      expr: AVG(threshold_value)
+      comment: "Total topics assessed. Tracks comprehensiveness of the materiality assessment process."
+    - name: "materiality_rate_pct"
+      expr: ROUND(100.0 * COUNT(DISTINCT CASE WHEN is_material_flag = TRUE THEN materiality_assessment_id END) / NULLIF(COUNT(DISTINCT materiality_assessment_id), 0), 2)
+      comment: "Percentage of assessed topics deemed material. Tracks ESG disclosure scope and materiality threshold calibration."
+    - name: "avg_data_quality_score"
+      expr: AVG(CAST(data_quality_score AS DOUBLE))
+      comment: "Average data quality score across materiality assessments. Tracks reliability of the materiality process inputs."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`sustainability_packaging_profile`
@@ -1047,94 +771,58 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Packaging Profile business metrics"
+  comment: "Packaging sustainability KPIs tracking recyclability, recycled content, PCR usage, and carbon footprint across the SKU portfolio. Used by product development and sustainability teams to meet EPR obligations and packaging reduction targets."
   source: "`vibe_consumer_goods_v1`.`sustainability`.`packaging_profile`"
   dimensions:
-    - name: "Additional Certification"
-      expr: additional_certification
-    - name: "Component Type"
-      expr: component_type
-    - name: "Compostable"
-      expr: compostable
-    - name: "Compostable Flag"
+    - name: "packaging_material_type"
+      expr: packaging_material_type
+      comment: "Primary packaging material type (plastic, glass, paper, aluminum) for material-specific sustainability targeting."
+    - name: "packaging_profile_status"
+      expr: packaging_profile_status
+      comment: "Status of the packaging profile record for active portfolio filtering."
+    - name: "recyclable_flag"
+      expr: recyclable_flag
+      comment: "Whether the packaging is recyclable. Core metric for EPR compliance and consumer communication."
+    - name: "compostable_flag"
       expr: compostable_flag
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Design Version"
-      expr: design_version
-    - name: "Effective Date"
-      expr: effective_date
-    - name: "Effective End Date"
-      expr: effective_end_date
-    - name: "Effective Start Date"
-      expr: effective_start_date
-    - name: "End Of Life Disposal Method"
-      expr: end_of_life_disposal_method
-    - name: "Eu Packaging Waste Compliance Status"
-      expr: eu_packaging_waste_compliance_status
-    - name: "Fsc Certified"
+      comment: "Whether the packaging is compostable. Tracks bio-based and circular packaging adoption."
+    - name: "reusable_flag"
+      expr: reusable_flag
+      comment: "Whether the packaging is reusable. Tracks highest-value circular economy packaging formats."
+    - name: "epr_compliance_flag"
+      expr: epr_compliance_flag
+      comment: "Extended Producer Responsibility compliance status. Regulatory compliance KPI with direct financial penalty risk."
+    - name: "fsc_certified"
       expr: fsc_certified
-    - name: "Fsc Certified Flag"
-      expr: fsc_certified_flag
-    - name: "Gtin"
-      expr: gtin
-    - name: "How2recycle Label"
-      expr: how2recycle_label
-    - name: "Is Compostable"
-      expr: is_compostable
+      comment: "FSC certification status for paper/fiber packaging. Tracks responsible sourcing compliance."
+    - name: "reporting_year"
+      expr: reporting_year
+      comment: "Reporting year for annual packaging sustainability disclosure."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Packaging Profile"
-      expr: COUNT(DISTINCT packaging_profile_id)
-    - name: "Total Bio Based Content Percentage"
-      expr: SUM(bio_based_content_percentage)
-    - name: "Average Bio Based Content Percentage"
-      expr: AVG(bio_based_content_percentage)
-    - name: "Total Carbon Footprint Kg Co2e"
-      expr: SUM(carbon_footprint_kg_co2e)
-    - name: "Average Carbon Footprint Kg Co2e"
-      expr: AVG(carbon_footprint_kg_co2e)
-    - name: "Total Energy Usage Kwh"
-      expr: SUM(energy_usage_kwh)
-    - name: "Average Energy Usage Kwh"
-      expr: AVG(energy_usage_kwh)
-    - name: "Total Lightweighting Reduction Percent"
-      expr: SUM(lightweighting_reduction_percent)
-    - name: "Average Lightweighting Reduction Percent"
-      expr: AVG(lightweighting_reduction_percent)
-    - name: "Total Material Composition Aluminum Percent"
-      expr: SUM(material_composition_aluminum_percent)
-    - name: "Average Material Composition Aluminum Percent"
-      expr: AVG(material_composition_aluminum_percent)
-    - name: "Total Material Composition Glass Percent"
-      expr: SUM(material_composition_glass_percent)
-    - name: "Average Material Composition Glass Percent"
-      expr: AVG(material_composition_glass_percent)
-    - name: "Total Material Composition Paper Percent"
-      expr: SUM(material_composition_paper_percent)
-    - name: "Average Material Composition Paper Percent"
-      expr: AVG(material_composition_paper_percent)
-    - name: "Total Material Composition Pcr Percent"
-      expr: SUM(material_composition_pcr_percent)
-    - name: "Average Material Composition Pcr Percent"
-      expr: AVG(material_composition_pcr_percent)
-    - name: "Total Material Composition Virgin Percent"
-      expr: SUM(material_composition_virgin_percent)
-    - name: "Average Material Composition Virgin Percent"
-      expr: AVG(material_composition_virgin_percent)
-    - name: "Total Packaging Height Cm"
-      expr: SUM(packaging_height_cm)
-    - name: "Average Packaging Height Cm"
-      expr: AVG(packaging_height_cm)
-    - name: "Total Packaging Length Cm"
-      expr: SUM(packaging_length_cm)
-    - name: "Average Packaging Length Cm"
-      expr: AVG(packaging_length_cm)
-    - name: "Total Packaging Weight G"
-      expr: SUM(packaging_weight_g)
-    - name: "Average Packaging Weight G"
-      expr: AVG(packaging_weight_g)
+    - name: "avg_recycled_content_pct"
+      expr: AVG(CAST(recycled_content_pct AS DOUBLE))
+      comment: "Average recycled content percentage across packaging profiles. Tracks progress toward recycled content targets (e.g. 30% PCR by 2025)."
+    - name: "avg_pcr_content_pct"
+      expr: AVG(CAST(pcr_content_pct AS DOUBLE))
+      comment: "Average post-consumer recycled (PCR) content percentage. PCR is the highest-value recycled content type for circular economy claims."
+    - name: "avg_carbon_footprint_kg_co2e"
+      expr: AVG(CAST(carbon_footprint_kg_co2e AS DOUBLE))
+      comment: "Average packaging carbon footprint in kg CO2e per SKU. Tracks packaging contribution to product-level LCA."
+    - name: "avg_sustainability_score"
+      expr: AVG(CAST(sustainability_score AS DOUBLE))
+      comment: "Average composite sustainability score across packaging profiles. Used for portfolio-level packaging sustainability benchmarking."
+    - name: "recyclable_sku_count"
+      expr: COUNT(DISTINCT CASE WHEN recyclable_flag = TRUE THEN packaging_profile_id END)
+      comment: "Number of SKUs with recyclable packaging. Tracks progress toward 100% recyclable packaging commitments."
+    - name: "epr_compliant_sku_count"
+      expr: COUNT(DISTINCT CASE WHEN epr_compliance_flag = TRUE THEN packaging_profile_id END)
+      comment: "Number of SKUs with EPR-compliant packaging. Tracks regulatory compliance exposure and fee liability."
+    - name: "recyclability_rate_pct"
+      expr: ROUND(100.0 * COUNT(DISTINCT CASE WHEN recyclable_flag = TRUE THEN packaging_profile_id END) / NULLIF(COUNT(DISTINCT packaging_profile_id), 0), 2)
+      comment: "Percentage of packaging profiles that are recyclable. Headline packaging sustainability KPI for investor and consumer reporting."
+    - name: "avg_plastic_weight_grams"
+      expr: AVG(CAST(plastic_weight_grams AS DOUBLE))
+      comment: "Average plastic weight per packaging profile. Tracks plastic reduction progress and lightweighting initiatives."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`sustainability_product_lca`
@@ -1142,70 +830,52 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Product Lca business metrics"
+  comment: "Product lifecycle assessment KPIs tracking carbon footprint, water footprint, and energy footprint per SKU. Used by product development and sustainability teams to identify hotspots, prioritize reformulation, and support eco-label claims."
   source: "`vibe_consumer_goods_v1`.`sustainability`.`product_lca`"
   dimensions:
-    - name: "Assessment Date"
-      expr: assessment_date
-    - name: "Certification Fsc"
-      expr: certification_fsc
-    - name: "Certification Rspo"
-      expr: certification_rspo
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Data Quality Status"
-      expr: data_quality_status
-    - name: "Data Source System"
-      expr: data_source_system
-    - name: "Functional Unit"
-      expr: functional_unit
-    - name: "Functional Unit Uom"
-      expr: functional_unit_uom
-    - name: "Hotspot Stages"
-      expr: hotspot_stages
-    - name: "Intended Use"
-      expr: intended_use
-    - name: "Iso 14040 Compliance Flag"
-      expr: iso_14040_compliance_flag
-    - name: "Last Updated Timestamp"
-      expr: last_updated_timestamp
-    - name: "Lca Methodology"
+    - name: "lca_methodology"
       expr: lca_methodology
-    - name: "Lca Practitioner"
-      expr: lca_practitioner
-    - name: "Lca Study Name"
-      expr: lca_study_name
-    - name: "Lca Study Type"
+      comment: "LCA methodology applied (cradle-to-gate, cradle-to-grave, cradle-to-cradle) for boundary comparability."
+    - name: "product_lca_status"
+      expr: product_lca_status
+      comment: "Status of the LCA study (draft, peer-reviewed, published) for data quality filtering."
+    - name: "iso_14040_compliance_flag"
+      expr: iso_14040_compliance_flag
+      comment: "ISO 14040/14044 compliance flag. Required for credible third-party verified LCA claims."
+    - name: "third_party_verified"
+      expr: third_party_verified
+      comment: "Whether the LCA has been independently verified. Verified LCAs carry higher credibility for eco-labels and investor disclosure."
+    - name: "lca_study_type"
       expr: lca_study_type
+      comment: "Type of LCA study (comparative, attributional, consequential) for methodology segmentation."
+    - name: "product_category"
+      expr: product_category
+      comment: "Product category for portfolio-level LCA benchmarking and hotspot identification."
+    - name: "verification_status"
+      expr: verification_status
+      comment: "Verification status of the LCA for assurance quality filtering."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Product Lca"
+    - name: "avg_carbon_footprint_kg_co2e"
+      expr: AVG(CAST(carbon_footprint_kg_co2e AS DOUBLE))
+      comment: "Average product carbon footprint in kg CO2e per functional unit. Primary KPI for product-level decarbonization targeting."
+    - name: "avg_water_footprint_liters"
+      expr: AVG(CAST(water_footprint_liters AS DOUBLE))
+      comment: "Average product water footprint in liters per functional unit. Tracks water stewardship at product level."
+    - name: "avg_energy_footprint_mj"
+      expr: AVG(CAST(energy_footprint_mj AS DOUBLE))
+      comment: "Average product energy footprint in MJ per functional unit. Identifies energy-intensive products for reformulation."
+    - name: "total_carbon_footprint_kg"
+      expr: SUM(CAST(total_carbon_footprint_kg AS DOUBLE))
+      comment: "Total carbon footprint across all LCA-assessed products. Portfolio-level climate impact metric."
+    - name: "verified_lca_count"
+      expr: COUNT(DISTINCT CASE WHEN third_party_verified = TRUE THEN product_lca_id END)
+      comment: "Number of third-party verified LCAs. Tracks credibility of eco-label and sustainability claims portfolio."
+    - name: "total_lca_count"
       expr: COUNT(DISTINCT product_lca_id)
-    - name: "Total Acidification Potential Kg So2e"
-      expr: SUM(acidification_potential_kg_so2e)
-    - name: "Average Acidification Potential Kg So2e"
-      expr: AVG(acidification_potential_kg_so2e)
-    - name: "Total Carbon Footprint Kg Co2e"
-      expr: SUM(carbon_footprint_kg_co2e)
-    - name: "Average Carbon Footprint Kg Co2e"
-      expr: AVG(carbon_footprint_kg_co2e)
-    - name: "Total Energy Consumption Mj"
-      expr: SUM(energy_consumption_mj)
-    - name: "Average Energy Consumption Mj"
-      expr: AVG(energy_consumption_mj)
-    - name: "Total Eutrophication Potential Kg Po4e"
-      expr: SUM(eutrophication_potential_kg_po4e)
-    - name: "Average Eutrophication Potential Kg Po4e"
-      expr: AVG(eutrophication_potential_kg_po4e)
-    - name: "Total Functional Unit Quantity"
-      expr: SUM(functional_unit_quantity)
-    - name: "Average Functional Unit Quantity"
-      expr: AVG(functional_unit_quantity)
-    - name: "Total Water Footprint Liters"
-      expr: SUM(water_footprint_liters)
-    - name: "Average Water Footprint Liters"
-      expr: AVG(water_footprint_liters)
+      comment: "Total number of LCA studies. Tracks coverage of the product portfolio with lifecycle assessments."
+    - name: "lca_verification_rate_pct"
+      expr: ROUND(100.0 * COUNT(DISTINCT CASE WHEN third_party_verified = TRUE THEN product_lca_id END) / NULLIF(COUNT(DISTINCT product_lca_id), 0), 2)
+      comment: "Percentage of LCAs that are third-party verified. Tracks credibility and assurance quality of the LCA portfolio."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`sustainability_social_impact_program`
@@ -1213,70 +883,49 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Social Impact Program business metrics"
+  comment: "Social impact program KPIs tracking beneficiary reach, investment, and outcome metrics. Used by sustainability and corporate affairs teams to manage social license to operate, UN SDG alignment, and ESG social pillar performance."
   source: "`vibe_consumer_goods_v1`.`sustainability`.`social_impact_program`"
   dimensions:
-    - name: "Approval Date"
-      expr: approval_date
-    - name: "Approved By"
-      expr: approved_by
-    - name: "Beneficiaries Count"
-      expr: beneficiaries_count
-    - name: "Beneficiary Count"
-      expr: beneficiary_count
-    - name: "Beneficiary Group"
-      expr: beneficiary_group
-    - name: "Budget Currency Code"
-      expr: budget_currency_code
-    - name: "Compliance Flag"
-      expr: compliance_flag
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Currency Code"
-      expr: currency_code
-    - name: "Data Quality Status"
-      expr: data_quality_status
-    - name: "End Date"
-      expr: end_date
-    - name: "External Reference Code"
-      expr: external_reference_code
-    - name: "Geographic Focus"
+    - name: "social_impact_program_type"
+      expr: social_impact_program_type
+      comment: "Type of social impact program (community development, education, health, livelihoods) for SDG alignment."
+    - name: "focus_area"
+      expr: focus_area
+      comment: "Focus area of the program for thematic portfolio management and SDG mapping."
+    - name: "social_impact_program_status"
+      expr: social_impact_program_status
+      comment: "Current program status for pipeline and resource management."
+    - name: "geographic_focus"
       expr: geographic_focus
-    - name: "Geographic Location"
-      expr: geographic_location
-    - name: "Impact Metric Name"
-      expr: impact_metric_name
-    - name: "Investment Currency Code"
-      expr: investment_currency_code
+      comment: "Geographic focus of the program for regional social investment tracking."
+    - name: "un_sdg_alignment"
+      expr: un_sdg_alignment
+      comment: "UN Sustainable Development Goal alignment for ESG reporting and investor communication."
+    - name: "is_public"
+      expr: is_public
+      comment: "Whether the program is publicly disclosed. Tracks transparency and reputational value."
+    - name: "reporting_year"
+      expr: reporting_year
+      comment: "Reporting year for annual social impact disclosure."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Social Impact Program"
+    - name: "total_beneficiaries_reached"
+      expr: SUM(CAST(beneficiaries_reached AS DOUBLE))
+      comment: "Total beneficiaries reached across social impact programs. Primary social impact KPI for ESG reporting and investor communications."
+    - name: "total_investment_amount"
+      expr: SUM(CAST(investment_amount AS DOUBLE))
+      comment: "Total investment in social impact programs. Tracks financial commitment to social license and community development."
+    - name: "total_spend_amount"
+      expr: SUM(CAST(spend_amount AS DOUBLE))
+      comment: "Total actual spend on social impact programs. Tracks execution against social investment commitments."
+    - name: "avg_outcome_metric_value"
+      expr: AVG(CAST(outcome_metric_value AS DOUBLE))
+      comment: "Average outcome metric value across programs. Tracks social impact effectiveness and program ROI."
+    - name: "active_program_count"
       expr: COUNT(DISTINCT social_impact_program_id)
-    - name: "Total Beneficiaries Reached"
-      expr: SUM(beneficiaries_reached)
-    - name: "Average Beneficiaries Reached"
-      expr: AVG(beneficiaries_reached)
-    - name: "Total Budget Amount"
-      expr: SUM(budget_amount)
-    - name: "Average Budget Amount"
-      expr: AVG(budget_amount)
-    - name: "Total Impact Metric Value"
-      expr: SUM(impact_metric_value)
-    - name: "Average Impact Metric Value"
-      expr: AVG(impact_metric_value)
-    - name: "Total Investment Amount"
-      expr: SUM(investment_amount)
-    - name: "Average Investment Amount"
-      expr: AVG(investment_amount)
-    - name: "Total Outcome Metric Value"
-      expr: SUM(outcome_metric_value)
-    - name: "Average Outcome Metric Value"
-      expr: AVG(outcome_metric_value)
-    - name: "Total Program Budget"
-      expr: SUM(program_budget)
-    - name: "Average Program Budget"
-      expr: AVG(program_budget)
+      comment: "Total number of social impact programs. Tracks breadth of social investment portfolio."
+    - name: "cost_per_beneficiary"
+      expr: ROUND(SUM(CAST(spend_amount AS DOUBLE)) / NULLIF(SUM(CAST(beneficiaries_reached AS DOUBLE)), 0), 2)
+      comment: "Average cost per beneficiary reached. Tracks social investment efficiency and program cost-effectiveness."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`sustainability_sourcing_certification`
@@ -1284,50 +933,49 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Sourcing Certification business metrics"
+  comment: "Responsible sourcing certification KPIs tracking certified volume, certification coverage, and compliance status across commodities and suppliers. Used by procurement and sustainability teams to manage deforestation-free and ethical sourcing commitments."
   source: "`vibe_consumer_goods_v1`.`sustainability`.`sourcing_certification`"
   dimensions:
-    - name: "Audit Date"
-      expr: audit_date
-    - name: "Audit Report Reference"
-      expr: audit_report_reference
-    - name: "Audit Status"
-      expr: audit_status
-    - name: "Certificate Document Url"
-      expr: certificate_document_url
-    - name: "Certificate Number"
-      expr: certificate_number
-    - name: "Certification Body"
-      expr: certification_body
-    - name: "Certification Scope"
-      expr: certification_scope
-    - name: "Certification Status"
-      expr: certification_status
-    - name: "Certification Type"
+    - name: "certification_type"
       expr: certification_type
-    - name: "Certification Url"
-      expr: certification_url
-    - name: "Compliance Notes"
-      expr: compliance_notes
-    - name: "Compliance Status"
-      expr: compliance_status
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Data Source System"
-      expr: data_source_system
-    - name: "Effective Date"
-      expr: effective_date
-    - name: "Effective From"
-      expr: effective_from
+      comment: "Type of sourcing certification (FSC, RSPO, Rainforest Alliance, Fairtrade) for standard-specific compliance tracking."
+    - name: "certification_status"
+      expr: certification_status
+      comment: "Current certification status (active, expired, suspended) for compliance risk management."
+    - name: "commodity"
+      expr: commodity
+      comment: "Commodity covered by the certification (palm oil, soy, timber, cocoa) for commodity-specific sourcing risk."
+    - name: "sourcing_certification_status"
+      expr: sourcing_certification_status
+      comment: "Overall status of the sourcing certification record for portfolio management."
+    - name: "chain_of_custody_model"
+      expr: chain_of_custody_model
+      comment: "Chain of custody model (mass balance, segregated, book-and-claim) for traceability quality assessment."
+    - name: "renewal_required"
+      expr: renewal_required
+      comment: "Flag indicating upcoming renewal requirement. Tracks certification maintenance obligations."
+    - name: "geographic_region"
+      expr: geographic_region
+      comment: "Geographic region of the certified sourcing for regional risk and coverage analysis."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Sourcing Certification"
+    - name: "total_annual_certified_volume"
+      expr: SUM(CAST(annual_certified_volume AS DOUBLE))
+      comment: "Total certified volume sourced annually. Primary KPI for responsible sourcing commitment attainment."
+    - name: "active_certification_count"
+      expr: COUNT(DISTINCT CASE WHEN certification_status = 'Active' THEN sourcing_certification_id END)
+      comment: "Number of active sourcing certifications. Tracks certification portfolio coverage and compliance posture."
+    - name: "total_certification_count"
       expr: COUNT(DISTINCT sourcing_certification_id)
-    - name: "Total Annual Certified Volume"
-      expr: SUM(annual_certified_volume)
-    - name: "Average Annual Certified Volume"
-      expr: AVG(annual_certified_volume)
+      comment: "Total sourcing certifications in the portfolio. Tracks breadth of responsible sourcing program."
+    - name: "certification_active_rate_pct"
+      expr: ROUND(100.0 * COUNT(DISTINCT CASE WHEN certification_status = 'Active' THEN sourcing_certification_id END) / NULLIF(COUNT(DISTINCT sourcing_certification_id), 0), 2)
+      comment: "Percentage of certifications that are currently active. Tracks compliance maintenance effectiveness."
+    - name: "avg_certified_volume"
+      expr: AVG(CAST(annual_certified_volume AS DOUBLE))
+      comment: "Average certified volume per certification record. Benchmarks sourcing scale per certification."
+    - name: "renewal_due_count"
+      expr: COUNT(DISTINCT CASE WHEN renewal_required = TRUE THEN sourcing_certification_id END)
+      comment: "Number of certifications requiring renewal. Tracks compliance maintenance workload and risk of lapse."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`sustainability_supplier_esg_eval`
@@ -1335,90 +983,58 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Supplier Esg Eval business metrics"
+  comment: "Supplier ESG evaluation KPIs tracking environmental, social, and governance scores across the supply base. Used by procurement and sustainability teams to tier suppliers, manage ESG risk, and drive responsible sourcing."
   source: "`vibe_consumer_goods_v1`.`sustainability`.`supplier_esg_eval`"
   dimensions:
-    - name: "Assessment Date"
-      expr: assessment_date
-    - name: "Assessment Reference"
-      expr: assessment_reference
-    - name: "Assessment Scope"
-      expr: assessment_scope
-    - name: "Assessment Type"
+    - name: "assessment_type"
       expr: assessment_type
-    - name: "Assessment Version"
-      expr: assessment_version
-    - name: "Carbon Disclosure Flag"
-      expr: carbon_disclosure_flag
-    - name: "Comments"
-      expr: comments
-    - name: "Compliance Flags"
-      expr: compliance_flags
-    - name: "Conflict Minerals Policy Flag"
-      expr: conflict_minerals_policy_flag
-    - name: "Corrective Action Due Date"
-      expr: corrective_action_due_date
-    - name: "Corrective Action Plan"
-      expr: corrective_action_plan
-    - name: "Corrective Action Required"
+      comment: "Type of ESG assessment (self-assessment, third-party, desk review) for methodology segmentation."
+    - name: "risk_level"
+      expr: risk_level
+      comment: "Overall supplier ESG risk level (low, medium, high, critical) for procurement risk tiering."
+    - name: "overall_score_category"
+      expr: overall_score_category
+      comment: "Categorical rating of the overall ESG score for executive supplier scorecards."
+    - name: "supplier_esg_eval_status"
+      expr: supplier_esg_eval_status
+      comment: "Status of the evaluation record for pipeline and coverage management."
+    - name: "evaluation_framework"
+      expr: evaluation_framework
+      comment: "Framework used for evaluation (EcoVadis, CDP, proprietary) for methodology comparability."
+    - name: "corrective_action_required"
       expr: corrective_action_required
-    - name: "Corrective Action Required Flag"
-      expr: corrective_action_required_flag
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Critical Findings Count"
-      expr: critical_findings_count
-    - name: "Data Source System"
-      expr: data_source_system
+      comment: "Flag indicating whether corrective action is required. Drives supplier development program prioritization."
+    - name: "iso_14001_compliance"
+      expr: iso_14001_compliance
+      comment: "ISO 14001 environmental management certification status for supplier qualification."
+    - name: "scope_3_included"
+      expr: scope_3_included
+      comment: "Flag indicating whether Scope 3 emissions are included in the evaluation. Tracks supply chain emissions coverage."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Supplier Esg Eval"
+    - name: "avg_overall_score"
+      expr: AVG(CAST(overall_score AS DOUBLE))
+      comment: "Average overall ESG score across evaluated suppliers. Primary KPI for supply chain ESG performance management."
+    - name: "avg_environmental_score"
+      expr: AVG(CAST(environmental_score AS DOUBLE))
+      comment: "Average environmental pillar score. Tracks supplier environmental performance for procurement decisions."
+    - name: "avg_social_score"
+      expr: AVG(CAST(social_score AS DOUBLE))
+      comment: "Average social pillar score. Tracks labor practices and human rights performance across the supply base."
+    - name: "avg_governance_score"
+      expr: AVG(CAST(governance_score AS DOUBLE))
+      comment: "Average governance pillar score. Tracks anti-corruption, transparency, and ethics performance."
+    - name: "avg_carbon_emission_score"
+      expr: AVG(CAST(carbon_emission_score AS DOUBLE))
+      comment: "Average carbon emission score across supplier evaluations. Tracks Scope 3 supply chain decarbonization progress."
+    - name: "high_risk_supplier_count"
+      expr: COUNT(DISTINCT CASE WHEN risk_level IN ('High', 'Critical') THEN supplier_esg_eval_id END)
+      comment: "Number of suppliers rated high or critical ESG risk. Drives procurement escalation and supplier development investment."
+    - name: "corrective_action_required_count"
+      expr: COUNT(DISTINCT CASE WHEN corrective_action_required = TRUE THEN supplier_esg_eval_id END)
+      comment: "Number of supplier evaluations requiring corrective action. Tracks remediation pipeline and supplier improvement obligations."
+    - name: "total_evaluation_count"
       expr: COUNT(DISTINCT supplier_esg_eval_id)
-    - name: "Total Carbon Emission Score"
-      expr: SUM(carbon_emission_score)
-    - name: "Average Carbon Emission Score"
-      expr: AVG(carbon_emission_score)
-    - name: "Total Energy Consumption Score"
-      expr: SUM(energy_consumption_score)
-    - name: "Average Energy Consumption Score"
-      expr: AVG(energy_consumption_score)
-    - name: "Total Environmental Score"
-      expr: SUM(environmental_score)
-    - name: "Average Environmental Score"
-      expr: AVG(environmental_score)
-    - name: "Total Ethics Score"
-      expr: SUM(ethics_score)
-    - name: "Average Ethics Score"
-      expr: AVG(ethics_score)
-    - name: "Total Evaluation Score"
-      expr: SUM(evaluation_score)
-    - name: "Average Evaluation Score"
-      expr: AVG(evaluation_score)
-    - name: "Total Governance Score"
-      expr: SUM(governance_score)
-    - name: "Average Governance Score"
-      expr: AVG(governance_score)
-    - name: "Total Overall Esg Score"
-      expr: SUM(overall_esg_score)
-    - name: "Average Overall Esg Score"
-      expr: AVG(overall_esg_score)
-    - name: "Total Overall Score"
-      expr: SUM(overall_score)
-    - name: "Average Overall Score"
-      expr: AVG(overall_score)
-    - name: "Total Social Score"
-      expr: SUM(social_score)
-    - name: "Average Social Score"
-      expr: AVG(social_score)
-    - name: "Total Waste Management Score"
-      expr: SUM(waste_management_score)
-    - name: "Average Waste Management Score"
-      expr: AVG(waste_management_score)
-    - name: "Total Water Consumption Score"
-      expr: SUM(water_consumption_score)
-    - name: "Average Water Consumption Score"
-      expr: AVG(water_consumption_score)
+      comment: "Total supplier ESG evaluations conducted. Tracks supply base coverage and assessment program completeness."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`sustainability_supply_chain_activity`
@@ -1426,94 +1042,52 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Supply Chain Activity business metrics"
+  comment: "Supply chain sustainability activity KPIs tracking carbon footprint, energy consumption, water use, and waste generation across supply chain nodes. Used by sustainability and supply chain teams to manage Scope 3 emissions and supply chain ESG performance."
   source: "`vibe_consumer_goods_v1`.`sustainability`.`supply_chain_activity`"
   dimensions:
-    - name: "Activity Category"
-      expr: activity_category
-    - name: "Activity Code"
-      expr: activity_code
-    - name: "Activity Date"
-      expr: activity_date
-    - name: "Activity Description"
-      expr: activity_description
-    - name: "Activity Name"
-      expr: activity_name
-    - name: "Activity Subcategory"
-      expr: activity_subcategory
-    - name: "Activity Type"
+    - name: "activity_type"
       expr: activity_type
-    - name: "Certification Number"
-      expr: certification_number
-    - name: "Certification Type"
-      expr: certification_type
-    - name: "Compliance Status"
-      expr: compliance_status
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Data Source"
-      expr: data_source
-    - name: "Effective From"
-      expr: effective_from
-    - name: "Effective Until"
-      expr: effective_until
-    - name: "Last Reported Timestamp"
-      expr: last_reported_timestamp
-    - name: "Last Updated Timestamp"
-      expr: last_updated_timestamp
+      comment: "Type of supply chain activity (manufacturing, transport, warehousing) for Scope 3 category mapping."
+    - name: "activity_category"
+      expr: activity_category
+      comment: "Category of supply chain activity for GHG Protocol Scope 3 category alignment."
+    - name: "supply_chain_activity_status"
+      expr: supply_chain_activity_status
+      comment: "Status of the activity record for data quality filtering."
+    - name: "emission_relevant_flag"
+      expr: emission_relevant_flag
+      comment: "Flag indicating emission-relevant activities for Scope 3 inventory completeness tracking."
+    - name: "reporting_period"
+      expr: reporting_period
+      comment: "Reporting period for time-series supply chain sustainability analysis."
+    - name: "reporting_frequency"
+      expr: reporting_frequency
+      comment: "Frequency of activity reporting for data coverage and cadence management."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Supply Chain Activity"
-      expr: COUNT(DISTINCT supply_chain_activity_id)
-    - name: "Total Actual Amount"
-      expr: SUM(actual_amount)
-    - name: "Average Actual Amount"
-      expr: AVG(actual_amount)
-    - name: "Total Baseline Amount"
-      expr: SUM(baseline_amount)
-    - name: "Average Baseline Amount"
-      expr: AVG(baseline_amount)
-    - name: "Total Carbon Emissions Kg Co2e"
-      expr: SUM(carbon_emissions_kg_co2e)
-    - name: "Average Carbon Emissions Kg Co2e"
-      expr: AVG(carbon_emissions_kg_co2e)
-    - name: "Total Carbon Footprint Kg"
-      expr: SUM(carbon_footprint_kg)
-    - name: "Average Carbon Footprint Kg"
-      expr: AVG(carbon_footprint_kg)
-    - name: "Total Distance Km"
-      expr: SUM(distance_km)
-    - name: "Average Distance Km"
-      expr: AVG(distance_km)
-    - name: "Total Emission Factor"
-      expr: SUM(emission_factor)
-    - name: "Average Emission Factor"
-      expr: AVG(emission_factor)
-    - name: "Total Energy Consumption Kwh"
-      expr: SUM(energy_consumption_kwh)
-    - name: "Average Energy Consumption Kwh"
-      expr: AVG(energy_consumption_kwh)
-    - name: "Total Quantity"
-      expr: SUM(quantity)
-    - name: "Average Quantity"
-      expr: AVG(quantity)
-    - name: "Total Recycling Rate Pct"
-      expr: SUM(recycling_rate_pct)
-    - name: "Average Recycling Rate Pct"
-      expr: AVG(recycling_rate_pct)
-    - name: "Total Target Amount"
-      expr: SUM(target_amount)
-    - name: "Average Target Amount"
-      expr: AVG(target_amount)
-    - name: "Total Waste Generated Kg"
-      expr: SUM(waste_generated_kg)
-    - name: "Average Waste Generated Kg"
-      expr: AVG(waste_generated_kg)
-    - name: "Total Water Consumption Liters"
-      expr: SUM(water_consumption_liters)
-    - name: "Average Water Consumption Liters"
-      expr: AVG(water_consumption_liters)
+    - name: "total_carbon_footprint_kg"
+      expr: SUM(CAST(carbon_footprint_kg AS DOUBLE))
+      comment: "Total carbon footprint in kg across supply chain activities. Primary Scope 3 emissions tracking KPI."
+    - name: "total_energy_consumption_kwh"
+      expr: SUM(CAST(energy_consumption_kwh AS DOUBLE))
+      comment: "Total energy consumed across supply chain activities in kWh. Tracks supply chain energy intensity."
+    - name: "total_water_usage_liters"
+      expr: SUM(CAST(water_usage_liters AS DOUBLE))
+      comment: "Total water used across supply chain activities. Tracks supply chain water footprint."
+    - name: "total_waste_generated_kg"
+      expr: SUM(CAST(waste_generated_kg AS DOUBLE))
+      comment: "Total waste generated across supply chain activities in kg. Tracks supply chain waste performance."
+    - name: "avg_recycling_rate_pct"
+      expr: AVG(CAST(recycling_rate_pct AS DOUBLE))
+      comment: "Average recycling rate across supply chain activities. Tracks circular economy performance in the supply chain."
+    - name: "total_actual_amount"
+      expr: SUM(CAST(actual_amount AS DOUBLE))
+      comment: "Total actual sustainability metric amount across supply chain activities. Used for target vs. actual gap analysis."
+    - name: "total_target_amount"
+      expr: SUM(CAST(target_amount AS DOUBLE))
+      comment: "Total target sustainability metric amount across supply chain activities. Denominator for supply chain target attainment."
+    - name: "target_attainment_rate_pct"
+      expr: ROUND(100.0 * SUM(CAST(actual_amount AS DOUBLE)) / NULLIF(SUM(CAST(target_amount AS DOUBLE)), 0), 2)
+      comment: "Percentage of supply chain sustainability targets achieved. Tracks supply chain ESG program effectiveness."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`sustainability_waste_generation`
@@ -1521,78 +1095,58 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Waste Generation business metrics"
+  comment: "Waste generation and diversion KPIs tracking total waste output, landfill diversion rates, and hazardous waste volumes. Used by operations and sustainability teams to drive zero-waste-to-landfill programs and regulatory compliance."
   source: "`vibe_consumer_goods_v1`.`sustainability`.`waste_generation`"
   dimensions:
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Disposal Cost Currency Code"
-      expr: disposal_cost_currency_code
-    - name: "Disposal Method"
+    - name: "waste_type"
+      expr: waste_type
+      comment: "Type of waste generated (e.g. plastic, organic, hazardous) for material-specific reduction targeting."
+    - name: "waste_stream_type"
+      expr: waste_stream_type
+      comment: "Waste stream classification (solid, liquid, hazardous) for regulatory reporting segmentation."
+    - name: "disposal_method"
       expr: disposal_method
-    - name: "Epa Reportable Flag"
-      expr: epa_reportable_flag
-    - name: "Hazardous Flag"
+      comment: "Method of waste disposal (landfill, incineration, recycling, composting) for circular economy tracking."
+    - name: "hazardous_flag"
       expr: hazardous_flag
-    - name: "Hazardous Waste Permit Number"
-      expr: hazardous_waste_permit_number
-    - name: "Is Recycled"
-      expr: is_recycled
-    - name: "Last Updated Timestamp"
-      expr: last_updated_timestamp
-    - name: "Manifest Number"
-      expr: manifest_number
-    - name: "Measurement Unit"
-      expr: measurement_unit
-    - name: "Notes"
-      expr: notes
-    - name: "Quantity Unit"
-      expr: quantity_unit
-    - name: "Regulatory Compliance Flag"
-      expr: regulatory_compliance_flag
-    - name: "Reporting Period"
-      expr: reporting_period
-    - name: "Reporting Period End"
-      expr: reporting_period_end
-    - name: "Reporting Period Start"
-      expr: reporting_period_start
+      comment: "Indicates hazardous waste requiring special handling and regulatory reporting."
+    - name: "zero_waste_to_landfill_flag"
+      expr: zero_waste_to_landfill_flag
+      comment: "Flag for facilities achieving zero-waste-to-landfill status. Key milestone in sustainability programs."
+    - name: "waste_generation_status"
+      expr: waste_generation_status
+      comment: "Record status for data quality filtering in regulatory submissions."
+    - name: "reporting_year"
+      expr: reporting_year
+      comment: "Reporting year for annual waste disclosure and year-over-year trend analysis."
+    - name: "waste_category"
+      expr: waste_category
+      comment: "High-level waste category for portfolio-level waste management reporting."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Waste Generation"
-      expr: COUNT(DISTINCT waste_generation_id)
-    - name: "Total Disposal Cost Amount"
-      expr: SUM(disposal_cost_amount)
-    - name: "Average Disposal Cost Amount"
-      expr: AVG(disposal_cost_amount)
-    - name: "Total Diversion Rate Pct"
-      expr: SUM(diversion_rate_pct)
-    - name: "Average Diversion Rate Pct"
-      expr: AVG(diversion_rate_pct)
-    - name: "Total Diversion Rate Percent"
-      expr: SUM(diversion_rate_percent)
-    - name: "Average Diversion Rate Percent"
-      expr: AVG(diversion_rate_percent)
-    - name: "Total Recycled Amount Kg"
-      expr: SUM(recycled_amount_kg)
-    - name: "Average Recycled Amount Kg"
-      expr: AVG(recycled_amount_kg)
-    - name: "Total Recycling Rate Percentage"
-      expr: SUM(recycling_rate_percentage)
-    - name: "Average Recycling Rate Percentage"
-      expr: AVG(recycling_rate_percentage)
-    - name: "Total Waste Amount Kg"
-      expr: SUM(waste_amount_kg)
-    - name: "Average Waste Amount Kg"
-      expr: AVG(waste_amount_kg)
-    - name: "Total Waste Quantity"
-      expr: SUM(waste_quantity)
-    - name: "Average Waste Quantity"
-      expr: AVG(waste_quantity)
-    - name: "Total Waste Quantity Tonnes"
-      expr: SUM(waste_quantity_tonnes)
-    - name: "Average Waste Quantity Tonnes"
-      expr: AVG(waste_quantity_tonnes)
+    - name: "total_waste_quantity_tonnes"
+      expr: SUM(CAST(quantity_tonnes AS DOUBLE))
+      comment: "Total waste generated in tonnes. Primary KPI for absolute waste reduction targets."
+    - name: "total_recycled_tonnes"
+      expr: SUM(CAST(recycled_tonnes AS DOUBLE))
+      comment: "Total waste recycled in tonnes. Tracks circular economy performance and material recovery."
+    - name: "total_landfill_tonnes"
+      expr: SUM(CAST(landfill_tonnes AS DOUBLE))
+      comment: "Total waste sent to landfill. Reduction of this metric is the core goal of zero-waste-to-landfill programs."
+    - name: "total_incinerated_tonnes"
+      expr: SUM(CAST(incinerated_tonnes AS DOUBLE))
+      comment: "Total waste incinerated. Tracks energy-from-waste and non-landfill disposal volumes."
+    - name: "avg_diversion_rate_pct"
+      expr: AVG(CAST(diversion_rate_pct AS DOUBLE))
+      comment: "Average waste diversion rate (% diverted from landfill). Core operational KPI for zero-waste programs."
+    - name: "avg_recycled_pct"
+      expr: AVG(CAST(recycled_pct AS DOUBLE))
+      comment: "Average recycling rate across waste generation records. Tracks circular economy maturity."
+    - name: "hazardous_waste_tonnes"
+      expr: SUM(CASE WHEN hazardous_flag = TRUE THEN quantity_tonnes ELSE 0 END)
+      comment: "Total hazardous waste generated. Regulatory compliance KPI with direct legal and reputational risk implications."
+    - name: "landfill_diversion_rate_pct"
+      expr: ROUND(100.0 * SUM(CAST(recycled_tonnes AS DOUBLE)) / NULLIF(SUM(CAST(quantity_tonnes AS DOUBLE)), 0), 2)
+      comment: "Percentage of total waste diverted from landfill via recycling. Headline metric for zero-waste-to-landfill program reporting."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`sustainability_water_consumption`
@@ -1600,92 +1154,53 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Water Consumption business metrics"
+  comment: "Water stewardship KPIs tracking withdrawal, consumption, discharge, and recycling volumes. Used by operations and sustainability teams to manage water risk, meet CDP Water targets, and comply with environmental permits."
   source: "`vibe_consumer_goods_v1`.`sustainability`.`water_consumption`"
   dimensions:
-    - name: "Comments"
-      expr: comments
-    - name: "Cost Currency Code"
-      expr: cost_currency_code
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Data Quality Flag"
-      expr: data_quality_flag
-    - name: "Discharge Destination"
+    - name: "water_source_type"
+      expr: water_source_type
+      comment: "Source of water withdrawal (municipal, groundwater, surface water) for water risk and dependency analysis."
+    - name: "water_source"
+      expr: water_source
+      comment: "Specific water source identifier for granular stewardship tracking."
+    - name: "water_stress_area_flag"
+      expr: water_stress_area_flag
+      comment: "Flag for operations in water-stressed areas. Critical for CDP Water and TCFD physical risk disclosure."
+    - name: "water_consumption_status"
+      expr: water_consumption_status
+      comment: "Record status for data quality and completeness filtering."
+    - name: "discharge_destination"
       expr: discharge_destination
-    - name: "Event Timestamp"
-      expr: event_timestamp
-    - name: "Is Recycled"
-      expr: is_recycled
-    - name: "Last Updated Timestamp"
-      expr: last_updated_timestamp
-    - name: "Measurement Method"
+      comment: "Destination of discharged water (river, municipal treatment, ocean) for environmental impact assessment."
+    - name: "reporting_year"
+      expr: reporting_year
+      comment: "Reporting year for annual water disclosure and trend analysis."
+    - name: "measurement_method"
       expr: measurement_method
-    - name: "Measurement Period End"
-      expr: measurement_period_end
-    - name: "Measurement Period Start"
-      expr: measurement_period_start
-    - name: "Measurement Unit"
-      expr: measurement_unit
-    - name: "Reading Date"
-      expr: reading_date
-    - name: "Recorded By"
-      expr: recorded_by
-    - name: "Regulatory Permit Reference"
-      expr: regulatory_permit_reference
-    - name: "Reporting Period"
-      expr: reporting_period
+      comment: "Method used to measure water consumption (metered, estimated, calculated) for data quality segmentation."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Water Consumption"
-      expr: COUNT(DISTINCT water_consumption_id)
-    - name: "Total Carbon Footprint Kg Co2e"
-      expr: SUM(carbon_footprint_kg_co2e)
-    - name: "Average Carbon Footprint Kg Co2e"
-      expr: AVG(carbon_footprint_kg_co2e)
-    - name: "Total Consumption Cubic Meters"
-      expr: SUM(consumption_cubic_meters)
-    - name: "Average Consumption Cubic Meters"
-      expr: AVG(consumption_cubic_meters)
-    - name: "Total Consumption Volume Cubic Meters"
-      expr: SUM(consumption_volume_cubic_meters)
-    - name: "Average Consumption Volume Cubic Meters"
-      expr: AVG(consumption_volume_cubic_meters)
-    - name: "Total Consumption Volume M3"
-      expr: SUM(consumption_volume_m3)
-    - name: "Average Consumption Volume M3"
-      expr: AVG(consumption_volume_m3)
-    - name: "Total Cost Amount"
-      expr: SUM(cost_amount)
-    - name: "Average Cost Amount"
-      expr: AVG(cost_amount)
-    - name: "Total Discharge Cubic Meters"
-      expr: SUM(discharge_cubic_meters)
-    - name: "Average Discharge Cubic Meters"
-      expr: AVG(discharge_cubic_meters)
-    - name: "Total Discharge Volume Cubic Meters"
-      expr: SUM(discharge_volume_cubic_meters)
-    - name: "Average Discharge Volume Cubic Meters"
-      expr: AVG(discharge_volume_cubic_meters)
-    - name: "Total Discharge Volume M3"
-      expr: SUM(discharge_volume_m3)
-    - name: "Average Discharge Volume M3"
-      expr: AVG(discharge_volume_m3)
-    - name: "Total Recycled Percentage"
-      expr: SUM(recycled_percentage)
-    - name: "Average Recycled Percentage"
-      expr: AVG(recycled_percentage)
-    - name: "Total Recycled Water Volume Cubic Meters"
-      expr: SUM(recycled_water_volume_cubic_meters)
-    - name: "Average Recycled Water Volume Cubic Meters"
-      expr: AVG(recycled_water_volume_cubic_meters)
-    - name: "Total Water Intensity Per Unit"
-      expr: SUM(water_intensity_per_unit)
-    - name: "Average Water Intensity Per Unit"
-      expr: AVG(water_intensity_per_unit)
-    - name: "Total Water Recycling Rate Pct"
-      expr: SUM(water_recycling_rate_pct)
-    - name: "Average Water Recycling Rate Pct"
-      expr: AVG(water_recycling_rate_pct)
+    - name: "total_withdrawal_cubic_meters"
+      expr: SUM(CAST(withdrawal_cubic_meters AS DOUBLE))
+      comment: "Total water withdrawn in cubic meters. Primary absolute water use KPI for CDP Water and GRI 303 reporting."
+    - name: "total_consumption_cubic_meters"
+      expr: SUM(CAST(consumption_cubic_meters AS DOUBLE))
+      comment: "Total water consumed (withdrawn minus discharged) in cubic meters. Net water impact metric."
+    - name: "total_discharge_cubic_meters"
+      expr: SUM(CAST(discharge_cubic_meters AS DOUBLE))
+      comment: "Total water discharged back to the environment. Used to calculate net consumption and assess discharge permit compliance."
+    - name: "total_recycled_cubic_meters"
+      expr: SUM(CAST(recycled_cubic_meters AS DOUBLE))
+      comment: "Total water recycled or reused. Tracks circular water use efficiency and reduces freshwater dependency."
+    - name: "avg_water_recycling_rate_pct"
+      expr: AVG(CAST(water_recycling_rate_pct AS DOUBLE))
+      comment: "Average water recycling rate across facilities. Tracks progress toward water circularity targets."
+    - name: "avg_water_intensity_per_unit"
+      expr: AVG(CAST(water_intensity_per_unit AS DOUBLE))
+      comment: "Average water intensity per production unit. Normalizes water use against output for efficiency benchmarking."
+    - name: "water_recycling_rate_pct"
+      expr: ROUND(100.0 * SUM(CAST(recycled_cubic_meters AS DOUBLE)) / NULLIF(SUM(CAST(withdrawal_cubic_meters AS DOUBLE)), 0), 2)
+      comment: "Percentage of withdrawn water that is recycled. Headline water circularity KPI for sustainability reporting."
+    - name: "stressed_area_consumption_cubic_meters"
+      expr: SUM(CASE WHEN water_stress_area_flag = TRUE THEN consumption_cubic_meters ELSE 0 END)
+      comment: "Water consumed in water-stressed areas. High-priority risk metric for TCFD physical risk and investor ESG scoring."
 $$;

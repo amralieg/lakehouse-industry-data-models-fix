@@ -1,451 +1,86 @@
--- Metric views for domain: design | Business: Semiconductors | Version: 2 | Generated on: 2026-06-24 02:09:37
+-- Metric views for domain: design | Business: Semiconductors | Version: 2 | Generated on: 2026-06-27 11:25:39
 
 CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`design_ic_design_project`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Ic Design Project business metrics"
+  comment: "Core IC design project performance metrics tracking budget adherence, schedule performance, and design complexity targets across semiconductor design initiatives."
   source: "`vibe_semiconductors_v1`.`design`.`ic_design_project`"
   dimensions:
-    - name: "Block Count"
-      expr: block_count
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Design Phase"
+    - name: "design_phase"
       expr: design_phase
-    - name: "Design Type"
+      comment: "Current phase of the IC design project lifecycle (e.g., RTL, synthesis, place-and-route, verification, tapeout)."
+    - name: "project_status"
+      expr: project_status
+      comment: "Overall status of the design project (e.g., active, on-hold, completed, cancelled)."
+    - name: "process_node_nm"
+      expr: process_node_nm
+      comment: "Target semiconductor process node in nanometers (e.g., 7nm, 5nm, 3nm) indicating manufacturing technology generation."
+    - name: "design_type"
       expr: design_type
-    - name: "Dfm Rule Set Version"
-      expr: dfm_rule_set_version
-    - name: "Dft Enabled"
-      expr: dft_enabled
-    - name: "Eda Tool Suite"
+      comment: "Classification of design type (e.g., ASIC, SoC, analog, mixed-signal, digital)."
+    - name: "eda_tool_suite"
       expr: eda_tool_suite
-    - name: "Eda Tool Version"
-      expr: eda_tool_version
-    - name: "Export Control Classification"
-      expr: export_control_classification
-    - name: "Gds File Path"
-      expr: gds_file_path
-    - name: "Iatf Automotive Grade"
-      expr: iatf_automotive_grade
-    - name: "Ip Core Count"
-      expr: ip_core_count
-    - name: "Last Updated Timestamp"
-      expr: last_updated_timestamp
-    - name: "Lithography Type"
+      comment: "Primary EDA tool suite used for design (e.g., Cadence, Synopsys, Mentor Graphics)."
+    - name: "lithography_type"
       expr: lithography_type
-    - name: "Metal Layer Count"
-      expr: metal_layer_count
-    - name: "Packaging Type"
+      comment: "Lithography technology used (e.g., DUV, EUV) impacting manufacturing cost and capability."
+    - name: "packaging_type"
       expr: packaging_type
+      comment: "Target packaging technology (e.g., flip-chip, wire-bond, 2.5D, 3D) affecting cost and performance."
+    - name: "project_start_year"
+      expr: YEAR(project_start_date)
+      comment: "Year the design project was initiated for cohort analysis."
+    - name: "project_start_quarter"
+      expr: CONCAT('Q', QUARTER(project_start_date), '-', YEAR(project_start_date))
+      comment: "Quarter and year of project start for time-series analysis."
+    - name: "tapeout_target_year"
+      expr: YEAR(tapeout_target_date)
+      comment: "Target year for tapeout milestone."
+    - name: "dft_enabled_flag"
+      expr: CASE WHEN dft_enabled = TRUE THEN 'DFT Enabled' ELSE 'DFT Not Enabled' END
+      comment: "Whether design-for-test features are enabled, critical for manufacturing yield."
+    - name: "rohs_compliant_flag"
+      expr: CASE WHEN rohs_compliant = TRUE THEN 'RoHS Compliant' ELSE 'Not RoHS Compliant' END
+      comment: "RoHS compliance status for regulatory and market access requirements."
   measures:
-    - name: "Row Count"
+    - name: "total_projects"
       expr: COUNT(1)
-    - name: "Distinct Ic Design Project"
-      expr: COUNT(DISTINCT ic_design_project_id)
-    - name: "Total Gate Count Target K"
-      expr: SUM(gate_count_target_k)
-    - name: "Average Gate Count Target K"
-      expr: AVG(gate_count_target_k)
-    - name: "Total Nre Actual Spend Usd"
-      expr: SUM(nre_actual_spend_usd)
-    - name: "Average Nre Actual Spend Usd"
-      expr: AVG(nre_actual_spend_usd)
-    - name: "Total Nre Budget Usd"
-      expr: SUM(nre_budget_usd)
-    - name: "Average Nre Budget Usd"
-      expr: AVG(nre_budget_usd)
-    - name: "Total Target Clock Freq Mhz"
-      expr: SUM(target_clock_freq_mhz)
-    - name: "Average Target Clock Freq Mhz"
-      expr: AVG(target_clock_freq_mhz)
-    - name: "Total Target Die Area Mm2"
-      expr: SUM(target_die_area_mm2)
-    - name: "Average Target Die Area Mm2"
-      expr: AVG(target_die_area_mm2)
-    - name: "Total Target Power Budget Mw"
-      expr: SUM(target_power_budget_mw)
-    - name: "Average Target Power Budget Mw"
-      expr: AVG(target_power_budget_mw)
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`design_ip_core`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Ip Core business metrics"
-  source: "`vibe_semiconductors_v1`.`design`.`ip_core`"
-  dimensions:
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Datasheet Url"
-      expr: datasheet_url
-    - name: "Design Ip Core Name"
-      expr: design_ip_core_name
-    - name: "Dfm Compliant"
-      expr: dfm_compliant
-    - name: "Dft Compliant"
-      expr: dft_compliant
-    - name: "Eda Tool Compatibility"
-      expr: eda_tool_compatibility
-    - name: "Export Control Classification"
-      expr: export_control_classification
-    - name: "Foundry Compatibility"
-      expr: foundry_compatibility
-    - name: "Function Category"
-      expr: function_category
-    - name: "Functional Description"
-      expr: functional_description
-    - name: "Gds Available"
-      expr: gds_available
-    - name: "Interface Standard"
-      expr: interface_standard
-    - name: "Ip Type"
-      expr: ip_type
-    - name: "Lef Available"
-      expr: lef_available
-    - name: "License Expiry Date"
-      expr: license_expiry_date
-  measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Ip Core"
-      expr: COUNT(DISTINCT ip_core_id)
-    - name: "Total Area Um2"
-      expr: SUM(area_um2)
-    - name: "Average Area Um2"
-      expr: AVG(area_um2)
-    - name: "Total Gate Count"
-      expr: SUM(gate_count)
-    - name: "Average Gate Count"
-      expr: AVG(gate_count)
-    - name: "Total License Fee Usd"
-      expr: SUM(license_fee_usd)
-    - name: "Average License Fee Usd"
-      expr: AVG(license_fee_usd)
-    - name: "Total Max Frequency Mhz"
-      expr: SUM(max_frequency_mhz)
-    - name: "Average Max Frequency Mhz"
-      expr: AVG(max_frequency_mhz)
-    - name: "Total Power Uw"
-      expr: SUM(power_uw)
-    - name: "Average Power Uw"
-      expr: AVG(power_uw)
-    - name: "Total Royalty Rate Pct"
-      expr: SUM(royalty_rate_pct)
-    - name: "Average Royalty Rate Pct"
-      expr: AVG(royalty_rate_pct)
-    - name: "Total Scan Coverage Pct"
-      expr: SUM(scan_coverage_pct)
-    - name: "Average Scan Coverage Pct"
-      expr: AVG(scan_coverage_pct)
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`design_ip_core_usage`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Ip Core Usage business metrics"
-  source: "`vibe_semiconductors_v1`.`design`.`ip_core_usage`"
-  dimensions:
-    - name: "Configuration Parameters"
-      expr: configuration_parameters
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Design Hierarchy Path"
-      expr: design_hierarchy_path
-    - name: "Export Control Classification"
-      expr: export_control_classification
-    - name: "Instance Count"
-      expr: instance_count
-    - name: "Integration Start Date"
-      expr: integration_start_date
-    - name: "Integration Status"
-      expr: integration_status
-    - name: "Interface Protocol"
-      expr: interface_protocol
-    - name: "Ip Core Version"
-      expr: ip_core_version
-    - name: "Ip Reuse Flag"
-      expr: ip_reuse_flag
-    - name: "Is Dfm Compliant"
-      expr: is_dfm_compliant
-    - name: "Is Dft Enabled"
-      expr: is_dft_enabled
-    - name: "Is Silicon Proven"
-      expr: is_silicon_proven
-    - name: "Last Updated Timestamp"
-      expr: last_updated_timestamp
-    - name: "License Type"
-      expr: license_type
-    - name: "Notes"
-      expr: notes
-  measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Ip Core Usage"
-      expr: COUNT(DISTINCT ip_core_usage_id)
-    - name: "Total Area Consumed Um2"
-      expr: SUM(area_consumed_um2)
-    - name: "Average Area Consumed Um2"
-      expr: AVG(area_consumed_um2)
-    - name: "Total Clock Frequency Mhz"
-      expr: SUM(clock_frequency_mhz)
-    - name: "Average Clock Frequency Mhz"
-      expr: AVG(clock_frequency_mhz)
-    - name: "Total Functional Coverage Pct"
-      expr: SUM(functional_coverage_pct)
-    - name: "Average Functional Coverage Pct"
-      expr: AVG(functional_coverage_pct)
-    - name: "Total Nre Cost Usd"
-      expr: SUM(nre_cost_usd)
-    - name: "Average Nre Cost Usd"
-      expr: AVG(nre_cost_usd)
-    - name: "Total Power Contribution Mw"
-      expr: SUM(power_contribution_mw)
-    - name: "Average Power Contribution Mw"
-      expr: AVG(power_contribution_mw)
-    - name: "Total Royalty Rate Per Unit"
-      expr: SUM(royalty_rate_per_unit)
-    - name: "Average Royalty Rate Per Unit"
-      expr: AVG(royalty_rate_per_unit)
-    - name: "Total Supply Voltage V"
-      expr: SUM(supply_voltage_v)
-    - name: "Average Supply Voltage V"
-      expr: AVG(supply_voltage_v)
-    - name: "Total Timing Budget Ns"
-      expr: SUM(timing_budget_ns)
-    - name: "Average Timing Budget Ns"
-      expr: AVG(timing_budget_ns)
-    - name: "Total Usage To Core"
-      expr: SUM(usage_to_core)
-    - name: "Average Usage To Core"
-      expr: AVG(usage_to_core)
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`design_pdk`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Pdk business metrics"
-  source: "`vibe_semiconductors_v1`.`design`.`pdk`"
-  dimensions:
-    - name: "Agile Plm Part Number"
-      expr: agile_plm_part_number
-    - name: "Checksum Sha256"
-      expr: checksum_sha256
-    - name: "Deprecation Date"
-      expr: deprecation_date
-    - name: "Dft Rule Deck Version"
-      expr: dft_rule_deck_version
-    - name: "Drc Rule Deck Version"
-      expr: drc_rule_deck_version
-    - name: "Eda Tool Compatibility"
-      expr: eda_tool_compatibility
-    - name: "Export Control Classification"
-      expr: export_control_classification
-    - name: "File Path"
-      expr: file_path
-    - name: "Gds Format"
-      expr: gds_format
-    - name: "Io Library Name"
-      expr: io_library_name
-    - name: "Ip Library Version"
-      expr: ip_library_version
-    - name: "Layer Stack Definition"
-      expr: layer_stack_definition
-    - name: "License Type"
-      expr: license_type
-    - name: "Lithography Type"
-      expr: lithography_type
-  measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Pdk"
-      expr: COUNT(DISTINCT pdk_id)
-    - name: "Total Max Supply Voltage V"
-      expr: SUM(max_supply_voltage_v)
-    - name: "Average Max Supply Voltage V"
-      expr: AVG(max_supply_voltage_v)
-    - name: "Total Min Supply Voltage V"
-      expr: SUM(min_supply_voltage_v)
-    - name: "Average Min Supply Voltage V"
-      expr: AVG(min_supply_voltage_v)
-    - name: "Total Nominal Supply Voltage V"
-      expr: SUM(nominal_supply_voltage_v)
-    - name: "Average Nominal Supply Voltage V"
-      expr: AVG(nominal_supply_voltage_v)
-    - name: "Total Operating Temp Max C"
-      expr: SUM(operating_temp_max_c)
-    - name: "Average Operating Temp Max C"
-      expr: AVG(operating_temp_max_c)
-    - name: "Total Operating Temp Min C"
-      expr: SUM(operating_temp_min_c)
-    - name: "Average Operating Temp Min C"
-      expr: AVG(operating_temp_min_c)
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`design_physical_layout`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Physical Layout business metrics"
-  source: "`vibe_semiconductors_v1`.`design`.`physical_layout`"
-  dimensions:
-    - name: "Antenna Violation Count"
-      expr: antenna_violation_count
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Drc Critical Violation Count"
-      expr: drc_critical_violation_count
-    - name: "Drc Violation Count"
-      expr: drc_violation_count
-    - name: "Eda Tool"
-      expr: eda_tool
-    - name: "Eda Tool Version"
-      expr: eda_tool_version
-    - name: "Em Compliant"
-      expr: em_compliant
-    - name: "Gds File Checksum"
-      expr: gds_file_checksum
-    - name: "Gds File Format"
-      expr: gds_file_format
-    - name: "Gds File Path"
-      expr: gds_file_path
-    - name: "Implementation Stage"
-      expr: implementation_stage
-    - name: "Iteration Timestamp"
-      expr: iteration_timestamp
-    - name: "Layout Name"
-      expr: layout_name
-    - name: "Layout Status"
-      expr: layout_status
-    - name: "Layout Version"
-      expr: layout_version
-    - name: "Lvs Clean"
-      expr: lvs_clean
-  measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Physical Layout"
-      expr: COUNT(DISTINCT physical_layout_id)
-    - name: "Total Cell Utilization Pct"
-      expr: SUM(cell_utilization_pct)
-    - name: "Average Cell Utilization Pct"
-      expr: AVG(cell_utilization_pct)
-    - name: "Total Core Area Mm2"
-      expr: SUM(core_area_mm2)
-    - name: "Average Core Area Mm2"
-      expr: AVG(core_area_mm2)
-    - name: "Total Cts Insertion Delay Ps"
-      expr: SUM(cts_insertion_delay_ps)
-    - name: "Average Cts Insertion Delay Ps"
-      expr: AVG(cts_insertion_delay_ps)
-    - name: "Total Cts Skew Ps"
-      expr: SUM(cts_skew_ps)
-    - name: "Average Cts Skew Ps"
-      expr: AVG(cts_skew_ps)
-    - name: "Total Dfm Score"
-      expr: SUM(dfm_score)
-    - name: "Average Dfm Score"
-      expr: AVG(dfm_score)
-    - name: "Total Dft Coverage Pct"
-      expr: SUM(dft_coverage_pct)
-    - name: "Average Dft Coverage Pct"
-      expr: AVG(dft_coverage_pct)
-    - name: "Total Die Area Mm2"
-      expr: SUM(die_area_mm2)
-    - name: "Average Die Area Mm2"
-      expr: AVG(die_area_mm2)
-    - name: "Total Die Height Um"
-      expr: SUM(die_height_um)
-    - name: "Average Die Height Um"
-      expr: AVG(die_height_um)
-    - name: "Total Die Width Um"
-      expr: SUM(die_width_um)
-    - name: "Average Die Width Um"
-      expr: AVG(die_width_um)
-    - name: "Total Ir Drop Max Mv"
-      expr: SUM(ir_drop_max_mv)
-    - name: "Average Ir Drop Max Mv"
-      expr: AVG(ir_drop_max_mv)
-    - name: "Total Leakage Power Uw"
-      expr: SUM(leakage_power_uw)
-    - name: "Average Leakage Power Uw"
-      expr: AVG(leakage_power_uw)
-    - name: "Total Metal Fill Density Pct"
-      expr: SUM(metal_fill_density_pct)
-    - name: "Average Metal Fill Density Pct"
-      expr: AVG(metal_fill_density_pct)
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`design_rtl_specification`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Rtl Specification business metrics"
-  source: "`vibe_semiconductors_v1`.`design`.`rtl_specification`"
-  dimensions:
-    - name: "Ams Behavioral Model Ref"
-      expr: ams_behavioral_model_ref
-    - name: "Cdc Annotation Status"
-      expr: cdc_annotation_status
-    - name: "Clock Domain Count"
-      expr: clock_domain_count
-    - name: "Commit Hash"
-      expr: commit_hash
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Design Block Name"
-      expr: design_block_name
-    - name: "Design Block Type"
-      expr: design_block_type
-    - name: "Design Intent Description"
-      expr: design_intent_description
-    - name: "Dfm Rule Set Version"
-      expr: dfm_rule_set_version
-    - name: "Dft Strategy"
-      expr: dft_strategy
-    - name: "Ear Eccn Code"
-      expr: ear_eccn_code
-    - name: "Fpga Device Family"
-      expr: fpga_device_family
-    - name: "Hdl Language"
-      expr: hdl_language
-    - name: "Interface Protocols"
-      expr: interface_protocols
-    - name: "Ip Reuse Source"
-      expr: ip_reuse_source
-    - name: "Is Analog Mixed Signal"
-      expr: is_analog_mixed_signal
-  measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Rtl Specification"
-      expr: COUNT(DISTINCT rtl_specification_id)
-    - name: "Total Functional Coverage Target Pct"
-      expr: SUM(functional_coverage_target_pct)
-    - name: "Average Functional Coverage Target Pct"
-      expr: AVG(functional_coverage_target_pct)
-    - name: "Total Logic Gate Count Estimate"
-      expr: SUM(logic_gate_count_estimate)
-    - name: "Average Logic Gate Count Estimate"
-      expr: AVG(logic_gate_count_estimate)
-    - name: "Total Nre Cost Usd"
-      expr: SUM(nre_cost_usd)
-    - name: "Average Nre Cost Usd"
-      expr: AVG(nre_cost_usd)
-    - name: "Total Target Clock Frequency Mhz"
-      expr: SUM(target_clock_frequency_mhz)
-    - name: "Average Target Clock Frequency Mhz"
-      expr: AVG(target_clock_frequency_mhz)
+      comment: "Total number of IC design projects, baseline metric for portfolio size."
+    - name: "total_nre_budget_usd"
+      expr: SUM(CAST(nre_budget_usd AS DOUBLE))
+      comment: "Total non-recurring engineering budget allocated across all design projects in USD."
+    - name: "total_nre_actual_spend_usd"
+      expr: SUM(CAST(nre_actual_spend_usd AS DOUBLE))
+      comment: "Total actual NRE spend across all design projects in USD, tracking cost execution."
+    - name: "nre_budget_utilization_rate"
+      expr: ROUND(100.0 * SUM(CAST(nre_actual_spend_usd AS DOUBLE)) / NULLIF(SUM(CAST(nre_budget_usd AS DOUBLE)), 0), 2)
+      comment: "Percentage of NRE budget consumed, key metric for financial discipline and project cost control."
+    - name: "avg_nre_budget_per_project_usd"
+      expr: AVG(CAST(nre_budget_usd AS DOUBLE))
+      comment: "Average NRE budget per project, indicating typical project investment size."
+    - name: "avg_target_die_area_mm2"
+      expr: AVG(CAST(target_die_area_mm2 AS DOUBLE))
+      comment: "Average target die area in square millimeters, proxy for design complexity and manufacturing cost."
+    - name: "avg_target_power_budget_mw"
+      expr: AVG(CAST(target_power_budget_mw AS DOUBLE))
+      comment: "Average target power budget in milliwatts, critical for mobile and power-sensitive applications."
+    - name: "avg_gate_count_target_k"
+      expr: AVG(CAST(gate_count_target_k AS DOUBLE))
+      comment: "Average target gate count in thousands, indicating design complexity and logic density."
+    - name: "avg_target_clock_freq_mhz"
+      expr: AVG(CAST(target_clock_freq_mhz AS DOUBLE))
+      comment: "Average target clock frequency in MHz, key performance specification for digital designs."
+    - name: "schedule_adherence_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN tapeout_actual_date <= tapeout_target_date THEN 1 END) / NULLIF(COUNT(CASE WHEN tapeout_actual_date IS NOT NULL THEN 1 END), 0), 2)
+      comment: "Percentage of projects that met or beat tapeout target date, critical KPI for execution excellence and time-to-market."
+    - name: "projects_with_tapeout"
+      expr: COUNT(CASE WHEN tapeout_actual_date IS NOT NULL THEN 1 END)
+      comment: "Number of projects that have completed tapeout, indicating portfolio maturity."
+    - name: "dft_adoption_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN dft_enabled = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of projects with DFT enabled, indicating testability and yield optimization focus."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`design_tapeout`
@@ -453,157 +88,257 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Tapeout business metrics"
+  comment: "Tapeout execution metrics tracking design quality, manufacturing readiness, and mask cost efficiency for semiconductor production handoff."
   source: "`vibe_semiconductors_v1`.`design`.`tapeout`"
   dimensions:
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Design Name"
-      expr: design_name
-    - name: "Design Revision"
-      expr: design_revision
-    - name: "Design Type"
-      expr: design_type
-    - name: "Drc Clean"
-      expr: drc_clean
-    - name: "Erc Clean"
-      expr: erc_clean
-    - name: "Export Control Classification"
-      expr: export_control_classification
-    - name: "Foundry Name"
+    - name: "tapeout_status"
+      expr: tapeout_status
+      comment: "Status of the tapeout event (e.g., submitted, accepted, in-production, cancelled)."
+    - name: "tapeout_type"
+      expr: tapeout_type
+      comment: "Type of tapeout (e.g., full production, MPW shuttle, prototype, engineering sample)."
+    - name: "foundry_name"
       expr: foundry_name
-    - name: "Foundry Submission Ref"
-      expr: foundry_submission_ref
-    - name: "Gds File Path"
-      expr: gds_file_path
-    - name: "Gds File Version"
-      expr: gds_file_version
-    - name: "Ip Sign Off Complete"
-      expr: ip_sign_off_complete
-    - name: "Lithography Type"
+      comment: "Semiconductor foundry partner (e.g., TSMC, Samsung, GlobalFoundries) for manufacturing."
+    - name: "lithography_type"
       expr: lithography_type
-    - name: "Lvs Clean"
-      expr: lvs_clean
-    - name: "Mask Count"
-      expr: mask_count
-    - name: "Metal Layer Count"
-      expr: metal_layer_count
+      comment: "Lithography technology used (e.g., DUV, EUV) impacting cost and yield."
+    - name: "design_type"
+      expr: design_type
+      comment: "Type of design being taped out (e.g., ASIC, SoC, analog, mixed-signal)."
+    - name: "packaging_type"
+      expr: packaging_type
+      comment: "Packaging technology for the taped-out design."
+    - name: "target_market_segment"
+      expr: target_market_segment
+      comment: "Target market segment (e.g., automotive, mobile, IoT, data-center) for strategic portfolio analysis."
+    - name: "tapeout_year"
+      expr: YEAR(tapeout_date)
+      comment: "Year of tapeout for time-series trend analysis."
+    - name: "tapeout_quarter"
+      expr: CONCAT('Q', QUARTER(tapeout_date), '-', YEAR(tapeout_date))
+      comment: "Quarter and year of tapeout for quarterly performance tracking."
+    - name: "drc_clean_flag"
+      expr: CASE WHEN drc_clean = TRUE THEN 'DRC Clean' ELSE 'DRC Violations' END
+      comment: "Design rule check status, critical quality gate for manufacturing success."
+    - name: "lvs_clean_flag"
+      expr: CASE WHEN lvs_clean = TRUE THEN 'LVS Clean' ELSE 'LVS Violations' END
+      comment: "Layout versus schematic check status, ensuring design integrity."
+    - name: "timing_closure_status"
+      expr: timing_closure_status
+      comment: "Timing closure status at tapeout, indicating design performance readiness."
+    - name: "signoff_checklist_complete_flag"
+      expr: CASE WHEN signoff_checklist_complete = TRUE THEN 'Signoff Complete' ELSE 'Signoff Incomplete' END
+      comment: "Whether all signoff criteria were met before tapeout submission."
   measures:
-    - name: "Row Count"
+    - name: "total_tapeouts"
       expr: COUNT(1)
-    - name: "Distinct Tapeout"
-      expr: COUNT(DISTINCT tapeout_id)
-    - name: "Total Dfm Score"
-      expr: SUM(dfm_score)
-    - name: "Average Dfm Score"
-      expr: AVG(dfm_score)
-    - name: "Total Dft Coverage Pct"
-      expr: SUM(dft_coverage_pct)
-    - name: "Average Dft Coverage Pct"
-      expr: AVG(dft_coverage_pct)
-    - name: "Total Die Size Mm2"
-      expr: SUM(die_size_mm2)
-    - name: "Average Die Size Mm2"
-      expr: AVG(die_size_mm2)
-    - name: "Total Expected Yield Pct"
-      expr: SUM(expected_yield_pct)
-    - name: "Average Expected Yield Pct"
-      expr: AVG(expected_yield_pct)
-    - name: "Total Mask Cost Usd"
-      expr: SUM(mask_cost_usd)
-    - name: "Average Mask Cost Usd"
-      expr: AVG(mask_cost_usd)
-    - name: "Total Nre Cost Usd"
-      expr: SUM(nre_cost_usd)
-    - name: "Average Nre Cost Usd"
-      expr: AVG(nre_cost_usd)
+      comment: "Total number of tapeout events, baseline metric for design execution throughput."
+    - name: "total_mask_cost_usd"
+      expr: SUM(CAST(mask_cost_usd AS DOUBLE))
+      comment: "Total mask set cost in USD, major NRE component for advanced nodes."
+    - name: "total_nre_cost_usd"
+      expr: SUM(CAST(nre_cost_usd AS DOUBLE))
+      comment: "Total non-recurring engineering cost for tapeouts in USD, tracking total investment."
+    - name: "avg_mask_cost_usd"
+      expr: AVG(CAST(mask_cost_usd AS DOUBLE))
+      comment: "Average mask cost per tapeout in USD, indicating typical mask investment."
+    - name: "avg_nre_cost_usd"
+      expr: AVG(CAST(nre_cost_usd AS DOUBLE))
+      comment: "Average NRE cost per tapeout in USD, benchmark for project economics."
+    - name: "avg_die_size_mm2"
+      expr: AVG(CAST(die_size_mm2 AS DOUBLE))
+      comment: "Average die size in square millimeters, key driver of manufacturing cost and yield."
+    - name: "avg_expected_yield_pct"
+      expr: AVG(CAST(expected_yield_pct AS DOUBLE))
+      comment: "Average expected manufacturing yield percentage, critical for unit economics and profitability."
+    - name: "avg_dfm_score"
+      expr: AVG(CAST(dfm_score AS DOUBLE))
+      comment: "Average design-for-manufacturing score, indicating manufacturability and yield optimization."
+    - name: "avg_dft_coverage_pct"
+      expr: AVG(CAST(dft_coverage_pct AS DOUBLE))
+      comment: "Average design-for-test coverage percentage, critical for production test efficiency and quality."
+    - name: "first_pass_success_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN drc_clean = TRUE AND lvs_clean = TRUE AND erc_clean = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of tapeouts passing all design checks (DRC, LVS, ERC) on first submission, key quality and efficiency metric."
+    - name: "signoff_completion_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN signoff_checklist_complete = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of tapeouts with complete signoff checklist, indicating process discipline and readiness."
+    - name: "timing_closure_achievement_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN timing_closure_status = 'Closed' THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of tapeouts achieving timing closure, critical for meeting performance specifications."
+    - name: "mask_cost_per_mm2"
+      expr: ROUND(SUM(CAST(mask_cost_usd AS DOUBLE)) / NULLIF(SUM(CAST(die_size_mm2 AS DOUBLE)), 0), 2)
+      comment: "Mask cost per square millimeter of die area, efficiency metric for mask investment relative to silicon area."
 $$;
 
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`design_timing_analysis_run`
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`design_ip_core`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Timing Analysis Run business metrics"
-  source: "`vibe_semiconductors_v1`.`design`.`timing_analysis_run`"
+  comment: "IP core portfolio metrics tracking reusability, licensing economics, and design quality for semiconductor intellectual property assets."
+  source: "`vibe_semiconductors_v1`.`design`.`ip_core`"
   dimensions:
-    - name: "Analysis Mode"
-      expr: analysis_mode
-    - name: "Clock Domain Count"
-      expr: clock_domain_count
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Critical Path Count"
-      expr: critical_path_count
-    - name: "Design Stage"
-      expr: design_stage
-    - name: "Design Version"
-      expr: design_version
-    - name: "Hold Violation Count"
-      expr: hold_violation_count
-    - name: "Is Multi Corner Run"
-      expr: is_multi_corner_run
-    - name: "Is Signoff Run"
-      expr: is_signoff_run
-    - name: "Liberty Library Version"
-      expr: liberty_library_version
-    - name: "Max Capacitance Violation Count"
-      expr: max_capacitance_violation_count
-    - name: "Max Transition Violation Count"
-      expr: max_transition_violation_count
-    - name: "Primetime Version"
-      expr: primetime_version
-    - name: "Process Node Nm"
-      expr: process_node_nm
-    - name: "Pvt Corner"
-      expr: pvt_corner
-    - name: "Review Timestamp"
-      expr: review_timestamp
+    - name: "ip_type"
+      expr: ip_type
+      comment: "Type of IP core (e.g., processor, memory controller, interface, analog, mixed-signal)."
+    - name: "function_category"
+      expr: function_category
+      comment: "Functional category of the IP core (e.g., connectivity, compute, storage, power management)."
+    - name: "lifecycle_status"
+      expr: lifecycle_status
+      comment: "Lifecycle status of the IP (e.g., active, deprecated, under-development, end-of-life)."
+    - name: "source_type"
+      expr: source_type
+      comment: "Source of the IP core (e.g., in-house, third-party, open-source, acquired)."
+    - name: "license_type"
+      expr: license_type
+      comment: "Licensing model (e.g., perpetual, subscription, royalty-bearing, royalty-free)."
+    - name: "vendor_name"
+      expr: vendor_name
+      comment: "Vendor or provider of the IP core for third-party IP tracking."
+    - name: "qualification_status"
+      expr: qualification_status
+      comment: "Qualification status (e.g., qualified, in-qualification, not-qualified) for production readiness."
+    - name: "silicon_proven_flag"
+      expr: CASE WHEN silicon_proven = TRUE THEN 'Silicon Proven' ELSE 'Not Silicon Proven' END
+      comment: "Whether the IP has been proven in silicon, reducing integration risk."
+    - name: "gds_available_flag"
+      expr: CASE WHEN gds_available = TRUE THEN 'GDS Available' ELSE 'GDS Not Available' END
+      comment: "Whether hard IP GDS layout is available for direct integration."
+    - name: "mpw_eligible_flag"
+      expr: CASE WHEN mpw_eligible = TRUE THEN 'MPW Eligible' ELSE 'Not MPW Eligible' END
+      comment: "Whether IP is eligible for multi-project wafer shuttle runs."
+    - name: "rohs_compliant_flag"
+      expr: CASE WHEN rohs_compliant = TRUE THEN 'RoHS Compliant' ELSE 'Not RoHS Compliant' END
+      comment: "RoHS compliance status for regulatory requirements."
+    - name: "release_year"
+      expr: YEAR(release_date)
+      comment: "Year the IP core was released for portfolio age analysis."
   measures:
-    - name: "Row Count"
+    - name: "total_ip_cores"
       expr: COUNT(1)
-    - name: "Distinct Timing Analysis Run"
-      expr: COUNT(DISTINCT timing_analysis_run_id)
-    - name: "Total Clock Frequency Target Mhz"
-      expr: SUM(clock_frequency_target_mhz)
-    - name: "Average Clock Frequency Target Mhz"
-      expr: AVG(clock_frequency_target_mhz)
-    - name: "Total Clock Period Target Ps"
-      expr: SUM(clock_period_target_ps)
-    - name: "Average Clock Period Target Ps"
-      expr: AVG(clock_period_target_ps)
-    - name: "Total Derating Factor Hold"
-      expr: SUM(derating_factor_hold)
-    - name: "Average Derating Factor Hold"
-      expr: AVG(derating_factor_hold)
-    - name: "Total Derating Factor Setup"
-      expr: SUM(derating_factor_setup)
-    - name: "Average Derating Factor Setup"
-      expr: AVG(derating_factor_setup)
-    - name: "Total Supply Voltage V"
-      expr: SUM(supply_voltage_v)
-    - name: "Average Supply Voltage V"
-      expr: AVG(supply_voltage_v)
-    - name: "Total Temperature C"
-      expr: SUM(temperature_c)
-    - name: "Average Temperature C"
-      expr: AVG(temperature_c)
-    - name: "Total Total Hold Negative Slack Ps"
-      expr: SUM(total_hold_negative_slack_ps)
-    - name: "Average Total Hold Negative Slack Ps"
-      expr: AVG(total_hold_negative_slack_ps)
-    - name: "Total Total Negative Slack Ps"
-      expr: SUM(total_negative_slack_ps)
-    - name: "Average Total Negative Slack Ps"
-      expr: AVG(total_negative_slack_ps)
-    - name: "Total Worst Hold Slack Ps"
-      expr: SUM(worst_hold_slack_ps)
-    - name: "Average Worst Hold Slack Ps"
-      expr: AVG(worst_hold_slack_ps)
-    - name: "Total Worst Negative Slack Ps"
-      expr: SUM(worst_negative_slack_ps)
-    - name: "Average Worst Negative Slack Ps"
-      expr: AVG(worst_negative_slack_ps)
+      comment: "Total number of IP cores in the portfolio, baseline metric for IP asset inventory."
+    - name: "total_license_fee_usd"
+      expr: SUM(CAST(license_fee_usd AS DOUBLE))
+      comment: "Total upfront license fees across all IP cores in USD, tracking IP acquisition investment."
+    - name: "avg_license_fee_usd"
+      expr: AVG(CAST(license_fee_usd AS DOUBLE))
+      comment: "Average license fee per IP core in USD, indicating typical IP investment."
+    - name: "avg_royalty_rate_pct"
+      expr: AVG(CAST(royalty_rate_pct AS DOUBLE))
+      comment: "Average royalty rate percentage for royalty-bearing IP, impacting unit economics."
+    - name: "avg_gate_count"
+      expr: AVG(CAST(gate_count AS DOUBLE))
+      comment: "Average gate count across IP cores, indicating typical IP complexity."
+    - name: "avg_area_um2"
+      expr: AVG(CAST(area_um2 AS DOUBLE))
+      comment: "Average area in square micrometers, key metric for silicon footprint and integration cost."
+    - name: "avg_power_uw"
+      expr: AVG(CAST(power_uw AS DOUBLE))
+      comment: "Average power consumption in microwatts, critical for power-constrained designs."
+    - name: "avg_max_frequency_mhz"
+      expr: AVG(CAST(max_frequency_mhz AS DOUBLE))
+      comment: "Average maximum operating frequency in MHz, indicating performance capability."
+    - name: "avg_scan_coverage_pct"
+      expr: AVG(CAST(scan_coverage_pct AS DOUBLE))
+      comment: "Average scan test coverage percentage, indicating testability and quality."
+    - name: "silicon_proven_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN silicon_proven = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of IP cores that are silicon proven, reducing integration risk and time-to-market."
+    - name: "gds_availability_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN gds_available = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of IP cores with GDS available, enabling hard IP integration strategies."
+    - name: "qualification_completion_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN qualification_status = 'Qualified' THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of IP cores fully qualified for production use, indicating portfolio readiness."
+    - name: "power_efficiency_uw_per_mhz"
+      expr: ROUND(AVG(CAST(power_uw AS DOUBLE) / NULLIF(CAST(max_frequency_mhz AS DOUBLE), 0)), 2)
+      comment: "Average power consumption per MHz of operating frequency, key efficiency metric for performance-per-watt optimization."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`design_physical_layout`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Physical layout quality and efficiency metrics tracking design rule compliance, area utilization, and timing closure for place-and-route execution."
+  source: "`vibe_semiconductors_v1`.`design`.`physical_layout`"
+  dimensions:
+    - name: "layout_status"
+      expr: layout_status
+      comment: "Status of the physical layout (e.g., in-progress, complete, signed-off, failed)."
+    - name: "implementation_stage"
+      expr: implementation_stage
+      comment: "Stage of physical implementation (e.g., floorplan, placement, CTS, routing, finishing)."
+    - name: "eda_tool"
+      expr: eda_tool
+      comment: "EDA tool used for physical design (e.g., Cadence Innovus, Synopsys ICC2)."
+    - name: "gds_file_format"
+      expr: gds_file_format
+      comment: "GDS file format version (e.g., GDSII, OASIS) for layout data exchange."
+    - name: "lvs_clean_flag"
+      expr: CASE WHEN lvs_clean = TRUE THEN 'LVS Clean' ELSE 'LVS Violations' END
+      comment: "Layout versus schematic verification status, critical quality gate."
+    - name: "em_compliant_flag"
+      expr: CASE WHEN em_compliant = TRUE THEN 'EM Compliant' ELSE 'EM Violations' END
+      comment: "Electromigration compliance status, ensuring reliability."
+    - name: "tapeout_year"
+      expr: YEAR(tapeout_date)
+      comment: "Year of tapeout for time-series analysis."
+  measures:
+    - name: "total_layouts"
+      expr: COUNT(1)
+      comment: "Total number of physical layouts, baseline metric for design execution volume."
+    - name: "avg_die_area_mm2"
+      expr: AVG(CAST(die_area_mm2 AS DOUBLE))
+      comment: "Average die area in square millimeters, key driver of manufacturing cost."
+    - name: "avg_core_area_mm2"
+      expr: AVG(CAST(core_area_mm2 AS DOUBLE))
+      comment: "Average core area in square millimeters, indicating active logic area."
+    - name: "avg_cell_utilization_pct"
+      expr: AVG(CAST(cell_utilization_pct AS DOUBLE))
+      comment: "Average cell utilization percentage, indicating how efficiently die area is used for logic."
+    - name: "avg_power_consumption_mw"
+      expr: AVG(CAST(power_consumption_mw AS DOUBLE))
+      comment: "Average power consumption in milliwatts, critical for thermal and battery life considerations."
+    - name: "avg_leakage_power_uw"
+      expr: AVG(CAST(leakage_power_uw AS DOUBLE))
+      comment: "Average leakage power in microwatts, important for standby power and battery-operated devices."
+    - name: "avg_wns_ps"
+      expr: AVG(CAST(wns_ps AS DOUBLE))
+      comment: "Average worst negative slack in picoseconds, key timing metric (negative values indicate timing violations)."
+    - name: "avg_tns_ps"
+      expr: AVG(CAST(tns_ps AS DOUBLE))
+      comment: "Average total negative slack in picoseconds, aggregate timing health metric."
+    - name: "avg_cts_skew_ps"
+      expr: AVG(CAST(cts_skew_ps AS DOUBLE))
+      comment: "Average clock tree synthesis skew in picoseconds, impacting timing margin and performance."
+    - name: "avg_ir_drop_max_mv"
+      expr: AVG(CAST(ir_drop_max_mv AS DOUBLE))
+      comment: "Average maximum IR drop in millivolts, indicating power delivery network quality."
+    - name: "avg_routing_congestion_max_pct"
+      expr: AVG(CAST(routing_congestion_max_pct AS DOUBLE))
+      comment: "Average maximum routing congestion percentage, indicating routability challenges."
+    - name: "avg_metal_fill_density_pct"
+      expr: AVG(CAST(metal_fill_density_pct AS DOUBLE))
+      comment: "Average metal fill density percentage, required for CMP uniformity in manufacturing."
+    - name: "avg_dfm_score"
+      expr: AVG(CAST(dfm_score AS DOUBLE))
+      comment: "Average design-for-manufacturing score, indicating manufacturability and yield potential."
+    - name: "avg_dft_coverage_pct"
+      expr: AVG(CAST(dft_coverage_pct AS DOUBLE))
+      comment: "Average design-for-test coverage percentage, critical for production test efficiency."
+    - name: "lvs_clean_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN lvs_clean = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of layouts passing LVS verification, critical quality gate for design correctness."
+    - name: "em_compliance_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN em_compliant = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of layouts meeting electromigration rules, ensuring long-term reliability."
+    - name: "area_efficiency_ratio"
+      expr: ROUND(AVG(CAST(core_area_mm2 AS DOUBLE) / NULLIF(CAST(die_area_mm2 AS DOUBLE), 0)), 4)
+      comment: "Ratio of core area to total die area, indicating how much of the die is used for active logic versus IO and periphery."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`design_verification_plan`
@@ -611,68 +346,65 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Verification Plan business metrics"
+  comment: "Verification planning and coverage metrics tracking test completeness, quality targets, and functional safety compliance for design validation."
   source: "`vibe_semiconductors_v1`.`design`.`verification_plan`"
   dimensions:
-    - name: "Bug Tracking Project Key"
-      expr: bug_tracking_project_key
-    - name: "Bug Tracking System"
-      expr: bug_tracking_system
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Design Type"
+    - name: "plan_status"
+      expr: plan_status
+      comment: "Status of the verification plan (e.g., draft, active, complete, approved)."
+    - name: "verification_methodology"
+      expr: verification_methodology
+      comment: "Verification methodology used (e.g., UVM, OVM, VMM, traditional testbench)."
+    - name: "design_type"
       expr: design_type
-    - name: "Dft Strategy"
-      expr: dft_strategy
-    - name: "Emulation Platform"
-      expr: emulation_platform
-    - name: "Fault Injection Campaign Planned"
-      expr: fault_injection_campaign_planned
-    - name: "Fmeda Document Reference"
-      expr: fmeda_document_reference
-    - name: "Formal Verification Tool"
+      comment: "Type of design being verified (e.g., ASIC, SoC, IP block)."
+    - name: "safety_criticality_level"
+      expr: safety_criticality_level
+      comment: "Safety criticality level (e.g., ASIL-A through ASIL-D for automotive, SIL for industrial) for functional safety requirements."
+    - name: "simulation_tool"
+      expr: simulation_tool
+      comment: "Primary simulation tool used for verification (e.g., VCS, ModelSim, Xcelium)."
+    - name: "formal_verification_tool"
       expr: formal_verification_tool
-    - name: "Fpga Prototype Platform"
-      expr: fpga_prototype_platform
-    - name: "Ip Reuse Count"
-      expr: ip_reuse_count
-    - name: "Iso26262 Asil Decomposition"
-      expr: iso26262_asil_decomposition
-    - name: "Last Updated Timestamp"
-      expr: last_updated_timestamp
-    - name: "Pdk Version"
-      expr: pdk_version
-    - name: "Plan End Date"
-      expr: plan_end_date
-    - name: "Plan Name"
-      expr: plan_name
+      comment: "Formal verification tool used (e.g., JasperGold, VC Formal) for exhaustive property checking."
+    - name: "emulation_platform"
+      expr: emulation_platform
+      comment: "Hardware emulation platform used (e.g., Palladium, Veloce, Zebu) for accelerated verification."
+    - name: "signoff_approved_flag"
+      expr: CASE WHEN signoff_approved = TRUE THEN 'Signoff Approved' ELSE 'Not Approved' END
+      comment: "Whether the verification plan has been approved for signoff."
+    - name: "plan_start_year"
+      expr: YEAR(plan_start_date)
+      comment: "Year the verification plan started for time-series analysis."
   measures:
-    - name: "Row Count"
+    - name: "total_verification_plans"
       expr: COUNT(1)
-    - name: "Distinct Verification Plan"
-      expr: COUNT(DISTINCT verification_plan_id)
-    - name: "Total Assertion Coverage Target Pct"
-      expr: SUM(assertion_coverage_target_pct)
-    - name: "Average Assertion Coverage Target Pct"
-      expr: AVG(assertion_coverage_target_pct)
-    - name: "Total Code Coverage Target Pct"
-      expr: SUM(code_coverage_target_pct)
-    - name: "Average Code Coverage Target Pct"
-      expr: AVG(code_coverage_target_pct)
-    - name: "Total Fault Coverage Target Pct"
-      expr: SUM(fault_coverage_target_pct)
-    - name: "Average Fault Coverage Target Pct"
-      expr: AVG(fault_coverage_target_pct)
-    - name: "Total Functional Coverage Target Pct"
-      expr: SUM(functional_coverage_target_pct)
-    - name: "Average Functional Coverage Target Pct"
-      expr: AVG(functional_coverage_target_pct)
-    - name: "Total Safety Mechanism Coverage Target Pct"
-      expr: SUM(safety_mechanism_coverage_target_pct)
-    - name: "Average Safety Mechanism Coverage Target Pct"
-      expr: AVG(safety_mechanism_coverage_target_pct)
-    - name: "Total Toggle Coverage Target Pct"
-      expr: SUM(toggle_coverage_target_pct)
-    - name: "Average Toggle Coverage Target Pct"
-      expr: AVG(toggle_coverage_target_pct)
+      comment: "Total number of verification plans, baseline metric for verification portfolio size."
+    - name: "avg_functional_coverage_target_pct"
+      expr: AVG(CAST(functional_coverage_target_pct AS DOUBLE))
+      comment: "Average functional coverage target percentage, indicating verification completeness goals."
+    - name: "avg_code_coverage_target_pct"
+      expr: AVG(CAST(code_coverage_target_pct AS DOUBLE))
+      comment: "Average code coverage target percentage, measuring structural verification completeness."
+    - name: "avg_assertion_coverage_target_pct"
+      expr: AVG(CAST(assertion_coverage_target_pct AS DOUBLE))
+      comment: "Average assertion coverage target percentage, indicating property-based verification depth."
+    - name: "avg_toggle_coverage_target_pct"
+      expr: AVG(CAST(toggle_coverage_target_pct AS DOUBLE))
+      comment: "Average toggle coverage target percentage, measuring signal activity coverage."
+    - name: "avg_fault_coverage_target_pct"
+      expr: AVG(CAST(fault_coverage_target_pct AS DOUBLE))
+      comment: "Average fault coverage target percentage for DFT, critical for manufacturing test quality."
+    - name: "avg_safety_mechanism_coverage_target_pct"
+      expr: AVG(CAST(safety_mechanism_coverage_target_pct AS DOUBLE))
+      comment: "Average safety mechanism coverage target percentage for functional safety compliance (e.g., ISO 26262)."
+    - name: "signoff_approval_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN signoff_approved = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of verification plans that have received signoff approval, indicating verification readiness and quality gate passage."
+    - name: "avg_coverage_target_composite"
+      expr: ROUND((AVG(CAST(functional_coverage_target_pct AS DOUBLE)) + AVG(CAST(code_coverage_target_pct AS DOUBLE)) + AVG(CAST(assertion_coverage_target_pct AS DOUBLE))) / 3.0, 2)
+      comment: "Composite average of functional, code, and assertion coverage targets, overall verification rigor indicator."
+    - name: "safety_critical_plan_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN safety_criticality_level IS NOT NULL AND safety_criticality_level != '' THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of verification plans with defined safety criticality levels, indicating functional safety focus in portfolio."
 $$;

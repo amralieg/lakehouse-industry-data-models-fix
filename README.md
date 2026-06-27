@@ -27,29 +27,21 @@ MVM ≈ 45% of ECM by table count, but retains 50% of attributes and 70% of FK r
 
 ---
 
-## v2 regeneration (agent v4.1.0)
+## v2 regeneration (agent v4.1.4)
 
-Thirteen industries were regenerated to **`v2/`** with agent **v4.1.0** using a vibe-of-version pass (ECM rebuild → MVM shrink) that applies audit-detected critical fixes (correct column types, PII tagging, removal of stub products) on top of the v1 baseline. Each lands as a `v2/` sibling next to `v1/`; the installer resolves the latest version automatically.
+Five industries are published at **`v2/`** with agent **v4.1.4** using a vibe-of-version pass (ECM rebuild → MVM shrink) that applies audit-detected critical fixes (correct column types, PII tagging, removal of stub products, denser FK linking) on top of the v1 baseline. Each lands as a `v2/` sibling next to `v1/`; the installer resolves the latest version automatically.
 
-Quality is the agent's deterministic model-quality score (0–100). VREQ precision/recall measure how many of the regeneration requirements the agent verifiably applied (precision = applied-and-verified ÷ attempted; recall = applied ÷ required).
+Quality is the agent's deterministic model-quality score (0–100), reported per flavour. Verified adherence is the physical ground-truth parity — tags, types, and metric views actually present in the installed catalog divided by those the model declares. It is the honest end-to-end number, not the agent's self-report.
 
-| Industry | ECM quality | MVM quality | VREQ precision | VREQ recall | Models |
-|---|---:|---:|---:|---:|---|
-| [Automotive](./data-models/automotive/v2/) | 63.7 | 97.4 | 65.6% | 93.4% | [ecm](./data-models/automotive/v2/ecm/) · [mvm](./data-models/automotive/v2/mvm/) |
-| [Construction](./data-models/construction/v2/) | 68.3 | 96.6 | 83.7% | 100.0% | [ecm](./data-models/construction/v2/ecm/) · [mvm](./data-models/construction/v2/mvm/) |
-| [Consumer Goods](./data-models/consumer_goods/v2/) | 65.4 | 95.0 | 83.0% | 86.8% | [ecm](./data-models/consumer_goods/v2/ecm/) · [mvm](./data-models/consumer_goods/v2/mvm/) |
-| [Health Insurance](./data-models/health_insurance/v2/) | 65.6 | 99.4 | 92.2% | 94.1% | [ecm](./data-models/health_insurance/v2/ecm/) · [mvm](./data-models/health_insurance/v2/mvm/) |
-| [Healthcare](./data-models/healthcare/v2/) | 60.4 | 94.8 | 89.4% | 95.7% | [ecm](./data-models/healthcare/v2/ecm/) · [mvm](./data-models/healthcare/v2/mvm/) |
-| [Manufacturing](./data-models/manufacturing/v2/) | 63.6 | 98.6 | 90.6% | 92.5% | [ecm](./data-models/manufacturing/v2/ecm/) · [mvm](./data-models/manufacturing/v2/mvm/) |
-| [Media & Broadcasting](./data-models/media_broadcasting/v2/) | 53.1 | 99.4 | 70.6% | 85.3% | [ecm](./data-models/media_broadcasting/v2/ecm/) · [mvm](./data-models/media_broadcasting/v2/mvm/) |
-| [NGO](./data-models/ngo/v2/) | 71.6 | 98.8 | 94.4% | 96.3% | [ecm](./data-models/ngo/v2/ecm/) · [mvm](./data-models/ngo/v2/mvm/) |
-| [Restaurants](./data-models/restaurants/v2/) | 65.7 | 94.2 | 86.7% | 93.3% | [ecm](./data-models/restaurants/v2/ecm/) · [mvm](./data-models/restaurants/v2/mvm/) |
-| [Retail](./data-models/retail/v2/) | 62.9 | 97.4 | 55.9% | 92.7% | [ecm](./data-models/retail/v2/ecm/) · [mvm](./data-models/retail/v2/mvm/) |
-| [Semiconductors](./data-models/semiconductors/v2/) | 67.3 | 94.0 | 88.2% | 96.1% | [ecm](./data-models/semiconductors/v2/ecm/) · [mvm](./data-models/semiconductors/v2/mvm/) |
-| [Travel & Hospitality](./data-models/travel_hospitality/v2/) | 72.8 | 98.4 | 74.1% | 86.2% | [ecm](./data-models/travel_hospitality/v2/ecm/) · [mvm](./data-models/travel_hospitality/v2/mvm/) |
-| [Water Utilities](./data-models/water_utilities/v2/) | 65.2 | 96.0 | 83.6% | 92.7% | [ecm](./data-models/water_utilities/v2/ecm/) · [mvm](./data-models/water_utilities/v2/mvm/) |
+| Industry | ECM quality | MVM quality | Verified adherence | Models |
+|---|---:|---:|---:|---|
+| [Construction](./data-models/construction/v2/) | 64.5 | 80.5 | 90.5% | [ecm](./data-models/construction/v2/ecm/) · [mvm](./data-models/construction/v2/mvm/) |
+| [Semiconductors](./data-models/semiconductors/v2/) | 43.6 | 68.8 | 92.2% | [ecm](./data-models/semiconductors/v2/ecm/) · [mvm](./data-models/semiconductors/v2/mvm/) |
+| [Consumer Goods](./data-models/consumer_goods/v2/) | 43.0 | 74.3 | 89.7% | [ecm](./data-models/consumer_goods/v2/ecm/) · [mvm](./data-models/consumer_goods/v2/mvm/) |
+| [Health Insurance](./data-models/health_insurance/v2/) | 51.0 | 82.2 | 84.9% | [ecm](./data-models/health_insurance/v2/ecm/) · [mvm](./data-models/health_insurance/v2/mvm/) |
+| [Travel & Hospitality](./data-models/travel_hospitality/v2/) | 56.4 | 79.4 | 82.8% | [ecm](./data-models/travel_hospitality/v2/ecm/) · [mvm](./data-models/travel_hospitality/v2/mvm/) |
 
-The four lowest-precision industries (`retail`, `automotive`, `media_broadcasting`, `travel_hospitality`) are queued for a v3 regeneration after the agent's SelfFixer landing-rate and mutator-codegen hardening lands. ECM quality scores are intentionally lower than MVM: the ECM is the broad conceptual model, the MVM is the polished, join-dense subset.
+Eight more industries (`restaurants`, `retail`, `healthcare`, `automotive`, `ngo`, `water_utilities`, `manufacturing`, `media_broadcasting`) are being re-generated on agent v4.1.5 — which hardens the connect/add-FK applier, the SelfFixer sandbox None-guard, and metric-view type reconciliation — and will land here once they clear the quality bar. ECM quality scores are intentionally lower than MVM: the ECM is the broad conceptual model, the MVM is the polished, join-dense subset.
 
 ---
 

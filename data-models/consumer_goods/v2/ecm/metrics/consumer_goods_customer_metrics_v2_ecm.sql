@@ -1,135 +1,144 @@
--- Metric views for domain: customer | Business: Consumer_Goods | Version: 2 | Generated on: 2026-06-23 23:38:27
+-- Metric views for domain: customer | Business: Consumer Goods | Version: 2 | Generated on: 2026-06-28 00:14:33
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`customer_channel_classification`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Strategic channel performance and classification metrics for trade account segmentation, distribution model analysis, and channel profitability assessment. Supports executive decisions on channel investment, pricing strategy optimization, and market segment prioritization."
+  comment: "Strategic KPI layer over the channel classification master. Provides executives and commercial leaders with visibility into channel portfolio composition, trade-promotion eligibility, OTIF targets, ordering economics, and digital/EDI readiness — all critical inputs for channel investment decisions, route-to-market strategy, and customer segmentation reviews."
   source: "`vibe_consumer_goods_v1`.`customer`.`channel_classification`"
   dimensions:
     - name: "channel_name"
       expr: channel_name
-      comment: "Primary channel identifier for grouping trade accounts and analyzing channel-specific performance"
+      comment: "Business name of the channel (e.g. Modern Trade, E-Commerce, DSD). Primary grouping dimension for all channel-level KPIs."
     - name: "channel_code"
       expr: channel_code
-      comment: "Standardized channel code for cross-system reporting and integration"
-    - name: "distribution_model"
-      expr: distribution_model
-      comment: "Distribution model type (direct, distributor, hybrid) for supply chain strategy analysis"
-    - name: "market_segment"
-      expr: market_segment
-      comment: "Market segment classification for strategic positioning and competitive analysis"
-    - name: "primary_tier"
-      expr: primary_tier
-      comment: "Primary tier classification for account prioritization and resource allocation decisions"
-    - name: "secondary_tier"
-      expr: secondary_tier
-      comment: "Secondary tier classification for granular segmentation and targeted strategy development"
-    - name: "tertiary_tier"
-      expr: tertiary_tier
-      comment: "Tertiary tier classification for detailed account stratification and micro-segmentation"
-    - name: "pricing_strategy"
-      expr: pricing_strategy
-      comment: "Pricing strategy type for margin analysis and pricing optimization decisions"
+      comment: "Short code identifying the channel. Used for filtering and cross-system reconciliation."
     - name: "channel_format"
       expr: channel_format
-      comment: "Channel format classification (retail, wholesale, e-commerce) for format-specific performance tracking"
-    - name: "applicable_region"
-      expr: applicable_region
-      comment: "Geographic region for regional performance analysis and market expansion planning"
+      comment: "Physical or digital format of the channel (e.g. Hypermarket, Convenience, Online). Enables format-level performance analysis."
+    - name: "market_segment"
+      expr: market_segment
+      comment: "Market segment the channel serves (e.g. Mass, Premium, Value). Supports segment-level investment and margin analysis."
+    - name: "distribution_model"
+      expr: distribution_model
+      comment: "How product reaches this channel (e.g. Direct, Distributor, DSD). Key dimension for supply chain and cost-to-serve analysis."
+    - name: "primary_tier"
+      expr: primary_tier
+      comment: "Primary strategic tier of the channel (e.g. Tier 1, Tier 2). Used to prioritise resource allocation and investment levels."
+    - name: "secondary_tier"
+      expr: secondary_tier
+      comment: "Secondary tier classification providing finer-grained channel stratification within the primary tier."
+    - name: "tertiary_tier"
+      expr: tertiary_tier
+      comment: "Tertiary tier for the most granular channel stratification, used in detailed route-to-market planning."
+    - name: "pricing_strategy"
+      expr: pricing_strategy
+      comment: "Pricing strategy applied to this channel (e.g. EDLP, Hi-Lo, Promotional). Informs revenue management and trade spend decisions."
     - name: "active_status"
       expr: active_status
-      comment: "Active status indicator for filtering current vs historical channel classifications"
-    - name: "edi_capable_flag"
-      expr: edi_capable_flag
-      comment: "EDI capability flag for operational efficiency analysis and automation opportunity identification"
-    - name: "pos_data_available_flag"
-      expr: pos_data_available_flag
-      comment: "POS data availability flag for demand sensing capability and sell-through visibility assessment"
-    - name: "planogram_required_flag"
-      expr: planogram_required_flag
-      comment: "Planogram requirement flag for merchandising complexity and compliance cost analysis"
+      comment: "Whether the channel classification is currently active. Filters operational views to live channels only."
+    - name: "applicable_region"
+      expr: applicable_region
+      comment: "Geographic region where this channel classification applies. Enables regional channel portfolio analysis."
+    - name: "order_frequency"
+      expr: order_frequency
+      comment: "How frequently orders are placed in this channel (e.g. Weekly, Daily). Drives replenishment planning and logistics cost modelling."
+    - name: "payment_terms_standard"
+      expr: payment_terms_standard
+      comment: "Standard payment terms for this channel (e.g. Net 30, Net 60). Informs working capital and cash-flow planning."
+    - name: "return_policy"
+      expr: return_policy
+      comment: "Return policy applicable to this channel. Relevant for reverse logistics cost and customer satisfaction analysis."
     - name: "trade_promotion_eligible_flag"
       expr: trade_promotion_eligible_flag
-      comment: "Trade promotion eligibility flag for promotional spend allocation and ROI optimization"
+      comment: "Whether this channel is eligible for trade promotions. Core filter for trade spend eligibility analysis."
     - name: "acv_eligible_flag"
       expr: acv_eligible_flag
-      comment: "ACV (All Commodity Volume) eligibility flag for distribution coverage and market penetration analysis"
+      comment: "Whether this channel is eligible for ACV (All Commodity Volume) measurement. Used in distribution and velocity reporting."
     - name: "tdp_eligible_flag"
       expr: tdp_eligible_flag
-      comment: "TDP (Total Distribution Points) eligibility flag for distribution strategy and coverage optimization"
-    - name: "effective_year"
-      expr: YEAR(effective_start_date)
-      comment: "Effective year for trend analysis and year-over-year channel evolution tracking"
-    - name: "effective_quarter"
-      expr: CONCAT('Q', QUARTER(effective_start_date), '-', YEAR(effective_start_date))
-      comment: "Effective quarter for quarterly business review and seasonal pattern analysis"
-    - name: "effective_month"
-      expr: DATE_TRUNC('MONTH', effective_start_date)
-      comment: "Effective month for monthly performance tracking and short-term trend identification"
+      comment: "Whether this channel is eligible for TDP (Total Distribution Points) measurement. Key metric for distribution coverage KPIs."
+    - name: "edi_capable_flag"
+      expr: edi_capable_flag
+      comment: "Whether the channel supports EDI order transmission. Informs digital integration investment and order automation rates."
+    - name: "pos_data_available_flag"
+      expr: pos_data_available_flag
+      comment: "Whether POS sell-out data is available for this channel. Critical for demand sensing and promotional effectiveness measurement."
+    - name: "planogram_required_flag"
+      expr: planogram_required_flag
+      comment: "Whether a planogram is required for this channel. Drives field execution and category management workload planning."
+    - name: "effective_start_date"
+      expr: effective_start_date
+      comment: "Date from which this channel classification became effective. Used for time-based trend and cohort analysis."
+    - name: "effective_end_date"
+      expr: effective_end_date
+      comment: "Date on which this channel classification expires or was retired. Used to identify channels approaching end-of-life."
   measures:
-    - name: "total_channel_classifications"
-      expr: COUNT(1)
-      comment: "Total number of channel classifications for portfolio complexity assessment and governance oversight"
-    - name: "active_channel_classifications"
-      expr: COUNT(CASE WHEN active_status = 'Active' THEN 1 END)
-      comment: "Count of active channel classifications for current operational scope and active portfolio size"
-    - name: "distinct_channels"
-      expr: COUNT(DISTINCT channel_code)
-      comment: "Number of unique channel codes for channel diversity assessment and market coverage breadth"
-    - name: "distinct_market_segments"
-      expr: COUNT(DISTINCT market_segment)
-      comment: "Number of unique market segments served for market diversification and strategic positioning analysis"
-    - name: "avg_minimum_order_quantity"
-      expr: AVG(CAST(minimum_order_quantity AS DOUBLE))
-      comment: "Average minimum order quantity across channels for working capital planning and order efficiency optimization"
-    - name: "total_minimum_order_value"
-      expr: SUM(CAST(minimum_order_quantity AS DOUBLE))
-      comment: "Total minimum order quantity commitment across all channels for capacity planning and demand forecasting"
-    - name: "avg_otif_target"
-      expr: AVG(CAST(otif_target_percentage AS DOUBLE))
-      comment: "Average OTIF (On-Time In-Full) target percentage for service level benchmarking and logistics performance standards"
-    - name: "weighted_otif_target"
-      expr: SUM(CAST(otif_target_percentage AS DOUBLE))
-      comment: "Sum of OTIF targets for aggregate service commitment assessment and operational excellence tracking"
-    - name: "avg_lead_time_days"
-      expr: AVG(CAST(lead_time_days AS DOUBLE))
-      comment: "Average lead time in days for supply chain responsiveness assessment and inventory positioning strategy"
+    - name: "total_active_channels"
+      expr: COUNT(CASE WHEN active_status = 'Active' THEN channel_classification_id END)
+      comment: "Count of currently active channel classifications. Baseline KPI for channel portfolio size; a shrinking active count signals rationalisation or market exit."
+    - name: "total_channels"
+      expr: COUNT(channel_classification_id)
+      comment: "Total count of all channel classification records regardless of status. Used as the denominator for activation-rate and eligibility-rate calculations."
+    - name: "trade_promotion_eligible_channel_count"
+      expr: COUNT(CASE WHEN trade_promotion_eligible_flag = TRUE THEN channel_classification_id END)
+      comment: "Number of channels eligible for trade promotions. Directly informs trade spend budget allocation and promotional reach decisions."
+    - name: "trade_promotion_eligibility_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN trade_promotion_eligible_flag = TRUE THEN channel_classification_id END) / NULLIF(COUNT(channel_classification_id), 0), 2)
+      comment: "Percentage of channel classifications that are trade-promotion eligible. A high rate indicates broad promotional reach; a low rate signals constrained trade investment options."
     - name: "edi_capable_channel_count"
-      expr: COUNT(CASE WHEN edi_capable_flag = true THEN 1 END)
-      comment: "Count of EDI-capable channels for automation penetration and digital integration maturity assessment"
-    - name: "edi_penetration_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN edi_capable_flag = true THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of channels with EDI capability for digital transformation progress and operational efficiency potential"
-    - name: "pos_data_available_count"
-      expr: COUNT(CASE WHEN pos_data_available_flag = true THEN 1 END)
-      comment: "Count of channels providing POS data for demand visibility coverage and sell-through analytics capability"
-    - name: "pos_visibility_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN pos_data_available_flag = true THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of channels with POS data availability for demand sensing maturity and market intelligence coverage"
-    - name: "trade_promotion_eligible_count"
-      expr: COUNT(CASE WHEN trade_promotion_eligible_flag = true THEN 1 END)
-      comment: "Count of trade promotion eligible channels for promotional investment scope and trade spend allocation planning"
-    - name: "trade_promotion_coverage_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN trade_promotion_eligible_flag = true THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of channels eligible for trade promotions for promotional reach and revenue growth opportunity assessment"
+      expr: COUNT(CASE WHEN edi_capable_flag = TRUE THEN channel_classification_id END)
+      comment: "Number of channels with EDI capability. Tracks digital order automation coverage; low counts indicate manual order processing risk and cost."
+    - name: "edi_capability_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN edi_capable_flag = TRUE THEN channel_classification_id END) / NULLIF(COUNT(channel_classification_id), 0), 2)
+      comment: "Percentage of channels that are EDI-capable. A strategic KPI for digital transformation programmes; executives track this to measure order automation progress."
+    - name: "pos_data_coverage_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN pos_data_available_flag = TRUE THEN channel_classification_id END) / NULLIF(COUNT(channel_classification_id), 0), 2)
+      comment: "Percentage of channels where POS sell-out data is available. Low coverage limits demand sensing accuracy and promotional ROI measurement — a critical data quality KPI for commercial teams."
     - name: "acv_eligible_channel_count"
-      expr: COUNT(CASE WHEN acv_eligible_flag = true THEN 1 END)
-      comment: "Count of ACV-eligible channels for distribution coverage measurement and market penetration tracking"
-    - name: "acv_coverage_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN acv_eligible_flag = true THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of channels eligible for ACV measurement for distribution effectiveness and market access assessment"
-    - name: "planogram_required_count"
-      expr: COUNT(CASE WHEN planogram_required_flag = true THEN 1 END)
-      comment: "Count of channels requiring planograms for merchandising complexity and field execution resource planning"
-    - name: "planogram_complexity_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN planogram_required_flag = true THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of channels requiring planograms for merchandising cost assessment and retail execution complexity"
-    - name: "hierarchical_channel_count"
-      expr: COUNT(CASE WHEN parent_channel_classification_id IS NOT NULL THEN 1 END)
-      comment: "Count of channels with parent relationships for organizational complexity and hierarchical structure depth"
+      expr: COUNT(CASE WHEN acv_eligible_flag = TRUE THEN channel_classification_id END)
+      comment: "Number of channels eligible for ACV measurement. Determines the scope of distribution and velocity reporting; gaps indicate blind spots in market coverage tracking."
+    - name: "tdp_eligible_channel_count"
+      expr: COUNT(CASE WHEN tdp_eligible_flag = TRUE THEN channel_classification_id END)
+      comment: "Number of channels eligible for TDP (Total Distribution Points) measurement. TDP is a core KPI for distribution coverage; this count defines the measurable universe."
+    - name: "planogram_required_channel_count"
+      expr: COUNT(CASE WHEN planogram_required_flag = TRUE THEN channel_classification_id END)
+      comment: "Number of channels requiring a planogram. Drives field execution workload and category management resource planning; high counts signal significant in-store execution investment."
+    - name: "avg_otif_target_pct"
+      expr: ROUND(AVG(CAST(otif_target_percentage AS DOUBLE)), 2)
+      comment: "Average OTIF (On-Time In-Full) target percentage across channel classifications. Reflects the aggregate service-level commitment to the channel portfolio; used in supply chain SLA negotiations and logistics performance reviews."
+    - name: "max_otif_target_pct"
+      expr: ROUND(MAX(CAST(otif_target_percentage AS DOUBLE)), 2)
+      comment: "Highest OTIF target percentage across all channel classifications. Identifies the most demanding channel from a service-level perspective, informing logistics prioritisation."
+    - name: "min_otif_target_pct"
+      expr: ROUND(MIN(CAST(otif_target_percentage AS DOUBLE)), 2)
+      comment: "Lowest OTIF target percentage across all channel classifications. Identifies channels with the most relaxed service-level requirements, useful for logistics cost optimisation."
+    - name: "avg_minimum_order_quantity"
+      expr: ROUND(AVG(CAST(minimum_order_quantity AS DOUBLE)), 2)
+      comment: "Average minimum order quantity (MOQ) across channel classifications. A key input for supply chain planning and logistics cost-per-case modelling; high MOQs indicate bulk-buying channels."
+    - name: "max_minimum_order_quantity"
+      expr: ROUND(MAX(CAST(minimum_order_quantity AS DOUBLE)), 2)
+      comment: "Maximum MOQ across all channel classifications. Identifies the channel with the largest minimum order commitment, relevant for inventory and working capital planning."
+    - name: "distinct_market_segments_covered"
+      expr: COUNT(DISTINCT market_segment)
+      comment: "Number of distinct market segments covered by the channel portfolio. A breadth-of-reach KPI; declining count signals portfolio concentration risk or market exit."
+    - name: "distinct_distribution_models_used"
+      expr: COUNT(DISTINCT distribution_model)
+      comment: "Number of distinct distribution models in use across channels. Tracks route-to-market diversity; a single dominant model signals dependency risk and cost-to-serve concentration."
+    - name: "distinct_pricing_strategies_deployed"
+      expr: COUNT(DISTINCT pricing_strategy)
+      comment: "Number of distinct pricing strategies deployed across the channel portfolio. Reflects pricing complexity; too many strategies increase revenue management overhead."
+    - name: "channel_with_pos_and_promo_eligible_count"
+      expr: COUNT(CASE WHEN pos_data_available_flag = TRUE AND trade_promotion_eligible_flag = TRUE THEN channel_classification_id END)
+      comment: "Number of channels that are both trade-promotion eligible AND have POS data available. This intersection defines the universe where promotional ROI can be accurately measured — a critical KPI for trade marketing investment governance."
+    - name: "high_service_channel_count"
+      expr: COUNT(CASE WHEN otif_target_percentage >= 95 THEN channel_classification_id END)
+      comment: "Number of channels with an OTIF target of 95% or above. Identifies the premium service tier of the channel portfolio requiring the highest supply chain reliability investment."
+    - name: "sub_channel_count"
+      expr: COUNT(CASE WHEN parent_channel_classification_id IS NOT NULL THEN channel_classification_id END)
+      comment: "Number of channel classifications that are sub-channels (i.e. have a parent). Measures hierarchy depth and complexity of the channel taxonomy; high counts may indicate over-segmentation."
     - name: "top_level_channel_count"
-      expr: COUNT(CASE WHEN parent_channel_classification_id IS NULL THEN 1 END)
-      comment: "Count of top-level channels without parent for primary channel portfolio size and strategic account segmentation"
+      expr: COUNT(CASE WHEN parent_channel_classification_id IS NULL THEN channel_classification_id END)
+      comment: "Number of top-level (root) channel classifications with no parent. Defines the primary channel architecture breadth used in executive-level channel strategy reviews."
 $$;

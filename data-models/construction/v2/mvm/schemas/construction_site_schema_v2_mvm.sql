@@ -1,5 +1,5 @@
 -- Schema for Domain: site | Business: Construction | Version: v2_mvm
--- Generated on: 2026-06-22 17:24:53
+-- Generated on: 2026-06-27 01:56:05
 
 -- ========= DATABASE =========
 CREATE DATABASE IF NOT EXISTS `vibe_construction_v1`.`site` COMMENT 'Owns daily site execution data including daily logs, production tracking, work fronts, crew assignments, site logistics, mobilization/demobilization, concrete pours, earthworks volumes, and field progress measurements. Integrates with HCSS HeavyJob for cost coding and production tracking and Procore for daily logs and field management. Supports earned value computation feeding the project domain.';
@@ -7,20 +7,21 @@ CREATE DATABASE IF NOT EXISTS `vibe_construction_v1`.`site` COMMENT 'Owns daily 
 -- ========= TABLES =========
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`site`.`work_front` (
     `work_front_id` BIGINT COMMENT 'Unique surrogate identifier for the work front record. Primary key for the work_front master entity in the site domain.',
-    `bim_model_id` BIGINT COMMENT 'Foreign key linking to design.bim_model. Business justification: Work fronts are spatially coordinated against BIM models for clash detection and 4D scheduling. BIM-based work front management is standard practice; bim_model_reference is a plain-text denormalizat',
-    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Work fronts are spatially defined by construction drawings (grid references, zone boundaries, structural elements). Site engineers assign drawing packages to work fronts for scope definition and IFC c',
+    `crew_id` BIGINT COMMENT 'Foreign key linking to workforce.crew. Business justification: A work front is assigned a primary crew for production planning, schedule performance, and HSE zone accountability. This FK drives work-front-level productivity reports and crew utilization analysis. ',
     `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Cost allocation reports require each work front to reference the central cost code for budgeting and variance analysis.',
+    `itp_id` BIGINT COMMENT 'Foreign key linking to quality.itp. Business justification: ITP governs inspection and test requirements for each work front — a mandatory QA/QC traceability requirement. The existing plain-text quality_itp_reference column is a denormalized reference that sho',
     `party_id` BIGINT COMMENT 'Foreign key linking to contract.contract_party. Business justification: Each work front is assigned a primary contract party (sub‑contractor or client) for responsibility, invoicing and performance tracking.',
-    `construction_project_id` BIGINT COMMENT 'Reference to the parent project under which this work front is executed. Enables roll-up of work front data to project-level reporting and earned value computation.',
+    `risk_assessment_id` BIGINT COMMENT 'Foreign key linking to safety.risk_assessment. Business justification: Pre-task risk assessments are conducted per work front before mobilization. Construction HSE management requires linking each work front to its governing risk assessment to verify controls are in plac',
     `site_id` BIGINT COMMENT 'Foreign key linking to site.site. Business justification: A work front belongs to a single construction site; adding work_front.site_id creates the required parent relationship and eliminates site isolation.',
-    `subcontract_id` BIGINT COMMENT 'Foreign key linking to contract.subcontract. Business justification: Work fronts are executed under specific subcontract contracts; linking enables schedule, cost and risk integration.',
-    `swms_id` BIGINT COMMENT 'Foreign key linking to safety.swms. Business justification: Each work front requires a governing SWMS before work commences — a mandatory WHS regulatory requirement. HSE auditors verify SWMS coverage per work front. swms_reference is a denormalized text fiel',
+    `swms_id` BIGINT COMMENT 'Foreign key linking to safety.swms. Business justification: WHS legislation requires an approved SWMS before work commences at any work front. This FK replaces the denormalized swms_reference text field, enabling SWMS compliance verification and audit reportin',
+    `construction_project_id` BIGINT COMMENT 'Reference to the parent construction site to which this work front belongs. Every work front must be anchored to a site.',
     `access_restriction` STRING COMMENT 'The access control classification for this work front. permit_required indicates a Permit to Work (PTW) is mandatory before entry; restricted_zone limits access to authorised personnel; exclusion_zone prohibits all non-essential access. Supports HSE compliance.. Valid values are `unrestricted|permit_required|restricted_zone|exclusion_zone`',
     `actual_crew_size` STRING COMMENT 'The actual number of direct labour workers present at this work front on the most recent reporting day. Compared against planned_crew_size to identify under-manning and productivity risks.',
     `actual_production_qty` DECIMAL(18,2) COMMENT 'Cumulative actual production quantity achieved at this work front to date, expressed in the production_unit. Sourced from HCSS HeavyJob production tracking and field measurements. Used to compute earned value.',
     `actual_start_date` DATE COMMENT 'The actual date on which work commenced at this work front. Compared against planned_start_date to compute schedule variance. Sourced from Procore daily logs or HCSS HeavyJob time tracking.',
     `area_sqm` DECIMAL(18,2) COMMENT 'Total plan area of the work front in square metres. Used as the principal quantitative measure of the resource for production rate calculations, crew density planning, and progress measurement.',
     `created_timestamp` TIMESTAMP COMMENT 'The timestamp when this work front record was first created in the system. Provides the audit trail creation marker for data lineage and compliance purposes.',
+    `current_phase` STRING COMMENT 'The current construction phase being executed at this work front (e.g., Earthworks, Foundation, Structural, MEP Rough-In, Finishing, Commissioning). Aligns with the project schedule phase hierarchy in Oracle Primavera P6. [ENUM-REF-CANDIDATE: earthworks|foundation|structural|mep_rough_in|finishing|commissioning|handover — promote to reference product]',
     `demobilization_date` DATE COMMENT 'The date on which all resources were demobilized from this work front and active work ceased. Null if the work front is still active. Used to calculate work front duration and close out cost codes.',
     `elevation_m` DECIMAL(18,2) COMMENT 'Reference elevation of the work front above mean sea level in metres. Critical for earthworks volume calculations, drainage design, and structural level control.',
     `environmental_sensitivity` STRING COMMENT 'Classification of the environmental sensitivity of the work front location. sensitive and protected areas require additional environmental controls and monitoring per ISO 14001 and EPA requirements. remediation_required indicates contaminated ground conditions.. Valid values are `standard|sensitive|protected|remediation_required`',
@@ -53,16 +54,12 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`site`.`work_front` (
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`site`.`daily_log` (
     `daily_log_id` BIGINT COMMENT 'Unique surrogate identifier for the daily site log record. Primary key for the daily_log data product in the Databricks Silver Layer.',
-    `contract_milestone_id` BIGINT COMMENT 'Foreign key linking to contract.contract_milestone. Business justification: Daily logs record the achievement of contract milestones and delay events affecting milestone dates. Superintendents link daily log entries to contract milestones for EOT substantiation and milestone ',
-    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Daily logs are aggregated by cost center for project cost performance reporting. Construction cost engineers produce daily cost center burn reports from site logs. No existing cost_center FK on daily_',
-    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Daily Log reports reference the specific design drawing used for the days work; required for progress audit and compliance.',
-    `goods_receipt_id` BIGINT COMMENT 'Foreign key linking to procurement.goods_receipt. Business justification: Daily delivery reconciliation process: site supervisors must confirm that GR postings in procurement match deliveries recorded in the daily log. This link enables three-way match verification and supp',
-    `construction_project_id` BIGINT COMMENT 'Reference to the project this daily log belongs to. Links the site log to the master project record for earned value and cost control reporting.',
-    `site_id` BIGINT COMMENT 'Foreign key linking to site.site. Business justification: A daily log is recorded for a specific construction site. daily_log currently has no FK to site.site despite being the official daily site log. Adding site_id establishes the direct parent-child relat',
-    `toolbox_meeting_id` BIGINT COMMENT 'Foreign key linking to safety.toolbox_meeting. Business justification: Daily logs record whether a TBM was conducted (tbm_conducted_flag) but have no FK to the actual toolbox_meeting record. Site supervisors and HSE managers need to verify TBM completion against daily ',
+    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Daily logs record cost-impacting events (cost_impact_flag) and reference cost codes for daily cost accrual reporting. Construction site supervisors post daily costs against cost codes; the plain-text ',
+    `construction_project_id` BIGINT COMMENT 'Reference to the physical construction site or work front location where this daily log was recorded. Supports multi-site project tracking.',
+    `phase_id` BIGINT COMMENT 'Foreign key linking to project.phase. Business justification: Daily site logs are produced within a specific project phase. Phase-level reporting of manpower, production, and delay events is a standard construction management report used for phase performance re',
+    `site_id` BIGINT COMMENT 'Foreign key linking to site.site. Business justification: A daily log is recorded for a specific construction site. While daily_log has project-level FKs (daily_construction_project_id, daily_site_construction_project_id), it lacks a direct FK to the site en',
     `approved_timestamp` TIMESTAMP COMMENT 'Date and time when the daily log was formally approved by the project manager or designated reviewer. Marks the transition from submitted to approved status in the log lifecycle.',
     `concrete_volume_m3` DECIMAL(18,2) COMMENT 'Total volume of concrete poured on site for the log date in cubic metres. Critical production metric for structural progress tracking, QA/QC compliance (ITP), and earned value computation. Sourced from Procore and HCSS HeavyJob.',
-    `cost_code` STRING COMMENT 'HCSS HeavyJob cost code assigned to the primary work activity recorded in this daily log. Enables direct integration between field production data and job costing in Viewpoint Vista and SAP S/4HANA Project Systems.',
     `cost_impact_flag` BOOLEAN COMMENT 'Indicates whether any event recorded in this daily log has been flagged as having a potential cost impact requiring a Change Order (CO) or variation claim. True triggers cost impact assessment and contract administration workflow.',
     `created_timestamp` TIMESTAMP COMMENT 'Date and time when this daily log record was first created in the system. Audit trail timestamp for data lineage and Silver Layer ingestion tracking.',
     `direct_labour_count` STRING COMMENT 'Number of direct (GC-employed) workers on site for the log date, excluding subcontractor personnel. Used for workforce planning, payroll reconciliation, and labour productivity benchmarking.',
@@ -104,20 +101,24 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`site`.`daily_log` (
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`site`.`production_entry` (
     `production_entry_id` BIGINT COMMENT 'Unique surrogate identifier for each granular production tracking record in the silver layer lakehouse. Primary key for the production_entry data product.',
+    `activity_id` BIGINT COMMENT 'Reference to the scheduled activity (Work Breakdown Structure task) against which production quantities are being reported. Sourced from Oracle Primavera P6 activity planning module.',
+    `asset_id` BIGINT COMMENT 'Foreign key linking to equipment.asset. Business justification: Production reports require linking installed quantities to the specific equipment used for cost allocation and utilization analysis.',
+    `commercial_change_order_id` BIGINT COMMENT 'Foreign key linking to contract.commercial_change_order. Business justification: Production entries executed under a variation/change order must be traceable to the governing commercial_change_order for variation cost tracking and payment. production_entry.change_order_reference i',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project under which this production entry is recorded. Links production quantities to the project domain for earned value computation.',
     `cost_code_id` BIGINT COMMENT 'Reference to the cost code used to classify and track the financial dimension of this production entry. Sourced from HCSS HeavyJob cost coding module and aligned with SAP S/4HANA job costing.',
     `crew_id` BIGINT COMMENT 'Reference to the crew or gang assigned to execute the production work for this entry. Links to workforce domain for labor cost and productivity analysis.',
     `daily_log_id` BIGINT COMMENT 'Foreign key linking to site.daily_log. Business justification: production_entry contains a daily_log_reference string that points to a daily log; adding a proper FK (daily_log_id) normalizes the model and eliminates the redundant column.',
-    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Production entries record quantities installed against specific drawing revisions — essential for as-built documentation, progress payment claims, and QA sign-off. Contract administrators require draw',
-    `material_catalog_id` BIGINT COMMENT 'Foreign key linking to procurement.material_catalog. Business justification: Material consumption tracking: production entries record installed quantities of specific materials. Linking to material_catalog enables budget vs actual material usage reporting, procurement lead-tim',
-    `permit_to_work_id` BIGINT COMMENT 'Foreign key linking to safety.permit_to_work. Business justification: Production entries record work performed under high-risk conditions requiring an active PTW. Regulatory compliance and HSE audits require verifying that production was only recorded against valid, app',
-    `progress_update_id` BIGINT COMMENT 'Foreign key linking to schedule.progress_update. Business justification: Production entries (installed quantities, production rates) are the quantitative basis for schedule progress updates. The progress_update BCWP and percent_complete are derived from production_entry re',
+    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Production entries record installed quantities against specific drawing elements (structure element, grid reference). Quantity surveyors verify production claims against the current IFC drawing revisi',
+    `goods_issue_id` BIGINT COMMENT 'Foreign key linking to material.goods_issue. Business justification: Production entries record material consumption on site. Linking to goods_issue enables reconciliation between warehouse-issued quantities and actually installed quantities, supporting material waste a',
+    `itp_id` BIGINT COMMENT 'Foreign key linking to quality.itp. Business justification: Production entries record work performed under a specific ITP. This link enables as-built quality traceability — confirming that installed quantities were produced under an approved ITP, a contractual',
+    `master_id` BIGINT COMMENT 'Foreign key linking to material.master. Business justification: Production entries track installed quantities of specific materials. Linking to material master enables material consumption vs. budget analysis, earned value reporting by material type, and specifica',
+    `ncr_id` BIGINT COMMENT 'Foreign key linking to quality.ncr. Business justification: Production entries flagged as rework (is_rework=true) must reference the NCR that triggered the rework. This link enables cost-of-quality reporting by tracing rework quantities and labour hours back t',
+    `scope_of_work_id` BIGINT COMMENT 'Foreign key linking to contract.scope_of_work. Business justification: Production entries record installed quantities against contractual scope items. Linking to scope_of_work enables earned value reporting, progress-to-contract-quantity tracking, and payment certificate',
     `work_front_id` BIGINT COMMENT 'Reference to the specific work front or work zone on site where production was executed. Enables spatial breakdown of production progress across the site.',
     `approved_by` STRING COMMENT 'Name or identifier of the site engineer, superintendent, or project manager who approved this production entry. Required for audit trail and progress billing authorization.',
     `approved_timestamp` TIMESTAMP COMMENT 'The date and time when this production entry was formally approved by the authorized reviewer. Marks the transition from submitted to approved status and triggers downstream earned value and billing computations.',
     `budgeted_production_rate` DECIMAL(18,2) COMMENT 'The planned or budgeted production rate for this activity and cost code expressed as units per labor-hour. Sourced from the project estimate and HCSS HeavyJob budget. Used to compute production efficiency variance against actual production_rate.',
     `budgeted_quantity` DECIMAL(18,2) COMMENT 'The total budgeted or planned quantity for this activity and cost code as established in the project budget and BOQ (Bill of Quantities). Used as the denominator for percent complete calculation and EVM (Earned Value Management) analysis.',
-    `change_order_reference` STRING COMMENT 'Reference number of the approved Change Order (CO) that authorized a scope or quantity revision reflected in this production entry. Links production tracking to contract administration for cost and schedule impact analysis.',
     `cost_code` STRING COMMENT 'The alphanumeric cost code string from HCSS HeavyJob used to classify the type of work for job costing and budget tracking. Aligns with SAP S/4HANA cost element structure.',
     `created_timestamp` TIMESTAMP COMMENT 'The date and time when this production entry record was first created in the source system (HCSS HeavyJob). Serves as the audit trail creation marker for data lineage and compliance purposes.',
     `crew_size` STRING COMMENT 'The number of workers (headcount) assigned to this production activity on the entry date. Used for labor productivity analysis, crew efficiency benchmarking, and workforce planning.',
@@ -129,9 +130,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`site`.`production_entry` (
     `installed_quantity` DECIMAL(18,2) COMMENT 'The actual quantity of work physically installed or completed during the entry date for this activity and cost code. This is the primary production measurement used to compute earned value and progress billing. Expressed in the unit of measure defined by unit_of_measure.',
     `is_baseline_revision` BOOLEAN COMMENT 'Indicates whether this production entry reflects a revision to the baseline budgeted quantity due to an approved Change Order (CO) or scope change. When true, the budgeted_quantity reflects the revised baseline.',
     `is_rework` BOOLEAN COMMENT 'Indicates whether this production entry represents rework (corrective re-execution of previously completed work) rather than new production. Rework quantities are tracked separately for quality cost analysis and NCR (Non-Conformance Report) linkage.',
-    `itp_reference` STRING COMMENT 'Reference to the Inspection and Test Plan (ITP) checkpoint associated with this production entry. Confirms that quality hold points or witness points have been satisfied before production quantities are accepted for earned value credit.',
     `labor_hours` DECIMAL(18,2) COMMENT 'Total labor hours expended by the crew on this production activity for the entry date. Includes all direct labor hours charged to this cost code. Used as the denominator for production rate calculation and labor cost analysis.',
-    `ncr_reference` STRING COMMENT 'Reference number of the Non-Conformance Report (NCR) associated with this production entry when is_rework is true. Enables traceability between rework production and quality non-conformances for QA/QC reporting.',
     `percent_complete` DECIMAL(18,2) COMMENT 'The percentage of the total budgeted quantity that has been physically installed as of this entry date, calculated as (cumulative_quantity / budgeted_quantity) × 100. Feeds schedule performance index (SPI) and earned value computation in the project domain.',
     `production_rate` DECIMAL(18,2) COMMENT 'The measured production rate for this entry expressed as units of work completed per labor-hour (e.g., CY/hr, LF/hr). Calculated from installed_quantity divided by total labor hours. Used for productivity benchmarking, crew efficiency analysis, and future bid estimation.',
     `production_type` STRING COMMENT 'Classification of the type of construction production activity being tracked. Enables domain-specific productivity benchmarking and reporting across earthworks, concrete, structural, MEP (Mechanical Electrical and Plumbing), and other work categories. [ENUM-REF-CANDIDATE: earthworks|concrete|structural_steel|paving|MEP|formwork|rebar|masonry|finishing|demolition|other — promote to reference product]',
@@ -142,6 +141,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`site`.`production_entry` (
     `temperature_c` DECIMAL(18,2) COMMENT 'Recorded ambient temperature in degrees Celsius at the work front on the entry date. Used to assess weather-related productivity impacts, validate concrete pour conditions per ACI standards, and support EOT (Extension of Time) claims.',
     `unit_of_measure` STRING COMMENT 'The unit of measure applicable to the installed_quantity and budgeted_quantity fields (e.g., CY for cubic yards, LF for linear feet, SF for square feet, EA for each, TON, M3, M2). Sourced from the BOQ (Bill of Quantities) and HCSS HeavyJob. [ENUM-REF-CANDIDATE: CY|LF|SF|EA|TON|M3|M2|LM|KG|HR — promote to reference product]',
     `updated_timestamp` TIMESTAMP COMMENT 'The date and time when this production entry record was last modified. Tracks revisions to production quantities, status changes, or corrections. Used for data lineage and change audit trail.',
+    `wbs_code` STRING COMMENT 'The Work Breakdown Structure code identifying the hierarchical position of the work item within the project scope. Enables roll-up of production quantities to WBS summary levels for EVM reporting.',
     `weather_condition` STRING COMMENT 'The prevailing weather condition on site during the production entry date. Recorded to support analysis of weather impacts on productivity, substantiate Extension of Time (EOT) claims, and validate production rate variances. [ENUM-REF-CANDIDATE: clear|cloudy|rain|heavy_rain|snow|fog|extreme_heat|wind — 8 candidates stripped; promote to reference product]',
     `work_front_location` STRING COMMENT 'Descriptive location identifier for the work front or zone where production was executed (e.g., Zone A — Grid 1-5, Pier 3 Foundation, Runway 2 Subbase). Supports spatial analysis and site logistics planning.',
     `work_item_description` STRING COMMENT 'Human-readable description of the specific work item or scope of work being tracked in this production entry (e.g., Concrete pour — Column Grid A1-A5, Earthworks cut — Zone 3). Sourced from BOQ (Bill of Quantities) or activity description.',
@@ -153,16 +153,15 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`site`.`crew_deployment` (
     `activity_id` BIGINT COMMENT 'Reference to the scheduled activity (Work Breakdown Structure task) from Oracle Primavera P6 to which this crew is assigned. Enables schedule performance tracking and earned value computation.',
     `asset_id` BIGINT COMMENT 'Foreign key linking to equipment.asset. Business justification: Crew deployment plans include equipment assigned to each crew; needed for resource planning and equipment utilisation tracking.',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project under which this crew deployment is recorded. Links deployment records to project-level earned value and cost control.',
-    `crew_id` BIGINT COMMENT 'Foreign key linking to workforce.crew. Business justification: Daily crew deployment records must reference the crew master for productivity tracking, payroll reconciliation, and HSE reporting. crew_code and crew_name are denormalized from workforce.crew. Every c',
+    `crew_id` BIGINT COMMENT 'Foreign key linking to workforce.crew. Business justification: Daily crew deployment records must reference the crew master for labor cost allocation, productivity benchmarking, and HSE accountability reporting. crew_code and crew_name are denormalized from workf',
     `daily_log_id` BIGINT COMMENT 'Foreign key linking to site.daily_log. Business justification: crew_deployment records reference a daily log via the string field daily_log_reference; converting to a proper FK (daily_log_id) enforces referential integrity and removes the redundant string column.',
     `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Crew deployment cost tracking uses finance cost codes to aggregate labor costs per activity for payroll and project costing.',
-    `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: Lead foreman HSE accountability, certification compliance checks, and supervisory payroll reporting require linking the foreman to the craft_worker master. Role-prefix lead_foreman_ used because con',
-    `phase_id` BIGINT COMMENT 'Foreign key linking to project.phase. Business justification: Crew deployment is planned and reported by project phase for phase-level manpower histograms and resource leveling. Phase-gate reviews require labor deployment data aggregated per phase.',
-    `purchase_order_id` BIGINT COMMENT 'Foreign key linking to procurement.purchase_order. Business justification: Subcontractor crew deployments are governed by subcontract purchase orders. Linking crew_deployment to purchase_order enables subcontractor cost tracking, progress payment certification, and verificat',
-    `subcontract_id` BIGINT COMMENT 'Foreign key linking to contract.subcontract. Business justification: Subcontractor crew deployments are governed by a subcontract that specifies labour obligations, rates, and compliance requirements. Linking crew_deployment to subcontract enables subcontractor labour ',
-    `swms_id` BIGINT COMMENT 'Foreign key linking to safety.swms. Business justification: Every crew deployment requires an approved SWMS for the work activity — a WHS Act obligation. HSE compliance reports verify each deployment had a valid SWMS. swms_reference is a denormalized text fi',
-    `toolbox_meeting_id` BIGINT COMMENT 'Foreign key linking to safety.toolbox_meeting. Business justification: Toolbox meetings are conducted at the start of each crew deployment shift. hse_toolbox_meeting_held is a boolean flag with no traceability to the actual TBM record. HSE compliance reporting requires',
-    `wbs_element_id` BIGINT COMMENT 'Foreign key linking to project.wbs_element. Business justification: Crew deployment labor costs are charged to WBS elements for cost account reconciliation. crew_deployment has wbs_code as denormalized text; proper FK enables WBS-level labor cost reporting and times',
+    `fleet_assignment_id` BIGINT COMMENT 'Foreign key linking to equipment.fleet_assignment. Business justification: Crew and equipment are co-deployed on the same work front. Linking crew_deployment to fleet_assignment enables joint cost allocation, productivity reporting, and utilization analysis — a standard HCSS',
+    `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: HSE toolbox meeting accountability, permit-to-work sign-off, and daily deployment records require identifying the specific craft_worker acting as lead foreman. lead_foreman_name is a denormalized text',
+    `permit_to_work_id` BIGINT COMMENT 'Foreign key linking to safety.permit_to_work. Business justification: High-risk crew deployments (confined space, hot work, elevated work) require an active PTW. This FK replaces the denormalized permit_to_work_number text field, enabling PTW compliance verification per',
+    `vendor_id` BIGINT COMMENT 'Foreign key linking to procurement.vendor. Business justification: Subcontractor crew payment verification and vendor performance management require linking each subcontractor crew deployment to the supplying vendor. `is_subcontractor_crew` flag confirms this is a re',
+    `swms_id` BIGINT COMMENT 'Foreign key linking to safety.swms. Business justification: WHS regulations require crew acknowledgement of the applicable SWMS before deployment. This FK replaces the denormalized swms_reference text field, enabling compliance verification that each deployed ',
+    `toolbox_meeting_id` BIGINT COMMENT 'Foreign key linking to safety.toolbox_meeting. Business justification: Toolbox meetings are conducted immediately before crew deployments begin high-risk work. Linking the specific TBM to the deployment enables HSE compliance reporting on TBM frequency per crew and suppo',
     `work_front_id` BIGINT COMMENT 'Mandatory reference to the work front (spatial zone or work face) to which this crew is deployed. Establishes the spatial allocation of the crew on site for the given date.',
     `actual_hours` DECIMAL(18,2) COMMENT 'Total man-hours actually worked by the crew on this deployment date, as recorded in HCSS HeavyJob time tracking. Compared against planned_hours to compute productivity variance and feed EVM calculations.',
     `actual_production_qty` DECIMAL(18,2) COMMENT 'Actual quantity of work output achieved by the crew on this deployment date, as recorded in HCSS HeavyJob production tracking. Compared against planned_production_qty for productivity analysis and earned value computation.',
@@ -179,7 +178,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`site`.`crew_deployment` (
     `is_weather_impacted` BOOLEAN COMMENT 'Indicates whether adverse weather conditions materially impacted crew productivity or caused a work stoppage on this deployment date (True) or not (False). Supports Extension of Time (EOT) and delay claim substantiation.',
     `mobilization_status` STRING COMMENT 'Indicates the mobilization lifecycle stage of the crew relative to the project site. Tracks whether the crew is in the process of mobilizing, fully on site, demobilizing, or has fully demobilized. Supports site logistics planning.. Valid values are `mobilizing|on_site|demobilizing|demobilized`',
     `overtime_hours` DECIMAL(18,2) COMMENT 'Number of overtime hours worked by the crew beyond the standard shift duration on this deployment date. Sourced from HCSS HeavyJob payroll records. Feeds Viewpoint Vista payroll and job costing.',
-    `permit_to_work_number` STRING COMMENT 'Reference number of the Permit to Work (PTW) issued for this crew deployment, where the work activity requires a formal permit (e.g., hot work, confined space, excavation). Sourced from Intelex HSE management system.',
     `planned_hours` DECIMAL(18,2) COMMENT 'Total man-hours planned for this crew deployment on the given date, as scheduled in Oracle Primavera P6. Used as the baseline for earned value computation and productivity variance analysis.',
     `planned_production_qty` DECIMAL(18,2) COMMENT 'Target quantity of work output planned for this crew deployment (e.g., cubic metres of concrete, linear metres of pipe, tonnes of steel). Defined in HCSS HeavyJob production tracking against the cost code.',
     `ppe_compliance` BOOLEAN COMMENT 'Indicates whether all crew members were observed to be wearing required Personal Protective Equipment (PPE) at the start of this deployment (True) or a non-compliance was recorded (False). Sourced from Procore or Intelex field inspection.',
@@ -191,27 +189,20 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`site`.`crew_deployment` (
     `shift_type` STRING COMMENT 'Classification of the work shift for this deployment (day, night, swing, or weekend). Drives overtime calculations, HSE fatigue management, and payroll processing.. Valid values are `day|night|swing|weekend`',
     `source_record_reference` STRING COMMENT 'The native record identifier from the originating source system (HCSS HeavyJob or Procore) for this crew deployment entry. Enables reverse traceability from the Silver layer back to the operational system of record.',
     `updated_timestamp` TIMESTAMP COMMENT 'Date and time when this crew deployment record was last modified in the data platform. Supports incremental data processing, audit trails, and change detection in the Silver layer. Format: yyyy-MM-ddTHH:mm:ss.SSSXXX.',
+    `wbs_code` STRING COMMENT 'Work Breakdown Structure code from Oracle Primavera P6 identifying the project deliverable or work package to which this crew deployment is charged. Supports earned value management (EVM) computation.',
     `weather_condition` STRING COMMENT 'Prevailing weather condition recorded on site for this deployment date, as captured in the Procore daily log. Impacts productivity analysis, delay claims, and Extension of Time (EOT) documentation. [ENUM-REF-CANDIDATE: clear|cloudy|rain|heavy_rain|wind|fog|snow|extreme_heat — 8 candidates stripped; promote to reference product]',
     CONSTRAINT pk_crew_deployment PRIMARY KEY(`crew_deployment_id`)
 ) COMMENT 'Daily assignment record linking a named crew or gang to a specific work front, activity, and cost code for a given date. Captures crew type (civil, MEP, concrete, steel erection), crew size, lead foreman, shift start/end times, overtime flag, productivity notes, and planned vs actual hours. Sourced from HCSS HeavyJob time tracking. Holds mandatory FK to work_front for spatial allocation. Distinct from workforce domain employee records — this entity tracks the operational deployment of crews to site activities, not individual labor records.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`site`.`concrete_pour` (
     `concrete_pour_id` BIGINT COMMENT 'Unique system-generated identifier for each concrete pour event on site. Primary key for the concrete_pour data product.',
-    `batch_lot_id` BIGINT COMMENT 'Foreign key linking to material.batch_lot. Business justification: Concrete pours consume a specific batch/lot of concrete mix. Linking pour to batch_lot enables QA traceability from structural element back to batch test results and conformance certificates — a manda',
-    `construction_project_id` BIGINT COMMENT 'Reference to the construction project under which this concrete pour event is executed.',
-    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Concrete pour records must be linked to the structural drawing defining pour locations for inspection and handover.',
+    `vendor_id` BIGINT COMMENT 'Foreign key linking to procurement.vendor. Business justification: Concrete quality traceability and NCR management require identifying which registered vendor supplied each batch. The existing `batch_plant_name` is a denormalized vendor name. Supplier performance re',
+    `crew_id` BIGINT COMMENT 'Foreign key linking to workforce.crew. Business justification: The crew performing a concrete pour drives labor cost allocation to the pour, productivity benchmarking (m³/crew-hour), and quality accountability. The existing FK covers only the supervisor; the exec',
     `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Concrete pour entries are charged to specific cost codes; linking enables accurate cost tracking and progress billing.',
-    `goods_receipt_id` BIGINT COMMENT 'Foreign key linking to procurement.goods_receipt. Business justification: Ready-mix concrete deliveries generate goods receipts in procurement. Linking concrete_pour to goods_receipt enables reconciliation of poured volumes against received volumes per GR, supporting invoic',
     `itp_id` BIGINT COMMENT 'Reference to the Inspection and Test Plan (ITP) record in the quality domain governing the quality hold and inspection requirements for this pour.',
-    `master_id` BIGINT COMMENT 'Foreign key linking to material.master. Business justification: Each concrete pour uses an approved mix design that is a material master record. Role-prefix mix_design_ used because concrete_pour already links to batch_lot (same domain). Links pour to approved m',
-    `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: REQUIRED: Concrete pour supervision is assigned to a qualified foreman; FK supports QC, safety audit trails and traceability of pour responsibility.',
+    `master_id` BIGINT COMMENT 'Foreign key linking to material.master. Business justification: Concrete pour records reference a specific mix design/material specification. Linking to material master enables specification compliance verification (specified_strength_mpa vs. master spec), conform',
     `daily_log_id` BIGINT COMMENT 'Reference identifier of the Procore daily log entry in which this pour event was recorded. Enables cross-system traceability between the lakehouse silver layer and the Procore source system.',
-    `project_milestone_id` BIGINT COMMENT 'Foreign key linking to project.project_milestone. Business justification: Concrete pours are milestone-triggering events (e.g., first floor slab pour complete triggers a payment milestone). Linking pour records to milestones enables milestone payment certification backed ',
-    `submittal_id` BIGINT COMMENT 'Foreign key linking to design.design_submittal. Business justification: Concrete mix design submittals must be approved before any pour commences — a regulatory and contractual QA requirement. Linking each pour to its approved mix design submittal enables pour-authorizati',
-    `swms_id` BIGINT COMMENT 'Foreign key linking to safety.swms. Business justification: Concrete pours are high-risk activities requiring a specific SWMS (formwork, placement, confined space). HSE compliance audits and incident investigations require traceability from each pour to its go',
-    `technical_specification_id` BIGINT COMMENT 'Foreign key linking to design.technical_specification. Business justification: Concrete pours are executed and inspected against technical specifications defining mix design, specified strength, curing methods, and testing requirements. QA/QC inspectors verify pour compliance ag',
-    `vendor_id` BIGINT COMMENT 'Foreign key linking to procurement.vendor. Business justification: Ready-mix supplier performance tracking per pour: construction QC and procurement teams track on-time delivery, slump compliance, and defect rates by supplier. batch_plant_name is a denormalized vendo',
-    `work_front_id` BIGINT COMMENT 'Foreign key linking to site.work_front. Business justification: A concrete pour event occurs at a specific work front (zone, area, or structural face). concrete_pour has grid_reference and structure_element as string descriptors but no FK to the work_front master ',
+    `work_front_id` BIGINT COMMENT 'Foreign key linking to site.work_front. Business justification: A concrete pour event occurs at a specific work front (zone, area, or face on site). concrete_pour has grid_reference and structure_element as string descriptors but no FK to the work_front entity. Ad',
     `ambient_temperature_c` DECIMAL(18,2) COMMENT 'Recorded ambient air temperature in degrees Celsius at the time of the pour. Critical for hot and cold weather concreting compliance, curing regime decisions, and QA/QC records.',
     `concrete_temperature_c` DECIMAL(18,2) COMMENT 'Temperature of the fresh concrete measured at point of delivery (truck discharge), in degrees Celsius. Must comply with specification limits for hot/cold weather concreting.',
     `created_timestamp` TIMESTAMP COMMENT 'Date and time when this concrete pour record was first created in the system. Used for audit trail, data lineage, and silver layer ingestion tracking.',
@@ -222,7 +213,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`site`.`concrete_pour` (
     `formwork_drawing_ref` STRING COMMENT 'Reference number of the approved formwork or structural drawing used for this pour, as registered in Autodesk BIM 360 or Aconex document management. Provides design traceability.',
     `grid_reference` STRING COMMENT 'Structural grid reference (e.g., A3-B4) or coordinate reference identifying the precise location of the pour on the site drawing or BIM model. Enables spatial traceability and clash detection correlation.',
     `hcss_production_code` STRING COMMENT 'Reference identifier of the HCSS HeavyJob production tracking record associated with this pour event. Enables cross-system traceability for cost coding and production rate analysis.',
-    `ncr_number` STRING COMMENT 'Reference number of the Non-Conformance Report (NCR) raised against this pour event if a quality non-conformance was identified. Null if no NCR has been raised.',
     `placement_method` STRING COMMENT 'Method used to place the concrete into the formwork. Affects production rate, quality, and equipment resource planning. Examples: pump (boom pump or line pump), crane and bucket, conveyor belt, direct chute.. Valid values are `pump|crane_bucket|conveyor|direct_chute|other`',
     `pour_date` DATE COMMENT 'Calendar date on which the concrete pour was executed on site. Used for daily log correlation, schedule progress reporting, and curing period calculations.',
     `pour_end_time` TIMESTAMP COMMENT 'Date and time when the last concrete delivery was placed and finishing operations completed, marking the end of the pour event. Used for duration calculation and curing start time.',
@@ -250,19 +240,19 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`site`.`concrete_pour` (
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`site`.`field_progress` (
     `field_progress_id` BIGINT COMMENT 'Unique surrogate identifier for each field progress measurement record in the silver layer lakehouse. Primary key for the field_progress data product.',
-    `bim_model_id` BIGINT COMMENT 'Foreign key linking to design.bim_model. Business justification: BIM-based progress tracking links field measurements to specific BIM model elements for 4D/5D reporting. bim_element_reference is a plain-text denormalization; a proper FK to bim_model enables BIM-i',
     `construction_project_id` BIGINT COMMENT 'Reference to the parent project under which this field progress measurement is captured. Enables project-level aggregation of earned value and progress reporting.',
     `cost_code_id` BIGINT COMMENT 'Reference to the HCSS HeavyJob cost code associated with this progress measurement. Enables cost-to-progress reconciliation and production rate analysis by cost code.',
-    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Field progress measurements are taken against specific drawing revisions (IFC drawings). Progress reports and as-built documentation require knowing which drawing revision governed the measured work —',
-    `earned_value_record_id` BIGINT COMMENT 'Foreign key linking to finance.earned_value_record. Business justification: EVM reporting directly consumes field_progress percent_complete and installed quantities to compute BCWP. Construction cost engineers expect field progress measurements to be traceable to the earned v',
+    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Field progress measurements are taken against specific drawing elements. Quantity surveyors and engineers reference the current IFC drawing to validate measured quantities. bim_element_reference is a ',
+    `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: Progress measurement certification, ITP sign-off, and payment claim substantiation require traceability from field_progress records to the specific craft_worker field engineer who performed the measur',
     `itp_line_id` BIGINT COMMENT 'Reference to the ITP (Inspection and Test Plan) checkpoint that must be satisfied before this progress measurement can be approved. Ensures QA/QC hold points are cleared prior to progress being recognised in EVM.',
-    `permit_to_work_id` BIGINT COMMENT 'Foreign key linking to safety.permit_to_work. Business justification: Field progress measurements for high-risk work scopes must reference the active PTW authorising that work. Regulatory compliance requires demonstrating that progress was only recorded under valid perm',
+    `milestone_id` BIGINT COMMENT 'Foreign key linking to project.project_milestone. Business justification: Field progress measurements are submitted against contractual milestones for payment certification and milestone completion sign-off. The milestone payment certification process — a named contractual ',
+    `ncr_id` BIGINT COMMENT 'Foreign key linking to quality.ncr. Business justification: Field progress measurements can be rejected or adjusted due to NCRs affecting installed quantities. The existing plain-text ncr_reference should be a proper FK to enable earned value reporting that ex',
     `daily_log_id` BIGINT COMMENT 'The source system identifier of the Procore daily log entry from which this field progress measurement was derived or linked. Enables traceability back to the originating daily log record in Procore for audit and reconciliation purposes.',
     `production_entry_id` BIGINT COMMENT 'The source system identifier of the HCSS HeavyJob production tracking record associated with this field progress measurement. Enables reconciliation between field production data and cost coding in HeavyJob.',
-    `progress_billing_id` BIGINT COMMENT 'Foreign key linking to finance.progress_billing. Business justification: Progress billing certification process: payment applications reference specific field progress measurements as substantiation for the current_period_claim. Contract administrators and quantity surveyo',
-    `progress_update_id` BIGINT COMMENT 'Foreign key linking to schedule.progress_update. Business justification: Field progress measurements are the formal input to schedule progress updates in the standard construction progress reporting workflow: field measurement → schedule update → EVM report. This link enab',
-    `project_milestone_id` BIGINT COMMENT 'Foreign key linking to project.project_milestone. Business justification: Field progress measurements are submitted as evidence for milestone payment claims. Contract administrators link field progress records to payment milestones to substantiate milestone completion and t',
-    `work_front_id` BIGINT COMMENT 'Foreign key linking to site.work_front. Business justification: field_progress contains a string column named work_front which is a denormalized text reference to the work_front entity. Adding work_front_id as a proper FK to site.work_front normalizes this relat',
+    `schedule_baseline_id` BIGINT COMMENT 'Foreign key linking to schedule.schedule_baseline. Business justification: EVM period reporting requires field_progress.bcwp to reference the specific schedule_baseline providing the bcws denominator. Without this FK, SPI and schedule variance calculations are ambiguous when',
+    `scope_of_work_id` BIGINT COMMENT 'Foreign key linking to contract.scope_of_work. Business justification: Field progress measurements (percent complete, installed quantities) are taken against specific contractual scope items. This link is essential for payment certificate preparation and earned value rep',
+    `activity_id` BIGINT COMMENT 'Reference to the WBS activity or schedule activity in Oracle Primavera P6 against which this field progress measurement is recorded. Links field measurement to the schedule domain for EVM computation.',
+    `work_front_id` BIGINT COMMENT 'Foreign key linking to site.work_front. Business justification: field_progress contains a string column named work_front which is a denormalized text reference to the work_front entity. Adding work_front_id as a proper FK normalizes this relationship, enabling r',
     `activity_type` STRING COMMENT 'The construction discipline or work type category of the WBS activity being measured (e.g., earthworks, concrete, structural steel, MEP). Enables discipline-level progress aggregation and resource productivity benchmarking. [ENUM-REF-CANDIDATE: earthworks|concrete|structural_steel|mep|civil|finishing|commissioning|piling|roofing|other — promote to reference product]',
     `approval_status` STRING COMMENT 'Current workflow state of the field progress measurement record. Controls whether the measurement is eligible to feed EVM (Earned Value Management) calculations in the project domain. Draft and rejected records are excluded from BCWP computation.. Valid values are `draft|submitted|approved|rejected|revised`',
     `approved_timestamp` TIMESTAMP COMMENT 'The date and time at which the field progress measurement was formally approved by the designated approver. Marks the record as eligible for inclusion in EVM calculations. Format: yyyy-MM-ddTHH:mm:ss.SSSXXX.',
@@ -273,7 +263,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`site`.`field_progress` (
     `crew_size` STRING COMMENT 'The number of workers deployed on the work front for the activity during the measurement period. Used to compute production rates per worker and benchmark crew productivity against planned norms in HCSS HeavyJob.',
     `data_date` DATE COMMENT 'The official schedule data date or progress cut-off date as defined in Oracle Primavera P6 for the reporting period in which this measurement falls. Aligns field measurements with the schedule baseline for SPI computation.',
     `equipment_hours` DECIMAL(18,2) COMMENT 'Total equipment operating hours logged against this activity during the measurement period. Sourced from HCSS HeavyJob equipment hour tracking. Used for equipment productivity analysis and cost-to-progress reconciliation.',
-    `field_engineer_name` STRING COMMENT 'Full name of the field engineer or site engineer who physically performed and recorded the progress measurement. Provides accountability and traceability for the measurement. Classified as confidential PII as it identifies an individual employee.',
     `installed_quantity` DECIMAL(18,2) COMMENT 'The cumulative physical quantity of work installed or completed as measured in the field at the time of this measurement (e.g., cubic metres of concrete poured, linear metres of pipe installed, tonnes of steel erected). Reconciles against the BOQ planned quantity.',
     `is_critical_path` BOOLEAN COMMENT 'Indicates whether the WBS activity is on the Critical Path Method (CPM) schedule critical path (True) or has float (False). Critical path activities require priority attention as delays directly impact project completion date.',
     `is_milestone` BOOLEAN COMMENT 'Indicates whether the WBS activity associated with this progress measurement is a contract or schedule milestone (True) or a regular work activity (False). Milestone completion triggers contractual notifications and potential payment events.',
@@ -282,7 +271,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`site`.`field_progress` (
     `measurement_notes` STRING COMMENT 'Free-text field for the field engineer to record observations, constraints, or qualifications relevant to the progress measurement (e.g., partial pour due to rain, access restriction, rework in progress). Supports contextual interpretation of progress data.',
     `measurement_number` STRING COMMENT 'Externally-known unique business identifier for this progress measurement record, typically formatted as a sequential reference number (e.g., FPM-2024-00123) used in Procore daily logs and field management reports.',
     `measurement_period_type` STRING COMMENT 'The reporting frequency or period type for this progress measurement (e.g., daily, weekly, monthly). Determines how the measurement aligns with project reporting cycles and EVM period cut-offs in Oracle Primavera P6.. Valid values are `daily|weekly|fortnightly|monthly`',
-    `ncr_reference` STRING COMMENT 'Reference number of any active Non-Conformance Report (NCR) associated with the work being measured. If an NCR is open, the progress measurement may be withheld from EVM until the NCR is closed and rework is verified.',
     `period_installed_quantity` DECIMAL(18,2) COMMENT 'The incremental quantity of work physically installed during the current measurement period only (not cumulative). Used for production rate tracking and period-over-period productivity analysis in HCSS HeavyJob.',
     `planned_quantity` DECIMAL(18,2) COMMENT 'The total planned or budgeted quantity for the WBS activity or BOQ line item as per the approved schedule and BOQ. Used as the denominator for quantity-based percent complete calculations and production rate analysis.',
     `previous_percent_complete` DECIMAL(18,2) COMMENT 'The cumulative percent complete recorded in the immediately preceding measurement period for the same WBS activity or BOQ line item. Used to compute the incremental progress delta and validate that progress is monotonically increasing.',
@@ -297,23 +285,82 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`site`.`field_progress` (
     CONSTRAINT pk_field_progress PRIMARY KEY(`field_progress_id`)
 ) COMMENT 'Periodic field progress measurement record capturing percent complete and installed quantities for a WBS activity or BOQ line item as physically measured in the field. Stores measurement date, measurement method (visual estimate, quantity survey, milestone completion, 3D scan comparison), reported percent complete, previous percent complete, incremental progress delta, field engineer name, and approval status. Feeds EVM (Earned Value Management) calculations including BCWP, CPI, and SPI in the project domain. Provides the ground-truth measurement that reconciles against schedule domain planned progress.';
 
+CREATE OR REPLACE TABLE `vibe_construction_v1`.`site`.`mobilization` (
+    `mobilization_id` BIGINT COMMENT 'Unique surrogate identifier for the site mobilization record. Primary key for the site_mobilization data product in the Databricks Silver Layer.',
+    `account_id` BIGINT COMMENT 'Foreign key linking to client.account. Business justification: Mobilization Cost & Schedule reports are generated per client account; linking site_mobilization to client.account enables billing and performance tracking.',
+    `agreement_id` BIGINT COMMENT 'Reference to the contract under which this site mobilization is authorized. Ties mobilization activities to the governing contractual instrument.',
+    `asset_id` BIGINT COMMENT 'Foreign key linking to equipment.asset. Business justification: Site mobilization records which equipment is moved to the site; essential for mobilization cost accounting and asset location management.',
+    `construction_project_id` BIGINT COMMENT 'Reference to the parent project for which this site mobilization record is created. Links site mobilization lifecycle to the overarching project entity.',
+    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Mobilization costs (cost_actual, cost_budget on site_mobilization) must be booked to a cost center for financial reporting and overhead allocation. Construction finance teams require mobilization expe',
+    `hse_plan_id` BIGINT COMMENT 'Foreign key linking to safety.hse_plan. Business justification: Site mobilization cannot proceed without an approved HSE plan — this is a contractual and regulatory prerequisite. Linking site_mobilization to hse_plan enables NTP readiness verification and supports',
+    `milestone_id` BIGINT COMMENT 'Foreign key linking to project.project_milestone. Business justification: Site mobilization completion is a contractual milestone (NTP milestone, site establishment milestone) that triggers LD exposure and payment events. Linking mobilization records to the triggering miles',
+    `opportunity_id` BIGINT COMMENT 'Foreign key linking to client.client_opportunity. Business justification: Site mobilization is triggered by a won client opportunity (NTP issuance). Linking mobilization to the originating opportunity enables pipeline-to-execution reporting — a standard construction PMO rep',
+    `package_id` BIGINT COMMENT 'Foreign key linking to design.package. Business justification: Site mobilization is triggered by the release of an IFC design package. Project managers confirm the design package is approved before issuing NTP and mobilizing site. This FK enables design-to-site r',
+    `phase_id` BIGINT COMMENT 'Foreign key linking to project.phase. Business justification: Mobilization activities are planned and executed per project phase (e.g., Phase 1 civil mobilization, Phase 2 MEP mobilization). Phase-gate reporting requires linking mobilization cost and status to t',
+    `plan_id` BIGINT COMMENT 'Foreign key linking to quality.quality_plan. Business justification: Site mobilization requires an approved quality plan to be in place before work commences — a contractual and regulatory prerequisite. This FK enables verification that the quality plan was approved pr',
+    `activity_id` BIGINT COMMENT 'Activity identifier from Oracle Primavera P6 corresponding to the mobilization WBS activity. Enables direct traceability between this mobilization record and the project schedule baseline.',
+    `project_budget_id` BIGINT COMMENT 'Foreign key linking to finance.project_budget. Business justification: Mobilization is a distinct budget line item in construction project budgets. Linking site_mobilization to project_budget enables tracking of mobilization cost_actual vs. the approved budget allocation',
+    `purchase_order_id` BIGINT COMMENT 'Foreign key linking to procurement.purchase_order. Business justification: Mobilization costs (temporary facilities, fencing, site office) are authorized via PO. Linking site_mobilization to purchase_order enables mobilization cost tracking against budget and PO value. Const',
+    `rental_agreement_id` BIGINT COMMENT 'Foreign key linking to equipment.rental_agreement. Business justification: Site mobilization activates rental agreements for hired plant and equipment. Linking site_mobilization to rental_agreement tracks which hire contracts were established as part of mobilization, support',
+    `schedule_baseline_id` BIGINT COMMENT 'Foreign key linking to schedule.schedule_baseline. Business justification: Mobilization schedule variance reporting (site_mobilization.schedule_variance_days) requires knowing which approved baseline the variance was computed against. Without this FK, the variance figure is ',
+    `site_id` BIGINT COMMENT 'FK to site.site',
+    `staffing_plan_id` BIGINT COMMENT 'Foreign key linking to workforce.staffing_plan. Business justification: Site mobilization executes against a workforce staffing plan — linking them enables mobilization readiness vs. planned headcount reporting and ramp-up tracking. peak_workforce_planned/actual on site_m',
+    `access_road_established` BOOLEAN COMMENT 'Indicates whether the primary site access road and entry/exit gates have been constructed and are operational for heavy vehicle and workforce ingress/egress.',
+    `actual_demobilization_date` DATE COMMENT 'Date on which site demobilization was physically completed and the site was vacated. Compared against planned_demobilization_date to assess demobilization schedule performance.',
+    `actual_mobilization_date` DATE COMMENT 'Date on which site mobilization physically commenced (first crew or equipment on site). Compared against planned_mobilization_date to compute mobilization schedule variance.',
+    `building_permit_number` STRING COMMENT 'Reference number of the building or construction permit issued by the local authority. Required before commencement of structural works and tracked for regulatory compliance.',
+    `cost_actual` DECIMAL(18,2) COMMENT 'Actual costs incurred for site mobilization activities as recorded in the job costing system (Viewpoint Vista / SAP S/4HANA). Used for cost variance analysis against mobilization_cost_budget.',
+    `cost_budget` DECIMAL(18,2) COMMENT 'Approved budget allocated for site mobilization activities including site establishment, temporary facilities, equipment transport, and initial workforce deployment. Expressed in the project currency.',
+    `country_code` STRING COMMENT 'ISO 3166-1 alpha-3 country code for the country in which the construction site is located (e.g., USA, AUS, GBR, ARE). Drives regulatory compliance framework selection and reporting jurisdiction.. Valid values are `^[A-Z]{3}$`',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this site mobilization record was first created in the system, in ISO 8601 format (yyyy-MM-ddTHH:mm:ss.SSSXXX). Supports audit trail and data lineage requirements.',
+    `currency_code` STRING COMMENT 'ISO 4217 three-letter currency code for all monetary values on this mobilization record (e.g., USD, AUD, GBP, AED). Ensures consistent financial reporting across multi-currency international projects.. Valid values are `^[A-Z]{3}$`',
+    `dlp_end_date` DATE COMMENT 'Date on which the Defects Liability Period (DLP) for site establishment works expires. After this date, the contractor is no longer obligated to rectify defects in temporary site infrastructure.',
+    `environmental_permit_number` STRING COMMENT 'Reference number of the primary environmental permit issued by the regulatory authority (e.g., EPA NPDES permit number). Required for regulatory compliance tracking and audit.',
+    `environmental_permit_obtained` BOOLEAN COMMENT 'Indicates whether all required environmental permits and approvals (e.g., EPA stormwater NPDES permit, land disturbance permit) have been obtained prior to ground disturbance.',
+    `hse_plan_approval_date` DATE COMMENT 'Date on which the site HSE plan was formally approved by the HSE Manager and client representative. Required for regulatory compliance and Intelex HSE management system records.',
+    `hse_plan_approved` BOOLEAN COMMENT 'Indicates whether the site-specific HSE plan has been reviewed and approved prior to mobilization commencement. Mandatory pre-mobilization gate per ISO 45001 and OSHA requirements.',
+    `laydown_area_established` BOOLEAN COMMENT 'Indicates whether the designated materials laydown and storage area has been prepared, demarcated, and made operational for receiving deliveries and storing equipment.',
+    `leed_certification_target` STRING COMMENT 'Target LEED certification level for the project site as specified in the contract or client brief. Influences site establishment requirements for waste management, stormwater control, and sustainable practices.. Valid values are `certified|silver|gold|platinum|none`',
+    `mobilization_number` STRING COMMENT 'Externally-known business identifier for this mobilization record, used in correspondence, Procore daily logs, and Aconex transmittals. Follows the enterprise MOB-XXXXXX numbering convention.. Valid values are `^MOB-[A-Z0-9]{3,20}$`',
+    `mobilization_status` STRING COMMENT 'Current lifecycle state of the site mobilization record: planned (NTP received, not yet started), in_progress (site establishment underway), completed (fully mobilized and operational), demobilized (site closed and handed back), cancelled (mobilization voided), on_hold (temporarily suspended).. Valid values are `planned|in_progress|completed|demobilized|cancelled|on_hold`',
+    `mobilization_type` STRING COMMENT 'Classification of the mobilization scope: full_site (complete site establishment), work_package (specific WBS package), temporary_camp (workforce accommodation), equipment_only (plant and machinery deployment), or partial (phased mobilization). [ENUM-REF-CANDIDATE: full_site|work_package|temporary_camp|equipment_only|partial|phased — promote to reference product]. Valid values are `full_site|work_package|temporary_camp|equipment_only|partial`',
+    `notes` STRING COMMENT 'Free-text field for capturing additional context, constraints, special conditions, or observations related to the site mobilization that are not captured in structured fields (e.g., access restrictions, community liaison requirements).',
+    `ntp_date` DATE COMMENT 'Date on which the Notice to Proceed (NTP) was issued by the client or engineer, authorizing the contractor to commence site mobilization and construction activities. Critical contractual milestone.',
+    `peak_workforce_actual` STRING COMMENT 'Maximum number of workers (direct and subcontractor) actually recorded on site simultaneously during the mobilization period, as tracked in HCSS HeavyJob time records.',
+    `peak_workforce_planned` STRING COMMENT 'Maximum number of workers (direct and subcontractor) planned to be on site simultaneously at peak mobilization, as per the resource-loaded schedule in Oracle Primavera P6.',
+    `planned_demobilization_date` DATE COMMENT 'Baseline-scheduled date on which site demobilization was planned to be completed, as per the approved project schedule. Used for resource release planning and contract completion forecasting.',
+    `planned_mobilization_date` DATE COMMENT 'Baseline-scheduled date on which site mobilization activities were planned to commence, as recorded in Oracle Primavera P6. Used for schedule variance analysis and earned value management (EVM).',
+    `procore_project_reference` STRING COMMENT 'External system identifier for this site in Procore Construction Management platform. Used for cross-system reconciliation of daily logs, RFIs, and field management records.',
+    `schedule_variance_days` STRING COMMENT 'Number of calendar days difference between actual_mobilization_date and planned_mobilization_date. Positive value indicates delay; negative value indicates early mobilization. Used for schedule performance reporting.',
+    `site_address` STRING COMMENT 'Physical street address or location description of the construction site. Used for logistics coordination, regulatory notifications, and emergency response planning.',
+    `site_area_sqm` DECIMAL(18,2) COMMENT 'Total area of the construction site in square metres as defined in the site establishment plan. Used for site logistics planning, laydown area allocation, and HSE zone management.',
+    `site_closure_signoff_date` DATE COMMENT 'Date on which the formal site closure sign-off was completed by the client, engineer, and contractor, confirming all demobilization obligations have been fulfilled and the site has been restored.',
+    `site_fencing_complete` BOOLEAN COMMENT 'Indicates whether site perimeter fencing and hoarding have been fully erected as part of site establishment. Key safety milestone required before workforce deployment.',
+    `site_latitude` DECIMAL(18,2) COMMENT 'Geographic latitude coordinate of the construction site centroid in decimal degrees (WGS84). Supports GIS-based site mapping, logistics routing, and spatial analytics.',
+    `site_longitude` DECIMAL(18,2) COMMENT 'Geographic longitude coordinate of the construction site centroid in decimal degrees (WGS84). Supports GIS-based site mapping, logistics routing, and spatial analytics.',
+    `site_office_established` BOOLEAN COMMENT 'Indicates whether the temporary site office (including communications, IT infrastructure, and welfare facilities) has been established and is operational.',
+    `temporary_utilities_connected` BOOLEAN COMMENT 'Indicates whether temporary site utilities (power, water, telecommunications, sewage) have been connected and are operational. Prerequisite for sustained site operations.',
+    `updated_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent update to this site mobilization record, in ISO 8601 format (yyyy-MM-ddTHH:mm:ss.SSSXXX). Used for change tracking, incremental ETL processing, and audit compliance.',
+    `wbs_code` STRING COMMENT 'WBS element code from SAP S/4HANA or Oracle Primavera P6 assigned to the mobilization cost centre. Enables cost allocation and earned value management (EVM) reporting at the mobilization level.. Valid values are `^[A-Z0-9.-]{3,30}$`',
+    CONSTRAINT pk_mobilization PRIMARY KEY(`mobilization_id`)
+) COMMENT 'Master record tracking the mobilization and demobilization lifecycle of a construction site or major work package. Captures planned mobilization date, actual mobilization date, NTP (Notice to Proceed) date, site establishment milestones (fencing, laydown area, site office, utilities), demobilization plan date, actual demobilization date, and site closure sign-off. Provides the temporal and logistical anchor for all site operations.';
+
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`site`.`equipment_deployment` (
     `equipment_deployment_id` BIGINT COMMENT 'Unique surrogate identifier for each equipment deployment record in the site domain. Primary key for the equipment_deployment data product.',
     `activity_id` BIGINT COMMENT 'Reference to the scheduled activity or Work Breakdown Structure (WBS) element in the project schedule to which this equipment deployment is assigned.',
     `asset_id` BIGINT COMMENT 'Reference to the equipment master record in the equipment domain. Identifies the specific piece of construction equipment (e.g., excavator, crane, compactor) deployed to site.',
     `construction_project_id` BIGINT COMMENT 'Reference to the project master record. Links the equipment deployment to the construction project under which the equipment is being utilized.',
     `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Equipment usage charges are posted to finance cost codes; linking enables equipment cost reporting and asset depreciation.',
-    `fleet_assignment_id` BIGINT COMMENT 'Foreign key linking to equipment.fleet_assignment. Business justification: Equipment deployment records must reconcile against the fleet assignment that authorized the equipments presence on site — governing hire rates, mobilization costs, and assignment period. Cost alloca',
+    `fleet_assignment_id` BIGINT COMMENT 'Foreign key linking to equipment.fleet_assignment. Business justification: Daily equipment deployment records must reference the governing fleet assignment to apply correct hire rates, ownership rates, and cost codes. This is the standard HCSS/HeavyJob cost allocation patter',
     `hours_id` BIGINT COMMENT 'The source system record identifier from HCSS HeavyJob equipment hours module. Used for data lineage, reconciliation, and incremental load processing from the operational system of record.',
-    `maintenance_order_id` BIGINT COMMENT 'Foreign key linking to equipment.maintenance_order. Business justification: When equipment breaks down on site (breakdown_flag=true on equipment_deployment), a maintenance order is raised. Linking deployment to maintenance_order enables breakdown cost tracking, downtime analy',
-    `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: Equipment operator license verification, pre-start check accountability, and HSE compliance reporting require linking the operator to the craft_worker master. Role-prefix operator_ distinguishes thi',
-    `phase_id` BIGINT COMMENT 'Foreign key linking to project.phase. Business justification: Equipment deployment is planned and reported by phase for phase-level cost control and equipment utilization reports. Phase-level equipment cost allocation is required for project controls and client ',
-    `inspection_record_id` BIGINT COMMENT 'Foreign key linking to equipment.inspection_record. Business justification: Pre-start inspection compliance is a regulatory HSE requirement before deploying equipment on site (pre_start_check_flag exists on equipment_deployment). Linking to the specific inspection_record that',
+    `maintenance_order_id` BIGINT COMMENT 'Foreign key linking to equipment.maintenance_order. Business justification: equipment_deployment carries breakdown_flag, breakdown_hours, and breakdown_description. When a breakdown occurs on site, a maintenance_order is raised. Linking the deployment record to the resulting ',
+    `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: Equipment pre-start check accountability, operator license verification, and HSE incident investigation require linking equipment deployment to the specific craft_worker operator. operator_name is den',
+    `permit_to_work_id` BIGINT COMMENT 'Foreign key linking to safety.permit_to_work. Business justification: High-risk plant operations (cranes, EWPs, excavators near services) require an active PTW. This FK replaces the denormalized hse_permit_number text field, enabling PTW compliance tracking per equipmen',
     `daily_log_id` BIGINT COMMENT 'Reference identifier of the Procore daily log entry from which this equipment deployment record was sourced. Enables traceability back to the source construction management system.',
     `purchase_order_id` BIGINT COMMENT 'Foreign key linking to procurement.purchase_order. Business justification: REQUIRED: Equipment rental or purchase orders are linked to each deployment for cost allocation and compliance reporting.',
-    `swms_id` BIGINT COMMENT 'Foreign key linking to safety.swms. Business justification: Plant and equipment deployments require a SWMS covering machinery operation hazards. hse_permit_number is a text field referencing a PTW, not a SWMS. HSE audits require traceability from each equipm',
-    `vendor_id` BIGINT COMMENT 'Foreign key linking to procurement.vendor. Business justification: Hired/rented equipment deployments must be traceable to the rental vendor for cost reconciliation, insurance verification, and vendor performance reporting. supplier_name is a denormalized vendor refe',
-    `wbs_element_id` BIGINT COMMENT 'Foreign key linking to project.wbs_element. Business justification: Equipment costs are allocated to WBS elements for project cost control and EVM. Equipment deployment records must reference WBS elements for cost posting to project accounts; no existing FK from equip',
+    `rental_agreement_id` BIGINT COMMENT 'Foreign key linking to equipment.rental_agreement. Business justification: equipment_deployment.rental_order_number is a denormalized reference to the governing rental_agreement. Formalizing this as a FK enables invoice reconciliation, rate verification against agreed hire r',
+    `site_id` BIGINT COMMENT 'Foreign key linking to site.site. Business justification: Equipment is deployed to a specific construction site. equipment_deployment has a string column site_location_description that partially captures site location but lacks referential integrity. Addin',
+    `vendor_id` BIGINT COMMENT 'Foreign key linking to procurement.vendor. Business justification: Equipment rental supplier performance tracking and rental invoice reconciliation require identifying the vendor for each deployment. `supplier_name` is a denormalized vendor field. Role-prefix suppli',
     `work_front_id` BIGINT COMMENT 'Reference to the specific work front or work zone on site where the equipment is deployed. A work front represents a distinct area of concurrent construction activity.',
     `breakdown_description` STRING COMMENT 'Free-text description of the nature of the equipment breakdown or mechanical failure, as recorded by the site supervisor or equipment operator. Populated only when breakdown_flag is True.',
     `breakdown_flag` BOOLEAN COMMENT 'Indicates whether the equipment experienced a mechanical breakdown or unplanned failure during this deployment period. True = breakdown occurred; False = no breakdown. Triggers maintenance workflow in SAP S/4HANA Plant Maintenance.',
@@ -326,7 +373,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`site`.`equipment_deployment` (
     `fuel_consumption_liters` DECIMAL(18,2) COMMENT 'Total fuel consumed by the equipment during the shift or reporting period, measured in liters. Used for cost tracking, environmental reporting, and fuel efficiency benchmarking.',
     `fuel_type` STRING COMMENT 'Type of fuel consumed by the equipment. Used for environmental emissions reporting and fuel cost categorization.. Valid values are `diesel|petrol|lpg|electric|hybrid`',
     `hourly_rate` DECIMAL(18,2) COMMENT 'The contracted or internal charge rate for the equipment per operating hour, in the project currency. Used for job costing and cost-to-complete calculations. Confidential as it reflects commercial pricing.',
-    `hse_permit_number` STRING COMMENT 'Reference number of the Permit to Work (PTW) or HSE permit associated with this equipment deployment, where required by site safety regulations (e.g., crane lifts, confined space operations). Links to the Intelex HSE management system.',
     `idle_hours` DECIMAL(18,2) COMMENT 'Total number of hours the equipment was on-site but not in productive operation (e.g., waiting for materials, weather delays, operator breaks). Idle hours are tracked separately from operating hours for utilization analysis.',
     `operating_hours` DECIMAL(18,2) COMMENT 'Total number of hours the equipment was in productive operation during the shift or reporting period. Used for earned value computation, equipment cost allocation, and maintenance scheduling.',
     `operator_license_number` STRING COMMENT 'The certification or license number of the equipment operator, required for regulated equipment types (e.g., crane operators, forklift operators). Supports OSHA and ISO 45001 compliance verification.',
@@ -339,10 +385,8 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`site`.`equipment_deployment` (
     `record_updated_timestamp` TIMESTAMP COMMENT 'The date and time when this equipment deployment record was last modified, in ISO 8601 format with timezone offset. Supports incremental data processing and audit trail requirements in the Databricks Silver Layer.',
     `release_date` DATE COMMENT 'The calendar date on which the equipment was released from the work front or activity and demobilized or reassigned. Null if the equipment is still actively deployed.',
     `remarks` STRING COMMENT 'Free-text field for site supervisor or equipment manager to record additional observations, instructions, or notes relevant to this equipment deployment record (e.g., special operating conditions, partial shift reasons, safety observations).',
-    `rental_order_number` STRING COMMENT 'The Purchase Order (PO) or rental agreement reference number for externally rented or leased equipment. Links the deployment record to the procurement and accounts payable process.',
     `shift_date` DATE COMMENT 'The specific working date (shift date) for which this equipment utilization record is reported. Enables daily granularity within a multi-day deployment period.',
     `shift_type` STRING COMMENT 'The work shift during which the equipment was operated. Distinguishes day, night, swing, or double shifts for accurate labor and equipment cost allocation.. Valid values are `day|night|swing|double`',
-    `site_location_description` STRING COMMENT 'Descriptive reference to the physical location on site where the equipment is deployed (e.g., Zone A — North Embankment, Pier 3 Foundation, Runway 2 Subbase). Supports spatial tracking and site logistics management.',
     `standby_hours` DECIMAL(18,2) COMMENT 'Total number of hours the equipment was on standby — available and ready but not assigned to active work. Relevant for contract billing where standby rates differ from operating rates.',
     `weather_condition` STRING COMMENT 'Prevailing weather condition at the site during the equipment deployment shift. Recorded to support analysis of weather-related productivity impacts and Extension of Time (EOT) claims. [ENUM-REF-CANDIDATE: clear|cloudy|rain|heavy_rain|fog|wind|storm|snow — 8 candidates stripped; promote to reference product]',
     CONSTRAINT pk_equipment_deployment PRIMARY KEY(`equipment_deployment_id`)
@@ -350,21 +394,15 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`site`.`equipment_deployment` (
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`site`.`material_delivery` (
     `material_delivery_id` BIGINT COMMENT 'Unique surrogate identifier for each material delivery receipt event recorded at the construction site. Primary key for this entity. Role: TRANSACTION_HEADER.',
-    `batch_lot_id` BIGINT COMMENT 'Foreign key linking to material.batch_lot. Business justification: Construction material deliveries are received as specific batch/lot numbers for quality traceability (test certificates, conformance certs). FK to batch_lot enables end-to-end traceability from site r',
-    `daily_log_id` BIGINT COMMENT 'Foreign key linking to site.daily_log. Business justification: Material deliveries are field events that occur on a specific date and are captured in the daily site log. Linking material_delivery to daily_log enables the daily log to aggregate all deliveries rece',
+    `daily_log_id` BIGINT COMMENT 'Foreign key linking to site.daily_log. Business justification: Material deliveries are recorded in the daily site log as part of daily field activities. material_delivery has a procore_log_reference string (external system reference) but no FK to the site.daily_l',
+    `warehouse_id` BIGINT COMMENT 'Foreign key linking to material.warehouse. Business justification: Material deliveries are received into a specific warehouse or laydown facility. Linking delivery to destination warehouse enables inventory receipt processing, stock level updates, and goods receipt w',
     `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Material delivery records must map to finance cost codes for material cost allocation and inventory valuation.',
-    `goods_receipt_id` BIGINT COMMENT 'Foreign key linking to procurement.goods_receipt. Business justification: Material delivery and goods receipt represent the same physical event from site and procurement perspectives. This link is essential for three-way match (PO→GR→Invoice), quantity variance reporting, a',
-    `material_catalog_id` BIGINT COMMENT 'Foreign key linking to procurement.material_catalog. Business justification: Material deliveries must reference the procurement material master for catalog-level delivery analytics, inspection requirement enforcement, and shelf-life/storage condition compliance. material_code ',
-    `master_id` BIGINT COMMENT 'Foreign key linking to material.master. Business justification: Every site material delivery is of a specific approved material master record. Links delivery to canonical spec for conformance verification, procurement reporting, and material traceability — a funda',
-    `construction_project_id` BIGINT COMMENT 'Reference to the construction project to which this material delivery belongs. Links the physical receipt event to the project context for cost coding and earned value computation.',
+    `goods_receipt_id` BIGINT COMMENT 'Foreign key linking to procurement.goods_receipt. Business justification: Three-way match (PO → GR → site delivery) is a core procurement control. `goods_receipt_number` on material_delivery is a denormalized GR reference. Linking to goods_receipt enables invoice verificati',
+    `master_id` BIGINT COMMENT 'Foreign key linking to material.master. Business justification: Material delivery receiving requires linking each docket to the material master for specification verification, test certificate validation, and conformance checking. Site QA engineers always reconcil',
+    `construction_project_id` BIGINT COMMENT 'Reference to the construction site where the material delivery was physically received. Supports site-level logistics and laydown area management.',
+    `po_line_id` BIGINT COMMENT 'Foreign key linking to procurement.po_line. Business justification: Partial delivery tracking and line-level three-way match require linking each site delivery to the specific PO line item. `po_line_number` is a denormalized reference. Construction procurement teams t',
     `vendor_id` BIGINT COMMENT 'Reference to the supplier or vendor who delivered the materials. Links to the procurement domain supplier master for vendor performance tracking.',
-    `purchase_order_id` BIGINT COMMENT 'Reference to the procurement domain Purchase Order (PO) against which this delivery was made. Enables reconciliation between the physical receipt event and the contractual procurement record.',
-    `warehouse_id` BIGINT COMMENT 'Foreign key linking to material.warehouse. Business justification: Material deliveries are received into a specific warehouse or laydown area. FK to material.warehouse enables inventory management — tracking where delivered materials are stored, supporting stock reco',
-    `site_id` BIGINT COMMENT 'Foreign key linking to site.site. Business justification: Material deliveries are received at the construction site gate or designated laydown area. material_delivery currently has no FK to site.site, making it impossible to directly associate deliveries wit',
-    `subcontract_id` BIGINT COMMENT 'Foreign key linking to contract.subcontract. Business justification: Material deliveries under supply subcontracts must be traceable to the governing subcontract for subcontractor payment verification, performance tracking, and procurement compliance. material_delivery',
-    `submittal_id` BIGINT COMMENT 'Foreign key linking to design.design_submittal. Business justification: Deliveries are matched to approved design submittals to verify material compliance before acceptance.',
-    `technical_specification_id` BIGINT COMMENT 'Foreign key linking to design.technical_specification. Business justification: Materials are received and inspected against technical specifications defining material requirements, test certificate standards, and acceptance criteria. Receiving inspectors verify delivered materia',
-    `work_front_id` BIGINT COMMENT 'Foreign key linking to site.work_front. Business justification: Materials are delivered to support specific work fronts on site. Linking material_delivery to work_front enables work-front-level material consumption tracking, supports cost code reconciliation (mate',
+    `work_front_id` BIGINT COMMENT 'Foreign key linking to site.work_front. Business justification: Materials delivered to site are typically directed to a specific work front or laydown zone associated with a work front. Adding work_front_id links the delivery to the consuming work front, enabling ',
     `created_timestamp` TIMESTAMP COMMENT 'The date and time when this material delivery record was first created in the system. Supports audit trail and data lineage requirements.',
     `currency_code` STRING COMMENT 'The ISO 4217 three-letter currency code in which the delivery value and unit rate are expressed (e.g., USD, AUD, GBP). Required for multi-currency project financial management and IFRS/GAAP reporting.. Valid values are `^[A-Z]{3}$`',
     `delivery_date` DATE COMMENT 'The calendar date on which the material physically arrived at the site gate or designated laydown area. This is the principal real-world event date for the delivery transaction, distinct from the PO expected delivery date.',
@@ -380,21 +418,18 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`site`.`material_delivery` (
     `laydown_zone` STRING COMMENT 'The designated receiving location or laydown area on the site logistics plan where the delivered material was stored upon receipt (e.g., Zone A - Steel Yard, Zone C - Concrete Batching Area). Supports site logistics management and material traceability.',
     `material_category` STRING COMMENT 'High-level classification of the material type delivered. Supports site logistics planning, laydown zone assignment, and HSE compliance for hazardous materials. MEP refers to Mechanical, Electrical, and Plumbing materials. [ENUM-REF-CANDIDATE: concrete|steel|timber|aggregates|MEP|civil|finishing|hazardous|other — promote to reference product]',
     `msds_verified` BOOLEAN COMMENT 'Indicates whether the Material Safety Data Sheet (MSDS) or Safety Data Sheet (SDS) was verified and on file at the time of receipt for hazardous materials. Required for OSHA HazCom compliance and site HSE management.',
-    `ncr_reference` STRING COMMENT 'The reference number of the Non-Conformance Report (NCR) raised as a result of a rejected or non-conforming delivery. Links the physical receipt event to the quality management process for corrective action tracking.',
-    `po_line_number` STRING COMMENT 'The specific line item number on the Purchase Order (PO) to which this delivery relates. Enables precise three-way matching at the line level between the PO, goods receipt, and supplier invoice.',
     `procore_log_reference` STRING COMMENT 'The reference identifier of the associated Procore daily log entry in which this material delivery was recorded. Enables traceability back to the source system of record for field management and audit purposes.',
     `quantity_accepted` DECIMAL(18,2) COMMENT 'The quantity of material formally accepted after inspection at the point of receipt. May be less than quantity_delivered in cases of partial acceptance due to damage, non-conformance, or specification mismatch. Triggers stock update in the materials domain.',
     `quantity_delivered` DECIMAL(18,2) COMMENT 'The actual quantity of material physically received at the site as measured or counted at the point of receipt. This is the principal quantitative fact for the delivery event and is used to update material stock records and reconcile against the PO quantity.',
     `quantity_ordered` DECIMAL(18,2) COMMENT 'The quantity of material that was ordered on the associated Purchase Order (PO) line for this delivery. Enables immediate over/under delivery variance calculation at the point of receipt without requiring a join to the procurement domain.',
     `quantity_rejected` DECIMAL(18,2) COMMENT 'The quantity of material rejected at the point of receipt due to damage, non-conformance with specification, or incorrect material. Triggers a Non-Conformance Report (NCR) and return-to-supplier process.',
     `receipt_condition` STRING COMMENT 'The physical condition of the material as assessed at the point of receipt. Drives the acceptance/rejection decision and informs quality control processes. [ENUM-REF-CANDIDATE: good|damaged|wet|contaminated|incorrect_spec|short_delivered — promote to reference product]. Valid values are `good|damaged|wet|contaminated|incorrect_spec|short_delivered`',
-    `receiving_inspector` STRING COMMENT 'The full name of the site personnel who physically received and inspected the delivery at the site gate or laydown area. This individual is accountable for the acceptance/rejection decision recorded on the delivery docket.',
     `temperature_sensitive` BOOLEAN COMMENT 'Indicates whether the delivered material requires temperature-controlled storage conditions (e.g., epoxy resins, certain adhesives, bituminous products, or cold-chain materials). When True, triggers special handling and storage protocols on site.',
-    `test_certificate_number` STRING COMMENT 'The reference number of the material test certificate or mill certificate provided by the supplier with the delivery. Confirms that the material meets the specified engineering standards and is required for quality assurance sign-off.',
     `unit_of_measure` STRING COMMENT 'The unit of measure in which the delivered quantity is expressed (e.g., cubic metres for concrete, tonnes for steel, each for prefabricated elements). Must align with the unit specified on the Purchase Order (PO) for reconciliation. [ENUM-REF-CANDIDATE: m3|tonne|kg|m|m2|EA|L|bag|roll|set — promote to reference product]',
     `unit_rate` DECIMAL(18,2) COMMENT 'The agreed unit price for the material as per the Purchase Order (PO), expressed in the project currency. Used to calculate the value of the delivery for goods receipt posting and cost accrual in the project financial management system.',
     `updated_timestamp` TIMESTAMP COMMENT 'The date and time when this material delivery record was most recently modified. Supports change tracking, audit compliance, and incremental data pipeline processing.',
     `vehicle_registration` STRING COMMENT 'The registration plate number of the delivery vehicle. Recorded at the site gate for security, access control, and logistics tracking purposes.',
+    `wbs_code` STRING COMMENT 'The Work Breakdown Structure (WBS) code to which the cost of this material delivery is allocated. Enables project cost control, earned value management (EVM), and cost performance index (CPI) computation at the WBS element level.',
     CONSTRAINT pk_material_delivery PRIMARY KEY(`material_delivery_id`)
 ) COMMENT 'Site-level record of material deliveries received at the construction site gate or designated laydown area. Captures delivery date, supplier name, PO reference (FK to procurement domain), delivery docket number, material description, quantity delivered, unit of measure, receiving location (laydown zone per site_logistics_plan), condition on receipt (accepted/rejected/partial), receiver name, temperature-sensitive storage flag, and discrepancy notes. Distinct from procurement domain PO records — this entity captures the physical receipt event at the site and triggers material domain stock updates.';
 
@@ -402,15 +437,13 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`site`.`permit` (
     `permit_id` BIGINT COMMENT 'System generated unique identifier for the site permit record.',
     `account_id` BIGINT COMMENT 'Foreign key linking to client.account. Business justification: Permit compliance and cost allocation are reported against the owning client account; linking permits to client.account provides traceability.',
     `activity_id` BIGINT COMMENT 'Foreign key linking to schedule.activity. Business justification: Permits (e.g., crane, excavation) are required for particular scheduled activities; linking permits to activity supports compliance reporting.',
-    `agreement_id` BIGINT COMMENT 'Foreign key linking to contract.agreement. Business justification: Site permits are authorized under a head contract/agreement. Contract administrators must verify that permitted work scope aligns with the agreement. Regulatory compliance audits require tracing each ',
-    `construction_project_id` BIGINT COMMENT 'Foreign key linking to project.construction_project. Business justification: Site permits are issued per project for regulatory compliance tracking and project closeout documentation. A compliance officer must retrieve all permits for a project; site_permit currently has no di',
-    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Permit fees are charged to cost centers for project overhead tracking. site_permit has a plain cost_center_code column that is a denormalized reference to finance.cost_center. Replacing with a proper ',
-    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Construction and environmental permit applications universally reference specific drawings to define the physical extent and scope of permitted activities. Regulatory authorities require drawing refer',
-    `phase_id` BIGINT COMMENT 'Foreign key linking to project.phase. Business justification: Permits are phase-specific (excavation permit for civil phase, structural permit for superstructure phase). Phase-level permit register is a regulatory compliance requirement; authorities issue and tr',
+    `asset_id` BIGINT COMMENT 'Foreign key linking to equipment.asset. Business justification: Construction site permits (crane permits, elevated work platform permits, plant operation permits) are issued for specific pieces of equipment. Regulatory compliance requires tracking which asset a pe',
+    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Permit fees (fee_amount, fee_currency) must be allocated to a cost center for financial posting. The plain-text cost_center_code on site_permit is a denormalized FK candidate. Construction finance req',
+    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Site permits (excavation, structural, environmental) reference specific drawings that define the permitted work scope and boundaries. Regulatory authorities require drawing references on permit applic',
+    `permit_to_work_id` BIGINT COMMENT 'Foreign key linking to safety.permit_to_work. Business justification: REQUIRED: Site permits are recorded in the central PTW system; linking ensures consistency and auditability.',
+    `phase_id` BIGINT COMMENT 'Foreign key linking to project.phase. Business justification: Site permits (environmental, construction, access) are issued for specific project phases and must be valid before phase commencement. Regulatory compliance reporting and phase-gate approval processes',
     `renewed_site_permit_id` BIGINT COMMENT 'Self-referencing FK on site_permit (renewed_site_permit_id)',
-    `risk_assessment_id` BIGINT COMMENT 'Foreign key linking to safety.risk_assessment. Business justification: Site permits (environmental, safety-critical) must be issued based on a formal risk assessment — a regulatory compliance requirement. Linking enables auditors to verify that every permit was supported',
-    `schedule_milestone_id` BIGINT COMMENT 'Foreign key linking to schedule.schedule_milestone. Business justification: Site permits (environmental, access, occupancy) are prerequisites for or evidence of milestone achievement. Linking site_permit to the milestone it gates or enables supports critical path management, ',
-    `site_id` BIGINT COMMENT 'Foreign key linking to site.site. Business justification: A site permit governs permission to execute specific work activities at a construction site. site_permit currently links to work_front (for work-front-specific permits) but has no direct FK to site.si',
+    `site_id` BIGINT COMMENT 'Foreign key linking to site.site. Business justification: A regulatory permit or access authorization governs work at a specific site. site_permit already has work_front_id for work-front-level permits, but site-level permits (environmental, building permits',
     `work_front_id` BIGINT COMMENT 'Identifier of the work front to which the permit applies.',
     `application_date` DATE COMMENT 'Date the permit application was submitted.',
     `approval_date` DATE COMMENT 'Date the permit was approved and became effective.',
@@ -439,15 +472,14 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`site`.`permit` (
     `updated_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent modification to the permit record.',
     `version` STRING COMMENT 'Alphanumeric version label (e.g., v1, v2a).',
     CONSTRAINT pk_permit PRIMARY KEY(`permit_id`)
-) COMMENT 'Regulatory permit or access authorization record governing permission to execute specific work activities on a construction site. Captures permit type (hot work, excavation, confined space entry, crane operation, road closure, environmental discharge, noise variance), permit number, issuing authority, application date, approval date, expiry date, conditions/restrictions, associated work front, responsible person, permit status (applied/active/suspended/closed), and close-out sign-off. Required under OSHA 29 CFR 1926, local building codes, and environmental regulations. Provides the compliance gate that must be satisfied before work commences on regulated activities.';
+) COMMENT 'Regulatory permit or access authorization record governing permission to execute specific work activities on a construction site. Captures permit type (hot work, excavation, confined space entry, crane operation, road closure, environmental discharge, noise variance), permit number, issuing authority, application date, approval date, expiry date, conditions/restrictions, associated work front, responsible person, permit status (applied/active/suspended/closed), and close-out sign-off. Required under OSHA 29 CFR 1926, local building codes, and environmental regulations. Provides the compliance gate that must be satisfied before work commences on regulated activities. [SSOT: distinct source of truth for site domain]';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`site`.`site` (
     `site_id` BIGINT COMMENT 'Primary key for site',
-    `account_id` BIGINT COMMENT 'Foreign key linking to client.account. Business justification: Client account ownership of a site is fundamental to billing, access control, and client-facing site reporting. Construction domain experts universally expect a site to be attributed to a commissionin',
-    `construction_project_id` BIGINT COMMENT 'Identifier of the construction project to which the site belongs.',
-    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Construction sites are managed as cost centers for overhead allocation and site establishment cost reporting. site has a plain cost_center_code column that is a denormalized reference to finance.cost_',
+    `company_code_id` BIGINT COMMENT 'Foreign key linking to finance.company_code. Business justification: In multi-entity construction groups, each site belongs to a legal entity (company code) for statutory reporting, tax compliance, and financial consolidation. This FK drives correct entity assignment f',
+    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Each construction site maps to a cost center for overhead allocation, financial reporting, and P&L attribution. The plain-text cost_center_code on site is a denormalized FK candidate. Construction ERP',
     `current_location_site_id` BIGINT COMMENT 'Self-referencing FK on site (current_location_site_id)',
-    `opportunity_id` BIGINT COMMENT 'Foreign key linking to client.client_opportunity. Business justification: Pipeline-to-execution traceability: a site is mobilised as a direct result of winning a client opportunity. BD and project controls teams require this link for win-rate analysis, opportunity-to-site c',
+    `opportunity_id` BIGINT COMMENT 'Foreign key linking to client.client_opportunity. Business justification: A construction site is established upon winning a client opportunity. This link enables win-rate-to-site-activation reporting and lets BD teams track which opportunities resulted in active sites. Ever',
     `address_line1` STRING COMMENT 'Primary street address of the site.',
     `address_line2` STRING COMMENT 'Secondary address information (e.g., suite or building).',
     `area_sqft` DECIMAL(18,2) COMMENT 'Total built‑up area of the site in square feet.',
@@ -494,10 +526,11 @@ ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ADD CONSTRAINT `fk_sit
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ADD CONSTRAINT `fk_site_field_progress_daily_log_id` FOREIGN KEY (`daily_log_id`) REFERENCES `vibe_construction_v1`.`site`.`daily_log`(`daily_log_id`);
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ADD CONSTRAINT `fk_site_field_progress_production_entry_id` FOREIGN KEY (`production_entry_id`) REFERENCES `vibe_construction_v1`.`site`.`production_entry`(`production_entry_id`);
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ADD CONSTRAINT `fk_site_field_progress_work_front_id` FOREIGN KEY (`work_front_id`) REFERENCES `vibe_construction_v1`.`site`.`work_front`(`work_front_id`);
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ADD CONSTRAINT `fk_site_mobilization_site_id` FOREIGN KEY (`site_id`) REFERENCES `vibe_construction_v1`.`site`.`site`(`site_id`);
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ADD CONSTRAINT `fk_site_equipment_deployment_daily_log_id` FOREIGN KEY (`daily_log_id`) REFERENCES `vibe_construction_v1`.`site`.`daily_log`(`daily_log_id`);
+ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ADD CONSTRAINT `fk_site_equipment_deployment_site_id` FOREIGN KEY (`site_id`) REFERENCES `vibe_construction_v1`.`site`.`site`(`site_id`);
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ADD CONSTRAINT `fk_site_equipment_deployment_work_front_id` FOREIGN KEY (`work_front_id`) REFERENCES `vibe_construction_v1`.`site`.`work_front`(`work_front_id`);
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ADD CONSTRAINT `fk_site_material_delivery_daily_log_id` FOREIGN KEY (`daily_log_id`) REFERENCES `vibe_construction_v1`.`site`.`daily_log`(`daily_log_id`);
-ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ADD CONSTRAINT `fk_site_material_delivery_site_id` FOREIGN KEY (`site_id`) REFERENCES `vibe_construction_v1`.`site`.`site`(`site_id`);
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ADD CONSTRAINT `fk_site_material_delivery_work_front_id` FOREIGN KEY (`work_front_id`) REFERENCES `vibe_construction_v1`.`site`.`work_front`(`work_front_id`);
 ALTER TABLE `vibe_construction_v1`.`site`.`permit` ADD CONSTRAINT `fk_site_permit_renewed_site_permit_id` FOREIGN KEY (`renewed_site_permit_id`) REFERENCES `vibe_construction_v1`.`site`.`permit`(`permit_id`);
 ALTER TABLE `vibe_construction_v1`.`site`.`permit` ADD CONSTRAINT `fk_site_permit_site_id` FOREIGN KEY (`site_id`) REFERENCES `vibe_construction_v1`.`site`.`site`(`site_id`);
@@ -510,14 +543,14 @@ ALTER SCHEMA `vibe_construction_v1`.`site` SET TAGS ('dbx_domain' = 'site');
 ALTER TABLE `vibe_construction_v1`.`site`.`work_front` SET TAGS ('dbx_data_type' = 'master_data');
 ALTER TABLE `vibe_construction_v1`.`site`.`work_front` SET TAGS ('dbx_subdomain' = 'site_operations');
 ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `work_front_id` SET TAGS ('dbx_business_glossary_term' = 'Work Front ID');
-ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `bim_model_id` SET TAGS ('dbx_business_glossary_term' = 'Bim Model Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `crew_id` SET TAGS ('dbx_business_glossary_term' = 'Crew Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `itp_id` SET TAGS ('dbx_business_glossary_term' = 'Itp Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `party_id` SET TAGS ('dbx_business_glossary_term' = 'Contract Party Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
+ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `risk_assessment_id` SET TAGS ('dbx_business_glossary_term' = 'Risk Assessment Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `site_id` SET TAGS ('dbx_business_glossary_term' = 'Site Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `subcontract_id` SET TAGS ('dbx_business_glossary_term' = 'Subcontract Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `swms_id` SET TAGS ('dbx_business_glossary_term' = 'Swms Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Site ID');
 ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `access_restriction` SET TAGS ('dbx_business_glossary_term' = 'Access Restriction Level');
 ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `access_restriction` SET TAGS ('dbx_value_regex' = 'unrestricted|permit_required|restricted_zone|exclusion_zone');
 ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `actual_crew_size` SET TAGS ('dbx_business_glossary_term' = 'Actual Crew Size');
@@ -525,6 +558,7 @@ ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `actual_prod
 ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `actual_start_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Start Date');
 ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `area_sqm` SET TAGS ('dbx_business_glossary_term' = 'Work Front Area (Square Metres)');
 ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `current_phase` SET TAGS ('dbx_business_glossary_term' = 'Current Construction Phase');
 ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `demobilization_date` SET TAGS ('dbx_business_glossary_term' = 'Demobilization Date');
 ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `elevation_m` SET TAGS ('dbx_business_glossary_term' = 'Elevation (Metres)');
 ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `environmental_sensitivity` SET TAGS ('dbx_business_glossary_term' = 'Environmental Sensitivity Classification');
@@ -533,7 +567,6 @@ ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `forecast_fi
 ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `front_code` SET TAGS ('dbx_business_glossary_term' = 'Work Front Code');
 ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `front_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9-]{2,20}$');
 ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `front_name` SET TAGS ('dbx_business_glossary_term' = 'Work Front Name');
-ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `front_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `front_status` SET TAGS ('dbx_business_glossary_term' = 'Work Front Status');
 ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `front_status` SET TAGS ('dbx_value_regex' = 'active|inactive|mobilizing|demobilized|suspended|completed');
 ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `front_type` SET TAGS ('dbx_business_glossary_term' = 'Work Front Type');
@@ -566,16 +599,12 @@ ALTER TABLE `vibe_construction_v1`.`site`.`work_front` ALTER COLUMN `zone_classi
 ALTER TABLE `vibe_construction_v1`.`site`.`daily_log` SET TAGS ('dbx_data_type' = 'transactional_data');
 ALTER TABLE `vibe_construction_v1`.`site`.`daily_log` SET TAGS ('dbx_subdomain' = 'site_operations');
 ALTER TABLE `vibe_construction_v1`.`site`.`daily_log` ALTER COLUMN `daily_log_id` SET TAGS ('dbx_business_glossary_term' = 'Daily Log ID');
-ALTER TABLE `vibe_construction_v1`.`site`.`daily_log` ALTER COLUMN `contract_milestone_id` SET TAGS ('dbx_business_glossary_term' = 'Contract Milestone Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`daily_log` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`daily_log` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`daily_log` ALTER COLUMN `goods_receipt_id` SET TAGS ('dbx_business_glossary_term' = 'Goods Receipt Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`daily_log` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
+ALTER TABLE `vibe_construction_v1`.`site`.`daily_log` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Code Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`daily_log` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Site ID');
+ALTER TABLE `vibe_construction_v1`.`site`.`daily_log` ALTER COLUMN `phase_id` SET TAGS ('dbx_business_glossary_term' = 'Phase Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`daily_log` ALTER COLUMN `site_id` SET TAGS ('dbx_business_glossary_term' = 'Site Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`daily_log` ALTER COLUMN `toolbox_meeting_id` SET TAGS ('dbx_business_glossary_term' = 'Toolbox Meeting Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`daily_log` ALTER COLUMN `approved_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Approval Timestamp');
 ALTER TABLE `vibe_construction_v1`.`site`.`daily_log` ALTER COLUMN `concrete_volume_m3` SET TAGS ('dbx_business_glossary_term' = 'Concrete Pour Volume (Cubic Metres)');
-ALTER TABLE `vibe_construction_v1`.`site`.`daily_log` ALTER COLUMN `cost_code` SET TAGS ('dbx_business_glossary_term' = 'Cost Code');
 ALTER TABLE `vibe_construction_v1`.`site`.`daily_log` ALTER COLUMN `cost_impact_flag` SET TAGS ('dbx_business_glossary_term' = 'Cost Impact Flag');
 ALTER TABLE `vibe_construction_v1`.`site`.`daily_log` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
 ALTER TABLE `vibe_construction_v1`.`site`.`daily_log` ALTER COLUMN `direct_labour_count` SET TAGS ('dbx_business_glossary_term' = 'Direct Labour Headcount');
@@ -620,20 +649,24 @@ ALTER TABLE `vibe_construction_v1`.`site`.`daily_log` ALTER COLUMN `work_perform
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` SET TAGS ('dbx_data_type' = 'transactional_data');
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` SET TAGS ('dbx_subdomain' = 'site_operations');
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `production_entry_id` SET TAGS ('dbx_business_glossary_term' = 'Production Entry ID');
+ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `activity_id` SET TAGS ('dbx_business_glossary_term' = 'Activity ID');
+ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Asset Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `commercial_change_order_id` SET TAGS ('dbx_business_glossary_term' = 'Commercial Change Order Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Code ID');
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `crew_id` SET TAGS ('dbx_business_glossary_term' = 'Crew ID');
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `daily_log_id` SET TAGS ('dbx_business_glossary_term' = 'Daily Log Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `material_catalog_id` SET TAGS ('dbx_business_glossary_term' = 'Material Catalog Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `permit_to_work_id` SET TAGS ('dbx_business_glossary_term' = 'Permit To Work Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `progress_update_id` SET TAGS ('dbx_business_glossary_term' = 'Progress Update Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `goods_issue_id` SET TAGS ('dbx_business_glossary_term' = 'Goods Issue Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `itp_id` SET TAGS ('dbx_business_glossary_term' = 'Itp Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Material Master Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `ncr_id` SET TAGS ('dbx_business_glossary_term' = 'Ncr Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `scope_of_work_id` SET TAGS ('dbx_business_glossary_term' = 'Scope Of Work Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `work_front_id` SET TAGS ('dbx_business_glossary_term' = 'Work Front ID');
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Approved By');
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `approved_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Approved Timestamp');
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `budgeted_production_rate` SET TAGS ('dbx_business_glossary_term' = 'Budgeted Production Rate (Units per Hour)');
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `budgeted_quantity` SET TAGS ('dbx_business_glossary_term' = 'Budgeted Quantity');
-ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `change_order_reference` SET TAGS ('dbx_business_glossary_term' = 'Change Order (CO) Reference');
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `cost_code` SET TAGS ('dbx_business_glossary_term' = 'Cost Code');
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `crew_size` SET TAGS ('dbx_business_glossary_term' = 'Crew Size');
@@ -646,9 +679,7 @@ ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `equip
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `installed_quantity` SET TAGS ('dbx_business_glossary_term' = 'Installed Quantity');
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `is_baseline_revision` SET TAGS ('dbx_business_glossary_term' = 'Is Baseline Revision Flag');
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `is_rework` SET TAGS ('dbx_business_glossary_term' = 'Is Rework Flag');
-ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `itp_reference` SET TAGS ('dbx_business_glossary_term' = 'Inspection and Test Plan (ITP) Reference');
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `labor_hours` SET TAGS ('dbx_business_glossary_term' = 'Labor Hours');
-ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `ncr_reference` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Report (NCR) Reference');
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `percent_complete` SET TAGS ('dbx_business_glossary_term' = 'Percent Complete (%)');
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `production_rate` SET TAGS ('dbx_business_glossary_term' = 'Production Rate (Units per Hour)');
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `production_type` SET TAGS ('dbx_business_glossary_term' = 'Production Type');
@@ -660,11 +691,12 @@ ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `submi
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `temperature_c` SET TAGS ('dbx_business_glossary_term' = 'Ambient Temperature (Celsius)');
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `unit_of_measure` SET TAGS ('dbx_business_glossary_term' = 'Unit of Measure (UOM)');
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Updated Timestamp');
+ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `weather_condition` SET TAGS ('dbx_business_glossary_term' = 'Weather Condition');
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `work_front_location` SET TAGS ('dbx_business_glossary_term' = 'Work Front Location');
 ALTER TABLE `vibe_construction_v1`.`site`.`production_entry` ALTER COLUMN `work_item_description` SET TAGS ('dbx_business_glossary_term' = 'Work Item Description');
 ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` SET TAGS ('dbx_subdomain' = 'field_execution');
+ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` SET TAGS ('dbx_subdomain' = 'site_operations');
 ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `crew_deployment_id` SET TAGS ('dbx_business_glossary_term' = 'Crew Deployment ID');
 ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `activity_id` SET TAGS ('dbx_business_glossary_term' = 'Activity ID');
 ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Asset Id (Foreign Key)');
@@ -672,13 +704,12 @@ ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `constr
 ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `crew_id` SET TAGS ('dbx_business_glossary_term' = 'Crew Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `daily_log_id` SET TAGS ('dbx_business_glossary_term' = 'Daily Log Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `fleet_assignment_id` SET TAGS ('dbx_business_glossary_term' = 'Fleet Assignment Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `craft_worker_id` SET TAGS ('dbx_business_glossary_term' = 'Lead Foreman Craft Worker Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `phase_id` SET TAGS ('dbx_business_glossary_term' = 'Phase Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `purchase_order_id` SET TAGS ('dbx_business_glossary_term' = 'Purchase Order Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `subcontract_id` SET TAGS ('dbx_business_glossary_term' = 'Subcontract Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `permit_to_work_id` SET TAGS ('dbx_business_glossary_term' = 'Permit To Work Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Subcontractor Vendor Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `swms_id` SET TAGS ('dbx_business_glossary_term' = 'Swms Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `toolbox_meeting_id` SET TAGS ('dbx_business_glossary_term' = 'Toolbox Meeting Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `work_front_id` SET TAGS ('dbx_business_glossary_term' = 'Work Front ID');
 ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `actual_hours` SET TAGS ('dbx_business_glossary_term' = 'Actual Hours');
 ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `actual_production_qty` SET TAGS ('dbx_business_glossary_term' = 'Actual Production Quantity');
@@ -697,7 +728,6 @@ ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `is_wea
 ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `mobilization_status` SET TAGS ('dbx_business_glossary_term' = 'Mobilization Status');
 ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `mobilization_status` SET TAGS ('dbx_value_regex' = 'mobilizing|on_site|demobilizing|demobilized');
 ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `overtime_hours` SET TAGS ('dbx_business_glossary_term' = 'Overtime Hours');
-ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `permit_to_work_number` SET TAGS ('dbx_business_glossary_term' = 'Permit to Work Number');
 ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `planned_hours` SET TAGS ('dbx_business_glossary_term' = 'Planned Hours');
 ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `planned_production_qty` SET TAGS ('dbx_business_glossary_term' = 'Planned Production Quantity');
 ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `ppe_compliance` SET TAGS ('dbx_business_glossary_term' = 'Personal Protective Equipment (PPE) Compliance Flag');
@@ -710,24 +740,17 @@ ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `shift_
 ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `shift_type` SET TAGS ('dbx_value_regex' = 'day|night|swing|weekend');
 ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `source_record_reference` SET TAGS ('dbx_business_glossary_term' = 'Source Record ID');
 ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Updated Timestamp');
+ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
 ALTER TABLE `vibe_construction_v1`.`site`.`crew_deployment` ALTER COLUMN `weather_condition` SET TAGS ('dbx_business_glossary_term' = 'Weather Condition');
 ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` SET TAGS ('dbx_subdomain' = 'field_execution');
+ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` SET TAGS ('dbx_subdomain' = 'site_operations');
 ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `concrete_pour_id` SET TAGS ('dbx_business_glossary_term' = 'Concrete Pour ID');
-ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `batch_lot_id` SET TAGS ('dbx_business_glossary_term' = 'Batch Lot Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
-ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Batch Plant Vendor Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `crew_id` SET TAGS ('dbx_business_glossary_term' = 'Crew Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `goods_receipt_id` SET TAGS ('dbx_business_glossary_term' = 'Goods Receipt Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `itp_id` SET TAGS ('dbx_business_glossary_term' = 'Inspection and Test Plan (ITP) ID');
-ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Mix Design Master Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `craft_worker_id` SET TAGS ('dbx_business_glossary_term' = 'Pour Supervisor Craft Worker Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Material Master Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `daily_log_id` SET TAGS ('dbx_business_glossary_term' = 'Procore Daily Log ID');
-ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `project_milestone_id` SET TAGS ('dbx_business_glossary_term' = 'Project Milestone Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `submittal_id` SET TAGS ('dbx_business_glossary_term' = 'Design Submittal Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `swms_id` SET TAGS ('dbx_business_glossary_term' = 'Swms Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `technical_specification_id` SET TAGS ('dbx_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Vendor Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `work_front_id` SET TAGS ('dbx_business_glossary_term' = 'Work Front Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `ambient_temperature_c` SET TAGS ('dbx_business_glossary_term' = 'Ambient Temperature (°C)');
 ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `concrete_temperature_c` SET TAGS ('dbx_business_glossary_term' = 'Concrete Temperature at Delivery (°C)');
@@ -740,7 +763,6 @@ ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `delivery
 ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `formwork_drawing_ref` SET TAGS ('dbx_business_glossary_term' = 'Formwork Drawing Reference');
 ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `grid_reference` SET TAGS ('dbx_business_glossary_term' = 'Grid Reference');
 ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `hcss_production_code` SET TAGS ('dbx_business_glossary_term' = 'HCSS HeavyJob Production Record ID');
-ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `ncr_number` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Report (NCR) Number');
 ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `placement_method` SET TAGS ('dbx_business_glossary_term' = 'Concrete Placement Method');
 ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `placement_method` SET TAGS ('dbx_value_regex' = 'pump|crane_bucket|conveyor|direct_chute|other');
 ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `pour_date` SET TAGS ('dbx_business_glossary_term' = 'Concrete Pour Date');
@@ -769,20 +791,20 @@ ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `weather_
 ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `weather_condition` SET TAGS ('dbx_value_regex' = 'clear|cloudy|rain|high_wind|extreme_heat|extreme_cold');
 ALTER TABLE `vibe_construction_v1`.`site`.`concrete_pour` ALTER COLUMN `wind_speed_kmh` SET TAGS ('dbx_business_glossary_term' = 'Wind Speed (km/h)');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` SET TAGS ('dbx_subdomain' = 'field_execution');
+ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` SET TAGS ('dbx_subdomain' = 'site_operations');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `field_progress_id` SET TAGS ('dbx_business_glossary_term' = 'Field Progress ID');
-ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `bim_model_id` SET TAGS ('dbx_business_glossary_term' = 'Bim Model Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Code ID');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `earned_value_record_id` SET TAGS ('dbx_business_glossary_term' = 'Earned Value Record Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `craft_worker_id` SET TAGS ('dbx_business_glossary_term' = 'Field Engineer Craft Worker Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `itp_line_id` SET TAGS ('dbx_business_glossary_term' = 'Inspection and Test Plan (ITP) Checkpoint ID');
-ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `permit_to_work_id` SET TAGS ('dbx_business_glossary_term' = 'Permit To Work Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `milestone_id` SET TAGS ('dbx_business_glossary_term' = 'Project Milestone Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `ncr_id` SET TAGS ('dbx_business_glossary_term' = 'Ncr Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `daily_log_id` SET TAGS ('dbx_business_glossary_term' = 'Procore Daily Log ID');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `production_entry_id` SET TAGS ('dbx_business_glossary_term' = 'HCSS HeavyJob Production Record ID');
-ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `progress_billing_id` SET TAGS ('dbx_business_glossary_term' = 'Progress Billing Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `progress_update_id` SET TAGS ('dbx_business_glossary_term' = 'Progress Update Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `project_milestone_id` SET TAGS ('dbx_business_glossary_term' = 'Project Milestone Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `schedule_baseline_id` SET TAGS ('dbx_business_glossary_term' = 'Schedule Baseline Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `scope_of_work_id` SET TAGS ('dbx_business_glossary_term' = 'Scope Of Work Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `activity_id` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Activity ID');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `work_front_id` SET TAGS ('dbx_business_glossary_term' = 'Work Front Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `activity_type` SET TAGS ('dbx_business_glossary_term' = 'Activity Type / Discipline');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `approval_status` SET TAGS ('dbx_business_glossary_term' = 'Approval Status');
@@ -791,7 +813,6 @@ ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `approve
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `approver_name` SET TAGS ('dbx_business_glossary_term' = 'Approver Name');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `approver_name` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `approver_name` SET TAGS ('dbx_pii_identifier' = 'true');
-ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `approver_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `bcwp` SET TAGS ('dbx_business_glossary_term' = 'Budgeted Cost of Work Performed (BCWP)');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `budget_at_completion` SET TAGS ('dbx_business_glossary_term' = 'Budget at Completion (BAC)');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `budget_at_completion` SET TAGS ('dbx_confidential' = 'true');
@@ -799,10 +820,6 @@ ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `created
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `crew_size` SET TAGS ('dbx_business_glossary_term' = 'Crew Size (Headcount)');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `data_date` SET TAGS ('dbx_business_glossary_term' = 'Data Date (Progress Cut-Off Date)');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `equipment_hours` SET TAGS ('dbx_business_glossary_term' = 'Equipment Hours');
-ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `field_engineer_name` SET TAGS ('dbx_business_glossary_term' = 'Field Engineer Name');
-ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `field_engineer_name` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `field_engineer_name` SET TAGS ('dbx_pii_identifier' = 'true');
-ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `field_engineer_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `installed_quantity` SET TAGS ('dbx_business_glossary_term' = 'Installed Quantity');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `is_critical_path` SET TAGS ('dbx_business_glossary_term' = 'Is Critical Path (CPM) Flag');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `is_milestone` SET TAGS ('dbx_business_glossary_term' = 'Is Milestone Flag');
@@ -813,7 +830,6 @@ ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `measure
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `measurement_number` SET TAGS ('dbx_business_glossary_term' = 'Field Progress Measurement Number');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `measurement_period_type` SET TAGS ('dbx_business_glossary_term' = 'Measurement Period Type');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `measurement_period_type` SET TAGS ('dbx_value_regex' = 'daily|weekly|fortnightly|monthly');
-ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `ncr_reference` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Report (NCR) Reference');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `period_installed_quantity` SET TAGS ('dbx_business_glossary_term' = 'Period Installed Quantity');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `planned_quantity` SET TAGS ('dbx_business_glossary_term' = 'Planned Quantity');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `previous_percent_complete` SET TAGS ('dbx_business_glossary_term' = 'Previous Percent Complete');
@@ -825,8 +841,82 @@ ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `revisio
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `submission_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Submission Timestamp');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Updated Timestamp');
 ALTER TABLE `vibe_construction_v1`.`site`.`field_progress` ALTER COLUMN `weather_condition` SET TAGS ('dbx_business_glossary_term' = 'Weather Condition at Measurement');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` SET TAGS ('dbx_subdomain' = 'resource_mobilization');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `mobilization_id` SET TAGS ('dbx_business_glossary_term' = 'Site Mobilization ID');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Account Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Contract ID');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Asset Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `hse_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Hse Plan Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `milestone_id` SET TAGS ('dbx_business_glossary_term' = 'Project Milestone Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `opportunity_id` SET TAGS ('dbx_business_glossary_term' = 'Client Opportunity Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `package_id` SET TAGS ('dbx_business_glossary_term' = 'Package Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `phase_id` SET TAGS ('dbx_business_glossary_term' = 'Phase Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `plan_id` SET TAGS ('dbx_business_glossary_term' = 'Quality Plan Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `activity_id` SET TAGS ('dbx_business_glossary_term' = 'Oracle Primavera P6 Activity ID');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `project_budget_id` SET TAGS ('dbx_business_glossary_term' = 'Project Budget Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `purchase_order_id` SET TAGS ('dbx_business_glossary_term' = 'Purchase Order Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `rental_agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Rental Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `schedule_baseline_id` SET TAGS ('dbx_business_glossary_term' = 'Schedule Baseline Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `site_id` SET TAGS ('dbx_business_glossary_term' = 'Site Id');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `site_id` SET TAGS ('dbx_internal' = 'true');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `staffing_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Staffing Plan Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `access_road_established` SET TAGS ('dbx_business_glossary_term' = 'Access Road Established');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `actual_demobilization_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Demobilization Date');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `actual_mobilization_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Mobilization Date');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `building_permit_number` SET TAGS ('dbx_business_glossary_term' = 'Building Permit Number');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `cost_actual` SET TAGS ('dbx_business_glossary_term' = 'Mobilization Cost Actual');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `cost_actual` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `cost_budget` SET TAGS ('dbx_business_glossary_term' = 'Mobilization Cost Budget');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `cost_budget` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `country_code` SET TAGS ('dbx_business_glossary_term' = 'Country Code');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `country_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `dlp_end_date` SET TAGS ('dbx_business_glossary_term' = 'Defects Liability Period (DLP) End Date');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `environmental_permit_number` SET TAGS ('dbx_business_glossary_term' = 'Environmental Permit Number');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `environmental_permit_obtained` SET TAGS ('dbx_business_glossary_term' = 'Environmental Permit Obtained');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `hse_plan_approval_date` SET TAGS ('dbx_business_glossary_term' = 'Health Safety and Environment (HSE) Plan Approval Date');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `hse_plan_approved` SET TAGS ('dbx_business_glossary_term' = 'Health Safety and Environment (HSE) Plan Approved');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `laydown_area_established` SET TAGS ('dbx_business_glossary_term' = 'Laydown Area Established');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `leed_certification_target` SET TAGS ('dbx_business_glossary_term' = 'Leadership in Energy and Environmental Design (LEED) Certification Target');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `leed_certification_target` SET TAGS ('dbx_value_regex' = 'certified|silver|gold|platinum|none');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `mobilization_number` SET TAGS ('dbx_business_glossary_term' = 'Mobilization Number');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `mobilization_number` SET TAGS ('dbx_value_regex' = '^MOB-[A-Z0-9]{3,20}$');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `mobilization_status` SET TAGS ('dbx_business_glossary_term' = 'Mobilization Status');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `mobilization_status` SET TAGS ('dbx_value_regex' = 'planned|in_progress|completed|demobilized|cancelled|on_hold');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `mobilization_type` SET TAGS ('dbx_business_glossary_term' = 'Mobilization Type');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `mobilization_type` SET TAGS ('dbx_value_regex' = 'full_site|work_package|temporary_camp|equipment_only|partial');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Mobilization Notes');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `ntp_date` SET TAGS ('dbx_business_glossary_term' = 'Notice to Proceed (NTP) Date');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `peak_workforce_actual` SET TAGS ('dbx_business_glossary_term' = 'Peak Workforce Actual');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `peak_workforce_planned` SET TAGS ('dbx_business_glossary_term' = 'Peak Workforce Planned');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `planned_demobilization_date` SET TAGS ('dbx_business_glossary_term' = 'Planned Demobilization Date');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `planned_mobilization_date` SET TAGS ('dbx_business_glossary_term' = 'Planned Mobilization Date');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `procore_project_reference` SET TAGS ('dbx_business_glossary_term' = 'Procore Project ID');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `schedule_variance_days` SET TAGS ('dbx_business_glossary_term' = 'Mobilization Schedule Variance (Days)');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `site_address` SET TAGS ('dbx_business_glossary_term' = 'Site Address');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `site_address` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `site_address` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `site_area_sqm` SET TAGS ('dbx_business_glossary_term' = 'Site Area (Square Metres)');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `site_closure_signoff_date` SET TAGS ('dbx_business_glossary_term' = 'Site Closure Sign-Off Date');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `site_fencing_complete` SET TAGS ('dbx_business_glossary_term' = 'Site Fencing Complete');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `site_latitude` SET TAGS ('dbx_business_glossary_term' = 'Site Latitude');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `site_latitude` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `site_latitude` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `site_longitude` SET TAGS ('dbx_business_glossary_term' = 'Site Longitude');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `site_longitude` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `site_longitude` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `site_office_established` SET TAGS ('dbx_business_glossary_term' = 'Site Office Established');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `temporary_utilities_connected` SET TAGS ('dbx_business_glossary_term' = 'Temporary Utilities Connected');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Updated Timestamp');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
+ALTER TABLE `vibe_construction_v1`.`site`.`mobilization` ALTER COLUMN `wbs_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9.-]{3,30}$');
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` SET TAGS ('dbx_subdomain' = 'field_execution');
+ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` SET TAGS ('dbx_subdomain' = 'resource_mobilization');
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `equipment_deployment_id` SET TAGS ('dbx_business_glossary_term' = 'Equipment Deployment ID');
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `activity_id` SET TAGS ('dbx_business_glossary_term' = 'Activity ID');
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Equipment ID');
@@ -836,13 +926,12 @@ ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `f
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `hours_id` SET TAGS ('dbx_business_glossary_term' = 'HCSS HeavyJob Equipment Hours ID');
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `maintenance_order_id` SET TAGS ('dbx_business_glossary_term' = 'Maintenance Order Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `craft_worker_id` SET TAGS ('dbx_business_glossary_term' = 'Operator Craft Worker Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `phase_id` SET TAGS ('dbx_business_glossary_term' = 'Phase Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `inspection_record_id` SET TAGS ('dbx_business_glossary_term' = 'Pre Start Inspection Record Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `permit_to_work_id` SET TAGS ('dbx_business_glossary_term' = 'Permit To Work Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `daily_log_id` SET TAGS ('dbx_business_glossary_term' = 'Procore Daily Log ID');
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `purchase_order_id` SET TAGS ('dbx_business_glossary_term' = 'Purchase Order Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `swms_id` SET TAGS ('dbx_business_glossary_term' = 'Swms Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Vendor Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `rental_agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Rental Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `site_id` SET TAGS ('dbx_business_glossary_term' = 'Site Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Supplier Vendor Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `work_front_id` SET TAGS ('dbx_business_glossary_term' = 'Work Front ID');
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `breakdown_description` SET TAGS ('dbx_business_glossary_term' = 'Breakdown Description');
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `breakdown_flag` SET TAGS ('dbx_business_glossary_term' = 'Breakdown Flag');
@@ -859,7 +948,6 @@ ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `f
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `fuel_type` SET TAGS ('dbx_value_regex' = 'diesel|petrol|lpg|electric|hybrid');
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `hourly_rate` SET TAGS ('dbx_business_glossary_term' = 'Hourly Rate');
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `hourly_rate` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `hse_permit_number` SET TAGS ('dbx_business_glossary_term' = 'Health Safety and Environment (HSE) Permit Number');
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `idle_hours` SET TAGS ('dbx_business_glossary_term' = 'Idle Hours');
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `operating_hours` SET TAGS ('dbx_business_glossary_term' = 'Operating Hours');
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `operator_license_number` SET TAGS ('dbx_business_glossary_term' = 'Operator License Number');
@@ -875,30 +963,22 @@ ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `r
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `record_updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Updated Timestamp');
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `release_date` SET TAGS ('dbx_business_glossary_term' = 'Release Date');
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `remarks` SET TAGS ('dbx_business_glossary_term' = 'Deployment Remarks');
-ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `rental_order_number` SET TAGS ('dbx_business_glossary_term' = 'Rental Order Number');
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `shift_date` SET TAGS ('dbx_business_glossary_term' = 'Shift Date');
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `shift_type` SET TAGS ('dbx_business_glossary_term' = 'Shift Type');
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `shift_type` SET TAGS ('dbx_value_regex' = 'day|night|swing|double');
-ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `site_location_description` SET TAGS ('dbx_business_glossary_term' = 'Site Location Description');
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `standby_hours` SET TAGS ('dbx_business_glossary_term' = 'Standby Hours');
 ALTER TABLE `vibe_construction_v1`.`site`.`equipment_deployment` ALTER COLUMN `weather_condition` SET TAGS ('dbx_business_glossary_term' = 'Weather Condition');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` SET TAGS ('dbx_subdomain' = 'site_operations');
+ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` SET TAGS ('dbx_subdomain' = 'resource_mobilization');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `material_delivery_id` SET TAGS ('dbx_business_glossary_term' = 'Material Delivery ID');
-ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `batch_lot_id` SET TAGS ('dbx_business_glossary_term' = 'Batch Lot Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `daily_log_id` SET TAGS ('dbx_business_glossary_term' = 'Daily Log Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `warehouse_id` SET TAGS ('dbx_business_glossary_term' = 'Destination Warehouse Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `goods_receipt_id` SET TAGS ('dbx_business_glossary_term' = 'Goods Receipt Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `material_catalog_id` SET TAGS ('dbx_business_glossary_term' = 'Material Catalog Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Material Master Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
+ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Site ID');
+ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `po_line_id` SET TAGS ('dbx_business_glossary_term' = 'Po Line Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Supplier ID');
-ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `purchase_order_id` SET TAGS ('dbx_business_glossary_term' = 'Purchase Order (PO) ID');
-ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `warehouse_id` SET TAGS ('dbx_business_glossary_term' = 'Receiving Warehouse Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `site_id` SET TAGS ('dbx_business_glossary_term' = 'Site Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `subcontract_id` SET TAGS ('dbx_business_glossary_term' = 'Subcontract Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `submittal_id` SET TAGS ('dbx_business_glossary_term' = 'Design Submittal Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `technical_specification_id` SET TAGS ('dbx_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `work_front_id` SET TAGS ('dbx_business_glossary_term' = 'Work Front Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code');
@@ -914,15 +994,12 @@ ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `dock
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `driver_name` SET TAGS ('dbx_business_glossary_term' = 'Delivery Driver Name');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `driver_name` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `driver_name` SET TAGS ('dbx_pii_name' = 'true');
-ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `driver_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `expected_delivery_date` SET TAGS ('dbx_business_glossary_term' = 'Expected Delivery Date');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `hazardous_material` SET TAGS ('dbx_business_glossary_term' = 'Hazardous Material Flag');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `itp_reference` SET TAGS ('dbx_business_glossary_term' = 'Inspection and Test Plan (ITP) Reference');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `laydown_zone` SET TAGS ('dbx_business_glossary_term' = 'Laydown Zone');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `material_category` SET TAGS ('dbx_business_glossary_term' = 'Material Category');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `msds_verified` SET TAGS ('dbx_business_glossary_term' = 'Material Safety Data Sheet (MSDS) Verified Flag');
-ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `ncr_reference` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Report (NCR) Reference');
-ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `po_line_number` SET TAGS ('dbx_business_glossary_term' = 'Purchase Order (PO) Line Number');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `procore_log_reference` SET TAGS ('dbx_business_glossary_term' = 'Procore Daily Log Reference ID');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `quantity_accepted` SET TAGS ('dbx_business_glossary_term' = 'Quantity Accepted');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `quantity_delivered` SET TAGS ('dbx_business_glossary_term' = 'Quantity Delivered');
@@ -930,29 +1007,25 @@ ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `quan
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `quantity_rejected` SET TAGS ('dbx_business_glossary_term' = 'Quantity Rejected');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `receipt_condition` SET TAGS ('dbx_business_glossary_term' = 'Material Receipt Condition');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `receipt_condition` SET TAGS ('dbx_value_regex' = 'good|damaged|wet|contaminated|incorrect_spec|short_delivered');
-ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `receiving_inspector` SET TAGS ('dbx_business_glossary_term' = 'Receiving Inspector Name');
-ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `receiving_inspector` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `temperature_sensitive` SET TAGS ('dbx_business_glossary_term' = 'Temperature-Sensitive Storage Flag');
-ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `test_certificate_number` SET TAGS ('dbx_business_glossary_term' = 'Material Test Certificate Number');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `unit_of_measure` SET TAGS ('dbx_business_glossary_term' = 'Unit of Measure (UOM)');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `unit_rate` SET TAGS ('dbx_business_glossary_term' = 'Material Unit Rate');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `unit_rate` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Last Updated Timestamp');
 ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `vehicle_registration` SET TAGS ('dbx_business_glossary_term' = 'Delivery Vehicle Registration Number');
+ALTER TABLE `vibe_construction_v1`.`site`.`material_delivery` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
 ALTER TABLE `vibe_construction_v1`.`site`.`permit` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`site`.`permit` SET TAGS ('dbx_subdomain' = 'site_operations');
+ALTER TABLE `vibe_construction_v1`.`site`.`permit` SET TAGS ('dbx_subdomain' = 'regulatory_compliance');
 ALTER TABLE `vibe_construction_v1`.`site`.`permit` ALTER COLUMN `permit_id` SET TAGS ('dbx_business_glossary_term' = 'Site Permit ID');
 ALTER TABLE `vibe_construction_v1`.`site`.`permit` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Account Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`permit` ALTER COLUMN `activity_id` SET TAGS ('dbx_business_glossary_term' = 'Activity Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`permit` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`permit` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`permit` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Asset Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`permit` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`permit` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`permit` ALTER COLUMN `permit_to_work_id` SET TAGS ('dbx_business_glossary_term' = 'Permit To Work Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`permit` ALTER COLUMN `phase_id` SET TAGS ('dbx_business_glossary_term' = 'Phase Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`permit` ALTER COLUMN `renewed_site_permit_id` SET TAGS ('dbx_business_glossary_term' = 'Renewed Site Permit Id');
 ALTER TABLE `vibe_construction_v1`.`site`.`permit` ALTER COLUMN `renewed_site_permit_id` SET TAGS ('dbx_self_ref_fk' = 'true');
-ALTER TABLE `vibe_construction_v1`.`site`.`permit` ALTER COLUMN `risk_assessment_id` SET TAGS ('dbx_business_glossary_term' = 'Risk Assessment Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`permit` ALTER COLUMN `schedule_milestone_id` SET TAGS ('dbx_business_glossary_term' = 'Schedule Milestone Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`permit` ALTER COLUMN `site_id` SET TAGS ('dbx_business_glossary_term' = 'Site Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`permit` ALTER COLUMN `work_front_id` SET TAGS ('dbx_business_glossary_term' = 'Work Front ID');
 ALTER TABLE `vibe_construction_v1`.`site`.`permit` ALTER COLUMN `application_date` SET TAGS ('dbx_business_glossary_term' = 'Application Date');
@@ -986,14 +1059,13 @@ ALTER TABLE `vibe_construction_v1`.`site`.`permit` ALTER COLUMN `site_permit_sta
 ALTER TABLE `vibe_construction_v1`.`site`.`permit` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Update Timestamp');
 ALTER TABLE `vibe_construction_v1`.`site`.`permit` ALTER COLUMN `version` SET TAGS ('dbx_business_glossary_term' = 'Permit Version');
 ALTER TABLE `vibe_construction_v1`.`site`.`site` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`site`.`site` SET TAGS ('dbx_subdomain' = 'site_operations');
+ALTER TABLE `vibe_construction_v1`.`site`.`site` SET TAGS ('dbx_subdomain' = 'regulatory_compliance');
 ALTER TABLE `vibe_construction_v1`.`site`.`site` ALTER COLUMN `site_id` SET TAGS ('dbx_business_glossary_term' = 'Site Identifier');
-ALTER TABLE `vibe_construction_v1`.`site`.`site` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Client Account Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`site`.`site` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project Id');
+ALTER TABLE `vibe_construction_v1`.`site`.`site` ALTER COLUMN `company_code_id` SET TAGS ('dbx_business_glossary_term' = 'Company Code Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`site` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`site` ALTER COLUMN `current_location_site_id` SET TAGS ('dbx_business_glossary_term' = 'Current Location Site Id');
 ALTER TABLE `vibe_construction_v1`.`site`.`site` ALTER COLUMN `current_location_site_id` SET TAGS ('dbx_self_ref_fk' = 'true');
-ALTER TABLE `vibe_construction_v1`.`site`.`site` ALTER COLUMN `opportunity_id` SET TAGS ('dbx_business_glossary_term' = 'Originating Client Opportunity Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`site`.`site` ALTER COLUMN `opportunity_id` SET TAGS ('dbx_business_glossary_term' = 'Client Opportunity Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`site`.`site` ALTER COLUMN `address_line1` SET TAGS ('dbx_business_glossary_term' = 'Address Line1');
 ALTER TABLE `vibe_construction_v1`.`site`.`site` ALTER COLUMN `address_line1` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_construction_v1`.`site`.`site` ALTER COLUMN `address_line1` SET TAGS ('dbx_pii_address' = 'true');
@@ -1025,7 +1097,6 @@ ALTER TABLE `vibe_construction_v1`.`site`.`site` ALTER COLUMN `longitude` SET TA
 ALTER TABLE `vibe_construction_v1`.`site`.`site` ALTER COLUMN `longitude` SET TAGS ('dbx_pii_address' = 'true');
 ALTER TABLE `vibe_construction_v1`.`site`.`site` ALTER COLUMN `mobilization_date` SET TAGS ('dbx_business_glossary_term' = 'Mobilization Date');
 ALTER TABLE `vibe_construction_v1`.`site`.`site` ALTER COLUMN `site_name` SET TAGS ('dbx_business_glossary_term' = 'Name');
-ALTER TABLE `vibe_construction_v1`.`site`.`site` ALTER COLUMN `site_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`site`.`site` ALTER COLUMN `owner` SET TAGS ('dbx_business_glossary_term' = 'Site Owner');
 ALTER TABLE `vibe_construction_v1`.`site`.`site` ALTER COLUMN `permit_expiry_date` SET TAGS ('dbx_business_glossary_term' = 'Permit Expiry Date');
 ALTER TABLE `vibe_construction_v1`.`site`.`site` ALTER COLUMN `postal_code` SET TAGS ('dbx_business_glossary_term' = 'Postal Code');

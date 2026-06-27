@@ -1,540 +1,202 @@
--- Metric views for domain: member | Business: Health_Insurance | Version: 2 | Generated on: 2026-06-23 00:30:14
+-- Metric views for domain: member | Business: Health Insurance | Version: 2 | Generated on: 2026-06-28 00:14:33
 
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_subscriber`
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_assignment_rule`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Core subscriber population metrics tracking enrollment health, risk profile, and demographic composition across the member base. Used by VP of Membership and Chief Actuary to monitor membership trends, risk concentration, and retention."
-  source: "`vibe_health_insurance_v1`.`member`.`subscriber`"
+  comment: "Assignment Rule business metrics"
+  source: "`vibe_health_insurance_v1`.`member`.`assignment_rule`"
   dimensions:
-    - name: "line_of_business"
-      expr: line_of_business
-      comment: "Line of business (Commercial, Medicare, Medicaid, etc.) for segmenting membership KPIs by product line."
-    - name: "subscriber_status"
-      expr: subscriber_status
-      comment: "Current lifecycle status of the subscriber (Active, Terminated, Suspended) for cohort filtering."
-    - name: "coverage_type"
-      expr: coverage_type
-      comment: "Type of coverage (Individual, Family, Employee-Only) for benefit utilization segmentation."
-    - name: "gender"
-      expr: gender
-      comment: "Subscriber gender for demographic equity and actuarial analysis."
-    - name: "enrollment_source"
-      expr: enrollment_source
-      comment: "Channel through which the subscriber enrolled (Exchange, Employer, Direct) for acquisition analysis."
-    - name: "language_preference"
-      expr: language_preference
-      comment: "Preferred language for member communications, used to assess language access compliance."
-    - name: "tobacco_use_status"
-      expr: tobacco_use_status
-      comment: "Tobacco use indicator for wellness program targeting and premium surcharge analysis."
-    - name: "disability_status"
-      expr: disability_status
-      comment: "Disability status for special needs population segmentation and care management routing."
-    - name: "effective_date_month"
-      expr: DATE_TRUNC('MONTH', effective_date)
-      comment: "Month of subscriber effective date for cohort enrollment trend analysis."
-    - name: "termination_date_month"
-      expr: DATE_TRUNC('MONTH', termination_date)
-      comment: "Month of subscriber termination for churn trend analysis."
-  measures:
-    - name: "total_active_subscribers"
-      expr: COUNT(CASE WHEN subscriber_status = 'Active' THEN subscriber_id END)
-      comment: "Count of currently active subscribers. Primary membership census KPI used in board reporting and CMS submissions."
-    - name: "total_subscribers"
-      expr: COUNT(1)
-      comment: "Total subscriber count across all statuses. Baseline denominator for rate calculations."
-    - name: "avg_hcc_risk_score"
-      expr: AVG(CAST(hcc_score AS DOUBLE))
-      comment: "Average HCC risk score across subscribers. Drives risk adjustment revenue projections and actuarial reserve calculations."
-    - name: "avg_risk_adjustment_factor"
-      expr: AVG(CAST(risk_adjustment_factor AS DOUBLE))
-      comment: "Average risk adjustment factor (RAF) across subscribers. Directly impacts CMS risk adjustment payments and revenue forecasting."
-    - name: "avg_annual_income"
-      expr: AVG(CAST(annual_income AS DOUBLE))
-      comment: "Average annual income of subscribers. Used for subsidy eligibility analysis and ACA premium tax credit program management."
-    - name: "total_cob_subscribers"
-      expr: COUNT(CASE WHEN cob_indicator = TRUE THEN subscriber_id END)
-      comment: "Count of subscribers with coordination of benefits. Informs COB recovery program scope and potential subrogation revenue."
-    - name: "deceased_subscriber_count"
-      expr: COUNT(CASE WHEN is_deceased = TRUE THEN subscriber_id END)
-      comment: "Count of deceased subscribers still in the system. Operational quality metric for timely disenrollment and fraud prevention."
-    - name: "veteran_subscriber_count"
-      expr: COUNT(CASE WHEN veteran_status = TRUE THEN subscriber_id END)
-      comment: "Count of veteran subscribers for VA coordination program eligibility and special population reporting."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_eligibility_span`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Eligibility span metrics tracking coverage continuity, premium revenue, retroactive adjustments, and gap-in-coverage rates. Critical for CMS compliance reporting, premium billing reconciliation, and enrollment operations."
-  source: "`vibe_health_insurance_v1`.`member`.`member_eligibility_span`"
-  dimensions:
-    - name: "eligibility_status"
-      expr: eligibility_status
-      comment: "Current eligibility status (Active, Terminated, Pending) for coverage population segmentation."
-    - name: "line_of_business"
-      expr: line_of_business
-      comment: "Line of business for eligibility span segmentation across product lines."
-    - name: "coverage_type"
-      expr: coverage_type
-      comment: "Coverage type (Medical, Dental, Vision) for benefit-level eligibility analysis."
-    - name: "enrollment_type"
-      expr: enrollment_type
-      comment: "Enrollment type (Open Enrollment, SEP, Auto-Renew) for enrollment channel performance analysis."
-    - name: "eligibility_source"
-      expr: eligibility_source
-      comment: "Source system that generated the eligibility record (EDI 834, Exchange, Manual) for data quality monitoring."
-    - name: "subscriber_relationship_code"
-      expr: subscriber_relationship_code
-      comment: "Relationship of covered member to subscriber (Self, Spouse, Child) for dependent coverage analysis."
-    - name: "is_primary_coverage"
-      expr: is_primary_coverage
-      comment: "Flag indicating primary vs. secondary coverage for COB and claims adjudication analysis."
-    - name: "effective_date_month"
-      expr: DATE_TRUNC('MONTH', effective_date)
-      comment: "Month of eligibility effective date for enrollment trend and seasonality analysis."
-    - name: "termination_date_month"
-      expr: DATE_TRUNC('MONTH', termination_date)
-      comment: "Month of eligibility termination for churn and disenrollment trend analysis."
-    - name: "termination_reason_code"
-      expr: termination_reason_code
-      comment: "Reason code for eligibility termination for root-cause disenrollment analysis."
-  measures:
-    - name: "total_eligibility_spans"
-      expr: COUNT(1)
-      comment: "Total eligibility span records. Baseline enrollment census used in CMS submissions and premium billing."
-    - name: "active_eligibility_spans"
-      expr: COUNT(CASE WHEN eligibility_status = 'Active' THEN member_eligibility_span_id END)
-      comment: "Count of currently active eligibility spans. Primary covered lives metric for financial and regulatory reporting."
-    - name: "total_premium_amount"
-      expr: SUM(CAST(premium_amount AS DOUBLE))
-      comment: "Total premium billed across all eligibility spans. Core revenue metric for premium income reporting and actuarial analysis."
-    - name: "avg_premium_amount"
-      expr: AVG(CAST(premium_amount AS DOUBLE))
-      comment: "Average premium per eligibility span. Used for pricing adequacy analysis and rate development benchmarking."
-    - name: "gap_in_coverage_count"
-      expr: COUNT(CASE WHEN gap_in_coverage_flag = TRUE THEN member_eligibility_span_id END)
-      comment: "Count of eligibility spans with a gap in coverage. Regulatory compliance metric for continuity of care and ACA continuous coverage requirements."
-    - name: "retroactive_eligibility_count"
-      expr: COUNT(CASE WHEN retroactive_eligibility_flag = TRUE THEN member_eligibility_span_id END)
-      comment: "Count of retroactive eligibility adjustments. Operational quality metric impacting claims reprocessing volume and premium reconciliation costs."
-    - name: "primary_coverage_spans"
-      expr: COUNT(CASE WHEN is_primary_coverage = TRUE THEN member_eligibility_span_id END)
-      comment: "Count of primary coverage eligibility spans. Used to distinguish primary from secondary covered lives for COB program management."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_enrollment`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Enrollment transaction metrics covering enrollment volume, premium revenue, subsidy utilization, special enrollment activity, and effectuation rates. Used by VP of Enrollment Operations and CFO for ACA compliance, revenue forecasting, and operational throughput monitoring."
-  source: "`vibe_health_insurance_v1`.`member`.`member_enrollment`"
-  dimensions:
-    - name: "enrollment_status"
-      expr: enrollment_status
-      comment: "Current enrollment status (Active, Terminated, Pending) for pipeline and census analysis."
-    - name: "enrollment_type"
-      expr: enrollment_type
-      comment: "Type of enrollment transaction (New, Renewal, Change, Termination) for operational volume analysis."
-    - name: "enrollment_channel"
-      expr: enrollment_channel
-      comment: "Channel through which enrollment was submitted (Exchange, Broker, Direct, Employer) for acquisition cost analysis."
-    - name: "line_of_business"
-      expr: line_of_business
-      comment: "Line of business for enrollment segmentation across product lines."
-    - name: "metal_level"
-      expr: metal_level
-      comment: "ACA metal tier (Bronze, Silver, Gold, Platinum) for plan selection and actuarial value analysis."
-    - name: "coverage_level"
-      expr: coverage_level
-      comment: "Coverage tier (Individual, Family, Employee+Spouse) for premium and benefit analysis."
-    - name: "is_special_enrollment"
-      expr: is_special_enrollment
-      comment: "Flag for special enrollment period transactions for SEP compliance and volume monitoring."
-    - name: "is_cobra"
-      expr: is_cobra
-      comment: "Flag for COBRA enrollments for COBRA program management and premium tracking."
-    - name: "coverage_effective_date_month"
-      expr: DATE_TRUNC('MONTH', coverage_effective_date)
-      comment: "Month of coverage effective date for enrollment cohort and seasonality analysis."
-    - name: "plan_year"
-      expr: plan_year
-      comment: "Plan year for annual enrollment cycle analysis and year-over-year comparison."
-    - name: "rating_area"
-      expr: rating_area
-      comment: "Geographic rating area for regional enrollment and premium analysis."
-    - name: "csr_level"
-      expr: csr_level
-      comment: "Cost-sharing reduction level for ACA subsidy program analysis and CMS reconciliation."
-  measures:
-    - name: "total_enrollments"
-      expr: COUNT(1)
-      comment: "Total enrollment transactions. Baseline operational throughput metric for enrollment operations management."
-    - name: "active_enrollments"
-      expr: COUNT(CASE WHEN is_active = TRUE THEN member_enrollment_id END)
-      comment: "Count of currently active enrollments. Primary covered lives census for financial and regulatory reporting."
-    - name: "total_premium_amount"
-      expr: SUM(CAST(premium_amount AS DOUBLE))
-      comment: "Total premium across all enrollment records. Core revenue metric for premium income reporting."
-    - name: "avg_premium_amount"
-      expr: AVG(CAST(premium_amount AS DOUBLE))
-      comment: "Average premium per enrollment. Used for pricing adequacy and rate development benchmarking."
-    - name: "total_aptc_amount"
-      expr: SUM(CAST(aptc_amount AS DOUBLE))
-      comment: "Total Advanced Premium Tax Credit (APTC) subsidies applied. Critical ACA financial reconciliation metric for CMS 3R program management."
-    - name: "avg_aptc_amount"
-      expr: AVG(CAST(aptc_amount AS DOUBLE))
-      comment: "Average APTC subsidy per enrollment. Used for subsidy adequacy analysis and exchange program evaluation."
-    - name: "total_subsidy_amount"
-      expr: SUM(CAST(subsidy_amount AS DOUBLE))
-      comment: "Total subsidy amount across all enrollments. Tracks government subsidy exposure and ACA financial liability."
-    - name: "total_tobacco_surcharge_amount"
-      expr: SUM(CAST(tobacco_surcharge_amount AS DOUBLE))
-      comment: "Total tobacco surcharge revenue collected. Wellness incentive program revenue and ACA compliance metric."
-    - name: "special_enrollment_count"
-      expr: COUNT(CASE WHEN is_special_enrollment = TRUE THEN member_enrollment_id END)
-      comment: "Count of special enrollment period transactions. SEP compliance monitoring and fraud detection metric."
-    - name: "binder_payment_received_count"
-      expr: COUNT(CASE WHEN enrollment_binder_payment_received = TRUE THEN member_enrollment_id END)
-      comment: "Count of enrollments with binder payment received. Effectuation rate numerator — critical for revenue recognition and membership census accuracy."
-    - name: "total_binder_payment_amount"
-      expr: SUM(CAST(enrollment_binder_payment_amount AS DOUBLE))
-      comment: "Total binder payment amounts collected. First-payment revenue metric for enrollment effectuation financial reporting."
-    - name: "retroactive_enrollment_count"
-      expr: COUNT(CASE WHEN is_retroactive = TRUE THEN member_enrollment_id END)
-      comment: "Count of retroactive enrollment transactions. Operational quality metric impacting claims reprocessing and premium reconciliation costs."
-    - name: "avg_age_rating_factor"
-      expr: AVG(CAST(age_rating_factor AS DOUBLE))
-      comment: "Average age rating factor across enrollments. Actuarial pricing adequacy metric for ACA community rating compliance."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_dependent`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Dependent coverage metrics tracking family unit composition, age-out eligibility, disability coverage, and coverage continuity. Used by VP of Membership and Compliance to manage dependent eligibility rules, ACA age-26 compliance, and CHIP coordination."
-  source: "`vibe_health_insurance_v1`.`member`.`dependent`"
-  dimensions:
-    - name: "relationship_type"
-      expr: relationship_type
-      comment: "Relationship of dependent to subscriber (Spouse, Child, Domestic Partner) for family composition analysis."
-    - name: "coverage_status"
-      expr: coverage_status
-      comment: "Current coverage status of the dependent for active covered lives reporting."
-    - name: "gender"
-      expr: gender
-      comment: "Dependent gender for demographic and actuarial analysis."
-    - name: "record_status"
+    - name: "Created Timestamp"
+      expr: created_timestamp
+    - name: "Data Quality Score"
+      expr: data_quality_score
+    - name: "Effective End Date"
+      expr: effective_end_date
+    - name: "Effective From"
+      expr: effective_from
+    - name: "Effective Start Date"
+      expr: effective_start_date
+    - name: "Effective Until"
+      expr: effective_until
+    - name: "Fhir Last Updated"
+      expr: fhir_last_updated
+    - name: "Fhir Profile Url"
+      expr: fhir_profile_url
+    - name: "Fhir Resource Identifier"
+      expr: fhir_resource_identifier
+    - name: "Fhir Resource Type"
+      expr: fhir_resource_type
+    - name: "Fhir Version Code"
+      expr: fhir_version_code
+    - name: "Is Active"
+      expr: is_active
+    - name: "Master Entity Identifier"
+      expr: master_entity_identifier
+    - name: "Record Created At"
+      expr: record_created_at
+    - name: "Record Source System"
+      expr: record_source_system
+    - name: "Record Status"
       expr: record_status
-      comment: "Record lifecycle status for data quality and operational monitoring."
-    - name: "coverage_start_month"
-      expr: DATE_TRUNC('MONTH', coverage_start_date)
-      comment: "Month dependent coverage began for enrollment trend analysis."
-    - name: "coverage_end_month"
-      expr: DATE_TRUNC('MONTH', coverage_end_date)
-      comment: "Month dependent coverage ended for churn and disenrollment analysis."
   measures:
-    - name: "total_dependents"
+    - name: "Row Count"
       expr: COUNT(1)
-      comment: "Total dependent records. Covered lives denominator for family unit and per-member cost analysis."
-    - name: "active_dependents"
-      expr: COUNT(CASE WHEN coverage_status = 'Active' THEN dependent_id END)
-      comment: "Count of dependents with active coverage. Primary dependent census metric for premium billing and CMS reporting."
-    - name: "age_out_eligible_count"
-      expr: COUNT(CASE WHEN age_out_eligibility_flag = TRUE THEN dependent_id END)
-      comment: "Count of dependents approaching ACA age-26 eligibility limit. Proactive outreach metric for retention and SEP conversion programs."
-    - name: "disabled_dependent_count"
-      expr: COUNT(CASE WHEN disability_status = TRUE THEN dependent_id END)
-      comment: "Count of dependents with disability status. Drives extended coverage eligibility beyond age-26 and special needs care management routing."
-    - name: "chip_eligible_dependent_count"
-      expr: COUNT(CASE WHEN chip_eligibility_flag = TRUE THEN dependent_id END)
-      comment: "Count of CHIP-eligible dependents. State CHIP coordination and Medicaid/CHIP transition program management metric."
-    - name: "medicaid_eligible_dependent_count"
-      expr: COUNT(CASE WHEN medicaid_eligibility_flag = TRUE THEN dependent_id END)
-      comment: "Count of Medicaid-eligible dependents. Dual-eligible coordination and premium tax credit reconciliation metric."
-    - name: "student_dependent_count"
-      expr: COUNT(CASE WHEN student_status = TRUE THEN dependent_id END)
-      comment: "Count of student dependents. Used for student coverage program management and age-26 extension eligibility tracking."
+    - name: "Distinct Assignment Rule"
+      expr: COUNT(DISTINCT assignment_rule_id)
+    - name: "Total Updated By"
+      expr: SUM(updated_by)
+    - name: "Average Updated By"
+      expr: AVG(updated_by)
+    - name: "Total Created By"
+      expr: SUM(created_by)
+    - name: "Average Created By"
+      expr: AVG(created_by)
 $$;
 
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_grievance`
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_authorization_document`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Member grievance metrics tracking complaint volume, resolution rates, regulatory reporting obligations, and financial dispute amounts. Used by VP of Member Experience, Chief Compliance Officer, and state/federal regulators for NCQA, CMS, and state DOI compliance."
-  source: "`vibe_health_insurance_v1`.`member`.`member_grievance`"
+  comment: "Authorization Document business metrics"
+  source: "`vibe_health_insurance_v1`.`member`.`authorization_document`"
   dimensions:
-    - name: "member_grievance_status"
-      expr: member_grievance_status
-      comment: "Current status of the grievance (Open, Resolved, Escalated, Closed) for pipeline and SLA monitoring."
-    - name: "type_code"
-      expr: type_code
-      comment: "Grievance type code for categorizing complaint nature and regulatory reporting."
-    - name: "issue_category_code"
-      expr: issue_category_code
-      comment: "Issue category for root-cause analysis and operational improvement targeting."
-    - name: "resolution_type_code"
-      expr: resolution_type_code
-      comment: "Resolution outcome type for member satisfaction and regulatory compliance analysis."
-    - name: "grievance_source"
-      expr: grievance_source
-      comment: "Source channel of grievance submission (Phone, Portal, Mail, Regulator) for intake channel analysis."
-    - name: "lob_code"
-      expr: lob_code
-      comment: "Line of business associated with the grievance for product-level complaint analysis."
-    - name: "state_code"
-      expr: state_code
-      comment: "State jurisdiction for state-level regulatory reporting and compliance monitoring."
-    - name: "cms_reportable_indicator"
-      expr: cms_reportable_indicator
-      comment: "Flag for CMS-reportable grievances for federal compliance reporting segmentation."
-    - name: "received_month"
-      expr: DATE_TRUNC('MONTH', received_timestamp)
-      comment: "Month grievance was received for trend and seasonality analysis."
-    - name: "resolution_month"
-      expr: DATE_TRUNC('MONTH', resolution_date)
-      comment: "Month grievance was resolved for resolution cycle time trend analysis."
+    - name: "Authorization Number"
+      expr: authorization_number
+    - name: "Authorization Type"
+      expr: authorization_type
+    - name: "Created Timestamp"
+      expr: created_timestamp
+    - name: "Data Quality Score"
+      expr: data_quality_score
+    - name: "Effective Date"
+      expr: effective_date
+    - name: "Effective End Date"
+      expr: effective_end_date
+    - name: "Effective Start Date"
+      expr: effective_start_date
+    - name: "Expiration Date"
+      expr: expiration_date
+    - name: "Fhir Last Updated"
+      expr: fhir_last_updated
+    - name: "Fhir Profile Url"
+      expr: fhir_profile_url
+    - name: "Fhir Resource Identifier"
+      expr: fhir_resource_identifier
+    - name: "Fhir Resource Type"
+      expr: fhir_resource_type
+    - name: "Fhir Version Code"
+      expr: fhir_version_code
+    - name: "Is Active"
+      expr: is_active
+    - name: "Master Entity Identifier"
+      expr: master_entity_identifier
+    - name: "Member Address"
+      expr: member_address
   measures:
-    - name: "total_grievances"
+    - name: "Row Count"
       expr: COUNT(1)
-      comment: "Total grievance volume. Primary complaint census metric for regulatory reporting and member experience benchmarking."
-    - name: "open_grievances"
-      expr: COUNT(CASE WHEN member_grievance_status = 'Open' THEN member_grievance_id END)
-      comment: "Count of open/unresolved grievances. Operational backlog metric for staffing and SLA compliance management."
-    - name: "cms_reportable_grievances"
-      expr: COUNT(CASE WHEN cms_reportable_indicator = TRUE THEN member_grievance_id END)
-      comment: "Count of CMS-reportable grievances. Federal compliance metric for CMS Part C/D grievance reporting requirements."
-    - name: "regulatory_reporting_grievances"
-      expr: COUNT(CASE WHEN regulatory_reporting_flag = TRUE THEN member_grievance_id END)
-      comment: "Count of grievances requiring regulatory reporting. Compliance exposure metric for state and federal oversight."
-    - name: "total_disputed_amount"
-      expr: SUM(CAST(disputed_amount AS DOUBLE))
-      comment: "Total financial amount disputed across grievances. Financial exposure metric for claims dispute resolution and member liability management."
-    - name: "avg_disputed_amount"
-      expr: AVG(CAST(disputed_amount AS DOUBLE))
-      comment: "Average disputed amount per grievance. Used for financial risk assessment and grievance program cost analysis."
-    - name: "avg_member_satisfaction_score"
-      expr: AVG(CAST(member_satisfaction_score AS DOUBLE))
-      comment: "Average member satisfaction score from grievance resolution. CAHPS and NCQA quality metric for member experience program management."
+    - name: "Distinct Authorization Document"
+      expr: COUNT(DISTINCT authorization_document_id)
 $$;
 
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_cobra_continuant`
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_authorized_representative`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "COBRA continuation coverage metrics tracking election rates, premium collection, coverage exhaustion, and qualifying event patterns. Used by VP of Enrollment Operations and Benefits Administration to manage COBRA compliance, premium revenue, and coverage transition programs."
-  source: "`vibe_health_insurance_v1`.`member`.`cobra_continuant`"
+  comment: "Authorized Representative business metrics"
+  source: "`vibe_health_insurance_v1`.`member`.`authorized_representative`"
   dimensions:
-    - name: "cobra_continuant_status"
-      expr: cobra_continuant_status
-      comment: "Current COBRA status (Elected, Active, Terminated, Exhausted) for COBRA population management."
-    - name: "qualifying_event_type"
-      expr: qualifying_event_type
-      comment: "Type of qualifying event that triggered COBRA eligibility (Termination, Divorce, Death, etc.) for event-based analysis."
-    - name: "premium_payment_status"
-      expr: premium_payment_status
-      comment: "COBRA premium payment status (Current, Delinquent, Lapsed) for collections and coverage termination management."
-    - name: "member_relationship"
-      expr: member_relationship
-      comment: "Relationship of COBRA continuant to former subscriber for family coverage analysis."
-    - name: "cobra_eligibility_reason"
-      expr: cobra_eligibility_reason
-      comment: "Reason for COBRA eligibility for compliance and program analysis."
-    - name: "election_month"
-      expr: DATE_TRUNC('MONTH', election_date)
-      comment: "Month of COBRA election for election rate trend analysis."
-    - name: "coverage_start_month"
-      expr: DATE_TRUNC('MONTH', coverage_start_date)
-      comment: "Month COBRA coverage began for cohort analysis."
+    - name: "Audit Reason"
+      expr: audit_reason
+    - name: "Authorization End Date"
+      expr: authorization_end_date
+    - name: "Authorization Scope"
+      expr: authorization_scope
+    - name: "Authorization Start Date"
+      expr: authorization_start_date
+    - name: "Authorization Status"
+      expr: authorization_status
+    - name: "Authorized Representative Status"
+      expr: authorized_representative_status
+    - name: "Bar Number"
+      expr: bar_number
+    - name: "Contact Address Line1"
+      expr: contact_address_line1
+    - name: "Contact City"
+      expr: contact_city
+    - name: "Contact Country Code"
+      expr: contact_country_code
+    - name: "Contact Email"
+      expr: contact_email
+    - name: "Contact Phone"
+      expr: contact_phone
+    - name: "Contact Postal Code"
+      expr: contact_postal_code
+    - name: "Contact State Code"
+      expr: contact_state_code
+    - name: "Created Timestamp"
+      expr: created_timestamp
+    - name: "Data Quality Score"
+      expr: data_quality_score
   measures:
-    - name: "total_cobra_continuants"
+    - name: "Row Count"
       expr: COUNT(1)
-      comment: "Total COBRA continuant records. COBRA population census for compliance and premium revenue management."
-    - name: "active_cobra_continuants"
-      expr: COUNT(CASE WHEN cobra_continuant_status = 'Active' THEN cobra_continuant_id END)
-      comment: "Count of currently active COBRA continuants. Active COBRA covered lives for premium billing and claims liability."
-    - name: "cobra_elected_count"
-      expr: COUNT(CASE WHEN cobra_eligibility_indicator = TRUE THEN cobra_continuant_id END)
-      comment: "Count of COBRA-eligible members who elected coverage. COBRA election rate numerator for program uptake analysis."
-    - name: "exhausted_cobra_count"
-      expr: COUNT(CASE WHEN is_exhausted = TRUE THEN cobra_continuant_id END)
-      comment: "Count of COBRA continuants who exhausted maximum coverage. Transition program trigger metric for marketplace enrollment outreach."
-    - name: "total_premium_amount"
-      expr: SUM(CAST(premium_amount AS DOUBLE))
-      comment: "Total COBRA premium billed. Revenue metric for COBRA program financial management and billing reconciliation."
-    - name: "avg_premium_amount"
-      expr: AVG(CAST(premium_amount AS DOUBLE))
-      comment: "Average COBRA premium per continuant. Pricing adequacy metric for COBRA rate setting and affordability analysis."
+    - name: "Distinct Authorized Representative"
+      expr: COUNT(DISTINCT authorized_representative_id)
 $$;
 
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_pcp_assignment`
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_cob`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Primary Care Provider (PCP) assignment metrics tracking assignment rates, panel status, network tier distribution, and assignment change patterns. Used by VP of Network Management and Medical Director to monitor PCP access, panel capacity, and care continuity."
-  source: "`vibe_health_insurance_v1`.`member`.`pcp_assignment`"
+  comment: "Coordination of Benefits KPIs tracking COB coverage rates, MSP compliance, verification status, and subrogation flags. Directly impacts claims cost recovery, CMS MSP compliance, and financial performance."
+  source: "`vibe_health_insurance_v1`.`member`.`cob_record`"
   dimensions:
-    - name: "assignment_status"
-      expr: assignment_status
-      comment: "Current PCP assignment status (Active, Pending, Terminated) for assignment population management."
-    - name: "assignment_type"
-      expr: assignment_type
-      comment: "Type of PCP assignment (Member-Selected, Auto-Assigned, Plan-Assigned) for assignment method analysis."
-    - name: "assignment_reason"
-      expr: assignment_reason
-      comment: "Reason for PCP assignment for operational and compliance analysis."
-    - name: "panel_status"
-      expr: panel_status
-      comment: "PCP panel status (Open, Closed, Restricted) for network capacity and access analysis."
-    - name: "network_tier"
-      expr: network_tier
-      comment: "Network tier of assigned PCP for tiered benefit and cost-sharing analysis."
-    - name: "pcp_specialty_code"
-      expr: pcp_specialty_code
-      comment: "Specialty code of assigned PCP for specialty distribution and access adequacy analysis."
-    - name: "is_primary"
-      expr: is_primary
-      comment: "Flag for primary PCP assignment for deduplication and primary care attribution."
-    - name: "effective_date_month"
-      expr: DATE_TRUNC('MONTH', effective_date)
-      comment: "Month of PCP assignment effective date for assignment trend analysis."
-    - name: "change_reason"
-      expr: change_reason
-      comment: "Reason for PCP change for member satisfaction and network stability analysis."
+    - name: "cob_status"
+      expr: cob_status
+      comment: "Current COB record status (active, inactive, pending verification) for operational COB management."
+    - name: "cob_order"
+      expr: cob_order
+      comment: "COB order (primary, secondary, tertiary) for claims adjudication sequencing and cost recovery analysis."
+    - name: "coordination_of_benefits_rule"
+      expr: coordination_of_benefits_rule
+      comment: "COB rule applied (birthday rule, non-duplication, maintenance of benefits) for adjudication accuracy analysis."
+    - name: "policy_type"
+      expr: policy_type
+      comment: "Type of other-carrier policy for COB population segmentation and recovery strategy."
+    - name: "verification_method"
+      expr: verification_method
+      comment: "Method used to verify COB (member attestation, carrier inquiry, CMS data) for data quality and compliance analysis."
+    - name: "is_msp_compliant"
+      expr: is_msp_compliant
+      comment: "Whether COB record is Medicare Secondary Payer compliant — non-compliance triggers CMS penalties and recovery demands."
+    - name: "cob_verification_month"
+      expr: DATE_TRUNC('month', cob_verification_date)
+      comment: "Month COB was verified for verification currency analysis and re-verification scheduling."
   measures:
-    - name: "total_pcp_assignments"
-      expr: COUNT(1)
-      comment: "Total PCP assignment records. Baseline metric for PCP assignment program scope and coverage."
-    - name: "active_pcp_assignments"
-      expr: COUNT(CASE WHEN assignment_status = 'Active' THEN pcp_assignment_id END)
-      comment: "Count of active PCP assignments. Primary care attribution metric for HEDIS, quality reporting, and care management."
-    - name: "auto_assigned_count"
-      expr: COUNT(CASE WHEN assignment_type = 'Auto-Assigned' THEN pcp_assignment_id END)
-      comment: "Count of auto-assigned PCPs. Operational metric for member engagement — auto-assigned members have lower care utilization and satisfaction."
-    - name: "open_panel_assignments"
-      expr: COUNT(CASE WHEN panel_status = 'Open' THEN pcp_assignment_id END)
-      comment: "Count of assignments to open-panel PCPs. Network access adequacy metric for regulatory compliance and member access reporting."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_lob_assignment`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Line of business assignment metrics tracking risk stratification, dual eligibility, SNP enrollment, and care management eligibility across the member population. Used by Chief Medical Officer and VP of Population Health to drive care management program targeting and risk-based interventions."
-  source: "`vibe_health_insurance_v1`.`member`.`lob_assignment`"
-  dimensions:
-    - name: "lob_code"
-      expr: lob_code
-      comment: "Line of business code (Commercial, Medicare, Medicaid, CHIP) for population segmentation."
-    - name: "lob_assignment_status"
-      expr: lob_assignment_status
-      comment: "Current LOB assignment status for active population filtering."
-    - name: "snp_type"
-      expr: snp_type
-      comment: "Special Needs Plan type (D-SNP, C-SNP, I-SNP) for SNP population management and CMS reporting."
-    - name: "risk_tier"
-      expr: risk_tier
-      comment: "Risk stratification tier for care management program targeting and resource allocation."
-    - name: "cms_region"
-      expr: cms_region
-      comment: "CMS region for geographic risk and regulatory analysis."
-    - name: "state_code"
-      expr: state_code
-      comment: "State code for state-level population and regulatory analysis."
-    - name: "star_rating_cohort"
-      expr: star_rating_cohort
-      comment: "Star rating cohort assignment for CMS Star Ratings quality program management."
-    - name: "effective_date_month"
-      expr: DATE_TRUNC('MONTH', effective_date)
-      comment: "Month of LOB assignment effective date for population trend analysis."
-    - name: "segmentation_source"
-      expr: segmentation_source
-      comment: "Source of segmentation model for data lineage and model performance analysis."
-  measures:
-    - name: "total_lob_assignments"
-      expr: COUNT(1)
-      comment: "Total LOB assignment records. Population census baseline for line-of-business reporting."
-    - name: "dual_eligible_count"
-      expr: COUNT(CASE WHEN dual_eligible_flag = TRUE THEN lob_assignment_id END)
-      comment: "Count of dual-eligible (Medicare + Medicaid) members. Critical population for D-SNP program management, CMS reporting, and care coordination investment."
-    - name: "care_management_eligible_count"
-      expr: COUNT(CASE WHEN care_management_eligibility_flag = TRUE THEN lob_assignment_id END)
-      comment: "Count of members eligible for care management programs. Drives care management program capacity planning and ROI analysis."
-    - name: "chronic_condition_count"
-      expr: COUNT(CASE WHEN chronic_condition_flag = TRUE THEN lob_assignment_id END)
-      comment: "Count of members with chronic conditions. Disease management program targeting metric and medical cost driver analysis."
-    - name: "rising_risk_count"
-      expr: COUNT(CASE WHEN rising_risk_indicator = TRUE THEN lob_assignment_id END)
-      comment: "Count of rising-risk members. Proactive intervention targeting metric to prevent high-cost utilization escalation."
-    - name: "sdoh_risk_count"
-      expr: COUNT(CASE WHEN sdoh_risk_flag = TRUE THEN lob_assignment_id END)
-      comment: "Count of members with social determinants of health risk flags. SDOH program investment and community health intervention targeting metric."
-    - name: "avg_hcc_risk_score_tier"
-      expr: AVG(CAST(hcc_risk_score_tier AS DOUBLE))
-      comment: "Average HCC risk score tier across LOB assignments. Risk adjustment revenue projection and actuarial reserve metric."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_disenrollment`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Disenrollment metrics tracking termination volume, reasons, financial adjustments, and appeal rights notification compliance. Used by VP of Enrollment Operations and Chief Compliance Officer for churn analysis, regulatory compliance, and premium refund management."
-  source: "`vibe_health_insurance_v1`.`member`.`disenrollment`"
-  dimensions:
-    - name: "disenrollment_status"
-      expr: disenrollment_status
-      comment: "Current disenrollment processing status for operational pipeline management."
-    - name: "reason_code"
-      expr: reason_code
-      comment: "Disenrollment reason code for root-cause churn analysis and retention program targeting."
-    - name: "termination_type"
-      expr: termination_type
-      comment: "Type of termination (Voluntary, Involuntary, Non-Payment, Death) for churn classification."
-    - name: "source"
-      expr: source
-      comment: "Source system or channel that initiated the disenrollment for data quality and process analysis."
-    - name: "appeal_rights_notified"
-      expr: appeal_rights_notified
-      comment: "Flag indicating whether member was notified of appeal rights. Regulatory compliance metric for CMS and state DOI requirements."
-    - name: "eligibility_loss_indicator"
-      expr: eligibility_loss_indicator
-      comment: "Flag for disenrollments due to eligibility loss for Medicaid/CHIP transition program management."
-    - name: "request_date_month"
-      expr: DATE_TRUNC('MONTH', request_date)
-      comment: "Month disenrollment was requested for churn trend and seasonality analysis."
-  measures:
-    - name: "total_disenrollments"
-      expr: COUNT(1)
-      comment: "Total disenrollment transactions. Primary churn volume metric for membership retention and revenue impact analysis."
-    - name: "appeal_rights_not_notified_count"
-      expr: COUNT(CASE WHEN appeal_rights_notified = FALSE THEN disenrollment_id END)
-      comment: "Count of disenrollments where appeal rights notification was not sent. Critical regulatory compliance metric — CMS and state DOI require timely notice."
-    - name: "total_refund_gross_amount"
-      expr: SUM(CAST(refund_gross_amount AS DOUBLE))
-      comment: "Total gross premium refund amount from disenrollments. Financial liability metric for premium reconciliation and cash flow management."
-    - name: "total_refund_net_amount"
-      expr: SUM(CAST(refund_net_amount AS DOUBLE))
-      comment: "Total net premium refund amount after adjustments. Net financial impact metric for disenrollment program cost management."
-    - name: "total_refund_adjustment_amount"
-      expr: SUM(CAST(refund_adjustment_amount AS DOUBLE))
-      comment: "Total adjustment amount applied to disenrollment refunds. Retroactive adjustment exposure metric for premium reconciliation."
-    - name: "eligibility_loss_disenrollments"
-      expr: COUNT(CASE WHEN eligibility_loss_indicator = TRUE THEN disenrollment_id END)
-      comment: "Count of disenrollments due to eligibility loss. Medicaid/CHIP churn metric for state program coordination and transition outreach."
-    - name: "cobra_eligible_disenrollments"
-      expr: COUNT(CASE WHEN cobro_eligibility = TRUE THEN disenrollment_id END)
-      comment: "Count of disenrollments where COBRA eligibility applies. COBRA election opportunity pipeline metric for continuation coverage program management."
+    - name: "total_cob_records"
+      expr: COUNT(cob_record_id)
+      comment: "Total COB records — baseline metric for dual-coverage population size and COB program scope."
+    - name: "active_cob_records"
+      expr: COUNT(CASE WHEN cob_status = 'active' AND is_active = TRUE THEN cob_record_id END)
+      comment: "Count of active COB records — live dual-coverage population for claims adjudication and cost recovery program sizing."
+    - name: "msp_non_compliant_records"
+      expr: COUNT(CASE WHEN is_msp_compliant = FALSE THEN cob_record_id END)
+      comment: "Count of MSP non-compliant COB records — CMS compliance risk metric; non-compliance triggers federal recovery demands and penalties."
+    - name: "msp_compliance_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN is_msp_compliant = TRUE THEN cob_record_id END) / NULLIF(COUNT(cob_record_id), 0), 2)
+      comment: "Percentage of COB records that are MSP compliant — regulatory compliance KPI; below threshold triggers CMS audit and recovery risk."
+    - name: "subrogation_flagged_records"
+      expr: COUNT(CASE WHEN is_subrogation_flag = TRUE THEN cob_record_id END)
+      comment: "Count of COB records flagged for subrogation — measures subrogation recovery opportunity pipeline for financial recovery program."
+    - name: "distinct_members_with_cob"
+      expr: COUNT(DISTINCT member_subscriber_id)
+      comment: "Count of distinct members with COB records — unduplicated dual-coverage population for COB program investment sizing."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_cob_record`
@@ -542,49 +204,147 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Coordination of Benefits (COB) metrics tracking COB population, MSP compliance, verification status, and subrogation flags. Used by VP of Claims and Chief Financial Officer to manage COB recovery revenue, Medicare Secondary Payer compliance, and subrogation program scope."
+  comment: "Cob Record business metrics"
   source: "`vibe_health_insurance_v1`.`member`.`cob_record`"
   dimensions:
-    - name: "cob_status"
-      expr: cob_status
-      comment: "Current COB record status (Active, Inactive, Pending Verification) for COB population management."
-    - name: "cob_order"
+    - name: "Birthday Rule Applicable"
+      expr: birthday_rule_applicable
+    - name: "Cob Order"
       expr: cob_order
-      comment: "COB order (Primary, Secondary, Tertiary) for claims adjudication sequencing analysis."
-    - name: "coordination_of_benefits_rule"
+    - name: "Cob Record Number"
+      expr: cob_record_number
+    - name: "Cob Status"
+      expr: cob_status
+    - name: "Cob Verification Date"
+      expr: cob_verification_date
+    - name: "Coordination Of Benefits Rule"
       expr: coordination_of_benefits_rule
-      comment: "COB rule applied (Birthday Rule, Non-Duplication, Maintenance of Benefits) for adjudication logic analysis."
-    - name: "policy_type"
-      expr: policy_type
-      comment: "Type of other carrier policy for COB program segmentation."
-    - name: "other_carrier_relationship_type"
-      expr: other_carrier_relationship_type
-      comment: "Relationship type to other carrier for COB coordination analysis."
-    - name: "verification_method"
-      expr: verification_method
-      comment: "Method used to verify COB information for data quality and compliance analysis."
-    - name: "cob_verification_date_month"
-      expr: DATE_TRUNC('MONTH', cob_verification_date)
-      comment: "Month of COB verification for verification currency and staleness analysis."
+    - name: "Created Timestamp"
+      expr: created_timestamp
+    - name: "Data Quality Score"
+      expr: data_quality_score
+    - name: "Effective Date"
+      expr: effective_date
+    - name: "Effective End Date"
+      expr: effective_end_date
+    - name: "Effective Start Date"
+      expr: effective_start_date
+    - name: "Fhir Last Updated"
+      expr: fhir_last_updated
+    - name: "Fhir Profile Url"
+      expr: fhir_profile_url
+    - name: "Fhir Resource Identifier"
+      expr: fhir_resource_identifier
+    - name: "Fhir Resource Type"
+      expr: fhir_resource_type
+    - name: "Fhir Version Code"
+      expr: fhir_version_code
   measures:
-    - name: "total_cob_records"
+    - name: "Row Count"
       expr: COUNT(1)
-      comment: "Total COB records. COB program population census for recovery revenue estimation."
-    - name: "active_cob_records"
-      expr: COUNT(CASE WHEN cob_status = 'Active' THEN cob_record_id END)
-      comment: "Count of active COB records. Active COB population for claims adjudication and recovery program management."
-    - name: "msp_compliant_count"
-      expr: COUNT(CASE WHEN is_msp_compliant = TRUE THEN cob_record_id END)
-      comment: "Count of MSP-compliant COB records. Medicare Secondary Payer compliance metric — non-compliance carries significant CMS penalty exposure."
-    - name: "msp_non_compliant_count"
-      expr: COUNT(CASE WHEN is_msp_compliant = FALSE THEN cob_record_id END)
-      comment: "Count of MSP non-compliant COB records. Regulatory risk exposure metric for CMS MSP compliance program management."
-    - name: "subrogation_flagged_count"
-      expr: COUNT(CASE WHEN is_subrogation_flag = TRUE THEN cob_record_id END)
-      comment: "Count of COB records flagged for subrogation. Subrogation recovery program pipeline metric for financial recovery management."
-    - name: "birthday_rule_applicable_count"
-      expr: COUNT(CASE WHEN birthday_rule_applicable = TRUE THEN cob_record_id END)
-      comment: "Count of COB records where birthday rule applies. Dependent COB adjudication complexity metric for claims operations."
+    - name: "Distinct Cob Record"
+      expr: COUNT(DISTINCT cob_record_id)
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_cobra`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "COBRA continuation coverage KPIs tracking election rates, premium collection, exhaustion patterns, and compliance. Drives COBRA program financial management and regulatory notice compliance."
+  source: "`vibe_health_insurance_v1`.`member`.`cobra_continuant`"
+  dimensions:
+    - name: "cobra_continuant_status"
+      expr: cobra_continuant_status
+      comment: "Current COBRA continuant status (elected, active, exhausted, terminated) for program lifecycle management."
+    - name: "qualifying_event_type"
+      expr: qualifying_event_type
+      comment: "Type of qualifying event triggering COBRA (termination, reduction in hours, divorce, death) for event-level compliance analysis."
+    - name: "premium_payment_status"
+      expr: premium_payment_status
+      comment: "COBRA premium payment status (current, delinquent, lapsed) for collections and termination risk management."
+    - name: "payment_method"
+      expr: payment_method
+      comment: "COBRA premium payment method for billing operations analysis."
+    - name: "cobra_eligibility_indicator"
+      expr: cobra_eligibility_indicator
+      comment: "Whether individual is COBRA eligible — distinguishes eligible from ineligible continuants."
+    - name: "is_exhausted"
+      expr: is_exhausted
+      comment: "Whether COBRA coverage has been exhausted — exhausted continuants may qualify for marketplace enrollment."
+    - name: "election_month"
+      expr: DATE_TRUNC('month', election_date)
+      comment: "Month COBRA was elected for election trend and seasonal analysis."
+  measures:
+    - name: "total_cobra_continuants"
+      expr: COUNT(cobra_continuant_id)
+      comment: "Total COBRA continuant records — baseline COBRA program size for financial liability and administrative cost planning."
+    - name: "active_cobra_continuants"
+      expr: COUNT(CASE WHEN cobra_continuant_status = 'active' AND is_active = TRUE THEN cobra_continuant_id END)
+      comment: "Count of currently active COBRA continuants — live COBRA membership for premium billing and claims cost monitoring."
+    - name: "total_cobra_premium_amount"
+      expr: SUM(CAST(premium_amount AS DOUBLE))
+      comment: "Total COBRA premium billed — revenue metric for COBRA program financial performance and cost recovery analysis."
+    - name: "avg_cobra_premium_amount"
+      expr: AVG(CAST(premium_amount AS DOUBLE))
+      comment: "Average COBRA premium per continuant — benchmarks COBRA affordability and election rate drivers."
+    - name: "exhausted_cobra_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN is_exhausted = TRUE THEN cobra_continuant_id END) / NULLIF(COUNT(cobra_continuant_id), 0), 2)
+      comment: "Percentage of COBRA continuants who exhausted coverage — measures COBRA program duration utilization and marketplace transition volume."
+    - name: "delinquent_payment_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN premium_payment_status = 'delinquent' THEN cobra_continuant_id END) / NULLIF(COUNT(cobra_continuant_id), 0), 2)
+      comment: "Percentage of COBRA continuants with delinquent premium payments — collections risk metric triggering termination processing and revenue recovery action."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_cobra_continuant`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Cobra Continuant business metrics"
+  source: "`vibe_health_insurance_v1`.`member`.`cobra_continuant`"
+  dimensions:
+    - name: "Cobra Continuant Status"
+      expr: cobra_continuant_status
+    - name: "Cobra Eligibility Indicator"
+      expr: cobra_eligibility_indicator
+    - name: "Cobra Eligibility Reason"
+      expr: cobra_eligibility_reason
+    - name: "Cobra Notice Sent Date"
+      expr: cobra_notice_sent_date
+    - name: "Cobra Notice Type"
+      expr: cobra_notice_type
+    - name: "Coverage End Date"
+      expr: coverage_end_date
+    - name: "Coverage Start Date"
+      expr: coverage_start_date
+    - name: "Created Timestamp"
+      expr: created_timestamp
+    - name: "Data Quality Score"
+      expr: data_quality_score
+    - name: "Effective End Date"
+      expr: effective_end_date
+    - name: "Effective Start Date"
+      expr: effective_start_date
+    - name: "Election Date"
+      expr: election_date
+    - name: "Election Deadline"
+      expr: election_deadline
+    - name: "Exhaustion Date"
+      expr: exhaustion_date
+    - name: "Fhir Last Updated"
+      expr: fhir_last_updated
+    - name: "Fhir Profile Url"
+      expr: fhir_profile_url
+  measures:
+    - name: "Row Count"
+      expr: COUNT(1)
+    - name: "Distinct Cobra Continuant"
+      expr: COUNT(DISTINCT cobra_continuant_id)
+    - name: "Total Premium Amount"
+      expr: SUM(premium_amount)
+    - name: "Average Premium Amount"
+      expr: AVG(premium_amount)
 $$;
 
 CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_consent`
@@ -592,111 +352,146 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Member consent metrics tracking consent coverage, 42 CFR Part 2 compliance, electronic signature adoption, and consent expiration. Used by Chief Privacy Officer and Chief Compliance Officer for HIPAA compliance, substance use disorder privacy (42 CFR Part 2), and member rights management."
+  comment: "Consent business metrics"
   source: "`vibe_health_insurance_v1`.`member`.`consent`"
   dimensions:
-    - name: "consent_status"
-      expr: consent_status
-      comment: "Current consent status (Active, Revoked, Expired) for consent population management."
-    - name: "consent_type"
-      expr: consent_type
-      comment: "Type of consent (Treatment, Marketing, Research, Disclosure) for consent program segmentation."
-    - name: "collection_method"
+    - name: "Authorized Recipient"
+      expr: authorized_recipient
+    - name: "Collection Method"
       expr: collection_method
-      comment: "Method of consent collection (Electronic, Paper, Verbal) for process and compliance analysis."
-    - name: "language"
-      expr: language
-      comment: "Language of consent document for language access compliance analysis."
-    - name: "state_of_residence"
-      expr: state_of_residence
-      comment: "State of residence for state-specific consent law compliance analysis."
-    - name: "is_42cfr_part2_applicable"
-      expr: is_42cfr_part2_applicable
-      comment: "Flag for 42 CFR Part 2 substance use disorder consent applicability for heightened privacy compliance monitoring."
-    - name: "consent_date_month"
-      expr: DATE_TRUNC('MONTH', consent_date)
-      comment: "Month consent was obtained for consent program trend analysis."
+    - name: "Consent Date"
+      expr: consent_date
+    - name: "Consent Status"
+      expr: consent_status
+    - name: "Consent Type"
+      expr: consent_type
+    - name: "Created Timestamp"
+      expr: created_timestamp
+    - name: "Data Quality Score"
+      expr: data_quality_score
+    - name: "Disclosure Scope"
+      expr: disclosure_scope
+    - name: "Effective Date"
+      expr: effective_date
+    - name: "Effective End Date"
+      expr: effective_end_date
+    - name: "Effective Start Date"
+      expr: effective_start_date
+    - name: "Expiration Date"
+      expr: expiration_date
+    - name: "Fhir Last Updated"
+      expr: fhir_last_updated
+    - name: "Fhir Profile Url"
+      expr: fhir_profile_url
+    - name: "Fhir Resource Identifier"
+      expr: fhir_resource_identifier
+    - name: "Fhir Resource Type"
+      expr: fhir_resource_type
   measures:
-    - name: "total_consents"
+    - name: "Row Count"
       expr: COUNT(1)
-      comment: "Total consent records. Consent program coverage baseline for HIPAA and state privacy compliance."
-    - name: "active_consents"
-      expr: COUNT(CASE WHEN consent_status = 'Active' THEN consent_id END)
-      comment: "Count of active, non-revoked consents. Active consent coverage metric for treatment authorization and disclosure compliance."
-    - name: "revoked_consents"
-      expr: COUNT(CASE WHEN consent_status = 'Revoked' THEN consent_id END)
-      comment: "Count of revoked consents. Member rights exercise metric and trigger for downstream disclosure restriction enforcement."
-    - name: "cfr_part2_consents"
-      expr: COUNT(CASE WHEN is_42cfr_part2_applicable = TRUE THEN consent_id END)
-      comment: "Count of 42 CFR Part 2 substance use disorder consents. Heightened privacy compliance metric — violations carry significant federal penalty exposure."
-    - name: "electronic_signature_consents"
-      expr: COUNT(CASE WHEN is_electronic_signature = TRUE THEN consent_id END)
-      comment: "Count of consents obtained via electronic signature. Digital transformation metric for consent process modernization and cost reduction."
-    - name: "minimum_necessary_consents"
-      expr: COUNT(CASE WHEN is_minimum_necessary = TRUE THEN consent_id END)
-      comment: "Count of consents applying minimum necessary standard. HIPAA minimum necessary compliance metric for privacy program quality."
+    - name: "Distinct Consent"
+      expr: COUNT(DISTINCT consent_id)
 $$;
 
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_segment`
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_dependent`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Member segmentation metrics tracking risk stratification, chronic condition prevalence, dual eligibility, and SDOH risk distribution across the member population. Used by Chief Medical Officer and VP of Population Health for care management program targeting, risk-based contracting, and Star Ratings improvement."
-  source: "`vibe_health_insurance_v1`.`member`.`segment`"
+  comment: "Dependent business metrics"
+  source: "`vibe_health_insurance_v1`.`member`.`dependent`"
   dimensions:
-    - name: "segment_status"
-      expr: segment_status
-      comment: "Current segment status for active population filtering."
-    - name: "segment_category"
-      expr: segment_category
-      comment: "High-level segment category for population grouping and program routing."
-    - name: "segment_name"
-      expr: segment_name
-      comment: "Segment name for population cohort identification and care management program assignment."
-    - name: "risk_tier"
-      expr: risk_tier
-      comment: "Risk stratification tier for care management intensity and resource allocation."
-    - name: "chronic_condition_code"
-      expr: chronic_condition_code
-      comment: "Chronic condition code for disease management program targeting."
-    - name: "dual_eligible"
-      expr: dual_eligible
-      comment: "Dual eligibility flag for Medicare-Medicaid coordination program segmentation."
-    - name: "snp_eligibility"
-      expr: snp_eligibility
-      comment: "SNP eligibility flag for Special Needs Plan enrollment targeting."
-    - name: "star_rating_cohort"
-      expr: star_rating_cohort
-      comment: "Star rating cohort for CMS Star Ratings quality program management."
-    - name: "segmentation_source"
-      expr: segmentation_source
-      comment: "Source of segmentation model for model performance and data lineage analysis."
-    - name: "effective_date_month"
-      expr: DATE_TRUNC('MONTH', effective_date)
-      comment: "Month of segment effective date for population trend analysis."
+    - name: "Address Line1"
+      expr: address_line1
+    - name: "Address Line2"
+      expr: address_line2
+    - name: "Age Out Eligibility Flag"
+      expr: age_out_eligibility_flag
+    - name: "Chip Eligibility Flag"
+      expr: chip_eligibility_flag
+    - name: "City"
+      expr: city
+    - name: "Country"
+      expr: country
+    - name: "Coverage End Date"
+      expr: coverage_end_date
+    - name: "Coverage Start Date"
+      expr: coverage_start_date
+    - name: "Coverage Status"
+      expr: coverage_status
+    - name: "Created Timestamp"
+      expr: created_timestamp
+    - name: "Data Quality Score"
+      expr: data_quality_score
+    - name: "Date Of Birth"
+      expr: date_of_birth
+    - name: "Disability Status"
+      expr: disability_status
+    - name: "Effective End Date"
+      expr: effective_end_date
+    - name: "Effective Start Date"
+      expr: effective_start_date
+    - name: "Email Address"
+      expr: email_address
   measures:
-    - name: "total_segments"
+    - name: "Row Count"
       expr: COUNT(1)
-      comment: "Total segment assignment records. Population segmentation coverage baseline."
-    - name: "current_segments"
-      expr: COUNT(CASE WHEN is_current = TRUE THEN segment_id END)
-      comment: "Count of current active segment assignments. Active segmented population for care management program targeting."
-    - name: "chronic_condition_members"
-      expr: COUNT(CASE WHEN chronic_condition_flag = TRUE THEN segment_id END)
-      comment: "Count of members with chronic conditions. Disease management program scope metric and medical cost driver analysis."
-    - name: "dual_eligible_members"
-      expr: COUNT(CASE WHEN dual_eligible = TRUE THEN segment_id END)
-      comment: "Count of dual-eligible members in segmentation. D-SNP and integrated care program targeting metric."
-    - name: "snp_eligible_members"
-      expr: COUNT(CASE WHEN snp_eligibility = TRUE THEN segment_id END)
-      comment: "Count of SNP-eligible members. Special Needs Plan enrollment opportunity and CMS compliance metric."
-    - name: "avg_sdoh_risk_score"
-      expr: AVG(CAST(sdoh_risk_score AS DOUBLE))
-      comment: "Average SDOH risk score across segments. Social determinants of health program investment prioritization metric."
-    - name: "avg_hcc_risk_score_tier"
-      expr: AVG(CAST(hcc_risk_score_tier AS DOUBLE))
-      comment: "Average HCC risk score tier across segments. Risk adjustment revenue projection and actuarial reserve metric."
+    - name: "Distinct Dependent"
+      expr: COUNT(DISTINCT dependent_id)
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_disenrollment`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Disenrollment KPIs tracking churn volume, financial refund exposure, termination reasons, and processing efficiency. Directly informs retention strategy, premium reconciliation, and regulatory compliance."
+  source: "`vibe_health_insurance_v1`.`member`.`disenrollment`"
+  dimensions:
+    - name: "disenrollment_status"
+      expr: disenrollment_status
+      comment: "Current status of the disenrollment record (pending, processed, reversed) for operational workflow management."
+    - name: "reason_code"
+      expr: reason_code
+      comment: "Reason code for disenrollment (voluntary, non-payment, death, relocation) for churn root cause analysis."
+    - name: "termination_type"
+      expr: termination_type
+      comment: "Type of termination (voluntary, involuntary, administrative) for regulatory classification and member rights notification."
+    - name: "source"
+      expr: source
+      comment: "Source system or channel initiating the disenrollment for data lineage and process improvement analysis."
+    - name: "eligibility_loss_indicator"
+      expr: eligibility_loss_indicator
+      comment: "Whether disenrollment resulted in eligibility loss — critical for COBRA notice obligations and continuity of care planning."
+    - name: "appeal_rights_notified"
+      expr: appeal_rights_notified
+      comment: "Whether member was notified of appeal rights — compliance metric for CMS and state DOI regulatory requirements."
+    - name: "effective_start_month"
+      expr: DATE_TRUNC('month', effective_start_date)
+      comment: "Month disenrollment became effective for churn trend analysis and seasonal pattern detection."
+  measures:
+    - name: "total_disenrollments"
+      expr: COUNT(disenrollment_id)
+      comment: "Total disenrollment volume — primary churn metric for membership retention strategy and premium revenue forecasting."
+    - name: "total_refund_gross_amount"
+      expr: SUM(CAST(refund_gross_amount AS DOUBLE))
+      comment: "Total gross refund amount from disenrollments — financial liability metric for premium reconciliation and cash flow planning."
+    - name: "total_refund_net_amount"
+      expr: SUM(CAST(refund_net_amount AS DOUBLE))
+      comment: "Total net refund amount after adjustments — actual cash outflow from disenrollment processing for financial reporting."
+    - name: "avg_refund_net_amount"
+      expr: AVG(CAST(refund_net_amount AS DOUBLE))
+      comment: "Average net refund per disenrollment — benchmarks typical refund exposure per termination for reserve adequacy assessment."
+    - name: "appeal_rights_notification_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN appeal_rights_notified = TRUE THEN disenrollment_id END) / NULLIF(COUNT(disenrollment_id), 0), 2)
+      comment: "Percentage of disenrollments where member was notified of appeal rights — regulatory compliance rate; below 100% triggers CMS audit risk."
+    - name: "eligibility_loss_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN eligibility_loss_indicator = TRUE THEN disenrollment_id END) / NULLIF(COUNT(disenrollment_id), 0), 2)
+      comment: "Percentage of disenrollments resulting in eligibility loss — measures COBRA and continuity of care obligation volume."
+    - name: "distinct_disenrolled_members"
+      expr: COUNT(DISTINCT member_subscriber_id)
+      comment: "Count of distinct members disenrolled — unduplicated churn headcount for retention program ROI measurement."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_household`
@@ -704,120 +499,792 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Household-level metrics tracking family unit composition, income, subsidy eligibility, FPL distribution, and Medicaid eligibility. Used by VP of Enrollment Operations and Chief Actuary for ACA subsidy program management, APTC reconciliation, and household-level risk analysis."
+  comment: "Household-level KPIs tracking income distribution, subsidy eligibility, FPL stratification, and multi-plan coverage. Drives ACA subsidy management, exchange market strategy, and household-level risk assessment."
   source: "`vibe_health_insurance_v1`.`member`.`household`"
   dimensions:
     - name: "household_status"
       expr: household_status
-      comment: "Current household status for active population filtering."
+      comment: "Current household status for active population filtering and lifecycle analysis."
     - name: "household_type"
       expr: household_type
-      comment: "Household type (Individual, Family, Multi-Plan) for benefit and subsidy analysis."
+      comment: "Type of household (individual, family, multi-generational) for benefit design and premium analysis."
     - name: "enrollment_status"
       expr: enrollment_status
-      comment: "Enrollment status of the household for coverage census analysis."
+      comment: "Enrollment status of the household for coverage continuity analysis."
+    - name: "aca_subsidy_eligible"
+      expr: aca_subsidy_eligible
+      comment: "Whether household is ACA subsidy eligible — primary segmentation for exchange market strategy and APTC program management."
+    - name: "income_source"
+      expr: income_source
+      comment: "Source of household income (employment, self-employment, benefits) for income verification and subsidy accuracy analysis."
     - name: "state"
       expr: state
-      comment: "State of household for geographic and regulatory analysis."
-    - name: "fpl_year"
-      expr: fpl_year
-      comment: "Federal Poverty Level year for subsidy eligibility cohort analysis."
+      comment: "State of household residence for geographic market analysis and state-specific regulatory compliance."
     - name: "medicaid_eligible"
       expr: medicaid_eligible
-      comment: "Medicaid eligibility flag for Medicaid/marketplace transition program management."
-    - name: "income_verification_flag"
-      expr: income_verification_flag
-      comment: "Income verification status for ACA subsidy compliance and audit risk management."
+      comment: "Whether household is Medicaid eligible — identifies population at risk of Medicaid churn and exchange enrollment transitions."
+    - name: "is_multi_plan"
+      expr: is_multi_plan
+      comment: "Whether household has multiple plan enrollments — multi-plan households require COB coordination and premium reconciliation."
     - name: "effective_start_month"
-      expr: DATE_TRUNC('MONTH', effective_start_date)
-      comment: "Month household coverage began for enrollment trend analysis."
+      expr: DATE_TRUNC('month', effective_start_date)
+      comment: "Month household record became effective for household formation trend analysis."
   measures:
     - name: "total_households"
-      expr: COUNT(1)
-      comment: "Total household records. Household census baseline for ACA subsidy program management."
-    - name: "active_households"
-      expr: COUNT(CASE WHEN household_status = 'Active' THEN household_id END)
-      comment: "Count of active households. Active covered household census for premium billing and subsidy reconciliation."
-    - name: "medicaid_eligible_households"
-      expr: COUNT(CASE WHEN medicaid_eligible = TRUE THEN household_id END)
-      comment: "Count of Medicaid-eligible households. Medicaid/marketplace transition program scope and APTC reconciliation metric."
+      expr: COUNT(household_id)
+      comment: "Total household count — baseline metric for exchange market size and ACA subsidy program scope."
+    - name: "subsidy_eligible_households"
+      expr: COUNT(CASE WHEN aca_subsidy_eligible = TRUE THEN household_id END)
+      comment: "Count of ACA subsidy-eligible households — drives APTC program financial exposure and exchange market strategy."
     - name: "total_subsidy_amount"
       expr: SUM(CAST(subsidy_amount AS DOUBLE))
-      comment: "Total subsidy amount across households. ACA subsidy program financial exposure metric for CMS reconciliation."
+      comment: "Total subsidy dollars across households — financial exposure metric for ACA subsidy reconciliation and CMS APTC reporting."
     - name: "total_tax_credit_amount"
       expr: SUM(CAST(tax_credit_amount AS DOUBLE))
-      comment: "Total premium tax credit amount across households. APTC financial liability metric for IRS and CMS reconciliation."
+      comment: "Total premium tax credit amount across households — measures ACA tax credit program utilization and financial liability."
     - name: "avg_fpl_percentage"
       expr: AVG(CAST(fpl_percentage AS DOUBLE))
-      comment: "Average Federal Poverty Level percentage across households. Subsidy eligibility distribution metric for program adequacy analysis."
+      comment: "Average Federal Poverty Level percentage across households — measures income profile of enrolled population for subsidy adequacy and benefit design."
     - name: "avg_total_income"
       expr: AVG(CAST(total_income AS DOUBLE))
-      comment: "Average household total income. Income distribution metric for subsidy program design and affordability analysis."
+      comment: "Average household total income — income stratification metric for subsidy eligibility modeling and market segmentation."
     - name: "avg_risk_score"
       expr: AVG(CAST(risk_score AS DOUBLE))
-      comment: "Average household risk score. Household-level risk concentration metric for actuarial and underwriting analysis."
-    - name: "income_not_verified_count"
-      expr: COUNT(CASE WHEN income_verification_flag = FALSE THEN household_id END)
-      comment: "Count of households with unverified income. ACA subsidy audit risk metric — unverified income creates APTC reconciliation liability."
+      comment: "Average household risk score — actuarial metric for premium adequacy assessment and risk pool health monitoring."
+    - name: "subsidy_eligibility_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN aca_subsidy_eligible = TRUE THEN household_id END) / NULLIF(COUNT(household_id), 0), 2)
+      comment: "Percentage of households eligible for ACA subsidies — measures income-qualified population share for exchange market positioning."
+    - name: "income_verified_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN income_verification_flag = TRUE THEN household_id END) / NULLIF(COUNT(household_id), 0), 2)
+      comment: "Percentage of households with verified income — data quality and compliance metric for ACA subsidy accuracy and CMS audit readiness."
 $$;
 
-CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_policy`
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_id_card`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Member policy metrics tracking coverage amounts, premium revenue, deductible levels, out-of-pocket maximums, and renewal activity. Used by Chief Actuary and VP of Product Management for benefit design analysis, pricing adequacy, and renewal program management."
-  source: "`vibe_health_insurance_v1`.`member`.`policy`"
+  comment: "Id Card business metrics"
+  source: "`vibe_health_insurance_v1`.`member`.`id_card`"
   dimensions:
-    - name: "policy_status"
-      expr: policy_status
-      comment: "Current policy status (Active, Terminated, Lapsed, Renewed) for policy population management."
-    - name: "policy_type"
-      expr: policy_type
-      comment: "Type of policy (Individual, Group, Medicare Supplement) for product line analysis."
-    - name: "coverage_type"
-      expr: coverage_type
-      comment: "Coverage type (Medical, Dental, Vision, Pharmacy) for benefit-level analysis."
-    - name: "coverage_status"
-      expr: coverage_status
-      comment: "Coverage status for active covered lives filtering."
-    - name: "renewal_status"
-      expr: renewal_status
-      comment: "Renewal status for renewal program management and retention analysis."
-    - name: "coverage_limit_type"
-      expr: coverage_limit_type
-      comment: "Type of coverage limit for benefit design and actuarial analysis."
-    - name: "effective_date_month"
-      expr: DATE_TRUNC('MONTH', effective_date)
-      comment: "Month policy became effective for enrollment cohort analysis."
-    - name: "renewal_date_month"
-      expr: DATE_TRUNC('MONTH', renewal_date)
-      comment: "Month of policy renewal for renewal cycle and retention analysis."
+    - name: "Barcode"
+      expr: barcode
+    - name: "Card Format"
+      expr: card_format
+    - name: "Card Number"
+      expr: card_number
+    - name: "Card Type"
+      expr: card_type
+    - name: "Card Version"
+      expr: card_version
+    - name: "Created Timestamp"
+      expr: created_timestamp
+    - name: "Customer Service Phone"
+      expr: customer_service_phone
+    - name: "Data Quality Score"
+      expr: data_quality_score
+    - name: "Delivery Confirmation Date"
+      expr: delivery_confirmation_date
+    - name: "Delivery Method"
+      expr: delivery_method
+    - name: "Effective End Date"
+      expr: effective_end_date
+    - name: "Effective Start Date"
+      expr: effective_start_date
+    - name: "Expiration Date"
+      expr: expiration_date
+    - name: "External System Code"
+      expr: external_system_code
+    - name: "Fhir Last Updated"
+      expr: fhir_last_updated
+    - name: "Fhir Profile Url"
+      expr: fhir_profile_url
   measures:
-    - name: "total_policies"
+    - name: "Row Count"
       expr: COUNT(1)
-      comment: "Total policy records. Policy census baseline for product portfolio management."
-    - name: "active_policies"
-      expr: COUNT(CASE WHEN policy_status = 'Active' THEN policy_id END)
-      comment: "Count of active policies. Active policy census for premium revenue and claims liability management."
+    - name: "Distinct Id Card"
+      expr: COUNT(DISTINCT id_card_id)
+    - name: "Total Copay Amount"
+      expr: SUM(copay_amount)
+    - name: "Average Copay Amount"
+      expr: AVG(copay_amount)
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_identity`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Identity business metrics"
+  source: "`vibe_health_insurance_v1`.`member`.`identity`"
+  dimensions:
+    - name: "Address Line1"
+      expr: address_line1
+    - name: "Address Line2"
+      expr: address_line2
+    - name: "Citizenship Status"
+      expr: citizenship_status
+    - name: "City"
+      expr: city
+    - name: "Country"
+      expr: country
+    - name: "Coverage End Date"
+      expr: coverage_end_date
+    - name: "Coverage Start Date"
+      expr: coverage_start_date
+    - name: "Created Timestamp"
+      expr: created_timestamp
+    - name: "Data Quality Score"
+      expr: data_quality_score
+    - name: "Date Of Birth"
+      expr: date_of_birth
+    - name: "Effective End Date"
+      expr: effective_end_date
+    - name: "Effective Start Date"
+      expr: effective_start_date
+    - name: "Eligibility Status"
+      expr: eligibility_status
+    - name: "Email"
+      expr: email
+    - name: "Enrollment Effective Date"
+      expr: enrollment_effective_date
+    - name: "Ethnicity"
+      expr: ethnicity
+  measures:
+    - name: "Row Count"
+      expr: COUNT(1)
+    - name: "Distinct Identity"
+      expr: COUNT(DISTINCT identity_id)
+    - name: "Total Risk Score"
+      expr: SUM(risk_score)
+    - name: "Average Risk Score"
+      expr: AVG(risk_score)
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_lob_assignment`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Line of business assignment KPIs tracking LOB distribution, dual eligibility, risk tier stratification, and SNP population. Drives CMS contract management, risk adjustment strategy, and care management program targeting."
+  source: "`vibe_health_insurance_v1`.`member`.`lob_assignment`"
+  dimensions:
+    - name: "lob_code"
+      expr: lob_code
+      comment: "Line of business code (commercial, Medicare Advantage, Medicaid, exchange) for LOB-level financial and operational analysis."
+    - name: "lob_assignment_status"
+      expr: lob_assignment_status
+      comment: "Current LOB assignment status for active population filtering."
+    - name: "snp_type"
+      expr: snp_type
+      comment: "Special Needs Plan type (D-SNP, C-SNP, I-SNP) for SNP-specific regulatory and financial reporting."
+    - name: "risk_tier"
+      expr: risk_tier
+      comment: "Risk tier of member for care management program targeting and actuarial stratification."
+    - name: "hcc_risk_score_tier"
+      expr: hcc_risk_score_tier
+      comment: "HCC risk score tier for risk adjustment revenue stratification and care management prioritization."
+    - name: "dual_eligible_flag"
+      expr: dual_eligible_flag
+      comment: "Whether member is dual-eligible (Medicare and Medicaid) — dual-eligible population drives D-SNP enrollment and coordination requirements."
+    - name: "cms_region"
+      expr: cms_region
+      comment: "CMS region for geographic risk adjustment and contract performance analysis."
+    - name: "state_code"
+      expr: state_code
+      comment: "State of LOB assignment for state-level regulatory and Medicaid contract reporting."
+    - name: "rising_risk_indicator"
+      expr: rising_risk_indicator
+      comment: "Whether member is flagged as rising risk — identifies population for proactive care management intervention."
+    - name: "effective_start_month"
+      expr: DATE_TRUNC('month', effective_start_date)
+      comment: "Month LOB assignment became effective for membership trend analysis by LOB."
+  measures:
+    - name: "total_lob_assignments"
+      expr: COUNT(lob_assignment_id)
+      comment: "Total LOB assignment records — baseline membership count by line of business for CMS contract and financial reporting."
+    - name: "distinct_members_by_lob"
+      expr: COUNT(DISTINCT member_identity_id)
+      comment: "Count of distinct members per LOB — unduplicated membership headcount for CMS enrollment reporting and premium revenue attribution."
+    - name: "dual_eligible_members"
+      expr: COUNT(CASE WHEN dual_eligible_flag = TRUE THEN lob_assignment_id END)
+      comment: "Count of dual-eligible members — drives D-SNP enrollment targets, coordination of benefits strategy, and CMS low-income subsidy reporting."
+    - name: "dual_eligible_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN dual_eligible_flag = TRUE THEN lob_assignment_id END) / NULLIF(COUNT(lob_assignment_id), 0), 2)
+      comment: "Percentage of members who are dual-eligible — measures complexity of the enrolled population and associated care coordination cost."
+    - name: "rising_risk_member_count"
+      expr: COUNT(CASE WHEN rising_risk_indicator = TRUE THEN lob_assignment_id END)
+      comment: "Count of rising-risk members — primary care management program targeting metric; rising count triggers proactive outreach investment."
+    - name: "rising_risk_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN rising_risk_indicator = TRUE THEN lob_assignment_id END) / NULLIF(COUNT(lob_assignment_id), 0), 2)
+      comment: "Percentage of members flagged as rising risk — measures population health trajectory and care management program demand."
+    - name: "snp_enrolled_members"
+      expr: COUNT(CASE WHEN snp_type IS NOT NULL AND snp_type <> '' THEN lob_assignment_id END)
+      comment: "Count of members enrolled in a Special Needs Plan — measures SNP program scale for CMS bid and contract management."
+    - name: "care_management_eligible_members"
+      expr: COUNT(CASE WHEN care_management_eligibility_flag = TRUE THEN lob_assignment_id END)
+      comment: "Count of members eligible for care management programs — drives care management staffing, outreach budget, and program ROI measurement."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_member_address`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Member Address business metrics"
+  source: "`vibe_health_insurance_v1`.`member`.`member_address`"
+  dimensions:
+    - name: "Address Type"
+      expr: address_type
+    - name: "Census Tract"
+      expr: census_tract
+    - name: "Change Reason"
+      expr: change_reason
+    - name: "City"
+      expr: city
+    - name: "Country Code"
+      expr: country_code
+    - name: "County Fips"
+      expr: county_fips
+    - name: "Created Timestamp"
+      expr: created_timestamp
+    - name: "Data Quality Score"
+      expr: data_quality_score
+    - name: "Effective Date"
+      expr: effective_date
+    - name: "Effective End Date"
+      expr: effective_end_date
+    - name: "Effective Start Date"
+      expr: effective_start_date
+    - name: "External Code"
+      expr: external_code
+    - name: "Fhir Last Updated"
+      expr: fhir_last_updated
+    - name: "Fhir Profile Url"
+      expr: fhir_profile_url
+    - name: "Fhir Resource Identifier"
+      expr: fhir_resource_identifier
+    - name: "Fhir Resource Type"
+      expr: fhir_resource_type
+  measures:
+    - name: "Row Count"
+      expr: COUNT(1)
+    - name: "Distinct Member Address"
+      expr: COUNT(DISTINCT member_address_id)
+    - name: "Total Latitude"
+      expr: SUM(latitude)
+    - name: "Average Latitude"
+      expr: AVG(latitude)
+    - name: "Total Longitude"
+      expr: SUM(longitude)
+    - name: "Average Longitude"
+      expr: AVG(longitude)
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_member_communication`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Member Communication business metrics"
+  source: "`vibe_health_insurance_v1`.`member`.`member_communication`"
+  dimensions:
+    - name: "Acknowledgment Status"
+      expr: acknowledgment_status
+    - name: "Body"
+      expr: body
+    - name: "Card Format"
+      expr: card_format
+    - name: "Card Status"
+      expr: card_status
+    - name: "Card Type"
+      expr: card_type
+    - name: "Channel"
+      expr: channel
+    - name: "Communication Number"
+      expr: communication_number
+    - name: "Communication Type"
+      expr: communication_type
+    - name: "Created Timestamp"
+      expr: created_timestamp
+    - name: "Customer Service Phone"
+      expr: customer_service_phone
+    - name: "Data Quality Score"
+      expr: data_quality_score
+    - name: "Delivery Confirmation"
+      expr: delivery_confirmation
+    - name: "Delivery Timestamp"
+      expr: delivery_timestamp
+    - name: "Effective Date"
+      expr: effective_date
+    - name: "Effective End Date"
+      expr: effective_end_date
+    - name: "Effective Start Date"
+      expr: effective_start_date
+  measures:
+    - name: "Row Count"
+      expr: COUNT(1)
+    - name: "Distinct Member Communication"
+      expr: COUNT(DISTINCT member_communication_id)
+    - name: "Total Copay Amount"
+      expr: SUM(copay_amount)
+    - name: "Average Copay Amount"
+      expr: AVG(copay_amount)
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_member_contact`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Member Contact business metrics"
+  source: "`vibe_health_insurance_v1`.`member`.`member_contact`"
+  dimensions:
+    - name: "Address Cass Certified"
+      expr: address_cass_certified
+    - name: "Address Effective Date"
+      expr: address_effective_date
+    - name: "Address Geocode Accuracy"
+      expr: address_geocode_accuracy
+    - name: "Address Geocode Source"
+      expr: address_geocode_source
+    - name: "Address Line1"
+      expr: address_line1
+    - name: "Address Line2"
+      expr: address_line2
+    - name: "Address Priority Rank"
+      expr: address_priority_rank
+    - name: "Address Source System"
+      expr: address_source_system
+    - name: "Address Termination Date"
+      expr: address_termination_date
+    - name: "Address Type"
+      expr: address_type
+    - name: "Address Verification Status"
+      expr: address_verification_status
+    - name: "Census Tract"
+      expr: census_tract
+    - name: "City"
+      expr: city
+    - name: "Contact Name"
+      expr: contact_name
+    - name: "Contact Type"
+      expr: contact_type
+    - name: "Country Code"
+      expr: country_code
+  measures:
+    - name: "Row Count"
+      expr: COUNT(1)
+    - name: "Distinct Member Contact"
+      expr: COUNT(DISTINCT member_contact_id)
+    - name: "Total Id Value"
+      expr: SUM(id_value)
+    - name: "Average Id Value"
+      expr: AVG(id_value)
+    - name: "Total Latitude"
+      expr: SUM(latitude)
+    - name: "Average Latitude"
+      expr: AVG(latitude)
+    - name: "Total Longitude"
+      expr: SUM(longitude)
+    - name: "Average Longitude"
+      expr: AVG(longitude)
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_eligibility`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Eligibility span KPIs tracking coverage continuity, active eligibility rates, and span duration. Critical for claims adjudication accuracy, CMS reporting, and enrollment reconciliation."
+  source: "`vibe_health_insurance_v1`.`member`.`member_eligibility_span`"
+  dimensions:
+    - name: "is_active"
+      expr: is_active
+      comment: "Whether the eligibility span is currently active — primary filter for real-time eligibility verification."
+    - name: "record_status"
+      expr: record_status
+      comment: "Record lifecycle status for data quality and operational filtering."
+    - name: "effective_start_month"
+      expr: DATE_TRUNC('month', effective_start_date)
+      comment: "Month the eligibility span began — used for cohort-based eligibility trend analysis."
+    - name: "effective_end_month"
+      expr: DATE_TRUNC('month', effective_end_date)
+      comment: "Month the eligibility span ended — used for attrition and gap-in-coverage analysis."
+    - name: "record_source_system"
+      expr: record_source_system
+      comment: "Source system originating the eligibility record — used for data quality and reconciliation by source."
+  measures:
+    - name: "total_eligibility_spans"
+      expr: COUNT(member_eligibility_span_id)
+      comment: "Total number of eligibility spans — baseline volume metric for enrollment operations and CMS submission reconciliation."
+    - name: "active_eligibility_spans"
+      expr: COUNT(CASE WHEN is_active = TRUE THEN member_eligibility_span_id END)
+      comment: "Count of currently active eligibility spans — real-time membership count for claims adjudication and premium billing."
+    - name: "distinct_covered_subscribers"
+      expr: COUNT(DISTINCT subscriber_id)
+      comment: "Count of distinct subscribers with at least one eligibility span — unduplicated membership headcount for actuarial and regulatory reporting."
+    - name: "active_eligibility_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN is_active = TRUE THEN member_eligibility_span_id END) / NULLIF(COUNT(member_eligibility_span_id), 0), 2)
+      comment: "Percentage of eligibility spans that are currently active — measures coverage continuity health and data completeness for adjudication."
+    - name: "avg_span_duration_days"
+      expr: AVG(CAST(DATEDIFF(effective_end_date, effective_start_date) AS DOUBLE))
+      comment: "Average length of eligibility spans in days — longer spans indicate member retention; short spans signal churn or data quality issues."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_member_eligibility_span`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Member Eligibility Span business metrics"
+  source: "`vibe_health_insurance_v1`.`member`.`member_eligibility_span`"
+  dimensions:
+    - name: "Cobro End Date"
+      expr: cobro_end_date
+    - name: "Cobro Start Date"
+      expr: cobro_start_date
+    - name: "Coverage Type"
+      expr: coverage_type
+    - name: "Created Timestamp"
+      expr: created_timestamp
+    - name: "Data Quality Score"
+      expr: data_quality_score
+    - name: "Effective Date"
+      expr: effective_date
+    - name: "Effective End Date"
+      expr: effective_end_date
+    - name: "Effective Start Date"
+      expr: effective_start_date
+    - name: "Eligibility Source"
+      expr: eligibility_source
+    - name: "Eligibility Status"
+      expr: eligibility_status
+    - name: "Enrollment Type"
+      expr: enrollment_type
+    - name: "Fhir Last Updated"
+      expr: fhir_last_updated
+    - name: "Fhir Profile Url"
+      expr: fhir_profile_url
+    - name: "Fhir Resource Identifier"
+      expr: fhir_resource_identifier
+    - name: "Fhir Resource Type"
+      expr: fhir_resource_type
+    - name: "Fhir Version Code"
+      expr: fhir_version_code
+  measures:
+    - name: "Row Count"
+      expr: COUNT(1)
+    - name: "Distinct Member Eligibility Span"
+      expr: COUNT(DISTINCT member_eligibility_span_id)
+    - name: "Total Premium Amount"
+      expr: SUM(premium_amount)
+    - name: "Average Premium Amount"
+      expr: AVG(premium_amount)
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_member_enrollment`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Member Enrollment business metrics"
+  source: "`vibe_health_insurance_v1`.`member`.`member_enrollment`"
+  dimensions:
+    - name: "Application Received Date"
+      expr: application_received_date
+    - name: "Auto Assignment Flag"
+      expr: auto_assignment_flag
+    - name: "Auto Renew Flag"
+      expr: auto_renew_flag
+    - name: "Auto Renewal Flag"
+      expr: auto_renewal_flag
+    - name: "Confirmation Number"
+      expr: confirmation_number
+    - name: "Coverage Level"
+      expr: coverage_level
+    - name: "Coverage Tier"
+      expr: coverage_tier
+    - name: "Created Timestamp"
+      expr: created_timestamp
+    - name: "Data Quality Score"
+      expr: data_quality_score
+    - name: "Disenrollment Date"
+      expr: disenrollment_date
+    - name: "Disenrollment Reason Code"
+      expr: disenrollment_reason_code
+    - name: "Effective End Date"
+      expr: effective_end_date
+    - name: "Effective Start Date"
+      expr: effective_start_date
+    - name: "Enrollment Channel"
+      expr: enrollment_channel
+    - name: "Enrollment Date"
+      expr: enrollment_date
+    - name: "Enrollment Number"
+      expr: enrollment_number
+  measures:
+    - name: "Row Count"
+      expr: COUNT(1)
+    - name: "Distinct Member Enrollment"
+      expr: COUNT(DISTINCT member_enrollment_id)
+    - name: "Total Premium Amount"
+      expr: SUM(premium_amount)
+    - name: "Average Premium Amount"
+      expr: AVG(premium_amount)
+    - name: "Total Subsidy Amount"
+      expr: SUM(subsidy_amount)
+    - name: "Average Subsidy Amount"
+      expr: AVG(subsidy_amount)
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_enrollment`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Health plan enrollment KPIs tracking active membership, premium economics, subsidy utilization, and coverage tier distribution. Core operational dashboard for enrollment management and financial planning."
+  source: "`vibe_health_insurance_v1`.`member`.`member_enrollment2`"
+  dimensions:
+    - name: "coverage_status_code"
+      expr: coverage_status_code
+      comment: "Current coverage status (active, terminated, suspended) for enrollment cohort segmentation."
+    - name: "coverage_tier"
+      expr: coverage_tier
+      comment: "Coverage tier (individual, family, employee+spouse, etc.) for premium and benefit analysis."
+    - name: "election_source_code"
+      expr: election_source_code
+      comment: "Source of enrollment election (employer, exchange, direct, SEP) to track acquisition channels."
+    - name: "sep_reason_code"
+      expr: sep_reason_code
+      comment: "Special enrollment period reason code to monitor qualifying life events driving mid-year enrollment."
+    - name: "enrollment_type"
+      expr: enrollment_type
+      comment: "Type of enrollment (new, renewal, COBRA, SEP) for lifecycle stage analysis."
+    - name: "tier_level_code"
+      expr: tier_level_code
+      comment: "Plan tier level (bronze, silver, gold, platinum) for benefit richness and premium stratification."
+    - name: "coverage_start_month"
+      expr: DATE_TRUNC('month', coverage_start_date)
+      comment: "Month of coverage start for enrollment trend analysis over time."
+    - name: "coverage_end_month"
+      expr: DATE_TRUNC('month', coverage_end_date)
+      comment: "Month of coverage end for attrition and churn trend analysis."
+    - name: "auto_renewal_flag"
+      expr: auto_renewal_flag
+      comment: "Whether enrollment was auto-renewed, indicating passive vs. active re-enrollment behavior."
+    - name: "enrollment_status"
+      expr: enrollment_status
+      comment: "Current enrollment status for operational filtering and cohort segmentation."
+  measures:
+    - name: "total_enrolled_members"
+      expr: COUNT(DISTINCT subscriber_id)
+      comment: "Count of distinct subscribers enrolled — primary membership headcount KPI for capacity planning and revenue forecasting."
+    - name: "active_enrollment_count"
+      expr: COUNT(CASE WHEN coverage_status_code = 'active' OR enrollment_status = 'active' THEN member_enrollment2_id END)
+      comment: "Count of currently active enrollment records — operational measure of live membership for premium billing and risk pool sizing."
     - name: "total_premium_amount"
       expr: SUM(CAST(premium_amount AS DOUBLE))
-      comment: "Total premium across all policies. Core premium revenue metric for financial reporting and pricing adequacy analysis."
-    - name: "avg_premium_amount"
+      comment: "Total premium billed across all enrollment records — top-line revenue driver for financial planning and actuarial rate adequacy assessment."
+    - name: "avg_premium_per_member"
       expr: AVG(CAST(premium_amount AS DOUBLE))
-      comment: "Average premium per policy. Pricing adequacy and rate development benchmarking metric."
-    - name: "avg_deductible_amount"
-      expr: AVG(CAST(deductible_amount AS DOUBLE))
-      comment: "Average deductible amount across policies. Benefit design adequacy metric for member cost-sharing analysis."
-    - name: "avg_out_of_pocket_max"
-      expr: AVG(CAST(out_of_pocket_max_amount AS DOUBLE))
-      comment: "Average out-of-pocket maximum across policies. ACA OOP maximum compliance and member financial protection metric."
-    - name: "total_coverage_limit_amount"
-      expr: SUM(CAST(coverage_limit_amount AS DOUBLE))
-      comment: "Total coverage limit amount across policies. Aggregate benefit liability metric for actuarial reserve calculations."
-    - name: "total_renewal_premium_amount"
-      expr: SUM(CAST(renewal_premium_amount AS DOUBLE))
-      comment: "Total renewal premium amount. Forward-looking premium revenue metric for renewal cycle financial planning."
+      comment: "Average premium per enrollment record — benchmark for rate competitiveness and cross-tier pricing analysis."
+    - name: "total_subsidy_amount"
+      expr: SUM(CAST(subsidy_amount AS DOUBLE))
+      comment: "Total APTC/subsidy dollars applied across enrollments — financial exposure metric for ACA subsidy reconciliation and CMS reporting."
+    - name: "avg_subsidy_per_member"
+      expr: AVG(CAST(subsidy_amount AS DOUBLE))
+      comment: "Average subsidy per enrollment — indicates subsidy dependency of the enrolled population, informing exchange market strategy."
+    - name: "total_dependents_covered"
+      expr: SUM(CAST(dependents_covered_count AS DOUBLE))
+      comment: "Total dependents covered across all enrollments — drives benefit utilization projections and family unit risk assessment."
+    - name: "subsidy_penetration_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN subsidy_amount > 0 THEN member_enrollment2_id END) / NULLIF(COUNT(member_enrollment2_id), 0), 2)
+      comment: "Percentage of enrollments receiving a subsidy — measures ACA exchange market penetration and income-qualified population share."
+    - name: "sep_enrollment_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN sep_reason_code IS NOT NULL AND sep_reason_code <> '' THEN member_enrollment2_id END) / NULLIF(COUNT(member_enrollment2_id), 0), 2)
+      comment: "Percentage of enrollments originating from a Special Enrollment Period — monitors mid-year enrollment volatility and adverse selection risk."
+    - name: "auto_renewal_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN auto_renewal_flag = TRUE THEN member_enrollment2_id END) / NULLIF(COUNT(member_enrollment2_id), 0), 2)
+      comment: "Percentage of enrollments that auto-renewed — high auto-renewal indicates member stickiness and reduces re-enrollment operational cost."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_member_grievance`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Member Grievance business metrics"
+  source: "`vibe_health_insurance_v1`.`member`.`member_grievance`"
+  dimensions:
+    - name: "Cms Reportable Indicator"
+      expr: cms_reportable_indicator
+    - name: "Created Timestamp"
+      expr: created_timestamp
+    - name: "Currency Code"
+      expr: currency_code
+    - name: "Data Quality Score"
+      expr: data_quality_score
+    - name: "Effective End Date"
+      expr: effective_end_date
+    - name: "Effective Start Date"
+      expr: effective_start_date
+    - name: "Fhir Last Updated"
+      expr: fhir_last_updated
+    - name: "Fhir Profile Url"
+      expr: fhir_profile_url
+    - name: "Fhir Resource Identifier"
+      expr: fhir_resource_identifier
+    - name: "Fhir Resource Type"
+      expr: fhir_resource_type
+    - name: "Fhir Version Code"
+      expr: fhir_version_code
+    - name: "Grievance Number"
+      expr: grievance_number
+    - name: "Grievance Source"
+      expr: grievance_source
+    - name: "Investigation End Timestamp"
+      expr: investigation_end_timestamp
+    - name: "Investigation Start Timestamp"
+      expr: investigation_start_timestamp
+    - name: "Is Active"
+      expr: is_active
+  measures:
+    - name: "Row Count"
+      expr: COUNT(1)
+    - name: "Distinct Member Grievance"
+      expr: COUNT(DISTINCT member_grievance_id)
+    - name: "Total Disputed Amount"
+      expr: SUM(disputed_amount)
+    - name: "Average Disputed Amount"
+      expr: AVG(disputed_amount)
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_grievance`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Member grievance KPIs tracking complaint volume, resolution rates, financial exposure, and regulatory reporting compliance. Critical for CMS Star Ratings, NCQA accreditation, and member experience management."
+  source: "`vibe_health_insurance_v1`.`member`.`member_grievance2`"
+  dimensions:
+    - name: "member_grievance_status"
+      expr: member_grievance_status
+      comment: "Current grievance status (open, resolved, escalated, withdrawn) for pipeline and backlog management."
+    - name: "issue_category_code"
+      expr: issue_category_code
+      comment: "Category of grievance issue (access, quality, billing, service) for root cause analysis and corrective action targeting."
+    - name: "resolution_type_code"
+      expr: resolution_type_code
+      comment: "How the grievance was resolved (upheld, overturned, withdrawn, dismissed) for quality and fairness benchmarking."
+    - name: "type_code"
+      expr: type_code
+      comment: "Grievance type code for regulatory classification and CMS reporting segmentation."
+    - name: "lob_code"
+      expr: lob_code
+      comment: "Line of business associated with the grievance for LOB-level quality performance analysis."
+    - name: "state_code"
+      expr: state_code
+      comment: "State where grievance originated for state-level regulatory compliance and DOI reporting."
+    - name: "regulatory_reporting_flag"
+      expr: regulatory_reporting_flag
+      comment: "Whether grievance must be reported to a regulator — flags compliance-critical cases for timely submission."
+    - name: "cms_reportable_indicator"
+      expr: cms_reportable_indicator
+      comment: "Whether grievance is reportable to CMS — critical for Medicare Star Ratings and HEDIS complaint measure compliance."
+    - name: "received_month"
+      expr: DATE_TRUNC('month', received_timestamp)
+      comment: "Month grievance was received for trend analysis and seasonal pattern detection."
+    - name: "resolution_month"
+      expr: DATE_TRUNC('month', resolution_date)
+      comment: "Month grievance was resolved for resolution cycle time trending."
+  measures:
+    - name: "total_grievances"
+      expr: COUNT(member_grievance2_id)
+      comment: "Total grievance volume — primary quality metric for CMS Star Ratings complaint measure and NCQA accreditation standards."
+    - name: "open_grievances"
+      expr: COUNT(CASE WHEN member_grievance_status = 'open' THEN member_grievance2_id END)
+      comment: "Count of unresolved open grievances — operational backlog metric; high open count signals resolution capacity issues and regulatory risk."
+    - name: "cms_reportable_grievances"
+      expr: COUNT(CASE WHEN cms_reportable_indicator = TRUE THEN member_grievance2_id END)
+      comment: "Count of CMS-reportable grievances — directly impacts Medicare Star Ratings; executives monitor this to protect plan star rating."
+    - name: "total_disputed_amount"
+      expr: SUM(CAST(disputed_amount AS DOUBLE))
+      comment: "Total financial amount disputed across grievances — measures financial exposure from member billing complaints and claim disputes."
+    - name: "avg_disputed_amount"
+      expr: AVG(CAST(disputed_amount AS DOUBLE))
+      comment: "Average disputed amount per grievance — benchmarks typical financial exposure per complaint for reserve and settlement planning."
+    - name: "avg_member_satisfaction_score"
+      expr: AVG(CAST(member_satisfaction_score AS DOUBLE))
+      comment: "Average member satisfaction score at grievance resolution — direct measure of member experience quality and service recovery effectiveness."
+    - name: "regulatory_reporting_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN regulatory_reporting_flag = TRUE THEN member_grievance2_id END) / NULLIF(COUNT(member_grievance2_id), 0), 2)
+      comment: "Percentage of grievances requiring regulatory reporting — measures compliance burden and regulatory risk exposure."
+    - name: "distinct_grieving_members"
+      expr: COUNT(DISTINCT member_subscriber_id)
+      comment: "Count of distinct members who filed grievances — measures breadth of dissatisfaction; high count relative to membership signals systemic quality issues."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_lifecycle`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Member lifecycle event KPIs tracking enrollment changes, qualifying life events, disenrollment patterns, and CMS-reportable transitions. Essential for operational compliance, CMS reporting, and member retention strategy."
+  source: "`vibe_health_insurance_v1`.`member`.`member_lifecycle_event`"
+  dimensions:
+    - name: "event_type_code"
+      expr: event_type_code
+      comment: "Type of lifecycle event (enrollment, disenrollment, plan change, QLE, relocation) for event-level operational analysis."
+    - name: "event_reason_code"
+      expr: event_reason_code
+      comment: "Reason code for the lifecycle event — identifies root causes of membership changes for retention and compliance action."
+    - name: "disenrollment_reason_code"
+      expr: disenrollment_reason_code
+      comment: "Specific disenrollment reason for churn analysis and targeted retention intervention."
+    - name: "member_lifecycle_event_status"
+      expr: member_lifecycle_event_status
+      comment: "Processing status of the lifecycle event for operational workflow management."
+    - name: "cms_reporting_indicator"
+      expr: cms_reporting_indicator
+      comment: "Whether event must be reported to CMS — flags compliance-critical events for timely regulatory submission."
+    - name: "special_enrollment_period_flag"
+      expr: special_enrollment_period_flag
+      comment: "Whether event triggered a Special Enrollment Period — monitors SEP utilization and adverse selection risk."
+    - name: "cobra_qualifying_event_flag"
+      expr: cobra_qualifying_event_flag
+      comment: "Whether event is a COBRA qualifying event — drives COBRA notice obligations and continuation coverage tracking."
+    - name: "event_month"
+      expr: DATE_TRUNC('month', event_timestamp)
+      comment: "Month of lifecycle event for trend analysis and seasonal enrollment pattern detection."
+    - name: "relocation_state_code"
+      expr: relocation_state_code
+      comment: "State to which member relocated — used for geographic membership flow analysis and network adequacy planning."
+    - name: "verification_status"
+      expr: verification_status
+      comment: "Verification status of the lifecycle event — unverified events represent compliance and data quality risk."
+  measures:
+    - name: "total_lifecycle_events"
+      expr: COUNT(member_lifecycle_event_id)
+      comment: "Total lifecycle event volume — baseline operational throughput metric for enrollment processing capacity planning."
+    - name: "disenrollment_events"
+      expr: COUNT(CASE WHEN event_type_code = 'disenrollment' OR disenrollment_reason_code IS NOT NULL THEN member_lifecycle_event_id END)
+      comment: "Count of disenrollment events — primary churn metric; rising disenrollment triggers retention program investment decisions."
+    - name: "cms_reportable_events"
+      expr: COUNT(CASE WHEN cms_reporting_indicator = TRUE THEN member_lifecycle_event_id END)
+      comment: "Count of CMS-reportable lifecycle events — compliance volume metric for CMS submission planning and regulatory risk management."
+    - name: "sep_triggered_events"
+      expr: COUNT(CASE WHEN special_enrollment_period_flag = TRUE THEN member_lifecycle_event_id END)
+      comment: "Count of events triggering Special Enrollment Periods — measures mid-year enrollment volatility and adverse selection exposure."
+    - name: "cobra_qualifying_events"
+      expr: COUNT(CASE WHEN cobra_qualifying_event_flag = TRUE THEN member_lifecycle_event_id END)
+      comment: "Count of COBRA qualifying events — drives COBRA notice obligations and continuation coverage liability estimation."
+    - name: "unverified_event_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN verification_status IS NULL OR verification_status = 'unverified' THEN member_lifecycle_event_id END) / NULLIF(COUNT(member_lifecycle_event_id), 0), 2)
+      comment: "Percentage of lifecycle events lacking verification — high rate signals enrollment data quality risk and potential CMS audit exposure."
+    - name: "distinct_members_with_events"
+      expr: COUNT(DISTINCT member_subscriber_id)
+      comment: "Count of distinct members experiencing lifecycle events — measures breadth of membership churn and change activity in a period."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_lifecycle_event`
@@ -825,56 +1292,357 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Member lifecycle event metrics tracking qualifying life events, disenrollment triggers, Medicare entitlement, and special enrollment period activity. Used by VP of Enrollment Operations and Chief Compliance Officer for SEP compliance, CMS reporting, and member transition management."
+  comment: "Member lifecycle event metrics tracking qualifying life events, special enrollment periods, and regulatory triggers critical for enrollment operations and compliance."
   source: "`vibe_health_insurance_v1`.`member`.`member_lifecycle_event`"
   dimensions:
-    - name: "event_type_code"
-      expr: event_type_code
-      comment: "Type of lifecycle event (Birth, Marriage, Divorce, Job Loss, Medicare Entitlement) for event-based analysis."
-    - name: "event_reason_code"
-      expr: event_reason_code
-      comment: "Reason code for the lifecycle event for detailed root-cause analysis."
     - name: "member_lifecycle_event_status"
       expr: member_lifecycle_event_status
-      comment: "Current processing status of the lifecycle event for operational pipeline management."
-    - name: "verification_status"
-      expr: verification_status
-      comment: "Verification status of the lifecycle event for SEP fraud detection and compliance."
+      comment: "Current status of the lifecycle event"
+    - name: "event_type_code"
+      expr: event_type_code
+      comment: "Type of lifecycle event (enrollment, disenrollment, transfer, QLE)"
+    - name: "event_reason_code"
+      expr: event_reason_code
+      comment: "Reason code for the lifecycle event"
     - name: "disenrollment_source"
       expr: disenrollment_source
-      comment: "Source of disenrollment trigger for channel and process analysis."
-    - name: "relocation_state_code"
-      expr: relocation_state_code
-      comment: "State code for relocation events for geographic migration and network adequacy analysis."
+      comment: "Source of disenrollment for attrition channel analysis"
+    - name: "disenrollment_reason_code"
+      expr: disenrollment_reason_code
+      comment: "Specific reason for disenrollment"
+    - name: "verification_status"
+      expr: verification_status
+      comment: "Verification status of the lifecycle event"
+    - name: "qualified_life_event_flag"
+      expr: qualified_life_event_flag
+      comment: "Whether this is a qualified life event triggering special enrollment"
+    - name: "special_enrollment_period_flag"
+      expr: special_enrollment_period_flag
+      comment: "Whether a special enrollment period was triggered"
+    - name: "cobra_qualifying_event_flag"
+      expr: cobra_qualifying_event_flag
+      comment: "Whether this event qualifies for COBRA continuation"
+    - name: "medicare_entitlement_flag"
+      expr: medicare_entitlement_flag
+      comment: "Whether the event involves Medicare entitlement"
+    - name: "source_system"
+      expr: source_system
+      comment: "Source system of the lifecycle event"
+    - name: "event_year"
+      expr: YEAR(effective_date)
+      comment: "Year the lifecycle event became effective"
     - name: "event_month"
-      expr: DATE_TRUNC('MONTH', event_timestamp)
-      comment: "Month of lifecycle event for trend and seasonality analysis."
-    - name: "effective_date_month"
-      expr: DATE_TRUNC('MONTH', effective_date)
-      comment: "Month lifecycle event became effective for enrollment impact analysis."
+      expr: DATE_TRUNC('month', effective_date)
+      comment: "Month the lifecycle event became effective"
   measures:
     - name: "total_lifecycle_events"
       expr: COUNT(1)
-      comment: "Total lifecycle event records. Event volume baseline for enrollment operations capacity planning."
+      comment: "Total count of member lifecycle events for operational volume tracking"
     - name: "qualified_life_events"
-      expr: COUNT(CASE WHEN qualified_life_event_flag = TRUE THEN member_lifecycle_event_id END)
-      comment: "Count of qualifying life events. SEP eligibility trigger metric for enrollment operations and ACA compliance."
+      expr: COUNT(CASE WHEN qualified_life_event_flag = true THEN 1 END)
+      comment: "Count of qualified life events triggering special enrollment periods"
+    - name: "special_enrollment_events"
+      expr: COUNT(CASE WHEN special_enrollment_period_flag = true THEN 1 END)
+      comment: "Count of special enrollment period events for SEP volume management"
     - name: "cobra_qualifying_events"
-      expr: COUNT(CASE WHEN cobra_qualifying_event_flag = TRUE THEN member_lifecycle_event_id END)
-      comment: "Count of COBRA-qualifying lifecycle events. COBRA election opportunity pipeline metric for continuation coverage program management."
+      expr: COUNT(CASE WHEN cobra_qualifying_event_flag = true THEN 1 END)
+      comment: "Count of COBRA qualifying events for continuation coverage obligation tracking"
     - name: "medicare_entitlement_events"
-      expr: COUNT(CASE WHEN medicare_entitlement_flag = TRUE THEN member_lifecycle_event_id END)
-      comment: "Count of Medicare entitlement events. Medicare transition program trigger metric for COB setup and disenrollment processing."
-    - name: "special_enrollment_period_events"
-      expr: COUNT(CASE WHEN special_enrollment_period_flag = TRUE THEN member_lifecycle_event_id END)
-      comment: "Count of events triggering special enrollment periods. SEP volume metric for enrollment operations staffing and compliance monitoring."
+      expr: COUNT(CASE WHEN medicare_entitlement_flag = true THEN 1 END)
+      comment: "Count of Medicare entitlement events for aging-in population management"
     - name: "medicaid_eligibility_gain_events"
-      expr: COUNT(CASE WHEN medicaid_eligibility_gain_flag = TRUE THEN member_lifecycle_event_id END)
-      comment: "Count of Medicaid eligibility gain events. Medicaid transition program metric for marketplace-to-Medicaid handoff management."
-    - name: "documentation_not_received_count"
-      expr: COUNT(CASE WHEN documentation_received_flag = FALSE THEN member_lifecycle_event_id END)
-      comment: "Count of lifecycle events with missing documentation. SEP verification compliance metric — undocumented SEPs create CMS audit risk."
-    - name: "cms_reportable_events"
-      expr: COUNT(CASE WHEN cms_reporting_indicator = TRUE THEN member_lifecycle_event_id END)
-      comment: "Count of CMS-reportable lifecycle events. Federal compliance metric for CMS enrollment reporting requirements."
+      expr: COUNT(CASE WHEN medicaid_eligibility_gain_flag = true THEN 1 END)
+      comment: "Count of Medicaid eligibility gain events for government program coordination"
+    - name: "medicaid_eligibility_loss_events"
+      expr: COUNT(CASE WHEN medicaid_eligibility_loss_flag = true THEN 1 END)
+      comment: "Count of Medicaid eligibility loss events for coverage transition management"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_member_lifecycle_event`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Member Lifecycle Event business metrics"
+  source: "`vibe_health_insurance_v1`.`member`.`member_lifecycle_event`"
+  dimensions:
+    - name: "Appeal Rights Notification Flag"
+      expr: appeal_rights_notification_flag
+    - name: "Chip Aging Out Flag"
+      expr: chip_aging_out_flag
+    - name: "Cms Reporting Indicator"
+      expr: cms_reporting_indicator
+    - name: "Cobra Qualifying Event Flag"
+      expr: cobra_qualifying_event_flag
+    - name: "Created Timestamp"
+      expr: created_timestamp
+    - name: "Data Quality Score"
+      expr: data_quality_score
+    - name: "Disability Determination Flag"
+      expr: disability_determination_flag
+    - name: "Disenrollment Reason Code"
+      expr: disenrollment_reason_code
+    - name: "Disenrollment Request Date"
+      expr: disenrollment_request_date
+    - name: "Disenrollment Source"
+      expr: disenrollment_source
+    - name: "Documentation Received Flag"
+      expr: documentation_received_flag
+    - name: "Effective Date"
+      expr: effective_date
+    - name: "Effective End Date"
+      expr: effective_end_date
+    - name: "Effective Start Date"
+      expr: effective_start_date
+    - name: "Event Description"
+      expr: event_description
+    - name: "Event Reason Code"
+      expr: event_reason_code
+  measures:
+    - name: "Row Count"
+      expr: COUNT(1)
+    - name: "Distinct Member Lifecycle Event"
+      expr: COUNT(DISTINCT member_lifecycle_event_id)
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_pcp_assignment`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "PCP assignment KPIs tracking assignment rates, panel status, network tier distribution, and assignment stability. Critical for network adequacy, care continuity, and value-based care program performance."
+  source: "`vibe_health_insurance_v1`.`member`.`pcp_assignment`"
+  dimensions:
+    - name: "assignment_status"
+      expr: assignment_status
+      comment: "Current PCP assignment status (active, pending, terminated) for operational assignment management."
+    - name: "assignment_type"
+      expr: assignment_type
+      comment: "How assignment was made (auto-assigned, member-selected, plan-assigned) for assignment quality and member satisfaction analysis."
+    - name: "assignment_reason"
+      expr: assignment_reason
+      comment: "Reason for PCP assignment or change — identifies drivers of PCP churn and assignment instability."
+    - name: "network_tier"
+      expr: network_tier
+      comment: "Network tier of assigned PCP (tier 1, tier 2, out-of-network) for cost and quality tier utilization analysis."
+    - name: "panel_status"
+      expr: panel_status
+      comment: "PCP panel status (open, closed, restricted) — closed panels signal network capacity constraints requiring intervention."
+    - name: "pcp_specialty_code"
+      expr: pcp_specialty_code
+      comment: "Specialty of assigned PCP for care model and specialty distribution analysis."
+    - name: "is_primary"
+      expr: is_primary
+      comment: "Whether this is the member's primary PCP assignment — distinguishes primary from secondary assignments."
+    - name: "effective_start_month"
+      expr: DATE_TRUNC('month', effective_start_date)
+      comment: "Month PCP assignment became effective for assignment trend and stability analysis."
+  measures:
+    - name: "total_pcp_assignments"
+      expr: COUNT(pcp_assignment_id)
+      comment: "Total PCP assignment records — baseline metric for network adequacy and care coordination program coverage."
+    - name: "active_pcp_assignments"
+      expr: COUNT(CASE WHEN assignment_status = 'active' AND is_active = TRUE THEN pcp_assignment_id END)
+      comment: "Count of currently active PCP assignments — measures live PCP attribution for value-based care program enrollment and capitation payment."
+    - name: "distinct_assigned_members"
+      expr: COUNT(DISTINCT member_subscriber_id)
+      comment: "Count of distinct members with a PCP assignment — PCP attribution rate denominator for value-based care and HEDIS measure compliance."
+    - name: "distinct_assigned_pcps"
+      expr: COUNT(DISTINCT pcp_provider_id)
+      comment: "Count of distinct PCPs with at least one member assignment — measures PCP network utilization and panel distribution breadth."
+    - name: "closed_panel_assignment_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN panel_status = 'closed' THEN pcp_assignment_id END) / NULLIF(COUNT(pcp_assignment_id), 0), 2)
+      comment: "Percentage of assignments to PCPs with closed panels — high rate signals network capacity risk and member access barriers."
+    - name: "member_selected_assignment_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN assignment_type = 'member-selected' THEN pcp_assignment_id END) / NULLIF(COUNT(pcp_assignment_id), 0), 2)
+      comment: "Percentage of PCP assignments made by member choice vs. auto-assignment — higher member-selected rate correlates with better care engagement and retention."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_policy`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Member policy KPIs tracking premium economics, deductible and out-of-pocket exposure, coverage status, and renewal performance. Core financial and actuarial metrics for product management and underwriting."
+  source: "`vibe_health_insurance_v1`.`member`.`policy`"
+  dimensions:
+    - name: "policy_status"
+      expr: policy_status
+      comment: "Current policy status (active, lapsed, terminated, renewed) for portfolio health analysis."
+    - name: "policy_type"
+      expr: policy_type
+      comment: "Type of policy (individual, group, family) for product line segmentation and pricing analysis."
+    - name: "coverage_type"
+      expr: coverage_type
+      comment: "Coverage type (medical, dental, vision, pharmacy) for benefit line performance analysis."
+    - name: "coverage_status"
+      expr: coverage_status
+      comment: "Current coverage status for active policy filtering and lapse rate analysis."
+    - name: "renewal_status"
+      expr: renewal_status
+      comment: "Renewal status (renewed, lapsed, pending) for retention and renewal rate analysis."
+    - name: "premium_frequency"
+      expr: premium_frequency
+      comment: "Premium payment frequency (monthly, quarterly, annual) for cash flow and billing cycle analysis."
+    - name: "coverage_start_month"
+      expr: DATE_TRUNC('month', coverage_start_date)
+      comment: "Month coverage began for policy cohort and vintage analysis."
+    - name: "termination_reason"
+      expr: termination_reason
+      comment: "Reason for policy termination for churn root cause analysis and retention strategy."
+  measures:
+    - name: "total_policies"
+      expr: COUNT(policy_id)
+      comment: "Total policy count — baseline portfolio size metric for product management and actuarial analysis."
+    - name: "active_policies"
+      expr: COUNT(CASE WHEN policy_status = 'active' AND is_active = TRUE THEN policy_id END)
+      comment: "Count of currently active policies — live portfolio size for premium revenue forecasting and risk pool management."
+    - name: "total_premium_amount"
+      expr: SUM(CAST(premium_amount AS DOUBLE))
+      comment: "Total premium across all policies — top-line revenue metric for financial planning and actuarial rate adequacy."
+    - name: "avg_premium_amount"
+      expr: AVG(CAST(premium_amount AS DOUBLE))
+      comment: "Average premium per policy — benchmark for pricing competitiveness and cross-product premium analysis."
+    - name: "avg_deductible_amount"
+      expr: AVG(CAST(deductible_amount AS DOUBLE))
+      comment: "Average deductible per policy — measures cost-sharing burden on members and benefit richness of the portfolio."
+    - name: "avg_out_of_pocket_max"
+      expr: AVG(CAST(out_of_pocket_max_amount AS DOUBLE))
+      comment: "Average out-of-pocket maximum per policy — measures member financial exposure and ACA OOP cap compliance."
+    - name: "total_coverage_limit_amount"
+      expr: SUM(CAST(coverage_limit_amount AS DOUBLE))
+      comment: "Total coverage limit across policies — measures aggregate benefit liability for actuarial reserve adequacy."
+    - name: "renewal_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN renewal_status = 'renewed' THEN policy_id END) / NULLIF(COUNT(CASE WHEN renewal_status IS NOT NULL AND renewal_status <> '' THEN policy_id END), 0), 2)
+      comment: "Percentage of policies that renewed — primary retention KPI; declining renewal rate triggers product and pricing intervention."
+    - name: "avg_renewal_premium_amount"
+      expr: AVG(CAST(renewal_premium_amount AS DOUBLE))
+      comment: "Average renewal premium — measures premium trend at renewal for rate adequacy and member affordability analysis."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_segment`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Member segmentation KPIs tracking risk stratification, chronic condition prevalence, dual eligibility, and SDOH risk distribution. Drives care management program targeting, actuarial modeling, and population health investment decisions."
+  source: "`vibe_health_insurance_v1`.`member`.`segment`"
+  dimensions:
+    - name: "segment_name"
+      expr: segment_name
+      comment: "Name of the member segment for population cohort analysis and care management program alignment."
+    - name: "segment_category"
+      expr: segment_category
+      comment: "Category of segment (risk, chronic condition, demographic, behavioral) for strategic population analysis."
+    - name: "risk_tier"
+      expr: risk_tier
+      comment: "Risk tier of the segment (low, medium, high, rising) for care management resource allocation."
+    - name: "hcc_risk_score_tier"
+      expr: hcc_risk_score_tier
+      comment: "HCC risk score tier for risk adjustment revenue stratification and care management prioritization."
+    - name: "chronic_condition_code"
+      expr: chronic_condition_code
+      comment: "Chronic condition code associated with the segment for disease management program targeting."
+    - name: "chronic_condition_flag"
+      expr: chronic_condition_flag
+      comment: "Whether segment members have a chronic condition — primary care management eligibility flag."
+    - name: "dual_eligible"
+      expr: dual_eligible
+      comment: "Whether segment members are dual-eligible — drives D-SNP enrollment and coordination of care requirements."
+    - name: "snp_eligibility"
+      expr: snp_eligibility
+      comment: "Whether segment members are SNP eligible — identifies population for specialized plan enrollment."
+    - name: "star_rating_cohort"
+      expr: star_rating_cohort
+      comment: "CMS Star Rating cohort assignment — links segment to specific HEDIS/CAHPS measures for quality performance management."
+    - name: "segmentation_source"
+      expr: segmentation_source
+      comment: "Source of segmentation model (predictive model, claims-based, clinical) for model performance benchmarking."
+  measures:
+    - name: "total_segment_assignments"
+      expr: COUNT(segment_id)
+      comment: "Total segment assignment records — baseline metric for segmentation model coverage and population stratification completeness."
+    - name: "distinct_segmented_members"
+      expr: COUNT(DISTINCT member_identity_id)
+      comment: "Count of distinct members assigned to segments — measures segmentation model population coverage for care management program targeting."
+    - name: "chronic_condition_members"
+      expr: COUNT(CASE WHEN chronic_condition_flag = TRUE THEN segment_id END)
+      comment: "Count of segment assignments with chronic conditions — measures disease burden of the population for care management program sizing and cost projection."
+    - name: "dual_eligible_segment_members"
+      expr: COUNT(CASE WHEN dual_eligible = TRUE THEN segment_id END)
+      comment: "Count of dual-eligible members in segments — drives D-SNP enrollment strategy and coordination of care investment."
+    - name: "avg_sdoh_risk_score"
+      expr: AVG(CAST(sdoh_risk_score AS DOUBLE))
+      comment: "Average SDOH risk score across segments — measures social determinants burden of the population for community health investment and health equity programs."
+    - name: "chronic_condition_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN chronic_condition_flag = TRUE THEN segment_id END) / NULLIF(COUNT(segment_id), 0), 2)
+      comment: "Percentage of segment assignments with chronic conditions — population health metric for disease management program ROI and actuarial cost projection."
+    - name: "high_risk_segment_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN risk_tier = 'high' THEN segment_id END) / NULLIF(COUNT(segment_id), 0), 2)
+      comment: "Percentage of members in high-risk segments — primary care management prioritization metric; rising rate triggers care management capacity investment."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_health_insurance_v1`.`_metrics`.`member_subscriber`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Subscriber-level KPIs covering population demographics, risk profile, income distribution, and retention. Foundation for actuarial, underwriting, and member experience analytics."
+  source: "`vibe_health_insurance_v1`.`member`.`subscriber`"
+  dimensions:
+    - name: "subscriber_status"
+      expr: subscriber_status
+      comment: "Current subscriber status (active, terminated, suspended) for population segmentation."
+    - name: "line_of_business"
+      expr: line_of_business
+      comment: "Line of business (commercial, Medicare, Medicaid, exchange) for LOB-level performance analysis."
+    - name: "gender"
+      expr: gender
+      comment: "Subscriber gender for demographic and actuarial risk stratification."
+    - name: "language_preference"
+      expr: language_preference
+      comment: "Preferred language for member communication effectiveness and health equity analysis."
+    - name: "coverage_type"
+      expr: coverage_type
+      comment: "Type of coverage (individual, group, family) for benefit design and premium analysis."
+    - name: "tobacco_use_status"
+      expr: tobacco_use_status
+      comment: "Tobacco use status for risk adjustment, wellness program targeting, and premium surcharge analysis."
+    - name: "disability_status"
+      expr: disability_status
+      comment: "Disability status for SNP eligibility, care management targeting, and ADA compliance reporting."
+    - name: "enrollment_source"
+      expr: enrollment_source
+      comment: "Channel through which subscriber enrolled (employer, exchange, direct) for acquisition cost analysis."
+    - name: "is_active"
+      expr: is_active
+      comment: "Whether subscriber is currently active — primary operational filter for live population analytics."
+    - name: "cob_indicator"
+      expr: cob_indicator
+      comment: "Coordination of benefits indicator — identifies members with dual coverage for COB cost recovery analysis."
+  measures:
+    - name: "total_subscribers"
+      expr: COUNT(subscriber_id)
+      comment: "Total subscriber count — primary membership headcount for capacity planning, premium revenue forecasting, and regulatory reporting."
+    - name: "active_subscribers"
+      expr: COUNT(CASE WHEN is_active = TRUE THEN subscriber_id END)
+      comment: "Count of currently active subscribers — live membership base for operational planning and risk pool management."
+    - name: "avg_annual_income"
+      expr: AVG(CAST(annual_income AS DOUBLE))
+      comment: "Average annual income of subscribers — key input for subsidy eligibility modeling, ACA affordability analysis, and market segmentation."
+    - name: "avg_hcc_risk_score"
+      expr: AVG(CAST(hcc_score AS DOUBLE))
+      comment: "Average HCC risk score across subscribers — primary actuarial metric for risk adjustment revenue, premium adequacy, and care management prioritization."
+    - name: "avg_risk_adjustment_factor"
+      expr: AVG(CAST(risk_adjustment_factor AS DOUBLE))
+      comment: "Average risk adjustment factor (RAF) — directly drives CMS risk adjustment payments; low RAF vs. competitor benchmark signals revenue leakage."
+    - name: "total_annual_income"
+      expr: SUM(CAST(annual_income AS DOUBLE))
+      comment: "Total annual income across subscriber population — used for FPL-based subsidy pool sizing and income-stratified benefit design."
+    - name: "cob_subscriber_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN cob_indicator IS NOT NULL AND cob_indicator <> '' AND cob_indicator <> 'N' THEN subscriber_id END) / NULLIF(COUNT(subscriber_id), 0), 2)
+      comment: "Percentage of subscribers with COB indicator — measures dual-coverage population share for COB recovery program sizing."
+    - name: "deceased_subscriber_rate"
+      expr: ROUND(100.0 * COUNT(CASE WHEN is_deceased = TRUE THEN subscriber_id END) / NULLIF(COUNT(subscriber_id), 0), 2)
+      comment: "Percentage of subscribers flagged as deceased — operational data quality metric; high rate signals enrollment termination processing failures."
 $$;

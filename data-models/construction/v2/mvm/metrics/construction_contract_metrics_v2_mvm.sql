@@ -1,227 +1,236 @@
--- Metric views for domain: contract | Business: Construction | Version: 2 | Generated on: 2026-06-22 17:18:52
+-- Metric views for domain: contract | Business: Construction | Version: 2 | Generated on: 2026-06-27 01:50:09
 
 CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`contract_agreement`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Strategic KPIs over the contract agreement portfolio — contract values, retention exposure, liquidated damages risk, and amendment activity. Used by commercial directors and CFOs to steer contract performance and financial exposure."
+  comment: "Strategic KPIs over the master contract agreement portfolio — contract values, amendments, retention, liquidated damages, and performance bonds. Used by CFO, Legal, and Commercial teams to steer contract risk and financial exposure."
   source: "`vibe_construction_v1`.`contract`.`agreement`"
   dimensions:
     - name: "agreement_status"
       expr: agreement_status
-      comment: "Lifecycle status of the agreement (e.g. Active, Closed, Terminated) — primary filter for portfolio health analysis."
+      comment: "Current lifecycle status of the agreement (e.g. Active, Expired, Terminated) — primary filter for portfolio health analysis."
     - name: "contract_type"
       expr: contract_type
-      comment: "Classification of the contract (e.g. Lump Sum, Cost-Plus, Unit Rate) — drives commercial strategy segmentation."
+      comment: "Classification of the contract (e.g. Lump Sum, Unit Rate, Cost-Plus) — drives commercial risk profiling."
     - name: "currency_code"
       expr: currency_code
       comment: "Currency in which the contract is denominated — essential for multi-currency portfolio reporting."
     - name: "geographic_location"
       expr: geographic_location
-      comment: "Geographic location of the contracted work — enables regional portfolio analysis."
-    - name: "amendment_type"
-      expr: amendment_type
-      comment: "Type of amendment applied to the agreement — used to track scope, time, and value change patterns."
+      comment: "Geographic region or site of the contract — enables regional portfolio analysis."
+    - name: "governing_law"
+      expr: governing_law
+      comment: "Jurisdiction governing the contract — used for legal risk segmentation."
     - name: "award_year_month"
       expr: DATE_TRUNC('MONTH', award_date)
-      comment: "Month in which the contract was awarded — supports trend analysis of new contract intake."
+      comment: "Month the contract was awarded — supports trend analysis of contract pipeline intake."
     - name: "effective_start_month"
       expr: DATE_TRUNC('MONTH', effective_start_date)
       comment: "Month the contract became effective — used for cohort and duration analysis."
+    - name: "amendment_type"
+      expr: amendment_type
+      comment: "Type of amendment applied to the agreement — identifies patterns in scope or value changes."
   measures:
-    - name: "total_contract_value"
+    - name: "total_original_contract_value"
       expr: SUM(CAST(contract_value AS DOUBLE))
-      comment: "Total original contract value across the portfolio. Core financial KPI for executive portfolio sizing and budget alignment."
+      comment: "Total original contract value across the portfolio. Core financial KPI for CFO and commercial leadership to size the contract book."
     - name: "total_revised_contract_value"
       expr: SUM(CAST(revised_contract_value AS DOUBLE))
-      comment: "Total revised (post-amendment) contract value. Compared against original value to quantify scope growth and commercial drift."
+      comment: "Total revised (current) contract value after amendments. Compared against original value to quantify scope growth or reduction."
     - name: "avg_contract_value"
       expr: AVG(CAST(contract_value AS DOUBLE))
-      comment: "Average original contract value per agreement. Benchmarks deal size and informs bidding strategy."
+      comment: "Average original contract value — benchmarks deal size and informs bidding strategy."
     - name: "total_liquidated_damages_exposure"
       expr: SUM(CAST(liquidated_damages_amount AS DOUBLE))
-      comment: "Total liquidated damages amount stipulated across all contracts. Quantifies maximum penalty exposure for schedule overruns."
-    - name: "total_performance_bond_amount"
+      comment: "Total liquidated damages exposure across all agreements. Critical risk KPI — if triggered, directly impacts project profitability."
+    - name: "total_performance_bond_value"
       expr: SUM(CAST(performance_bond_amount AS DOUBLE))
-      comment: "Total performance bond value secured across the portfolio. Indicates financial security coverage for contract delivery risk."
+      comment: "Total performance bond value held across the portfolio — indicates financial security coverage for contract obligations."
     - name: "avg_retention_percentage"
       expr: AVG(CAST(retention_percentage AS DOUBLE))
-      comment: "Average retention percentage held across contracts. Informs cash-flow planning and subcontractor payment strategy."
-    - name: "contract_count"
+      comment: "Average retention percentage across contracts — high retention ties up subcontractor cash flow and signals commercial risk."
+    - name: "contract_value_growth_amount"
+      expr: SUM(CAST(revised_contract_value AS DOUBLE) - CAST(contract_value AS DOUBLE))
+      comment: "Net contract value growth (revised minus original) across the portfolio — measures scope creep and commercial change order impact."
+    - name: "active_contract_count"
+      expr: COUNT(CASE WHEN agreement_status = 'Active' THEN agreement_id END)
+      comment: "Number of currently active contracts — baseline for portfolio size and workload capacity planning."
+    - name: "total_contract_count"
       expr: COUNT(1)
-      comment: "Total number of agreements in the portfolio. Baseline volume metric for workload and pipeline management."
-    - name: "amended_contract_count"
-      expr: COUNT(CASE WHEN amendment_number IS NOT NULL THEN 1 END)
-      comment: "Number of contracts that have been amended. High amendment rates signal scope instability or poor initial definition."
+      comment: "Total number of agreements in the portfolio — used as denominator for ratio KPIs and portfolio sizing."
 $$;
 
-CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`contract_change_order`
+CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`contract_amendment`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "KPIs tracking change order volume, financial impact, and schedule disruption. Used by project controls and commercial managers to manage scope creep, cost overruns, and programme risk."
-  source: "`vibe_construction_v1`.`contract`.`contract_change_order`"
+  comment: "KPIs tracking contract amendments — financial impact, schedule impact, approval cycle, and risk. Used by Commercial Managers and Legal to control scope creep and amendment velocity."
+  source: "`vibe_construction_v1`.`contract`.`amendment`"
+  dimensions:
+    - name: "amendment_status"
+      expr: amendment_status
+      comment: "Current status of the amendment (e.g. Pending, Approved, Rejected) — drives approval pipeline monitoring."
+    - name: "amendment_type"
+      expr: amendment_type
+      comment: "Type of amendment (e.g. Scope, Time, Commercial) — identifies the nature of contract changes."
+    - name: "risk_rating"
+      expr: risk_rating
+      comment: "Risk rating assigned to the amendment — used to prioritise review and escalation."
+    - name: "reason_code"
+      expr: reason_code
+      comment: "Root cause code for the amendment — enables systemic analysis of change drivers."
+    - name: "legal_review_status"
+      expr: legal_review_status
+      comment: "Status of legal review for the amendment — tracks legal bottlenecks in the approval process."
+    - name: "execution_status"
+      expr: execution_status
+      comment: "Execution status of the amendment document — monitors document completion and signing."
+    - name: "approval_month"
+      expr: DATE_TRUNC('MONTH', approval_date)
+      comment: "Month the amendment was approved — supports trend analysis of amendment approval velocity."
+    - name: "is_confidential"
+      expr: is_confidential
+      comment: "Flag indicating whether the amendment is confidential — used for access control and reporting segmentation."
+  measures:
+    - name: "total_financial_impact"
+      expr: SUM(CAST(impact_financial AS DOUBLE))
+      comment: "Total financial impact of all amendments — quantifies cumulative cost of contract changes. Key CFO and Commercial Director KPI."
+    - name: "total_payment_adjustment"
+      expr: SUM(CAST(payment_adjustment_amount AS DOUBLE))
+      comment: "Total payment adjustments arising from amendments — directly affects cash flow forecasting."
+    - name: "total_revised_contract_value"
+      expr: SUM(CAST(revised_contract_value AS DOUBLE))
+      comment: "Sum of revised contract values across all amendments — tracks the cumulative revised contract book."
+    - name: "avg_financial_impact_per_amendment"
+      expr: AVG(CAST(impact_financial AS DOUBLE))
+      comment: "Average financial impact per amendment — benchmarks the materiality of individual changes."
+    - name: "amendment_count"
+      expr: COUNT(1)
+      comment: "Total number of amendments — high amendment velocity signals poor scope definition or contract instability."
+    - name: "high_risk_amendment_count"
+      expr: COUNT(CASE WHEN risk_rating IN ('High', 'Critical') THEN amendment_id END)
+      comment: "Number of amendments rated High or Critical risk — triggers escalation and executive review."
+    - name: "unsigned_amendment_count"
+      expr: COUNT(CASE WHEN document_signed_flag = FALSE THEN amendment_id END)
+      comment: "Number of amendments not yet signed — unexecuted amendments represent unresolved contractual exposure."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`contract_commercial_change_order`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "KPIs for commercial change orders (CCOs) — cost impact, net value, LD provisions, and approval cycle. Used by Commercial and Finance teams to manage variation costs and contract profitability."
+  source: "`vibe_construction_v1`.`contract`.`commercial_change_order`"
   dimensions:
     - name: "contract_change_order_status"
       expr: contract_change_order_status
-      comment: "Approval lifecycle status of the change order (e.g. Submitted, Approved, Rejected) — critical for pipeline and backlog analysis."
+      comment: "Current status of the commercial change order (e.g. Submitted, Approved, Rejected) — pipeline monitoring."
     - name: "change_order_type"
       expr: change_order_type
-      comment: "Category of change (e.g. Scope Addition, Omission, Variation) — identifies the dominant drivers of contract change."
+      comment: "Type of change order (e.g. Scope, Variation, Claim) — categorises the nature of commercial changes."
     - name: "reason_code"
       expr: reason_code
-      comment: "Root-cause code for the change order — enables Pareto analysis of change drivers to target process improvement."
+      comment: "Root cause code for the change order — identifies systemic drivers of commercial variations."
     - name: "currency_code"
       expr: currency_code
-      comment: "Currency of the change order amounts — required for multi-currency financial consolidation."
+      comment: "Currency of the change order — required for multi-currency financial consolidation."
     - name: "is_critical"
       expr: is_critical
-      comment: "Flag indicating whether the change order is on the critical path — prioritises executive attention and escalation."
-    - name: "effective_month"
-      expr: DATE_TRUNC('MONTH', effective_date)
-      comment: "Month the change order became effective — supports trend analysis of change order activity over time."
+      comment: "Flag indicating whether the change order is on the critical path — critical CCOs require expedited approval."
     - name: "approved_by"
       expr: approved_by
-      comment: "Approving authority for the change order — used for delegation-of-authority compliance reporting."
+      comment: "Person or role who approved the change order — used for approval authority analysis."
+    - name: "effective_month"
+      expr: DATE_TRUNC('MONTH', effective_date)
+      comment: "Month the change order became effective — supports trend analysis of variation activity."
   measures:
-    - name: "total_cost_impact"
-      expr: SUM(CAST(cost_impact_amount AS DOUBLE))
-      comment: "Total cost impact of all change orders. Primary KPI for quantifying financial exposure from scope changes."
-    - name: "total_net_amount"
-      expr: SUM(CAST(net_amount AS DOUBLE))
-      comment: "Total net value of approved change orders. Represents the actual contract value adjustment after all deductions."
     - name: "total_gross_amount"
       expr: SUM(CAST(gross_amount AS DOUBLE))
-      comment: "Total gross value of change orders before deductions. Used to assess the full scale of variation claims."
-    - name: "total_ld_provision_amount"
+      comment: "Total gross value of all commercial change orders — measures the full scale of contract variations."
+    - name: "total_net_amount"
+      expr: SUM(CAST(net_amount AS DOUBLE))
+      comment: "Total net value of commercial change orders after adjustments — the actual financial impact on the contract."
+    - name: "total_cost_impact"
+      expr: SUM(CAST(cost_impact_amount AS DOUBLE))
+      comment: "Total cost impact of change orders — directly affects project budget and profitability."
+    - name: "total_ld_provision"
       expr: SUM(CAST(ld_provision_amount AS DOUBLE))
-      comment: "Total liquidated damages provisions embedded in change orders. Quantifies penalty risk arising from variation-driven delays."
-    - name: "avg_cost_impact_per_change_order"
-      expr: AVG(CAST(cost_impact_amount AS DOUBLE))
-      comment: "Average cost impact per change order. Benchmarks the materiality of individual changes and flags outliers."
-    - name: "change_order_count"
-      expr: COUNT(1)
-      comment: "Total number of change orders raised. Volume indicator for scope instability and contract management workload."
-    - name: "critical_change_order_count"
-      expr: COUNT(CASE WHEN is_critical = TRUE THEN 1 END)
-      comment: "Number of change orders flagged as critical path. Directly informs programme risk and executive escalation decisions."
+      comment: "Total liquidated damages provisions across change orders — quantifies LD risk embedded in variations."
     - name: "total_adjustment_amount"
       expr: SUM(CAST(adjustment_amount AS DOUBLE))
-      comment: "Total adjustment amounts across change orders. Captures net financial corrections applied to contract values."
+      comment: "Total adjustment amounts applied to change orders — tracks commercial corrections and reconciliations."
+    - name: "avg_net_amount_per_cco"
+      expr: AVG(CAST(net_amount AS DOUBLE))
+      comment: "Average net value per commercial change order — benchmarks variation materiality."
+    - name: "critical_cco_count"
+      expr: COUNT(CASE WHEN is_critical = TRUE THEN commercial_change_order_id END)
+      comment: "Number of critical commercial change orders — critical CCOs require immediate executive attention."
+    - name: "total_cco_count"
+      expr: COUNT(1)
+      comment: "Total number of commercial change orders — high count signals scope instability."
 $$;
 
-CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`contract_milestone`
+CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`contract_dispute`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "KPIs measuring milestone delivery performance, liquidated damages exposure, and retention tied to contractual milestones. Used by project directors and commercial teams to track schedule compliance and financial consequences."
-  source: "`vibe_construction_v1`.`contract`.`contract_milestone`"
+  comment: "KPIs for contract disputes — claim values, settlement amounts, legal costs, and resolution outcomes. Used by Legal, Commercial, and Executive teams to manage dispute risk and resolution efficiency."
+  source: "`vibe_construction_v1`.`contract`.`dispute`"
   dimensions:
-    - name: "contract_milestone_status"
-      expr: contract_milestone_status
-      comment: "Current status of the milestone (e.g. Pending, Achieved, Overdue) — primary lens for delivery performance reporting."
-    - name: "milestone_type"
-      expr: milestone_type
-      comment: "Classification of the milestone (e.g. Practical Completion, Sectional Completion, Payment) — enables type-specific performance analysis."
+    - name: "dispute_status"
+      expr: dispute_status
+      comment: "Current status of the dispute (e.g. Open, In Arbitration, Resolved) — tracks dispute pipeline."
+    - name: "dispute_type"
+      expr: dispute_type
+      comment: "Type of dispute (e.g. Payment, Scope, Delay) — identifies the most common dispute categories."
+    - name: "claim_reason_code"
+      expr: claim_reason_code
+      comment: "Root cause code for the claim — enables systemic analysis of dispute drivers."
+    - name: "resolution_outcome"
+      expr: resolution_outcome
+      comment: "Outcome of the dispute resolution (e.g. Settled, Won, Lost) — measures legal and commercial effectiveness."
+    - name: "priority"
+      expr: priority
+      comment: "Priority level of the dispute — used to triage and escalate high-priority disputes."
     - name: "is_critical"
       expr: is_critical
-      comment: "Flag indicating whether the milestone is on the critical path — prioritises management attention."
-    - name: "ld_triggered"
-      expr: ld_triggered
-      comment: "Flag indicating whether liquidated damages have been triggered for this milestone — key risk indicator."
-    - name: "liquidated_damages_applicable"
-      expr: liquidated_damages_applicable
-      comment: "Flag indicating whether LD provisions apply to this milestone — used to scope financial risk exposure."
-    - name: "compliance_status"
-      expr: compliance_status
-      comment: "Regulatory or contractual compliance status of the milestone — used for governance and audit reporting."
-    - name: "planned_month"
-      expr: DATE_TRUNC('MONTH', planned_date)
-      comment: "Planned completion month — supports schedule adherence trend analysis."
-    - name: "currency_code"
-      expr: currency_code
-      comment: "Currency of milestone financial values — required for multi-currency consolidation."
-  measures:
-    - name: "total_milestone_value"
-      expr: SUM(CAST(milestone_value AS DOUBLE))
-      comment: "Total financial value tied to contractual milestones. Represents the payment-linked value at stake across the programme."
-    - name: "total_retention_amount"
-      expr: SUM(CAST(retention_amount AS DOUBLE))
-      comment: "Total retention withheld at milestone level. Critical for cash-flow forecasting and subcontractor payment planning."
-    - name: "total_cost_variance"
-      expr: SUM(CAST(cost_variance_amount AS DOUBLE))
-      comment: "Total cost variance at milestone level. Quantifies financial overrun or saving against planned milestone budgets."
-    - name: "total_ld_rate_exposure"
-      expr: SUM(CAST(ld_rate_per_day AS DOUBLE))
-      comment: "Sum of daily LD rates across all milestones. Indicates the daily financial penalty accrual rate if milestones are missed."
-    - name: "milestone_count"
-      expr: COUNT(1)
-      comment: "Total number of contractual milestones. Baseline for schedule density and delivery complexity assessment."
-    - name: "ld_triggered_milestone_count"
-      expr: COUNT(CASE WHEN ld_triggered = TRUE THEN 1 END)
-      comment: "Number of milestones where liquidated damages have been triggered. Direct indicator of schedule non-compliance and financial penalty exposure."
-    - name: "critical_milestone_count"
-      expr: COUNT(CASE WHEN is_critical = TRUE THEN 1 END)
-      comment: "Number of critical-path milestones. Used to assess programme risk concentration and prioritise recovery actions."
-    - name: "outstanding_defects_milestone_count"
-      expr: COUNT(CASE WHEN outstanding_defects_flag = TRUE THEN 1 END)
-      comment: "Number of milestones with outstanding defects. Tracks quality close-out risk and potential retention release delays."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`contract_eot_claim`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "KPIs for Extension of Time (EOT) claims — tracking claim volumes, financial impact, days claimed vs assessed, and resolution outcomes. Used by commercial and legal teams to manage programme risk and dispute exposure."
-  source: "`vibe_construction_v1`.`contract`.`eot_claim`"
-  dimensions:
-    - name: "claim_status"
-      expr: claim_status
-      comment: "Current status of the EOT claim (e.g. Submitted, Under Review, Approved, Rejected) — primary pipeline view for claim management."
-    - name: "claim_type"
-      expr: claim_type
-      comment: "Type of EOT claim (e.g. Weather, Employer Risk, Force Majeure) — identifies dominant delay causes for root-cause analysis."
-    - name: "determination_outcome"
-      expr: determination_outcome
-      comment: "Final determination result of the claim — used to assess adjudication success rates and entitlement patterns."
-    - name: "entitlement_basis"
-      expr: entitlement_basis
-      comment: "Contractual basis for the EOT entitlement — informs legal strategy and contract drafting improvements."
-    - name: "claim_priority"
-      expr: claim_priority
-      comment: "Priority level assigned to the claim — used to triage management attention and resource allocation."
-    - name: "claim_is_critical"
-      expr: claim_is_critical
-      comment: "Flag indicating whether the claim is on the critical path — escalation trigger for executive intervention."
+      comment: "Flag indicating whether the dispute is critical — critical disputes require board-level awareness."
     - name: "claim_currency"
       expr: claim_currency
-      comment: "Currency of the claim amounts — required for multi-currency financial consolidation."
-    - name: "claim_decision_month"
-      expr: DATE_TRUNC('MONTH', claim_decision_date)
-      comment: "Month in which the claim decision was made — supports trend analysis of claim resolution velocity."
+      comment: "Currency of the claim amount — required for multi-currency dispute portfolio reporting."
+    - name: "resolution_month"
+      expr: DATE_TRUNC('MONTH', resolution_date)
+      comment: "Month the dispute was resolved — supports trend analysis of resolution velocity."
   measures:
     - name: "total_claim_amount"
       expr: SUM(CAST(claim_amount AS DOUBLE))
-      comment: "Total financial value of all EOT claims submitted. Quantifies the full commercial exposure from delay claims."
-    - name: "total_claim_final_amount"
-      expr: SUM(CAST(claim_final_amount AS DOUBLE))
-      comment: "Total final settled amount across resolved EOT claims. Compared against submitted amounts to measure negotiation outcomes."
-    - name: "total_liquidated_damages_impact"
-      expr: SUM(CAST(liquidated_damages_impact AS DOUBLE))
-      comment: "Total LD financial impact associated with EOT claims. Directly links delay claims to penalty exposure for executive risk reporting."
+      comment: "Total value of all claims raised — quantifies the full financial exposure from disputes. Critical risk KPI for CFO and Legal."
+    - name: "total_net_settlement_amount"
+      expr: SUM(CAST(net_settlement_amount AS DOUBLE))
+      comment: "Total net settlement amounts paid or received — measures the actual financial outcome of dispute resolution."
+    - name: "total_legal_cost"
+      expr: SUM(CAST(legal_cost_amount AS DOUBLE))
+      comment: "Total legal costs incurred across all disputes — a direct P&L charge that executives monitor closely."
+    - name: "total_resolution_amount"
+      expr: SUM(CAST(resolution_amount AS DOUBLE))
+      comment: "Total resolution amounts agreed — compared against claim amounts to assess negotiation effectiveness."
     - name: "avg_claim_amount"
       expr: AVG(CAST(claim_amount AS DOUBLE))
-      comment: "Average EOT claim value. Benchmarks claim materiality and informs settlement authority thresholds."
-    - name: "eot_claim_count"
+      comment: "Average claim amount per dispute — benchmarks dispute materiality and informs legal resource allocation."
+    - name: "open_dispute_count"
+      expr: COUNT(CASE WHEN dispute_status NOT IN ('Resolved', 'Closed') THEN dispute_id END)
+      comment: "Number of unresolved disputes — a high open count signals unmanaged contractual risk."
+    - name: "critical_dispute_count"
+      expr: COUNT(CASE WHEN is_critical = TRUE THEN dispute_id END)
+      comment: "Number of critical disputes — requires board-level escalation and immediate legal action."
+    - name: "total_dispute_count"
       expr: COUNT(1)
-      comment: "Total number of EOT claims raised. Volume indicator for programme disruption and contract administration burden."
-    - name: "critical_claim_count"
-      expr: COUNT(CASE WHEN claim_is_critical = TRUE THEN 1 END)
-      comment: "Number of EOT claims flagged as critical. Directly informs executive escalation and programme recovery prioritisation."
+      comment: "Total number of disputes — baseline for dispute rate and portfolio risk assessment."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`contract_payment_certificate`
@@ -229,52 +238,123 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "KPIs for payment certification — tracking certified amounts, retention, LD deductions, and advance recovery. Used by finance directors and commercial managers to govern cash flow and payment compliance."
+  comment: "KPIs for payment certificates — certified amounts, net amounts due, retention, LD deductions, and payment status. Used by Finance and Commercial teams to manage cash flow and payment compliance."
   source: "`vibe_construction_v1`.`contract`.`payment_certificate`"
   dimensions:
+    - name: "payment_certificate_status"
+      expr: payment_certificate_status
+      comment: "Current status of the payment certificate (e.g. Draft, Certified, Paid) — tracks payment pipeline."
+    - name: "payment_status"
+      expr: payment_status
+      comment: "Payment execution status — identifies overdue or unpaid certificates."
+    - name: "payment_type"
+      expr: payment_type
+      comment: "Type of payment (e.g. Progress, Final, Advance Recovery) — categorises cash flow by payment nature."
     - name: "currency_code"
       expr: currency_code
-      comment: "Currency of the payment certificate — required for multi-currency cash-flow consolidation."
+      comment: "Currency of the payment certificate — required for multi-currency cash flow reporting."
     - name: "is_ld_applied"
       expr: is_ld_applied
-      comment: "Flag indicating whether liquidated damages were deducted on this certificate — used to track penalty application frequency."
+      comment: "Flag indicating whether liquidated damages were deducted — tracks LD enforcement across the portfolio."
     - name: "is_retention_applied"
       expr: is_retention_applied
-      comment: "Flag indicating whether retention was withheld on this certificate — used for retention liability tracking."
+      comment: "Flag indicating whether retention was withheld — monitors retention management."
     - name: "is_advance_recovered"
       expr: is_advance_recovered
-      comment: "Flag indicating whether advance payment recovery was applied — used to monitor advance repayment progress."
-    - name: "tax_code"
-      expr: tax_code
-      comment: "Tax code applied to the certificate — used for tax compliance and VAT reporting."
+      comment: "Flag indicating whether advance payment has been recovered — tracks advance recovery progress."
     - name: "certification_month"
       expr: DATE_TRUNC('MONTH', certification_date)
-      comment: "Month of certification — supports monthly cash-flow trend analysis and payment cycle monitoring."
+      comment: "Month the certificate was issued — supports monthly cash flow trend analysis."
+    - name: "payment_due_month"
+      expr: DATE_TRUNC('MONTH', payment_due_date)
+      comment: "Month payment is due — used for cash flow forecasting and overdue payment identification."
   measures:
     - name: "total_certified_amount"
       expr: SUM(CAST(certified_amount AS DOUBLE))
-      comment: "Total amount certified for payment across all certificates. Primary cash-flow KPI for finance and commercial leadership."
+      comment: "Total value certified for payment — the primary cash outflow KPI for Finance and Commercial teams."
     - name: "total_net_amount_due"
       expr: SUM(CAST(net_amount_due AS DOUBLE))
-      comment: "Total net amount due after all deductions. Represents actual cash outflow obligation and is the key payment liability metric."
+      comment: "Total net amount due after all deductions — the actual cash obligation to be settled."
     - name: "total_retention_withheld"
       expr: SUM(CAST(retention_amount AS DOUBLE))
-      comment: "Total retention withheld across all payment certificates. Tracks the cumulative retention liability owed to contractors."
+      comment: "Total retention amounts withheld across certificates — tracks cash tied up in retention."
     - name: "total_ld_deductions"
       expr: SUM(CAST(ld_deduction_amount AS DOUBLE))
-      comment: "Total liquidated damages deducted from payment certificates. Quantifies the financial penalties applied for schedule non-compliance."
+      comment: "Total liquidated damages deducted from payment certificates — measures LD enforcement impact on cash flow."
     - name: "total_advance_recovery"
       expr: SUM(CAST(advance_recovery_amount AS DOUBLE))
-      comment: "Total advance payment recovered across certificates. Tracks repayment progress against mobilisation advances."
+      comment: "Total advance payments recovered — tracks progress in recouping advance payments from contractors."
     - name: "total_tax_amount"
       expr: SUM(CAST(tax_amount AS DOUBLE))
-      comment: "Total tax amount on payment certificates. Required for VAT/GST compliance reporting and tax liability management."
-    - name: "payment_certificate_count"
+      comment: "Total tax amounts on payment certificates — required for tax compliance and cash flow planning."
+    - name: "avg_work_progress_percent"
+      expr: AVG(CAST(work_progress_percent AS DOUBLE))
+      comment: "Average work progress percentage across certified payments — indicates overall project execution pace."
+    - name: "certificate_count"
       expr: COUNT(1)
-      comment: "Total number of payment certificates issued. Baseline volume metric for payment cycle management and administrative workload."
-    - name: "avg_certified_amount"
-      expr: AVG(CAST(certified_amount AS DOUBLE))
-      comment: "Average certified amount per payment certificate. Benchmarks payment cycle size and informs cash-flow forecasting models."
+      comment: "Total number of payment certificates issued — baseline for payment cycle frequency analysis."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`contract_payment_schedule`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "KPIs for the contractual payment schedule — gross amounts, net amounts, retention, advance payments, and discount tracking. Used by Finance to manage cash flow forecasting and payment compliance."
+  source: "`vibe_construction_v1`.`contract`.`payment_schedule`"
+  dimensions:
+    - name: "payment_status"
+      expr: payment_status
+      comment: "Status of the scheduled payment (e.g. Pending, Paid, Overdue) — core cash flow management dimension."
+    - name: "payment_type"
+      expr: payment_type
+      comment: "Type of payment (e.g. Milestone, Progress, Final) — categorises cash flow by payment nature."
+    - name: "lifecycle_status"
+      expr: lifecycle_status
+      comment: "Lifecycle status of the payment schedule record — tracks schedule validity and currency."
+    - name: "currency_code"
+      expr: currency_code
+      comment: "Currency of the payment — required for multi-currency cash flow consolidation."
+    - name: "payment_method"
+      expr: payment_method
+      comment: "Method of payment (e.g. Bank Transfer, Cheque) — used for treasury and payment operations analysis."
+    - name: "is_final_payment"
+      expr: is_final_payment
+      comment: "Flag indicating whether this is the final payment — used to track contract financial close."
+    - name: "advance_payment_flag"
+      expr: advance_payment_flag
+      comment: "Flag indicating whether this is an advance payment — tracks advance payment exposure."
+    - name: "due_month"
+      expr: DATE_TRUNC('MONTH', due_date)
+      comment: "Month the payment is due — primary time dimension for cash flow forecasting."
+  measures:
+    - name: "total_gross_amount"
+      expr: SUM(CAST(gross_amount AS DOUBLE))
+      comment: "Total gross scheduled payment amount — the full contractual cash obligation before deductions."
+    - name: "total_net_amount"
+      expr: SUM(CAST(net_amount AS DOUBLE))
+      comment: "Total net scheduled payment amount — the actual cash outflow after retention and adjustments."
+    - name: "total_net_amount_after_discount"
+      expr: SUM(CAST(net_amount_after_discount AS DOUBLE))
+      comment: "Total net amount after early payment discounts — measures the benefit of discount programs."
+    - name: "total_retention_amount"
+      expr: SUM(CAST(retention_amount AS DOUBLE))
+      comment: "Total retention withheld across the payment schedule — tracks cash tied up in retention obligations."
+    - name: "total_advance_payment_amount"
+      expr: SUM(CAST(advance_payment_amount AS DOUBLE))
+      comment: "Total advance payments scheduled — quantifies upfront cash exposure to contractors."
+    - name: "total_advance_balance_remaining"
+      expr: SUM(CAST(advance_balance_remaining AS DOUBLE))
+      comment: "Total advance balance yet to be recovered — outstanding advance exposure requiring active management."
+    - name: "total_retention_release_amount"
+      expr: SUM(CAST(retention_release_amount AS DOUBLE))
+      comment: "Total retention scheduled for release — tracks upcoming cash outflows from retention release obligations."
+    - name: "total_tax_amount"
+      expr: SUM(CAST(tax_amount AS DOUBLE))
+      comment: "Total tax amounts on the payment schedule — required for tax planning and compliance reporting."
+    - name: "total_discount_amount"
+      expr: SUM(CAST(discount_amount AS DOUBLE))
+      comment: "Total discounts applied across the payment schedule — measures commercial discount program effectiveness."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`contract_subcontract`
@@ -282,46 +362,55 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "KPIs for the subcontract portfolio — tracking subcontract values, liquidated damages exposure, and compliance. Used by procurement directors and project managers to govern supply chain financial risk and delivery performance."
+  comment: "KPIs for subcontract portfolio management — subcontract values, liquidated damages exposure, compliance, and risk. Used by Procurement, Commercial, and Project teams to manage subcontractor performance and financial risk."
   source: "`vibe_construction_v1`.`contract`.`subcontract`"
   dimensions:
     - name: "subcontract_status"
       expr: subcontract_status
-      comment: "Lifecycle status of the subcontract (e.g. Active, Completed, Terminated) — primary filter for portfolio health analysis."
+      comment: "Current status of the subcontract (e.g. Active, Completed, Terminated) — portfolio health monitoring."
     - name: "subcontract_type"
       expr: subcontract_type
-      comment: "Type of subcontract (e.g. Labour Only, Supply and Install, Design and Build) — enables commercial strategy segmentation."
+      comment: "Type of subcontract (e.g. Labour, Supply, Design-Build) — categorises subcontractor engagement model."
     - name: "contract_category"
       expr: contract_category
-      comment: "Business category of the subcontract — used for spend analysis and category management reporting."
+      comment: "Commercial category of the subcontract — used for spend analysis and category management."
     - name: "compliance_status"
       expr: compliance_status
-      comment: "Compliance status of the subcontract — used for regulatory and HSE governance reporting."
+      comment: "Compliance status of the subcontract — non-compliant subcontracts represent regulatory and project risk."
     - name: "risk_rating"
       expr: risk_rating
-      comment: "Risk rating assigned to the subcontract — used to prioritise management oversight and mitigation actions."
+      comment: "Risk rating of the subcontract — drives prioritisation of subcontractor oversight."
     - name: "currency_code"
       expr: currency_code
-      comment: "Currency of the subcontract value — required for multi-currency spend consolidation."
+      comment: "Currency of the subcontract — required for multi-currency subcontract portfolio reporting."
+    - name: "completion_month"
+      expr: DATE_TRUNC('MONTH', completion_date)
+      comment: "Month the subcontract is scheduled to complete — used for resource and cash flow planning."
     - name: "effective_from_month"
       expr: DATE_TRUNC('MONTH', effective_from)
-      comment: "Month the subcontract became effective — supports intake trend analysis and workload planning."
+      comment: "Month the subcontract became effective — supports cohort and duration analysis."
   measures:
     - name: "total_subcontract_value"
       expr: SUM(CAST(value_amount AS DOUBLE))
-      comment: "Total value of all subcontracts in the portfolio. Primary KPI for supply chain spend management and budget control."
+      comment: "Total value of all subcontracts — the primary subcontract spend KPI for Procurement and Finance."
     - name: "avg_subcontract_value"
       expr: AVG(CAST(value_amount AS DOUBLE))
-      comment: "Average subcontract value. Benchmarks deal size and informs procurement strategy and approval thresholds."
+      comment: "Average subcontract value — benchmarks deal size and informs subcontractor selection strategy."
     - name: "total_ld_exposure"
       expr: SUM(CAST(liquidated_damages_amount AS DOUBLE))
-      comment: "Total liquidated damages exposure across the subcontract portfolio. Quantifies maximum penalty risk from subcontractor non-performance."
-    - name: "subcontract_count"
+      comment: "Total liquidated damages exposure across subcontracts — quantifies financial risk from subcontractor delays."
+    - name: "non_compliant_subcontract_count"
+      expr: COUNT(CASE WHEN compliance_status NOT IN ('Compliant', 'Approved') THEN subcontract_id END)
+      comment: "Number of non-compliant subcontracts — non-compliance triggers regulatory risk and potential project shutdown."
+    - name: "high_risk_subcontract_count"
+      expr: COUNT(CASE WHEN risk_rating IN ('High', 'Critical') THEN subcontract_id END)
+      comment: "Number of high or critical risk subcontracts — requires immediate commercial and project management intervention."
+    - name: "active_subcontract_count"
+      expr: COUNT(CASE WHEN subcontract_status = 'Active' THEN subcontract_id END)
+      comment: "Number of currently active subcontracts — baseline for subcontractor workload and oversight capacity."
+    - name: "total_subcontract_count"
       expr: COUNT(1)
-      comment: "Total number of subcontracts. Baseline volume metric for supply chain complexity and procurement workload."
-    - name: "distinct_vendor_count"
-      expr: COUNT(DISTINCT vendor_id)
-      comment: "Number of distinct vendors engaged via subcontracts. Measures supply chain diversity and concentration risk."
+      comment: "Total number of subcontracts — used as denominator for compliance rate and risk rate KPIs."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`contract_subcontract_payment`
@@ -329,43 +418,58 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "KPIs for subcontractor payment flows — tracking gross payments, net disbursements, retention, and LD deductions. Used by finance and commercial teams to manage subcontractor cash flow, compliance, and penalty application."
+  comment: "KPIs for subcontractor payment execution — gross amounts, net amounts, retention, LD deductions, and late payment tracking. Used by Finance and Procurement to manage subcontractor cash flow and payment compliance."
   source: "`vibe_construction_v1`.`contract`.`subcontract_payment`"
   dimensions:
+    - name: "subcontract_payment_status"
+      expr: subcontract_payment_status
+      comment: "Current status of the subcontract payment (e.g. Pending, Paid, Overdue) — payment pipeline monitoring."
+    - name: "payment_type"
+      expr: payment_type
+      comment: "Type of subcontract payment (e.g. Progress, Final, Retention Release) — categorises cash flow."
+    - name: "payment_method"
+      expr: payment_method
+      comment: "Method of payment — used for treasury operations and payment channel analysis."
     - name: "currency_code"
       expr: currency_code
-      comment: "Currency of the subcontract payment — required for multi-currency cash-flow consolidation."
+      comment: "Currency of the payment — required for multi-currency subcontractor payment reporting."
+    - name: "is_late_payment"
+      expr: is_late_payment
+      comment: "Flag indicating whether the payment was made late — late payments trigger penalty interest and relationship risk."
     - name: "is_ld_deduction_applied"
       expr: is_ld_deduction_applied
-      comment: "Flag indicating whether LD deductions were applied to this payment — tracks penalty enforcement frequency."
+      comment: "Flag indicating whether LD deductions were applied — tracks LD enforcement against subcontractors."
     - name: "is_retention_applied"
       expr: is_retention_applied
-      comment: "Flag indicating whether retention was withheld — used for retention liability tracking across the supply chain."
-    - name: "due_month"
-      expr: DATE_TRUNC('MONTH', due_date)
-      comment: "Month the payment was due — supports cash-flow forecasting and payment cycle trend analysis."
+      comment: "Flag indicating whether retention was withheld — monitors retention management for subcontractors."
+    - name: "payment_month"
+      expr: DATE_TRUNC('MONTH', payment_date)
+      comment: "Month the payment was made — primary time dimension for subcontractor cash flow analysis."
   measures:
     - name: "total_gross_payment_amount"
       expr: SUM(CAST(gross_amount AS DOUBLE))
-      comment: "Total gross amount paid to subcontractors. Primary KPI for supply chain cash outflow and spend management."
+      comment: "Total gross subcontractor payments — the full cash outflow to subcontractors before deductions."
     - name: "total_net_payment_amount"
       expr: SUM(CAST(net_amount AS DOUBLE))
-      comment: "Total net amount disbursed after all deductions. Represents actual cash outflow to subcontractors and is the key payment liability metric."
+      comment: "Total net subcontractor payments after all deductions — the actual cash paid to subcontractors."
     - name: "total_retention_withheld"
       expr: SUM(CAST(retention_amount AS DOUBLE))
-      comment: "Total retention withheld from subcontractor payments. Tracks cumulative retention liability owed to the supply chain."
+      comment: "Total retention withheld from subcontractor payments — tracks cash owed back to subcontractors on completion."
     - name: "total_ld_deductions"
       expr: SUM(CAST(ld_deduction_amount AS DOUBLE))
-      comment: "Total liquidated damages deducted from subcontractor payments. Quantifies financial penalties enforced for subcontractor non-performance."
+      comment: "Total LD deductions applied to subcontractor payments — measures financial enforcement of delay penalties."
     - name: "total_adjustment_amount"
       expr: SUM(CAST(adjustment_amount AS DOUBLE))
-      comment: "Total payment adjustments applied. Tracks corrections and reconciliation items in the subcontractor payment cycle."
-    - name: "subcontract_payment_count"
+      comment: "Total payment adjustments applied — tracks commercial corrections and reconciliation amounts."
+    - name: "avg_retention_percent"
+      expr: AVG(CAST(retention_percent AS DOUBLE))
+      comment: "Average retention percentage applied to subcontractor payments — benchmarks retention policy consistency."
+    - name: "late_payment_count"
+      expr: COUNT(CASE WHEN is_late_payment = TRUE THEN subcontract_payment_id END)
+      comment: "Number of late subcontractor payments — late payments expose the business to penalty interest and reputational risk."
+    - name: "total_payment_count"
       expr: COUNT(1)
-      comment: "Total number of subcontractor payment transactions. Baseline volume metric for payment cycle management and administrative workload."
-    - name: "avg_net_payment_amount"
-      expr: AVG(CAST(net_amount AS DOUBLE))
-      comment: "Average net payment per subcontractor payment transaction. Benchmarks payment cycle size and informs cash-flow forecasting."
+      comment: "Total number of subcontract payment transactions — baseline for payment frequency and volume analysis."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`contract_bond_guarantee`
@@ -373,43 +477,49 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "KPIs for the bond and guarantee register — tracking bond values, retention exposure, and expiry risk. Used by commercial and legal teams to ensure adequate financial security coverage and proactive renewal management."
+  comment: "KPIs for bonds and guarantees portfolio — bond values, retention, expiry tracking, and status. Used by Finance and Legal to manage financial security instruments and ensure timely renewal or release."
   source: "`vibe_construction_v1`.`contract`.`bond_guarantee`"
   dimensions:
     - name: "bond_guarantee_status"
       expr: bond_guarantee_status
-      comment: "Current status of the bond or guarantee (e.g. Active, Called, Released, Expired) — primary filter for security coverage analysis."
+      comment: "Current status of the bond or guarantee (e.g. Active, Released, Called) — portfolio health monitoring."
     - name: "bond_type"
       expr: bond_type
-      comment: "Type of bond or guarantee (e.g. Performance Bond, Advance Payment Guarantee, Retention Bond) — enables security type analysis."
+      comment: "Type of bond or guarantee (e.g. Performance, Advance Payment, Retention) — categorises financial security instruments."
     - name: "guarantee_purpose"
       expr: guarantee_purpose
-      comment: "Business purpose of the guarantee — used to align security instruments with contractual obligations."
-    - name: "jurisdiction"
-      expr: jurisdiction
-      comment: "Legal jurisdiction governing the bond — used for regulatory compliance and cross-border risk reporting."
+      comment: "Purpose of the guarantee — provides context for why the instrument was issued."
     - name: "currency_code"
       expr: currency_code
-      comment: "Currency of the bond amount — required for multi-currency security portfolio consolidation."
+      comment: "Currency of the bond or guarantee — required for multi-currency financial security reporting."
+    - name: "jurisdiction"
+      expr: jurisdiction
+      comment: "Legal jurisdiction of the bond — used for regulatory compliance and legal risk segmentation."
     - name: "expiry_month"
       expr: DATE_TRUNC('MONTH', expiry_date)
-      comment: "Month the bond or guarantee expires — critical for proactive renewal management and coverage gap prevention."
+      comment: "Month the bond or guarantee expires — critical for renewal management and avoiding lapses in coverage."
+    - name: "issue_month"
+      expr: DATE_TRUNC('MONTH', issue_date)
+      comment: "Month the bond or guarantee was issued — supports portfolio vintage analysis."
   measures:
     - name: "total_bond_amount"
       expr: SUM(CAST(bond_amount AS DOUBLE))
-      comment: "Total value of all bonds and guarantees in the register. Primary KPI for financial security coverage assessment."
+      comment: "Total value of all bonds and guarantees — quantifies the financial security coverage held across the portfolio."
     - name: "avg_bond_amount"
       expr: AVG(CAST(bond_amount AS DOUBLE))
-      comment: "Average bond or guarantee value. Benchmarks security instrument sizing relative to contract values."
-    - name: "total_retention_percentage_avg"
+      comment: "Average bond or guarantee value — benchmarks instrument sizing relative to contract values."
+    - name: "avg_retention_percentage"
       expr: AVG(CAST(retention_percentage AS DOUBLE))
-      comment: "Average retention percentage across bond instruments. Used to assess whether retention bonds are adequately sized."
-    - name: "bond_guarantee_count"
+      comment: "Average retention percentage associated with bonds — monitors retention-linked financial security levels."
+    - name: "active_bond_count"
+      expr: COUNT(CASE WHEN bond_guarantee_status = 'Active' THEN bond_guarantee_id END)
+      comment: "Number of currently active bonds and guarantees — baseline for financial security portfolio size."
+    - name: "called_bond_count"
+      expr: COUNT(CASE WHEN bond_guarantee_status = 'Called' THEN bond_guarantee_id END)
+      comment: "Number of bonds that have been called — called bonds signal contractor default and trigger legal action."
+    - name: "total_bond_count"
       expr: COUNT(1)
-      comment: "Total number of bonds and guarantees in the register. Baseline for security portfolio management and renewal workload."
-    - name: "distinct_agreement_count"
-      expr: COUNT(DISTINCT agreement_id)
-      comment: "Number of distinct agreements covered by bonds or guarantees. Measures security coverage breadth across the contract portfolio."
+      comment: "Total number of bonds and guarantees — used as denominator for call rate and active rate KPIs."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`contract_insurance_register`
@@ -417,100 +527,53 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "KPIs for the insurance register — tracking coverage amounts, premium costs, and compliance status. Used by risk managers and commercial directors to ensure adequate insurance coverage and regulatory compliance across the project portfolio."
+  comment: "KPIs for the insurance register — coverage amounts, premiums, deductibles, compliance, and expiry tracking. Used by Risk, Legal, and Finance to ensure adequate insurance coverage and regulatory compliance."
   source: "`vibe_construction_v1`.`contract`.`insurance_register`"
   dimensions:
     - name: "insurance_register_status"
       expr: insurance_register_status
-      comment: "Current status of the insurance policy (e.g. Active, Expired, Cancelled) — primary filter for coverage gap analysis."
+      comment: "Current status of the insurance policy (e.g. Active, Expired, Cancelled) — portfolio health monitoring."
     - name: "coverage_type"
       expr: coverage_type
-      comment: "Type of insurance coverage (e.g. Public Liability, Professional Indemnity, CAR) — enables coverage type analysis."
+      comment: "Type of insurance coverage (e.g. Public Liability, Professional Indemnity, CAR) — categorises risk coverage."
     - name: "compliance_status"
       expr: compliance_status
-      comment: "Regulatory compliance status of the insurance policy — used for governance and audit reporting."
+      comment: "Compliance status of the insurance policy — non-compliant policies represent regulatory and contractual risk."
     - name: "risk_class"
       expr: risk_class
-      comment: "Risk classification of the insured activity — used for risk-based insurance portfolio analysis."
-    - name: "jurisdiction"
-      expr: jurisdiction
-      comment: "Legal jurisdiction of the insurance policy — used for cross-border regulatory compliance reporting."
+      comment: "Risk class of the insured item — used for risk-based insurance portfolio analysis."
     - name: "currency_code"
       expr: currency_code
-      comment: "Currency of the coverage and premium amounts — required for multi-currency insurance portfolio consolidation."
-    - name: "expiry_month"
-      expr: DATE_TRUNC('MONTH', expiry_date)
-      comment: "Month the insurance policy expires — critical for proactive renewal management and coverage continuity."
+      comment: "Currency of the insurance policy — required for multi-currency insurance portfolio reporting."
     - name: "regulatory_compliance_flag"
       expr: regulatory_compliance_flag
-      comment: "Flag indicating whether the policy meets regulatory requirements — used for compliance dashboard and audit reporting."
+      comment: "Flag indicating whether the policy meets regulatory requirements — non-compliant policies require immediate remediation."
+    - name: "renewal_notification_sent"
+      expr: renewal_notification_sent
+      comment: "Flag indicating whether renewal notification has been sent — tracks renewal management process."
+    - name: "expiry_month"
+      expr: DATE_TRUNC('MONTH', expiry_date)
+      comment: "Month the insurance policy expires — critical for renewal planning and avoiding coverage gaps."
   measures:
     - name: "total_coverage_amount"
       expr: SUM(CAST(coverage_amount AS DOUBLE))
-      comment: "Total insurance coverage amount across all policies. Primary KPI for assessing the adequacy of financial risk protection."
+      comment: "Total insurance coverage amount across the portfolio — quantifies the financial protection held by the organisation."
     - name: "total_premium_amount"
       expr: SUM(CAST(premium_amount AS DOUBLE))
-      comment: "Total insurance premium cost across the portfolio. Key cost management KPI for risk financing decisions."
+      comment: "Total insurance premiums payable — a direct cost line item monitored by Finance and Risk."
     - name: "total_deductible_amount"
       expr: SUM(CAST(deductible_amount AS DOUBLE))
-      comment: "Total deductible exposure across all policies. Quantifies the self-insured risk retained by the organisation."
+      comment: "Total deductible amounts across policies — quantifies the self-insured retention exposure."
     - name: "avg_coverage_amount"
       expr: AVG(CAST(coverage_amount AS DOUBLE))
-      comment: "Average coverage amount per policy. Benchmarks insurance sizing relative to project risk profiles."
-    - name: "insurance_policy_count"
-      expr: COUNT(1)
-      comment: "Total number of insurance policies in the register. Baseline for insurance portfolio management and renewal workload."
+      comment: "Average coverage amount per policy — benchmarks coverage adequacy relative to project risk."
     - name: "non_compliant_policy_count"
-      expr: COUNT(CASE WHEN regulatory_compliance_flag = FALSE THEN 1 END)
-      comment: "Number of policies failing regulatory compliance. Critical risk indicator — non-compliant policies expose the organisation to regulatory penalties and uninsured losses."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`contract_scope`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "KPIs for contract scope management — tracking scope values, quantities, liquidated damages exposure, and change activity. Used by project controls and commercial managers to govern scope definition, change control, and financial performance."
-  source: "`vibe_construction_v1`.`contract`.`scope`"
-  dimensions:
-    - name: "scope_status"
-      expr: scope_status
-      comment: "Current status of the scope item (e.g. Draft, Approved, Completed) — primary filter for scope portfolio health."
-    - name: "scope_type"
-      expr: scope_type
-      comment: "Classification of the scope (e.g. Civil, Mechanical, Electrical) — enables discipline-level performance analysis."
-    - name: "risk_level"
-      expr: risk_level
-      comment: "Risk level assigned to the scope item — used to prioritise management oversight and contingency planning."
-    - name: "currency_code"
-      expr: currency_code
-      comment: "Currency of the scope financial values — required for multi-currency consolidation."
-    - name: "geographic_area"
-      expr: geographic_area
-      comment: "Geographic area of the scope — enables regional performance analysis."
-    - name: "eot_entitlement_flag"
-      expr: eot_entitlement_flag
-      comment: "Flag indicating whether EOT entitlement applies to this scope — used to identify scope items with programme risk."
-    - name: "planned_start_month"
-      expr: DATE_TRUNC('MONTH', planned_start_date)
-      comment: "Planned start month of the scope — supports workload planning and schedule analysis."
-  measures:
-    - name: "total_scope_amount"
-      expr: SUM(CAST(total_amount AS DOUBLE))
-      comment: "Total financial value of all scope items. Primary KPI for contract scope sizing and budget baseline management."
-    - name: "total_scope_quantity"
-      expr: SUM(CAST(total_quantity AS DOUBLE))
-      comment: "Total quantity across all scope items. Used for productivity benchmarking and unit-rate analysis."
-    - name: "total_ld_exposure"
-      expr: SUM(CAST(liquidated_damages_amount AS DOUBLE))
-      comment: "Total liquidated damages exposure embedded in scope items. Quantifies maximum penalty risk from scope non-delivery."
-    - name: "avg_scope_amount"
-      expr: AVG(CAST(total_amount AS DOUBLE))
-      comment: "Average financial value per scope item. Benchmarks scope granularity and informs work packaging strategy."
-    - name: "scope_item_count"
+      expr: COUNT(CASE WHEN regulatory_compliance_flag = FALSE THEN insurance_register_id END)
+      comment: "Number of policies failing regulatory compliance — non-compliant policies must be remediated immediately to avoid project shutdown."
+    - name: "active_policy_count"
+      expr: COUNT(CASE WHEN insurance_register_status = 'Active' THEN insurance_register_id END)
+      comment: "Number of currently active insurance policies — baseline for coverage portfolio size."
+    - name: "total_policy_count"
       expr: COUNT(1)
-      comment: "Total number of scope items. Baseline for scope complexity and contract administration workload assessment."
-    - name: "eot_entitled_scope_count"
-      expr: COUNT(CASE WHEN eot_entitlement_flag = TRUE THEN 1 END)
-      comment: "Number of scope items with EOT entitlement. Identifies the proportion of scope exposed to programme risk and delay claims."
+      comment: "Total number of insurance register entries — used as denominator for compliance rate KPIs."
 $$;

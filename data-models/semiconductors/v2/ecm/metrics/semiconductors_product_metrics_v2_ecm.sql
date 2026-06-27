@@ -1,485 +1,62 @@
--- Metric views for domain: product | Business: Semiconductors | Version: 2 | Generated on: 2026-06-23 23:34:49
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_ic_catalog`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Strategic KPIs for the IC product catalog — lifecycle health, compliance posture, and portfolio composition used by product management and executives to steer NPI, EOL, and compliance programs."
-  source: "`vibe_semiconductors_v1`.`product`.`ic_catalog`"
-  dimensions:
-    - name: "lifecycle_status"
-      expr: lifecycle_status
-      comment: "Product lifecycle stage (NPI, Production, EOL, Discontinued) for portfolio segmentation."
-    - name: "product_type"
-      expr: product_type
-      comment: "High-level product category (ASIC, FPGA, Memory, Analog, etc.) for portfolio mix analysis."
-    - name: "process_technology"
-      expr: process_technology
-      comment: "Fabrication process technology node label for technology-generation analysis."
-    - name: "target_market"
-      expr: target_market
-      comment: "End-market segment (Automotive, Industrial, Consumer, Data Center) for market-mix reporting."
-    - name: "automotive_qualified"
-      expr: automotive_qualified
-      comment: "Flag indicating AEC-Q qualification status, used to segment automotive-grade portfolio."
-    - name: "npi_phase"
-      expr: npi_phase
-      comment: "New product introduction phase (Concept, Prototype, Qualification, Release) for pipeline tracking."
-    - name: "design_type"
-      expr: design_type
-      comment: "Design methodology (Full Custom, Standard Cell, Platform) for R&D investment analysis."
-    - name: "rohs_compliant"
-      expr: rohs_compliant
-      comment: "RoHS compliance flag for environmental regulatory reporting."
-    - name: "reach_compliant"
-      expr: reach_compliant
-      comment: "REACH compliance flag for chemical substance regulatory reporting."
-    - name: "itar_controlled"
-      expr: itar_controlled
-      comment: "ITAR export control flag for trade compliance segmentation."
-    - name: "tapeout_year"
-      expr: YEAR(tapeout_date)
-      comment: "Year of tapeout for cohort analysis of design investment cycles."
-    - name: "production_release_year"
-      expr: YEAR(production_release_date)
-      comment: "Year of production release for time-to-market analysis."
-  measures:
-    - name: "total_active_products"
-      expr: COUNT(CASE WHEN is_active = TRUE THEN 1 END)
-      comment: "Count of currently active IC catalog entries — baseline portfolio size KPI for executive portfolio reviews."
-    - name: "total_products"
-      expr: COUNT(1)
-      comment: "Total IC catalog entries including all lifecycle stages — used as denominator for lifecycle mix ratios."
-    - name: "avg_die_size_mm2"
-      expr: AVG(CAST(die_size_mm2 AS DOUBLE))
-      comment: "Average die size in mm² across the portfolio — directly impacts wafer cost and yield economics; tracked by product engineering and finance."
-    - name: "avg_transistor_count"
-      expr: AVG(CAST(transistor_count AS DOUBLE))
-      comment: "Average transistor count across catalog products — proxy for design complexity and process node advancement."
-    - name: "avg_max_operating_frequency_mhz"
-      expr: AVG(CAST(operating_frequency_max_mhz AS DOUBLE))
-      comment: "Average maximum operating frequency (MHz) — performance benchmark used in competitive positioning and product roadmap reviews."
-    - name: "avg_max_power_mw"
-      expr: AVG(CAST(power_max_mw AS DOUBLE))
-      comment: "Average peak power consumption (mW) — critical for power envelope compliance in automotive and data center segments."
-    - name: "avg_typical_power_mw"
-      expr: AVG(CAST(power_typical_mw AS DOUBLE))
-      comment: "Average typical power consumption (mW) — used in product positioning and customer power budget analysis."
-    - name: "itar_controlled_product_count"
-      expr: COUNT(CASE WHEN itar_controlled = TRUE THEN 1 END)
-      comment: "Count of ITAR-controlled products — compliance exposure metric monitored by legal and export control teams."
-    - name: "automotive_qualified_product_count"
-      expr: COUNT(CASE WHEN automotive_qualified = TRUE THEN 1 END)
-      comment: "Count of AEC-Q qualified products — strategic KPI for automotive market penetration and qualification investment."
-    - name: "rohs_non_compliant_count"
-      expr: COUNT(CASE WHEN rohs_compliant = FALSE THEN 1 END)
-      comment: "Count of non-RoHS-compliant products — regulatory risk indicator requiring remediation or EOL planning."
-    - name: "eol_announced_product_count"
-      expr: COUNT(CASE WHEN eol_announcement_date IS NOT NULL THEN 1 END)
-      comment: "Count of products with an EOL announcement — used to track portfolio wind-down and customer migration planning."
-    - name: "total_distinct_process_technologies"
-      expr: COUNT(DISTINCT process_technology)
-      comment: "Number of distinct process technologies in the active portfolio — measures technology diversification and foundry dependency risk."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_sku`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Orderable SKU portfolio KPIs covering pricing, lifecycle, compliance, and availability — used by sales operations, product management, and supply chain to manage the commercial product catalog."
-  source: "`vibe_semiconductors_v1`.`product`.`sku`"
-  dimensions:
-    - name: "lifecycle_status"
-      expr: lifecycle_status
-      comment: "SKU lifecycle stage (Active, EOL, Discontinued) for commercial portfolio management."
-    - name: "temperature_range"
-      expr: temperature_range
-      comment: "Operating temperature grade (Commercial, Industrial, Automotive) for market segment analysis."
-    - name: "speed_grade"
-      expr: speed_grade
-      comment: "Speed grade variant for product mix and pricing tier analysis."
-    - name: "voltage_variant"
-      expr: voltage_variant
-      comment: "Voltage variant for power-supply compatibility segmentation."
-    - name: "country_of_origin"
-      expr: country_of_origin
-      comment: "Country of origin for trade compliance and tariff analysis."
-    - name: "orderable_flag"
-      expr: orderable_flag
-      comment: "Whether the SKU is currently orderable — used to filter commercial availability."
-    - name: "rohs_compliant"
-      expr: rohs_compliant
-      comment: "RoHS compliance status for environmental regulatory segmentation."
-    - name: "itar_controlled"
-      expr: itar_controlled
-      comment: "ITAR export control flag for trade compliance segmentation."
-    - name: "halogen_free"
-      expr: halogen_free
-      comment: "Halogen-free material flag for green product portfolio tracking."
-    - name: "eol_announcement_year"
-      expr: YEAR(eol_announcement_date)
-      comment: "Year of EOL announcement for wind-down cohort analysis."
-    - name: "introduction_year"
-      expr: YEAR(introduction_date)
-      comment: "Year of SKU introduction for portfolio vintage analysis."
-  measures:
-    - name: "total_orderable_skus"
-      expr: COUNT(CASE WHEN orderable_flag = TRUE THEN 1 END)
-      comment: "Count of currently orderable SKUs — primary commercial portfolio availability KPI for sales and supply chain."
-    - name: "total_skus"
-      expr: COUNT(1)
-      comment: "Total SKU count across all lifecycle stages — baseline for portfolio breadth analysis."
-    - name: "avg_list_price_usd"
-      expr: AVG(CAST(list_price_usd AS DOUBLE))
-      comment: "Average list price (USD) across SKUs — pricing benchmark used in competitive analysis and margin reviews."
-    - name: "avg_standard_cost_usd"
-      expr: AVG(CAST(standard_cost_usd AS DOUBLE))
-      comment: "Average standard cost (USD) — cost baseline for gross margin estimation at the SKU level."
-    - name: "avg_unit_weight_grams"
-      expr: AVG(CAST(unit_weight_grams AS DOUBLE))
-      comment: "Average unit weight (grams) — logistics cost driver used in packaging and shipping cost modeling."
-    - name: "total_list_price_usd"
-      expr: SUM(CAST(list_price_usd AS DOUBLE))
-      comment: "Sum of list prices across SKUs — used as a proxy for total addressable revenue potential of the catalog."
-    - name: "total_standard_cost_usd"
-      expr: SUM(CAST(standard_cost_usd AS DOUBLE))
-      comment: "Sum of standard costs across SKUs — used in cost-of-goods-sold estimation and inventory valuation."
-    - name: "eol_sku_count"
-      expr: COUNT(CASE WHEN eol_announcement_date IS NOT NULL THEN 1 END)
-      comment: "Count of SKUs with an EOL announcement — tracks portfolio wind-down exposure and customer migration urgency."
-    - name: "itar_controlled_sku_count"
-      expr: COUNT(CASE WHEN itar_controlled = TRUE THEN 1 END)
-      comment: "Count of ITAR-controlled SKUs — export compliance risk metric monitored by legal and trade compliance teams."
-    - name: "distinct_speed_grades"
-      expr: COUNT(DISTINCT speed_grade)
-      comment: "Number of distinct speed grades in the portfolio — measures product variant complexity and SKU proliferation risk."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_family`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Product family portfolio KPIs covering technology positioning, yield targets, power efficiency, and lifecycle health — used by product line managers and executives in roadmap and investment reviews."
-  source: "`vibe_semiconductors_v1`.`product`.`family`"
-  dimensions:
-    - name: "lifecycle_status"
-      expr: lifecycle_status
-      comment: "Family lifecycle stage (Active, EOL, Discontinued) for portfolio health monitoring."
-    - name: "business_unit"
-      expr: business_unit
-      comment: "Business unit owning the product family — for P&L and investment allocation analysis."
-    - name: "target_market_segment"
-      expr: target_market_segment
-      comment: "Target end-market segment (Automotive, Industrial, Consumer, HPC) for market mix analysis."
-    - name: "process_technology"
-      expr: process_technology
-      comment: "Process technology node for technology generation analysis."
-    - name: "lithography_type"
-      expr: lithography_type
-      comment: "Lithography type (DUV, EUV) for advanced node investment tracking."
-    - name: "family_type"
-      expr: family_type
-      comment: "Family classification (Platform, Custom, Standard) for portfolio strategy segmentation."
-    - name: "hierarchy_level"
-      expr: hierarchy_level
-      comment: "Hierarchy level within the product family tree for roll-up analysis."
-    - name: "itar_controlled_flag"
-      expr: itar_controlled_flag
-      comment: "ITAR export control flag for compliance segmentation."
-    - name: "rohs_compliant_flag"
-      expr: rohs_compliant_flag
-      comment: "RoHS compliance flag for environmental regulatory segmentation."
-    - name: "npi_start_year"
-      expr: YEAR(npi_start_date)
-      comment: "Year NPI started for pipeline vintage and time-to-market analysis."
-    - name: "volume_production_year"
-      expr: YEAR(volume_production_date)
-      comment: "Year volume production began for ramp performance analysis."
-  measures:
-    - name: "total_families"
-      expr: COUNT(1)
-      comment: "Total product families — baseline portfolio breadth KPI for executive portfolio reviews."
-    - name: "active_family_count"
-      expr: COUNT(CASE WHEN lifecycle_status = 'Active' THEN 1 END)
-      comment: "Count of active product families — measures current portfolio vitality and investment focus."
-    - name: "avg_target_yield_percent"
-      expr: AVG(CAST(target_yield_percent AS DOUBLE))
-      comment: "Average target wafer yield (%) across families — yield target benchmark used in cost modeling and fab negotiations."
-    - name: "avg_target_power_mw"
-      expr: AVG(CAST(target_power_mw AS DOUBLE))
-      comment: "Average target power consumption (mW) — power efficiency benchmark for product roadmap and competitive positioning."
-    - name: "avg_typical_die_size_mm2"
-      expr: AVG(CAST(typical_die_size_mm2 AS DOUBLE))
-      comment: "Average typical die size (mm²) — cost driver metric used in wafer cost modeling and pricing strategy."
-    - name: "avg_dft_coverage_percent"
-      expr: AVG(CAST(dft_coverage_percent AS DOUBLE))
-      comment: "Average design-for-test coverage (%) — quality and testability metric used in test cost and escape risk reviews."
-    - name: "avg_dfm_score"
-      expr: AVG(CAST(dfm_score AS DOUBLE))
-      comment: "Average design-for-manufacturability score — manufacturing readiness KPI used in NPI gate reviews."
-    - name: "eol_announced_family_count"
-      expr: COUNT(CASE WHEN eol_announcement_date IS NOT NULL THEN 1 END)
-      comment: "Count of families with EOL announcements — portfolio wind-down exposure metric for customer migration planning."
-    - name: "itar_controlled_family_count"
-      expr: COUNT(CASE WHEN itar_controlled_flag = TRUE THEN 1 END)
-      comment: "Count of ITAR-controlled product families — export compliance risk metric for legal and trade compliance teams."
-    - name: "distinct_process_technologies"
-      expr: COUNT(DISTINCT process_technology)
-      comment: "Number of distinct process technologies across families — measures technology diversification and foundry dependency risk."
-    - name: "distinct_target_markets"
-      expr: COUNT(DISTINCT target_market_segment)
-      comment: "Number of distinct target market segments served — measures market diversification of the product portfolio."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_spec`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Product specification performance KPIs tracking design achievement vs. targets for frequency, power, and die area — used by product engineering and executives to assess design quality and NPI readiness."
-  source: "`vibe_semiconductors_v1`.`product`.`product_spec`"
-  dimensions:
-    - name: "spec_status"
-      expr: spec_status
-      comment: "Specification approval status (Draft, Approved, Superseded) for governance tracking."
-    - name: "process_node_nm"
-      expr: process_node_nm
-      comment: "Process node in nanometers for technology generation segmentation."
-    - name: "automotive_grade"
-      expr: automotive_grade
-      comment: "Automotive grade classification (AEC-Q100, AEC-Q101) for market segment analysis."
-    - name: "transistor_architecture"
-      expr: transistor_architecture
-      comment: "Transistor architecture (FinFET, Planar, GAA) for technology analysis."
-    - name: "package_type"
-      expr: package_type
-      comment: "Package type for packaging cost and thermal analysis."
-    - name: "rohs_compliant"
-      expr: rohs_compliant
-      comment: "RoHS compliance flag for environmental regulatory segmentation."
-    - name: "functional_safety_rating"
-      expr: functional_safety_rating
-      comment: "Functional safety rating (ASIL-A through ASIL-D) for automotive safety compliance tracking."
-    - name: "characterization_year"
-      expr: YEAR(characterization_date)
-      comment: "Year of characterization for spec vintage analysis."
-    - name: "approval_year"
-      expr: YEAR(approval_date)
-      comment: "Year of spec approval for NPI milestone tracking."
-  measures:
-    - name: "total_specs"
-      expr: COUNT(1)
-      comment: "Total product specifications — baseline count for spec governance and NPI pipeline tracking."
-    - name: "avg_max_frequency_achieved_mhz"
-      expr: AVG(CAST(max_frequency_achieved_mhz AS DOUBLE))
-      comment: "Average achieved maximum frequency (MHz) — performance attainment metric used in product positioning and competitive benchmarking."
-    - name: "avg_max_frequency_target_mhz"
-      expr: AVG(CAST(max_frequency_target_mhz AS DOUBLE))
-      comment: "Average target maximum frequency (MHz) — design intent baseline for frequency attainment gap analysis."
-    - name: "avg_dynamic_power_achieved_mw"
-      expr: AVG(CAST(dynamic_power_achieved_mw AS DOUBLE))
-      comment: "Average achieved dynamic power (mW) — power attainment metric for thermal and battery-life compliance reviews."
-    - name: "avg_dynamic_power_target_mw"
-      expr: AVG(CAST(dynamic_power_target_mw AS DOUBLE))
-      comment: "Average target dynamic power (mW) — power design intent baseline for power attainment gap analysis."
-    - name: "avg_leakage_power_achieved_mw"
-      expr: AVG(CAST(leakage_power_achieved_mw AS DOUBLE))
-      comment: "Average achieved leakage power (mW) — standby power metric critical for IoT and mobile product segments."
-    - name: "avg_die_area_achieved_mm2"
-      expr: AVG(CAST(die_area_achieved_mm2 AS DOUBLE))
-      comment: "Average achieved die area (mm²) — cost driver metric used in wafer cost and yield modeling."
-    - name: "avg_die_area_target_mm2"
-      expr: AVG(CAST(die_area_target_mm2 AS DOUBLE))
-      comment: "Average target die area (mm²) — design intent baseline for die area attainment gap analysis."
-    - name: "avg_esd_protection_level_kv"
-      expr: AVG(CAST(esd_protection_level_kv AS DOUBLE))
-      comment: "Average ESD protection level (kV) — reliability metric used in qualification and customer acceptance reviews."
-    - name: "avg_operating_temp_max_c"
-      expr: AVG(CAST(operating_temperature_max_c AS DOUBLE))
-      comment: "Average maximum operating temperature (°C) — thermal envelope metric for market segment qualification."
-    - name: "approved_spec_count"
-      expr: COUNT(CASE WHEN spec_status = 'Approved' THEN 1 END)
-      comment: "Count of approved product specifications — NPI readiness KPI used in program gate reviews."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_pcn`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Product Change Notification KPIs tracking change volume, customer impact, qualification status, and compliance — used by product management, quality, and customer success teams to manage change risk and customer communication."
-  source: "`vibe_semiconductors_v1`.`product`.`pcn`"
-  dimensions:
-    - name: "pcn_status"
-      expr: pcn_status
-      comment: "PCN workflow status (Draft, Issued, Closed, Withdrawn) for change management tracking."
-    - name: "pcn_type"
-      expr: pcn_type
-      comment: "Type of product change (Process, Material, Package, Design) for change category analysis."
-    - name: "change_category"
-      expr: change_category
-      comment: "Change category classification for impact severity segmentation."
-    - name: "qualification_status"
-      expr: qualification_status
-      comment: "Qualification status of the change (Not Started, In Progress, Complete) for readiness tracking."
-    - name: "automotive_qualification_required_flag"
-      expr: automotive_qualification_required_flag
-      comment: "Flag indicating automotive re-qualification is required — used to prioritize high-risk changes."
-    - name: "customer_approval_required_flag"
-      expr: customer_approval_required_flag
-      comment: "Flag indicating customer approval is required before implementation — tracks change governance compliance."
-    - name: "samples_available_flag"
-      expr: samples_available_flag
-      comment: "Flag indicating samples are available for customer evaluation — used in customer communication planning."
-    - name: "notification_year"
-      expr: YEAR(notification_date)
-      comment: "Year of PCN notification for trend analysis of change frequency."
-    - name: "effective_year"
-      expr: YEAR(effective_date)
-      comment: "Year of change effectivity for implementation timeline analysis."
-  measures:
-    - name: "total_pcns"
-      expr: COUNT(1)
-      comment: "Total PCNs issued — baseline change volume KPI for product change governance reviews."
-    - name: "open_pcn_count"
-      expr: COUNT(CASE WHEN pcn_status NOT IN ('Closed', 'Withdrawn') THEN 1 END)
-      comment: "Count of open/active PCNs — operational backlog metric for product management and customer success teams."
-    - name: "automotive_qualification_required_count"
-      expr: COUNT(CASE WHEN automotive_qualification_required_flag = TRUE THEN 1 END)
-      comment: "Count of PCNs requiring automotive re-qualification — high-risk change exposure metric for automotive program managers."
-    - name: "customer_approval_required_count"
-      expr: COUNT(CASE WHEN customer_approval_required_flag = TRUE THEN 1 END)
-      comment: "Count of PCNs requiring customer approval — customer relationship risk metric for account management."
-    - name: "qualification_complete_count"
-      expr: COUNT(CASE WHEN qualification_status = 'Complete' THEN 1 END)
-      comment: "Count of PCNs with completed qualification — implementation readiness KPI for change release planning."
-    - name: "distinct_affected_products"
-      expr: COUNT(DISTINCT primary_pcn_ic_catalog_id)
-      comment: "Number of distinct products affected by PCNs — portfolio change exposure breadth metric."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_qualification_program`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Product qualification program KPIs tracking qualification progress, test coverage, and completion rates — used by quality, product engineering, and program management to ensure products meet reliability and market standards before release."
-  source: "`vibe_semiconductors_v1`.`product`.`product_qualification_program`"
-  dimensions:
-    - name: "program_status"
-      expr: program_status
-      comment: "Qualification program status (Planned, In Progress, Complete, Failed) for pipeline tracking."
-    - name: "qualification_type"
-      expr: qualification_type
-      comment: "Type of qualification (AEC-Q100, JEDEC, Customer-Specific) for standard compliance analysis."
-    - name: "qualification_standard"
-      expr: qualification_standard
-      comment: "Governing qualification standard for regulatory and customer requirement tracking."
-    - name: "deviation_granted"
-      expr: deviation_granted
-      comment: "Flag indicating a qualification deviation was granted — risk indicator for quality governance."
-    - name: "waiver_granted"
-      expr: waiver_granted
-      comment: "Flag indicating a qualification waiver was granted — risk indicator for quality governance."
-    - name: "htol_enabled"
-      expr: htol_enabled
-      comment: "Flag indicating High Temperature Operating Life test is included — reliability test coverage indicator."
-    - name: "hast_enabled"
-      expr: hast_enabled
-      comment: "Flag indicating Highly Accelerated Stress Test is included — reliability test coverage indicator."
-    - name: "tc_enabled"
-      expr: tc_enabled
-      comment: "Flag indicating Thermal Cycling test is included — reliability test coverage indicator."
-    - name: "planned_start_year"
-      expr: YEAR(planned_start_date)
-      comment: "Planned start year for qualification pipeline scheduling."
-    - name: "actual_completion_year"
-      expr: YEAR(actual_completion_date)
-      comment: "Actual completion year for qualification cycle time analysis."
-  measures:
-    - name: "total_qualification_programs"
-      expr: COUNT(1)
-      comment: "Total qualification programs — baseline pipeline size KPI for quality and program management reviews."
-    - name: "completed_program_count"
-      expr: COUNT(CASE WHEN program_status = 'Complete' THEN 1 END)
-      comment: "Count of completed qualification programs — product release readiness KPI for executive program reviews."
-    - name: "in_progress_program_count"
-      expr: COUNT(CASE WHEN program_status = 'In Progress' THEN 1 END)
-      comment: "Count of qualification programs currently in progress — active pipeline metric for resource planning."
-    - name: "deviation_granted_count"
-      expr: COUNT(CASE WHEN deviation_granted = TRUE THEN 1 END)
-      comment: "Count of programs with granted deviations — quality risk exposure metric for compliance and audit reviews."
-    - name: "waiver_granted_count"
-      expr: COUNT(CASE WHEN waiver_granted = TRUE THEN 1 END)
-      comment: "Count of programs with granted waivers — quality risk exposure metric for compliance and audit reviews."
-    - name: "distinct_products_in_qualification"
-      expr: COUNT(DISTINCT ic_catalog_id)
-      comment: "Number of distinct products currently in qualification — NPI pipeline breadth metric for product management."
-$$;
+-- Metric views for domain: product | Business: Semiconductors | Version: 2 | Generated on: 2026-06-28 00:14:33
 
 CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_bom`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Bill of Materials KPIs covering cost, compliance, and complexity — used by product engineering, supply chain, and finance to manage material costs, regulatory compliance, and BOM governance."
+  comment: "Bill of materials metrics tracking BOM complexity, material cost, compliance status, and change activity for supply chain planning and cost management."
   source: "`vibe_semiconductors_v1`.`product`.`bom`"
   dimensions:
     - name: "bom_status"
       expr: bom_status
-      comment: "BOM approval and lifecycle status (Draft, Released, Obsolete) for governance tracking."
+      comment: "BOM approval and release status for engineering change control"
     - name: "bom_type"
       expr: bom_type
-      comment: "BOM type (Engineering, Manufacturing, Sales) for process-stage analysis."
-    - name: "rohs_compliant_flag"
-      expr: rohs_compliant_flag
-      comment: "RoHS compliance flag for environmental regulatory segmentation."
-    - name: "reach_compliant_flag"
-      expr: reach_compliant_flag
-      comment: "REACH compliance flag for chemical substance regulatory segmentation."
-    - name: "conflict_minerals_compliant_flag"
-      expr: conflict_minerals_compliant_flag
-      comment: "Conflict minerals compliance flag for supply chain ethics and regulatory reporting."
-    - name: "itar_controlled_flag"
-      expr: itar_controlled_flag
-      comment: "ITAR export control flag for trade compliance segmentation."
-    - name: "critical_material_flag"
-      expr: critical_material_flag
-      comment: "Flag indicating the BOM contains critical materials — supply chain risk indicator."
+      comment: "BOM type (engineering, manufacturing, service) for lifecycle management"
     - name: "explosion_type"
       expr: explosion_type
-      comment: "BOM explosion type (Single-Level, Multi-Level) for cost roll-up analysis."
-    - name: "effective_start_year"
-      expr: YEAR(effective_start_date)
-      comment: "Year BOM became effective for vintage and change frequency analysis."
+      comment: "BOM explosion method for MRP and costing logic"
+    - name: "rohs_compliant_flag"
+      expr: rohs_compliant_flag
+      comment: "RoHS compliance status for environmental regulatory reporting"
+    - name: "conflict_minerals_compliant_flag"
+      expr: conflict_minerals_compliant_flag
+      comment: "Conflict minerals compliance for supply chain due diligence"
+    - name: "itar_controlled_flag"
+      expr: itar_controlled_flag
+      comment: "ITAR export control flag for trade compliance"
+    - name: "critical_material_flag"
+      expr: critical_material_flag
+      comment: "Critical material indicator for supply risk management"
+    - name: "production_version"
+      expr: production_version
+      comment: "Production version for manufacturing configuration control"
   measures:
     - name: "total_boms"
       expr: COUNT(1)
-      comment: "Total BOM records — baseline count for BOM governance and change management reviews."
+      comment: "Total BOM count for configuration management workload"
     - name: "total_material_cost_usd"
       expr: SUM(CAST(total_material_cost AS DOUBLE))
-      comment: "Total material cost across all BOMs — primary cost-of-goods-sold input used in finance and pricing reviews."
+      comment: "Aggregate material cost across BOMs for cost of goods sold analysis"
     - name: "avg_material_cost_usd"
       expr: AVG(CAST(total_material_cost AS DOUBLE))
-      comment: "Average material cost per BOM — cost benchmark used in product pricing and margin analysis."
-    - name: "avg_lot_size"
-      expr: AVG(CAST(lot_size AS DOUBLE))
-      comment: "Average BOM lot size — production planning metric used in manufacturing cost modeling."
+      comment: "Average BOM material cost for product cost benchmarking"
+    - name: "avg_component_count"
+      expr: AVG(CAST(total_component_count AS DOUBLE))
+      comment: "Average component count per BOM for complexity and supply chain risk assessment"
     - name: "avg_scrap_percentage"
       expr: AVG(CAST(scrap_percentage AS DOUBLE))
-      comment: "Average scrap percentage across BOMs — manufacturing efficiency metric used in yield and cost improvement programs."
-    - name: "non_rohs_compliant_bom_count"
-      expr: COUNT(CASE WHEN rohs_compliant_flag = FALSE THEN 1 END)
-      comment: "Count of non-RoHS-compliant BOMs — regulatory risk metric requiring remediation or EOL action."
-    - name: "conflict_minerals_non_compliant_count"
-      expr: COUNT(CASE WHEN conflict_minerals_compliant_flag = FALSE THEN 1 END)
-      comment: "Count of BOMs not compliant with conflict minerals requirements — supply chain ethics and regulatory risk metric."
-    - name: "critical_material_bom_count"
-      expr: COUNT(CASE WHEN critical_material_flag = TRUE THEN 1 END)
-      comment: "Count of BOMs containing critical materials — supply chain risk exposure metric for procurement and operations."
+      comment: "Average scrap rate for yield and cost modeling"
+    - name: "rohs_compliance_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN rohs_compliant_flag = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of BOMs meeting RoHS compliance for regulatory readiness"
+    - name: "conflict_minerals_compliance_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN conflict_minerals_compliant_flag = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of BOMs with conflict minerals compliance for supply chain transparency"
+    - name: "critical_material_exposure_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN critical_material_flag = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of BOMs containing critical materials for supply risk mitigation"
 $$;
 
 CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_bom_line`
@@ -487,256 +64,67 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "BOM line-level KPIs covering component cost, compliance, sourcing risk, and complexity — used by supply chain, product engineering, and compliance teams to manage component-level risk and cost."
+  comment: "BOM line-level metrics covering component cost, compliance, and supply risk — used by supply chain, procurement, and product engineering to manage component-level cost and risk exposure."
   source: "`vibe_semiconductors_v1`.`product`.`bom_line`"
   dimensions:
+    - name: "bom_line_status"
+      expr: bom_line_status
+      comment: "Current status of the BOM line (Active, Obsolete, Pending) for component portfolio health."
     - name: "component_type"
       expr: component_type
-      comment: "Component type classification (Active, Passive, Mechanical) for portfolio mix analysis."
+      comment: "Type of component (Active, Passive, Mechanical) for spend category analysis."
     - name: "make_or_buy_indicator"
       expr: make_or_buy_indicator
-      comment: "Make vs. buy decision indicator for sourcing strategy analysis."
+      comment: "Make-or-buy decision indicator — strategic sourcing classification for cost and risk analysis."
     - name: "rohs_compliant_flag"
       expr: rohs_compliant_flag
       comment: "RoHS compliance flag for environmental regulatory segmentation."
     - name: "reach_compliant_flag"
       expr: reach_compliant_flag
-      comment: "REACH compliance flag for chemical substance regulatory segmentation."
-    - name: "single_source_flag"
-      expr: single_source_flag
-      comment: "Flag indicating single-source components — supply chain concentration risk indicator."
+      comment: "REACH compliance flag for chemical regulatory segmentation."
     - name: "critical_component_flag"
       expr: critical_component_flag
-      comment: "Flag indicating critical components — supply chain risk prioritization indicator."
+      comment: "Boolean indicating a critical component — supply chain risk flag for procurement prioritization."
+    - name: "single_source_flag"
+      expr: single_source_flag
+      comment: "Boolean indicating single-source supply — supply concentration risk flag for procurement."
     - name: "itar_controlled_flag"
       expr: itar_controlled_flag
-      comment: "ITAR export control flag for trade compliance segmentation."
+      comment: "ITAR control flag for export compliance risk segmentation."
     - name: "phantom_bom_flag"
       expr: phantom_bom_flag
-      comment: "Flag indicating phantom BOM lines (planning-only, not physically built) for cost accuracy."
-    - name: "active_flag"
-      expr: active_flag
-      comment: "Active status flag for filtering current vs. obsolete BOM lines."
-    - name: "conflict_minerals_status"
-      expr: conflict_minerals_status
-      comment: "Conflict minerals compliance status for supply chain ethics reporting."
+      comment: "Boolean indicating a phantom BOM line — used to filter planning vs. physical components."
+    - name: "manufacturer_name"
+      expr: manufacturer_name
+      comment: "Component manufacturer name for supplier concentration and risk analysis."
+    - name: "bom_level"
+      expr: bom_level
+      comment: "BOM hierarchy level for multi-level BOM complexity analysis."
   measures:
     - name: "total_bom_lines"
       expr: COUNT(1)
-      comment: "Total BOM line items — baseline complexity metric for BOM governance and engineering change management."
-    - name: "total_standard_cost_usd"
+      comment: "Total count of BOM lines — measures BOM complexity and component portfolio size."
+    - name: "total_standard_cost"
       expr: SUM(CAST(standard_cost AS DOUBLE))
-      comment: "Total standard cost across all BOM lines — component cost roll-up used in product cost modeling and margin analysis."
-    - name: "avg_standard_cost_usd"
+      comment: "Total standard cost across all BOM lines in USD — primary component cost KPI for product cost management."
+    - name: "avg_standard_cost"
       expr: AVG(CAST(standard_cost AS DOUBLE))
-      comment: "Average standard cost per BOM line — component cost benchmark for procurement negotiation and cost reduction programs."
+      comment: "Average standard cost per BOM line — benchmarks component cost structure."
     - name: "avg_quantity_per_assembly"
       expr: AVG(CAST(quantity_per_assembly AS DOUBLE))
-      comment: "Average component quantity per assembly — used in material requirements planning and cost scaling analysis."
+      comment: "Average quantity per assembly across BOM lines — used for material requirements planning."
     - name: "avg_scrap_factor_percent"
       expr: AVG(CAST(scrap_factor_percent AS DOUBLE))
-      comment: "Average scrap factor (%) across BOM lines — manufacturing waste metric used in yield improvement and cost reduction programs."
-    - name: "single_source_component_count"
+      comment: "Average scrap factor percentage across BOM lines — material waste and cost efficiency KPI."
+    - name: "total_single_source_components"
       expr: COUNT(CASE WHEN single_source_flag = TRUE THEN 1 END)
-      comment: "Count of single-source BOM lines — supply chain concentration risk metric for procurement and operations reviews."
-    - name: "critical_component_count"
+      comment: "Count of single-source BOM lines — supply concentration risk KPI for procurement and supply chain risk management."
+    - name: "total_critical_components"
       expr: COUNT(CASE WHEN critical_component_flag = TRUE THEN 1 END)
-      comment: "Count of critical component BOM lines — supply chain risk exposure metric for executive supply chain reviews."
-    - name: "non_rohs_compliant_line_count"
-      expr: COUNT(CASE WHEN rohs_compliant_flag = FALSE THEN 1 END)
-      comment: "Count of non-RoHS-compliant BOM lines — regulatory risk metric requiring component substitution or EOL action."
-    - name: "distinct_manufacturers"
-      expr: COUNT(DISTINCT manufacturer_name)
-      comment: "Number of distinct component manufacturers — supply base diversification metric for procurement strategy reviews."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_license_agreement`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "IP license agreement KPIs covering revenue, royalty rates, exclusivity, and portfolio health — used by legal, finance, and product management to manage IP monetization and licensing risk."
-  source: "`vibe_semiconductors_v1`.`product`.`license_agreement`"
-  dimensions:
-    - name: "license_agreement_status"
-      expr: license_agreement_status
-      comment: "License agreement status (Active, Expired, Terminated) for portfolio health monitoring."
-    - name: "licensing_model"
-      expr: licensing_model
-      comment: "Licensing model (Royalty, Paid-Up, Subscription) for revenue model analysis."
-    - name: "exclusivity_flag"
-      expr: exclusivity_flag
-      comment: "Exclusivity flag — used to segment exclusive vs. non-exclusive agreements for strategic IP analysis."
-    - name: "exclusivity_type"
-      expr: exclusivity_type
-      comment: "Type of exclusivity (Field-of-Use, Territory, Full) for IP strategy analysis."
-    - name: "sublicense_allowed_flag"
-      expr: sublicense_allowed_flag
-      comment: "Flag indicating sublicensing is permitted — IP distribution risk indicator."
-    - name: "auto_renewal_flag"
-      expr: auto_renewal_flag
-      comment: "Auto-renewal flag for contract management and revenue continuity planning."
-    - name: "payment_frequency"
-      expr: payment_frequency
-      comment: "Payment frequency (Annual, Quarterly, Monthly) for cash flow planning."
-    - name: "effective_start_year"
-      expr: YEAR(effective_start_date)
-      comment: "Year agreement became effective for portfolio vintage analysis."
-    - name: "expiration_year"
-      expr: YEAR(expiration_date)
-      comment: "Year of agreement expiration for renewal pipeline management."
-  measures:
-    - name: "total_agreements"
-      expr: COUNT(1)
-      comment: "Total license agreements — baseline IP portfolio size KPI for legal and finance reviews."
-    - name: "active_agreement_count"
-      expr: COUNT(CASE WHEN license_agreement_status = 'Active' THEN 1 END)
-      comment: "Count of active license agreements — current IP revenue-generating portfolio metric."
-    - name: "total_annual_fee_usd"
-      expr: SUM(CAST(annual_fee_usd AS DOUBLE))
-      comment: "Total annual license fees (USD) — recurring IP revenue metric used in finance and IP monetization reviews."
-    - name: "total_annual_maintenance_fee_usd"
-      expr: SUM(CAST(annual_maintenance_fee_usd AS DOUBLE))
-      comment: "Total annual maintenance fees (USD) — recurring IP support revenue metric."
-    - name: "total_nre_cost_usd"
-      expr: SUM(CAST(nre_cost_usd AS DOUBLE))
-      comment: "Total NRE costs (USD) across license agreements — upfront IP development cost recovery metric."
-    - name: "total_minimum_royalty_usd"
-      expr: SUM(CAST(minimum_royalty_usd AS DOUBLE))
-      comment: "Total minimum guaranteed royalties (USD) — floor revenue metric for IP monetization planning."
-    - name: "total_royalty_cap_usd"
-      expr: SUM(CAST(royalty_cap_usd AS DOUBLE))
-      comment: "Total royalty caps (USD) — maximum IP revenue ceiling metric for financial forecasting."
-    - name: "avg_royalty_rate_percent"
-      expr: AVG(CAST(royalty_rate_percent AS DOUBLE))
-      comment: "Average royalty rate (%) across agreements — IP pricing benchmark used in negotiation and competitive analysis."
-    - name: "avg_per_unit_royalty_usd"
-      expr: AVG(CAST(per_unit_royalty_usd AS DOUBLE))
-      comment: "Average per-unit royalty (USD) — unit economics metric for IP revenue modeling."
-    - name: "total_maximum_units_authorized"
-      expr: SUM(CAST(maximum_units_authorized AS DOUBLE))
-      comment: "Total maximum units authorized across agreements — IP volume exposure metric for compliance monitoring."
-    - name: "exclusive_agreement_count"
-      expr: COUNT(CASE WHEN exclusivity_flag = TRUE THEN 1 END)
-      comment: "Count of exclusive license agreements — strategic IP exclusivity exposure metric for product and legal strategy."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_license_allocation`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "License allocation KPIs tracking utilization, compliance, and remaining capacity — used by legal, compliance, and finance teams to monitor IP license consumption and prevent over-allocation."
-  source: "`vibe_semiconductors_v1`.`product`.`license_allocation`"
-  dimensions:
-    - name: "allocation_status"
-      expr: allocation_status
-      comment: "Allocation status (Active, Expired, Revoked) for portfolio health monitoring."
-    - name: "allocation_type"
-      expr: allocation_type
-      comment: "Allocation type (Volume, Value, Time-Bound) for license structure analysis."
-    - name: "eccn_classification"
-      expr: eccn_classification
-      comment: "ECCN export control classification for trade compliance segmentation."
-    - name: "is_active_flag"
-      expr: is_active_flag
-      comment: "Active flag for filtering current vs. expired allocations."
-    - name: "is_revoked"
-      expr: is_revoked
-      comment: "Revocation flag — compliance risk indicator for legal and export control reviews."
-    - name: "issue_year"
-      expr: YEAR(issue_date)
-      comment: "Year allocation was issued for cohort analysis."
-    - name: "expiration_year"
-      expr: YEAR(expiration_date)
-      comment: "Year allocation expires for renewal and compliance planning."
-  measures:
-    - name: "total_allocations"
-      expr: COUNT(1)
-      comment: "Total license allocations — baseline count for IP compliance and license management reviews."
-    - name: "total_allocated_quantity"
-      expr: SUM(CAST(allocated_quantity AS DOUBLE))
-      comment: "Total allocated license units — IP volume commitment metric for compliance and capacity planning."
-    - name: "total_consumed_quantity"
-      expr: SUM(CAST(consumed_quantity AS DOUBLE))
-      comment: "Total consumed license units — actual IP utilization metric for compliance monitoring."
-    - name: "total_remaining_quantity"
-      expr: SUM(CAST(remaining_quantity AS DOUBLE))
-      comment: "Total remaining license units — available IP capacity metric for sales and compliance planning."
-    - name: "total_allocation_value_usd"
-      expr: SUM(CAST(allocation_value_usd AS DOUBLE))
-      comment: "Total value of license allocations (USD) — IP revenue commitment metric for finance reviews."
-    - name: "total_authorized_value_usd"
-      expr: SUM(CAST(authorized_value_usd AS DOUBLE))
-      comment: "Total authorized license value (USD) — maximum IP revenue authorization metric for compliance."
-    - name: "avg_utilization_percent"
-      expr: AVG(CAST(utilization_percent AS DOUBLE))
-      comment: "Average license utilization rate (%) — IP consumption efficiency metric used in license renewal and pricing negotiations."
-    - name: "revoked_allocation_count"
-      expr: COUNT(CASE WHEN is_revoked = TRUE THEN 1 END)
-      comment: "Count of revoked allocations — compliance incident metric for legal and export control reviews."
-    - name: "total_authorized_quantity"
-      expr: SUM(CAST(authorized_quantity AS DOUBLE))
-      comment: "Total authorized license quantity — maximum volume authorization metric for compliance capacity planning."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_ltb_notification`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Last-Time-Buy notification KPIs tracking revenue, customer acknowledgment, and discontinuance pipeline — used by product management, sales, and finance to manage EOL revenue capture and customer transition."
-  source: "`vibe_semiconductors_v1`.`product`.`product_ltb_notification`"
-  dimensions:
-    - name: "notification_status"
-      expr: notification_status
-      comment: "LTB notification status (Draft, Issued, Closed) for pipeline management."
-    - name: "notification_type"
-      expr: notification_type
-      comment: "Notification type (LTB, EOL, Discontinuance) for classification analysis."
-    - name: "discontinuance_reason_code"
-      expr: discontinuance_reason_code
-      comment: "Reason code for product discontinuance for root cause and trend analysis."
-    - name: "customer_acknowledgment_required"
-      expr: customer_acknowledgment_required
-      comment: "Flag indicating customer acknowledgment is required — customer communication governance indicator."
-    - name: "regulatory_approval_required"
-      expr: regulatory_approval_required
-      comment: "Flag indicating regulatory approval is required before discontinuance — compliance risk indicator."
-    - name: "replacement_product_qualification_required"
-      expr: replacement_product_qualification_required
-      comment: "Flag indicating replacement product qualification is required — customer transition risk indicator."
-    - name: "notification_channel"
-      expr: notification_channel
-      comment: "Communication channel used for notification (Email, Portal, Direct) for customer engagement analysis."
-    - name: "notification_issue_year"
-      expr: YEAR(notification_issue_date)
-      comment: "Year notification was issued for EOL pipeline trend analysis."
-    - name: "final_order_year"
-      expr: YEAR(final_order_date)
-      comment: "Year of final order deadline for revenue capture planning."
-  measures:
-    - name: "total_ltb_notifications"
-      expr: COUNT(1)
-      comment: "Total LTB notifications issued — baseline EOL pipeline size KPI for product management and sales reviews."
-    - name: "total_actual_ltb_revenue_usd"
-      expr: SUM(CAST(actual_ltb_revenue AS DOUBLE))
-      comment: "Total actual LTB revenue captured (USD) — EOL revenue realization metric used in finance and product management reviews."
-    - name: "total_estimated_ltb_revenue_usd"
-      expr: SUM(CAST(estimated_ltb_revenue AS DOUBLE))
-      comment: "Total estimated LTB revenue (USD) — EOL revenue forecast metric for financial planning."
-    - name: "customer_acknowledgment_required_count"
-      expr: COUNT(CASE WHEN customer_acknowledgment_required = TRUE THEN 1 END)
-      comment: "Count of LTB notifications requiring customer acknowledgment — customer communication workload metric."
-    - name: "regulatory_approval_required_count"
-      expr: COUNT(CASE WHEN regulatory_approval_required = TRUE THEN 1 END)
-      comment: "Count of LTB notifications requiring regulatory approval — compliance risk exposure metric."
-    - name: "replacement_qualification_required_count"
-      expr: COUNT(CASE WHEN replacement_product_qualification_required = TRUE THEN 1 END)
-      comment: "Count of LTBs requiring replacement product qualification — customer transition complexity metric."
-    - name: "distinct_products_in_ltb"
-      expr: COUNT(DISTINCT primary_replacement_product_ic_catalog_id)
-      comment: "Number of distinct products with LTB notifications — EOL portfolio breadth metric for executive reviews."
+      comment: "Count of critical component BOM lines — supply chain risk exposure metric for procurement prioritization."
+    - name: "total_itar_controlled_lines"
+      expr: COUNT(CASE WHEN itar_controlled_flag = TRUE THEN 1 END)
+      comment: "Count of ITAR-controlled BOM lines — export compliance risk exposure for legal and trade teams."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_compliance_cert`
@@ -744,309 +132,64 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Product compliance certification KPIs tracking certification coverage, expiry risk, and regulatory posture — used by compliance, legal, and product management to manage regulatory obligations and customer requirements."
+  comment: "Product compliance certification metrics covering certification coverage, expiry risk, and regulatory scope — used by compliance, legal, and product management executives to manage regulatory market access."
   source: "`vibe_semiconductors_v1`.`product`.`compliance_cert`"
   dimensions:
+    - name: "compliance_cert_status"
+      expr: compliance_cert_status
+      comment: "Current status of the compliance certificate (Active, Expired, Revoked) for compliance portfolio health."
     - name: "certification_status"
       expr: certification_status
-      comment: "Certification status (Active, Expired, Revoked, Pending) for compliance posture monitoring."
+      comment: "Certification status for compliance tracking."
     - name: "certification_type"
       expr: certification_type
-      comment: "Type of certification (RoHS, REACH, AEC-Q, ISO) for regulatory coverage analysis."
+      comment: "Type of certification (RoHS, REACH, AEC-Q, ISO, etc.) for compliance category analysis."
     - name: "environmental_standard"
       expr: environmental_standard
-      comment: "Environmental standard governing the certification for regulatory framework analysis."
+      comment: "Environmental standard covered by the certification for regulatory segmentation."
+    - name: "quality_management_standard"
+      expr: quality_management_standard
+      comment: "Quality management standard (ISO 9001, IATF 16949) for quality compliance segmentation."
+    - name: "automotive_grade_certified"
+      expr: automotive_grade_certified
+      comment: "Boolean indicating automotive grade certification — critical for automotive market access."
     - name: "rohs_compliant"
       expr: rohs_compliant
       comment: "RoHS compliance flag for environmental regulatory segmentation."
     - name: "reach_compliant"
       expr: reach_compliant
-      comment: "REACH compliance flag for chemical substance regulatory segmentation."
-    - name: "automotive_grade_certified"
-      expr: automotive_grade_certified
-      comment: "Automotive grade certification flag for automotive market compliance tracking."
-    - name: "ear_controlled"
-      expr: ear_controlled
-      comment: "EAR export control flag for trade compliance segmentation."
+      comment: "REACH compliance flag for chemical regulatory segmentation."
     - name: "itar_controlled"
       expr: itar_controlled
-      comment: "ITAR export control flag for trade compliance segmentation."
+      comment: "ITAR control flag for export compliance risk segmentation."
     - name: "recertification_required"
       expr: recertification_required
-      comment: "Flag indicating recertification is required — compliance renewal workload indicator."
-    - name: "issue_year"
-      expr: YEAR(issue_date)
-      comment: "Year certification was issued for compliance vintage analysis."
+      comment: "Boolean indicating recertification is required — tracks upcoming compliance renewal workload."
+    - name: "applicable_regions"
+      expr: applicable_regions
+      comment: "Geographic regions covered by the certification for market access analysis."
     - name: "expiry_year"
       expr: YEAR(expiry_date)
-      comment: "Year certification expires for renewal pipeline management."
+      comment: "Year the certification expires — used for recertification planning and compliance risk management."
+    - name: "issue_year"
+      expr: YEAR(issue_date)
+      comment: "Year the certification was issued — used for certification age and renewal cycle analysis."
   measures:
-    - name: "total_certifications"
-      expr: COUNT(1)
-      comment: "Total compliance certifications — baseline regulatory coverage KPI for compliance and legal reviews."
-    - name: "active_certification_count"
+    - name: "total_active_certifications"
       expr: COUNT(CASE WHEN certification_status = 'Active' THEN 1 END)
-      comment: "Count of active certifications — current regulatory compliance coverage metric."
-    - name: "expired_certification_count"
+      comment: "Count of active compliance certifications — primary compliance portfolio coverage KPI."
+    - name: "total_expired_certifications"
       expr: COUNT(CASE WHEN certification_status = 'Expired' THEN 1 END)
-      comment: "Count of expired certifications — compliance gap metric requiring immediate remediation action."
-    - name: "recertification_required_count"
-      expr: COUNT(CASE WHEN recertification_required = TRUE THEN 1 END)
-      comment: "Count of certifications requiring recertification — compliance renewal workload metric for planning."
-    - name: "automotive_certified_count"
+      comment: "Count of expired certifications — compliance risk exposure metric triggering immediate renewal action."
+    - name: "total_automotive_certified_products"
       expr: COUNT(CASE WHEN automotive_grade_certified = TRUE THEN 1 END)
-      comment: "Count of automotive-grade certified products — automotive market compliance coverage metric."
-    - name: "itar_controlled_cert_count"
+      comment: "Count of automotive-grade certified products — directly tied to automotive market access and revenue."
+    - name: "total_recertification_required"
+      expr: COUNT(CASE WHEN recertification_required = TRUE THEN 1 END)
+      comment: "Count of certifications requiring recertification — upcoming compliance workload and risk management KPI."
+    - name: "total_itar_controlled_certs"
       expr: COUNT(CASE WHEN itar_controlled = TRUE THEN 1 END)
-      comment: "Count of ITAR-controlled certifications — export compliance risk exposure metric."
-    - name: "distinct_certified_products"
-      expr: COUNT(DISTINCT primary_ic_catalog_id)
-      comment: "Number of distinct products with compliance certifications — regulatory coverage breadth metric."
-    - name: "distinct_certification_types"
-      expr: COUNT(DISTINCT certification_type)
-      comment: "Number of distinct certification types held — regulatory framework coverage diversity metric."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_ip_core`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Product IP core portfolio KPIs covering performance, cost, power, and lifecycle — used by product management, engineering, and finance to manage IP core investments, licensing revenue, and technology roadmap."
-  source: "`vibe_semiconductors_v1`.`product`.`product_ip_core`"
-  dimensions:
-    - name: "lifecycle_status"
-      expr: lifecycle_status
-      comment: "IP core lifecycle status (Active, EOL, Deprecated) for portfolio health monitoring."
-    - name: "ip_category"
-      expr: ip_category
-      comment: "IP category (Processor, Memory, Interface, Analog) for portfolio mix analysis."
-    - name: "ip_type"
-      expr: ip_type
-      comment: "IP type (Hard, Soft, Firm) for technology and licensing strategy analysis."
-    - name: "licensing_model"
-      expr: licensing_model
-      comment: "Licensing model (Royalty, Paid-Up, Subscription) for IP revenue model analysis."
-    - name: "interface_protocol"
-      expr: interface_protocol
-      comment: "Interface protocol (PCIe, USB, DDR) for technology compatibility analysis."
-    - name: "design_for_testability"
-      expr: design_for_testability
-      comment: "DFT flag indicating testability features are included — quality and test cost indicator."
-    - name: "verification_status"
-      expr: verification_status
-      comment: "Verification status (Unverified, Simulated, Silicon-Proven) for IP quality and risk assessment."
-    - name: "rtl_language"
-      expr: rtl_language
-      comment: "RTL design language (Verilog, VHDL, SystemVerilog) for EDA tool compatibility analysis."
-  measures:
-    - name: "total_ip_cores"
-      expr: COUNT(1)
-      comment: "Total IP cores in the product portfolio — baseline IP asset count for technology and investment reviews."
-    - name: "active_ip_core_count"
-      expr: COUNT(CASE WHEN lifecycle_status = 'Active' THEN 1 END)
-      comment: "Count of active IP cores — current IP portfolio vitality metric for product and technology roadmap reviews."
-    - name: "avg_nre_cost_usd"
-      expr: AVG(CAST(nre_cost_usd AS DOUBLE))
-      comment: "Average NRE cost (USD) per IP core — IP development investment benchmark for make-vs-buy decisions."
-    - name: "total_nre_cost_usd"
-      expr: SUM(CAST(nre_cost_usd AS DOUBLE))
-      comment: "Total NRE investment (USD) across IP cores — cumulative IP development cost metric for finance and R&D reviews."
-    - name: "avg_per_unit_royalty_usd"
-      expr: AVG(CAST(per_unit_royalty_usd AS DOUBLE))
-      comment: "Average per-unit royalty (USD) — IP monetization unit economics metric for licensing strategy."
-    - name: "avg_operating_frequency_mhz"
-      expr: AVG(CAST(operating_frequency_mhz AS DOUBLE))
-      comment: "Average operating frequency (MHz) across IP cores — performance benchmark for technology roadmap positioning."
-    - name: "avg_power_consumption_mw"
-      expr: AVG(CAST(power_consumption_mw AS DOUBLE))
-      comment: "Average power consumption (mW) — power efficiency benchmark for IP core selection and product design."
-    - name: "avg_area_mm2"
-      expr: AVG(CAST(area_mm2 AS DOUBLE))
-      comment: "Average IP core area (mm²) — die area cost driver metric for product cost modeling."
-    - name: "avg_gate_count"
-      expr: AVG(CAST(gate_count AS DOUBLE))
-      comment: "Average gate count — design complexity metric used in integration effort estimation and cost modeling."
-    - name: "silicon_proven_count"
-      expr: COUNT(CASE WHEN verification_status = 'Silicon-Proven' THEN 1 END)
-      comment: "Count of silicon-proven IP cores — IP quality and risk reduction metric for product design decisions."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_process_node`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Process node portfolio KPIs covering yield, cost, lifecycle, and technology readiness — used by technology strategy, product management, and finance to manage process node investments and foundry relationships."
-  source: "`vibe_semiconductors_v1`.`product`.`process_node`"
-  dimensions:
-    - name: "lifecycle_stage"
-      expr: lifecycle_stage
-      comment: "Process node lifecycle stage (Development, Qualification, Production, EOL) for technology portfolio management."
-    - name: "lithography_type"
-      expr: lithography_type
-      comment: "Lithography type (DUV, EUV, Multi-Patterning) for advanced node investment analysis."
-    - name: "transistor_architecture"
-      expr: transistor_architecture
-      comment: "Transistor architecture (Planar, FinFET, GAA) for technology generation analysis."
-    - name: "qualification_status"
-      expr: qualification_status
-      comment: "Node qualification status for production readiness tracking."
-    - name: "foundry_source"
-      expr: foundry_source
-      comment: "Foundry source for supply chain diversification and dependency analysis."
-    - name: "technology_readiness_level"
-      expr: technology_readiness_level
-      comment: "Technology readiness level for R&D maturity and investment risk assessment."
-    - name: "opc_required_flag"
-      expr: opc_required_flag
-      comment: "OPC requirement flag — advanced lithography complexity and cost indicator."
-    - name: "node_generation"
-      expr: node_generation
-      comment: "Node generation label for technology roadmap analysis."
-    - name: "pdk_release_year"
-      expr: YEAR(pdk_release_date)
-      comment: "Year PDK was released for technology availability timeline analysis."
-    - name: "qualification_year"
-      expr: YEAR(qualification_date)
-      comment: "Year node was qualified for production readiness milestone tracking."
-  measures:
-    - name: "total_process_nodes"
-      expr: COUNT(1)
-      comment: "Total process nodes in the technology portfolio — baseline technology breadth KPI for strategy reviews."
-    - name: "production_ready_node_count"
-      expr: COUNT(CASE WHEN qualification_status = 'Qualified' THEN 1 END)
-      comment: "Count of production-qualified process nodes — technology readiness metric for product roadmap planning."
-    - name: "avg_baseline_yield_percent"
-      expr: AVG(CAST(baseline_yield_percent AS DOUBLE))
-      comment: "Average baseline wafer yield (%) across process nodes — manufacturing efficiency benchmark for cost modeling and fab negotiations."
-    - name: "avg_cost_per_wafer_usd"
-      expr: AVG(CAST(cost_per_wafer_usd AS DOUBLE))
-      comment: "Average cost per wafer (USD) — primary manufacturing cost metric used in product pricing and margin analysis."
-    - name: "avg_minimum_feature_size_nm"
-      expr: AVG(CAST(minimum_feature_size_nm AS DOUBLE))
-      comment: "Average minimum feature size (nm) — technology advancement metric for competitive positioning and roadmap analysis."
-    - name: "avg_cycle_time_days"
-      expr: AVG(CAST(cycle_time_days AS DOUBLE))
-      comment: "Average fab cycle time (days) — manufacturing throughput metric used in delivery planning and capacity analysis."
-    - name: "distinct_foundry_sources"
-      expr: COUNT(DISTINCT foundry_source)
-      comment: "Number of distinct foundry sources — supply chain diversification metric for risk management reviews."
-    - name: "eol_node_count"
-      expr: COUNT(CASE WHEN eol_announcement_date IS NOT NULL THEN 1 END)
-      comment: "Count of process nodes with EOL announcements — technology wind-down risk metric for product migration planning."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_errata`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Product errata KPIs tracking defect severity, resolution status, customer disclosure, and workaround availability — used by product engineering, quality, and customer success to manage product defect risk and customer impact."
-  source: "`vibe_semiconductors_v1`.`product`.`errata`"
-  dimensions:
-    - name: "errata_status"
-      expr: errata_status
-      comment: "Errata resolution status (Open, In Progress, Resolved, Closed) for defect management tracking."
-    - name: "severity"
-      expr: severity
-      comment: "Errata severity level (Critical, Major, Minor) for risk prioritization."
-    - name: "functional_block"
-      expr: functional_block
-      comment: "Affected functional block (CPU, Memory, IO) for design area impact analysis."
-    - name: "customer_disclosure_status"
-      expr: customer_disclosure_status
-      comment: "Customer disclosure status (Not Disclosed, Disclosed, Pending) for customer communication governance."
-    - name: "workaround_available"
-      expr: workaround_available
-      comment: "Flag indicating a workaround is available — customer impact mitigation indicator."
-    - name: "verification_status"
-      expr: verification_status
-      comment: "Fix verification status for quality assurance tracking."
-    - name: "discovered_year"
-      expr: YEAR(discovered_date)
-      comment: "Year errata was discovered for defect trend analysis."
-    - name: "resolution_year"
-      expr: YEAR(resolution_date)
-      comment: "Year errata was resolved for cycle time analysis."
-  measures:
-    - name: "total_errata"
-      expr: COUNT(1)
-      comment: "Total errata records — baseline product defect count KPI for quality and engineering reviews."
-    - name: "open_errata_count"
-      expr: COUNT(CASE WHEN errata_status = 'Open' THEN 1 END)
-      comment: "Count of open errata — active product defect backlog metric for engineering prioritization."
-    - name: "critical_errata_count"
-      expr: COUNT(CASE WHEN severity = 'Critical' THEN 1 END)
-      comment: "Count of critical severity errata — high-risk defect exposure metric for executive quality reviews."
-    - name: "workaround_available_count"
-      expr: COUNT(CASE WHEN workaround_available = TRUE THEN 1 END)
-      comment: "Count of errata with available workarounds — customer impact mitigation coverage metric."
-    - name: "undisclosed_errata_count"
-      expr: COUNT(CASE WHEN customer_disclosure_status = 'Not Disclosed' THEN 1 END)
-      comment: "Count of errata not yet disclosed to customers — customer communication risk metric for legal and customer success."
-    - name: "distinct_affected_products"
-      expr: COUNT(DISTINCT primary_errata_ic_catalog_id)
-      comment: "Number of distinct products with errata — product quality breadth metric for portfolio risk assessment."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_sample_request`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Product sample request KPIs tracking conversion, evaluation outcomes, and compliance — used by sales, product management, and compliance to measure sample program effectiveness and design win pipeline."
-  source: "`vibe_semiconductors_v1`.`product`.`product_sample_request`"
-  dimensions:
-    - name: "product_sample_request_status"
-      expr: product_sample_request_status
-      comment: "Sample request status (Pending, Approved, Shipped, Evaluated) for pipeline tracking."
-    - name: "approval_status"
-      expr: approval_status
-      comment: "Approval status for sample request governance tracking."
-    - name: "sample_type"
-      expr: sample_type
-      comment: "Sample type (Engineering, Qualification, Production) for program mix analysis."
-    - name: "request_source"
-      expr: request_source
-      comment: "Request source (Direct, Distributor, Online) for channel analysis."
-    - name: "design_win_conversion_flag"
-      expr: design_win_conversion_flag
-      comment: "Flag indicating the sample led to a design win — primary conversion KPI for sample program ROI."
-    - name: "expedited_flag"
-      expr: expedited_flag
-      comment: "Expedited flag for priority fulfillment analysis."
-    - name: "compliance_itar_flag"
-      expr: compliance_itar_flag
-      comment: "ITAR compliance flag for export control segmentation."
-    - name: "target_application"
-      expr: target_application
-      comment: "Target application for the sample — used in market segment and design win analysis."
-    - name: "request_year"
-      expr: YEAR(request_timestamp)
-      comment: "Year of sample request for trend and pipeline analysis."
-  measures:
-    - name: "total_sample_requests"
-      expr: COUNT(1)
-      comment: "Total sample requests — baseline demand generation pipeline metric for sales and product management."
-    - name: "design_win_conversion_count"
-      expr: COUNT(CASE WHEN design_win_conversion_flag = TRUE THEN 1 END)
-      comment: "Count of sample requests that converted to design wins — primary sample program ROI metric for sales and executive reviews."
-    - name: "total_sample_cost_usd"
-      expr: SUM(CAST(sample_cost_amount AS DOUBLE))
-      comment: "Total sample program cost (USD) — investment metric for sample program budget management."
-    - name: "avg_sample_cost_usd"
-      expr: AVG(CAST(sample_cost_amount AS DOUBLE))
-      comment: "Average sample cost (USD) per request — unit economics metric for sample program cost efficiency."
-    - name: "avg_evaluation_score"
-      expr: AVG(CAST(evaluation_score AS DOUBLE))
-      comment: "Average customer evaluation score — product acceptance quality metric used in NPI and product improvement reviews."
-    - name: "itar_controlled_request_count"
-      expr: COUNT(CASE WHEN compliance_itar_flag = TRUE THEN 1 END)
-      comment: "Count of ITAR-controlled sample requests — export compliance risk metric for legal and trade compliance teams."
-    - name: "distinct_products_sampled"
-      expr: COUNT(DISTINCT ic_catalog_id)
-      comment: "Number of distinct products with sample requests — demand generation breadth metric for product portfolio analysis."
+      comment: "Count of ITAR-controlled certifications — export compliance risk exposure for legal review."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_configuration_rule`
@@ -1054,50 +197,847 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Product configuration rule KPIs tracking rule coverage, compliance, and governance — used by product management and engineering to manage product variant configurability and regulatory compliance."
+  comment: "Product configuration rule metrics covering rule portfolio health, compliance, and coverage — used by product management and engineering to govern valid product configurations and manage rule lifecycle."
   source: "`vibe_semiconductors_v1`.`product`.`configuration_rule`"
   dimensions:
     - name: "configuration_rule_status"
       expr: configuration_rule_status
-      comment: "Rule status (Active, Inactive, Superseded) for governance tracking."
+      comment: "Current status of the configuration rule (Active, Deprecated, Draft) for rule portfolio health."
     - name: "rule_type"
       expr: rule_type
-      comment: "Rule type (Inclusion, Exclusion, Dependency) for configuration logic analysis."
+      comment: "Type of configuration rule (Compatibility, Exclusion, Dependency) for rule classification."
     - name: "applicable_market"
       expr: applicable_market
-      comment: "Target market for the rule (Automotive, Industrial, Consumer) for market-specific configuration analysis."
+      comment: "Market segment the rule applies to for market-specific configuration analysis."
+    - name: "applicable_process_node"
+      expr: applicable_process_node
+      comment: "Process node the rule applies to for technology-specific configuration management."
     - name: "automotive_qualified"
       expr: automotive_qualified
-      comment: "Automotive qualification flag for automotive-grade configuration tracking."
+      comment: "Boolean indicating automotive qualification applicability — automotive configuration compliance flag."
     - name: "is_default_rule"
       expr: is_default_rule
-      comment: "Flag indicating this is a default configuration rule — used to distinguish baseline from override rules."
+      comment: "Boolean indicating this is a default configuration rule — used to distinguish baseline vs. exception rules."
     - name: "itar_controlled"
       expr: itar_controlled
-      comment: "ITAR export control flag for trade compliance segmentation."
-    - name: "reach_compliant"
-      expr: reach_compliant
-      comment: "REACH compliance flag for environmental regulatory segmentation."
+      comment: "ITAR control flag for export compliance risk segmentation."
+    - name: "rohs_compliant"
+      expr: rohs_compliant
+      comment: "RoHS compliance flag for environmental regulatory segmentation."
+    - name: "package_type"
+      expr: package_type
+      comment: "Package type the rule applies to for packaging configuration analysis."
+    - name: "temperature_range"
+      expr: temperature_range
+      comment: "Temperature range the rule applies to for operating condition segmentation."
     - name: "effective_start_year"
       expr: YEAR(effective_start_date)
-      comment: "Year rule became effective for governance timeline analysis."
+      comment: "Year the rule became effective — used for rule lifecycle and version management analysis."
   measures:
-    - name: "total_configuration_rules"
-      expr: COUNT(1)
-      comment: "Total configuration rules — baseline product configurability complexity metric for product management reviews."
-    - name: "active_rule_count"
+    - name: "total_active_rules"
       expr: COUNT(CASE WHEN configuration_rule_status = 'Active' THEN 1 END)
-      comment: "Count of active configuration rules — current product variant governance metric."
-    - name: "itar_controlled_rule_count"
-      expr: COUNT(CASE WHEN itar_controlled = TRUE THEN 1 END)
-      comment: "Count of ITAR-controlled configuration rules — export compliance risk metric for legal and trade compliance teams."
-    - name: "automotive_qualified_rule_count"
+      comment: "Count of active configuration rules — measures configuration governance coverage."
+    - name: "total_automotive_qualified_rules"
       expr: COUNT(CASE WHEN automotive_qualified = TRUE THEN 1 END)
-      comment: "Count of automotive-qualified configuration rules — automotive market coverage metric."
-    - name: "distinct_products_with_rules"
+      comment: "Count of automotive-qualified configuration rules — measures automotive configuration compliance coverage."
+    - name: "total_itar_controlled_rules"
+      expr: COUNT(CASE WHEN itar_controlled = TRUE THEN 1 END)
+      comment: "Count of ITAR-controlled configuration rules — export compliance risk exposure for legal review."
+    - name: "total_default_rules"
+      expr: COUNT(CASE WHEN is_default_rule = TRUE THEN 1 END)
+      comment: "Count of default configuration rules — measures baseline configuration coverage across the product portfolio."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_errata`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Product errata metrics tracking defect severity, customer impact, resolution rates, and workaround availability for quality management and customer support effectiveness."
+  source: "`vibe_semiconductors_v1`.`product`.`errata`"
+  dimensions:
+    - name: "errata_status"
+      expr: errata_status
+      comment: "Errata lifecycle status for defect tracking and resolution management"
+    - name: "severity"
+      expr: severity
+      comment: "Defect severity level for prioritization and escalation"
+    - name: "customer_disclosure_status"
+      expr: customer_disclosure_status
+      comment: "Customer notification status for transparency and communication tracking"
+    - name: "workaround_available"
+      expr: workaround_available
+      comment: "Workaround availability for customer impact mitigation"
+    - name: "verification_status"
+      expr: verification_status
+      comment: "Fix verification status for closure readiness"
+    - name: "functional_block"
+      expr: functional_block
+      comment: "Affected functional block for root cause analysis and design improvement"
+    - name: "regulatory_impact"
+      expr: regulatory_impact
+      comment: "Regulatory impact level for compliance risk assessment"
+  measures:
+    - name: "total_errata"
+      expr: COUNT(1)
+      comment: "Total errata count for product quality tracking"
+    - name: "avg_impacted_customer_count"
+      expr: AVG(CAST(impacted_customer_count AS DOUBLE))
+      comment: "Average number of customers impacted per errata for exposure assessment"
+    - name: "workaround_availability_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN workaround_available = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of errata with workarounds available for customer impact mitigation"
+    - name: "distinct_affected_customers"
+      expr: COUNT(DISTINCT account_id)
+      comment: "Number of unique customers impacted by errata for customer satisfaction risk"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_family`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Product family metrics tracking portfolio breadth, technology node distribution, lifecycle status, and compliance for strategic product line management and roadmap planning."
+  source: "`vibe_semiconductors_v1`.`product`.`family`"
+  dimensions:
+    - name: "lifecycle_status"
+      expr: lifecycle_status
+      comment: "Family lifecycle stage for portfolio health and investment prioritization"
+    - name: "family_type"
+      expr: family_type
+      comment: "Product family type for market segmentation and strategy alignment"
+    - name: "target_market_segment"
+      expr: target_market_segment
+      comment: "Target market segment for revenue and demand planning"
+    - name: "process_technology"
+      expr: process_technology
+      comment: "Fabrication process technology for capacity and cost modeling"
+    - name: "process_node_nm"
+      expr: process_node_nm
+      comment: "Technology node for roadmap and migration planning"
+    - name: "package_type"
+      expr: package_type
+      comment: "Package type for assembly and test planning"
+    - name: "rohs_compliant_flag"
+      expr: rohs_compliant_flag
+      comment: "RoHS compliance status for regulatory reporting"
+    - name: "itar_controlled_flag"
+      expr: itar_controlled_flag
+      comment: "ITAR export control flag for trade compliance"
+    - name: "business_unit"
+      expr: business_unit
+      comment: "Business unit ownership for P&L and resource allocation"
+  measures:
+    - name: "total_families"
+      expr: COUNT(1)
+      comment: "Total product family count for portfolio breadth tracking"
+    - name: "avg_target_yield_percent"
+      expr: AVG(CAST(target_yield_percent AS DOUBLE))
+      comment: "Average target yield across families for manufacturing performance benchmarking"
+    - name: "avg_target_power_mw"
+      expr: AVG(CAST(target_power_mw AS DOUBLE))
+      comment: "Average target power consumption for power efficiency roadmap tracking"
+    - name: "avg_die_size_mm2"
+      expr: AVG(CAST(typical_die_size_mm2 AS DOUBLE))
+      comment: "Average die size for cost and capacity modeling"
+    - name: "avg_dfm_score"
+      expr: AVG(CAST(dfm_score AS DOUBLE))
+      comment: "Average design-for-manufacturing score for manufacturability assessment"
+    - name: "avg_dft_coverage_percent"
+      expr: AVG(CAST(dft_coverage_percent AS DOUBLE))
+      comment: "Average design-for-test coverage for quality and yield improvement"
+    - name: "rohs_compliance_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN rohs_compliant_flag = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of families meeting RoHS compliance for regulatory readiness"
+    - name: "distinct_business_units"
+      expr: COUNT(DISTINCT business_unit)
+      comment: "Number of business units with product families for organizational coverage"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_ic_catalog`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Core product catalog metrics tracking active products, lifecycle distribution, technology node mix, and compliance status for semiconductor IC portfolio management and strategic planning."
+  source: "`vibe_semiconductors_v1`.`product`.`ic_catalog`"
+  dimensions:
+    - name: "lifecycle_status"
+      expr: lifecycle_status
+      comment: "Product lifecycle stage (NPI, production, EOL) for portfolio health analysis"
+    - name: "product_type"
+      expr: product_type
+      comment: "IC product category for market segment analysis"
+    - name: "target_market"
+      expr: target_market
+      comment: "Target market segment for revenue and demand planning"
+    - name: "temperature_grade"
+      expr: temperature_grade
+      comment: "Operating temperature classification for application suitability"
+    - name: "process_technology"
+      expr: process_technology
+      comment: "Fabrication process technology for capacity and cost modeling"
+    - name: "automotive_qualified_flag"
+      expr: automotive_qualified
+      comment: "AEC-Q100 qualification status for automotive market eligibility"
+    - name: "rohs_compliant_flag"
+      expr: rohs_compliant
+      comment: "RoHS compliance status for regulatory reporting"
+    - name: "itar_controlled_flag"
+      expr: itar_controlled
+      comment: "ITAR export control flag for trade compliance"
+    - name: "npi_phase"
+      expr: npi_phase
+      comment: "New product introduction phase for development pipeline tracking"
+    - name: "design_type"
+      expr: design_type
+      comment: "Design architecture type (ASIC, ASSP, etc.) for portfolio mix analysis"
+  measures:
+    - name: "total_active_products"
+      expr: COUNT(CASE WHEN is_active = TRUE THEN 1 END)
+      comment: "Count of active products in catalog for portfolio size tracking"
+    - name: "total_products"
+      expr: COUNT(1)
+      comment: "Total product count including inactive for historical portfolio analysis"
+    - name: "avg_die_size_mm2"
+      expr: AVG(CAST(die_size_mm2 AS DOUBLE))
+      comment: "Average die size for cost and yield modeling"
+    - name: "avg_power_typical_mw"
+      expr: AVG(CAST(power_typical_mw AS DOUBLE))
+      comment: "Average typical power consumption for thermal and power budget planning"
+    - name: "avg_operating_frequency_max_mhz"
+      expr: AVG(CAST(operating_frequency_max_mhz AS DOUBLE))
+      comment: "Average maximum operating frequency for performance benchmarking"
+    - name: "total_transistor_count"
+      expr: SUM(CAST(transistor_count AS DOUBLE))
+      comment: "Aggregate transistor count across portfolio for complexity tracking"
+    - name: "distinct_product_families"
+      expr: COUNT(DISTINCT family_id)
+      comment: "Number of unique product families for portfolio breadth analysis"
+    - name: "rohs_compliance_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN rohs_compliant = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of products meeting RoHS compliance for regulatory readiness"
+    - name: "automotive_qualification_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN automotive_qualified = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of automotive-qualified products for market penetration tracking"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_license_agreement`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "IP licensing metrics tracking agreement value, royalty rates, territory coverage, and compliance for IP monetization and revenue recognition."
+  source: "`vibe_semiconductors_v1`.`product`.`license_agreement`"
+  dimensions:
+    - name: "agreement_status"
+      expr: agreement_status
+      comment: "Agreement lifecycle status for contract management and revenue forecasting"
+    - name: "license_type"
+      expr: license_type
+      comment: "License model (perpetual, subscription, royalty-bearing) for revenue recognition"
+    - name: "licensing_model"
+      expr: licensing_model
+      comment: "Licensing business model for pricing strategy analysis"
+    - name: "exclusivity_flag"
+      expr: exclusivity_flag
+      comment: "Exclusivity status for competitive positioning and pricing power"
+    - name: "territory_restriction"
+      expr: territory_restriction
+      comment: "Geographic territory for market coverage and expansion planning"
+    - name: "field_of_use"
+      expr: field_of_use
+      comment: "Permitted application field for IP usage compliance"
+    - name: "sublicense_allowed_flag"
+      expr: sublicense_allowed_flag
+      comment: "Sublicensing permission for ecosystem expansion potential"
+    - name: "auto_renew_flag"
+      expr: auto_renew_flag
+      comment: "Auto-renewal status for recurring revenue predictability"
+    - name: "itar_controlled_flag"
+      expr: itar_controlled_flag
+      comment: "ITAR export control flag for trade compliance"
+  measures:
+    - name: "total_agreements"
+      expr: COUNT(1)
+      comment: "Total license agreement count for IP portfolio monetization tracking"
+    - name: "total_contract_value_usd"
+      expr: SUM(CAST(total_contract_value_usd AS DOUBLE))
+      comment: "Aggregate contract value for IP revenue pipeline"
+    - name: "avg_contract_value_usd"
+      expr: AVG(CAST(total_contract_value_usd AS DOUBLE))
+      comment: "Average contract value for deal size benchmarking"
+    - name: "total_upfront_fee_usd"
+      expr: SUM(CAST(upfront_fee_usd AS DOUBLE))
+      comment: "Aggregate upfront fees for immediate revenue recognition"
+    - name: "total_minimum_royalty_usd"
+      expr: SUM(CAST(minimum_royalty_usd AS DOUBLE))
+      comment: "Aggregate minimum royalty commitments for baseline revenue forecasting"
+    - name: "avg_royalty_rate_pct"
+      expr: AVG(CAST(royalty_rate_pct AS DOUBLE))
+      comment: "Average royalty rate for pricing strategy benchmarking"
+    - name: "total_nre_cost_usd"
+      expr: SUM(CAST(nre_cost_usd AS DOUBLE))
+      comment: "Aggregate non-recurring engineering costs for IP customization investment"
+    - name: "exclusivity_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN exclusivity_flag = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of exclusive agreements for competitive positioning analysis"
+    - name: "sublicense_allowed_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN sublicense_allowed_flag = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of agreements allowing sublicensing for ecosystem expansion potential"
+    - name: "distinct_licensees"
+      expr: COUNT(DISTINCT account_id)
+      comment: "Number of unique licensee customers for IP market penetration"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_license_allocation`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "License allocation utilization metrics covering consumption rates, remaining capacity, and compliance risk — used by legal, compliance, and product executives to manage export license utilization and IP allocation efficiency."
+  source: "`vibe_semiconductors_v1`.`product`.`license_allocation`"
+  dimensions:
+    - name: "license_allocation_status"
+      expr: license_allocation_status
+      comment: "Current status of the allocation (Active, Exhausted, Expired) for utilization management."
+    - name: "allocation_status"
+      expr: allocation_status
+      comment: "Operational status of the allocation record."
+    - name: "allocation_type"
+      expr: allocation_type
+      comment: "Type of allocation (Export License, IP License, Volume) for classification."
+    - name: "approval_status"
+      expr: approval_status
+      comment: "Approval status of the allocation for compliance workflow tracking."
+    - name: "license_type"
+      expr: license_type
+      comment: "License type associated with the allocation for portfolio segmentation."
+    - name: "itar_controlled_flag"
+      expr: itar_controlled_flag
+      comment: "ITAR control flag for export compliance risk segmentation."
+    - name: "destination_country_code"
+      expr: destination_country_code
+      comment: "Destination country for export compliance geographic analysis."
+    - name: "renewal_flag"
+      expr: renewal_flag
+      comment: "Boolean indicating renewal is needed — upcoming compliance workload flag."
+    - name: "allocation_period"
+      expr: allocation_period
+      comment: "Allocation period label for time-series utilization analysis."
+    - name: "allocation_year"
+      expr: YEAR(allocation_date)
+      comment: "Year of allocation — used for utilization trend analysis."
+    - name: "expiry_year"
+      expr: YEAR(expiry_date)
+      comment: "Year the allocation expires — used for renewal pipeline planning."
+  measures:
+    - name: "total_allocated_quantity"
+      expr: SUM(CAST(allocated_quantity AS DOUBLE))
+      comment: "Total allocated units across all license allocations — measures IP and export license capacity deployed."
+    - name: "total_consumed_quantity"
+      expr: SUM(CAST(consumed_quantity AS DOUBLE))
+      comment: "Total consumed units across all license allocations — measures actual utilization of licensed capacity."
+    - name: "total_remaining_quantity"
+      expr: SUM(CAST(remaining_quantity AS DOUBLE))
+      comment: "Total remaining units across all license allocations — measures unused licensed capacity and potential revenue."
+    - name: "total_allocated_value_usd"
+      expr: SUM(CAST(allocated_value_usd AS DOUBLE))
+      comment: "Total allocated value in USD — measures financial exposure of license allocations."
+    - name: "total_consumed_value_usd"
+      expr: SUM(CAST(consumed_value_usd AS DOUBLE))
+      comment: "Total consumed value in USD — measures realized value from license utilization."
+    - name: "avg_utilization_percent"
+      expr: AVG(CAST(utilization_percent AS DOUBLE))
+      comment: "Average license utilization percentage — primary efficiency KPI for license portfolio management."
+    - name: "avg_diversion_risk_score"
+      expr: AVG(CAST(diversion_risk_score AS DOUBLE))
+      comment: "Average diversion risk score across allocations — export compliance risk KPI for legal and compliance review."
+    - name: "total_itar_controlled_allocations"
+      expr: COUNT(CASE WHEN itar_controlled_flag = TRUE THEN 1 END)
+      comment: "Count of ITAR-controlled allocations — export compliance risk exposure metric."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_pcn`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Product change notification metrics tracking change volume, customer impact, approval rates, and implementation timelines for change management and customer communication effectiveness."
+  source: "`vibe_semiconductors_v1`.`product`.`pcn`"
+  dimensions:
+    - name: "pcn_status"
+      expr: pcn_status
+      comment: "PCN workflow status for change management tracking"
+    - name: "pcn_type"
+      expr: pcn_type
+      comment: "Type of product change for impact analysis and prioritization"
+    - name: "change_category"
+      expr: change_category
+      comment: "Change category for classification and reporting"
+    - name: "form_fit_function_impact"
+      expr: form_fit_function_impact
+      comment: "Form-fit-function impact level for customer qualification requirements"
+    - name: "customer_approval_required_flag"
+      expr: customer_approval_required_flag
+      comment: "Customer approval requirement for notification workflow routing"
+    - name: "automotive_qualification_required_flag"
+      expr: automotive_qualification_required_flag
+      comment: "Automotive re-qualification requirement for AEC-Q100 compliance"
+    - name: "qualification_status"
+      expr: qualification_status
+      comment: "Qualification completion status for change implementation readiness"
+    - name: "samples_available_flag"
+      expr: samples_available_flag
+      comment: "Sample availability for customer evaluation support"
+  measures:
+    - name: "total_pcns"
+      expr: COUNT(1)
+      comment: "Total PCN count for change management workload tracking"
+    - name: "avg_affected_customer_count"
+      expr: AVG(CAST(affected_customer_count AS DOUBLE))
+      comment: "Average number of customers impacted per PCN for communication scope planning"
+    - name: "avg_customer_approval_count"
+      expr: AVG(CAST(customer_approval_count AS DOUBLE))
+      comment: "Average customer approvals received per PCN for acceptance rate tracking"
+    - name: "avg_customer_objection_count"
+      expr: AVG(CAST(customer_objection_count AS DOUBLE))
+      comment: "Average customer objections per PCN for risk and escalation management"
+    - name: "customer_approval_rate_pct"
+      expr: ROUND(100.0 * SUM(CAST(customer_approval_count AS DOUBLE)) / NULLIF(SUM(CAST(affected_customer_count AS DOUBLE)), 0), 2)
+      comment: "Percentage of affected customers approving changes for change acceptance tracking"
+    - name: "automotive_qualification_required_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN automotive_qualification_required_flag = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of PCNs requiring automotive re-qualification for resource planning"
+    - name: "samples_available_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN samples_available_flag = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of PCNs with samples available for customer evaluation readiness"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_process_node`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Process node technology metrics covering yield baselines, cost, cycle time, and lifecycle — used by technology strategy and manufacturing executives to evaluate node investments and roadmap transitions."
+  source: "`vibe_semiconductors_v1`.`product`.`process_node`"
+  dimensions:
+    - name: "process_node_status"
+      expr: process_node_status
+      comment: "Current status of the process node (Active, EOL, Development) for technology portfolio health."
+    - name: "lifecycle_stage"
+      expr: lifecycle_stage
+      comment: "Lifecycle stage of the node (R&D, Qualification, Production, EOL) for roadmap planning."
+    - name: "node_generation"
+      expr: node_generation
+      comment: "Technology generation label (e.g. 7nm, 5nm, 3nm) for technology roadmap segmentation."
+    - name: "lithography_type"
+      expr: lithography_type
+      comment: "Lithography type (EUV, DUV, ArF) — tracks technology transition investment."
+    - name: "transistor_architecture"
+      expr: transistor_architecture
+      comment: "Transistor architecture (FinFET, GAA, Planar) for technology differentiation analysis."
+    - name: "foundry_source"
+      expr: foundry_source
+      comment: "Foundry partner providing the process node — supply concentration risk analysis."
+    - name: "qualification_status"
+      expr: qualification_status
+      comment: "Qualification status of the node (Qualified, In-Progress, Pending) for readiness tracking."
+    - name: "opc_required_flag"
+      expr: opc_required_flag
+      comment: "Boolean indicating OPC requirement — proxy for mask complexity and cost."
+    - name: "pdk_release_year"
+      expr: YEAR(pdk_release_date)
+      comment: "Year PDK was released — tracks design enablement readiness timeline."
+    - name: "qualification_year"
+      expr: YEAR(qualification_date)
+      comment: "Year the node was qualified — used for technology ramp cohort analysis."
+  measures:
+    - name: "total_active_nodes"
+      expr: COUNT(CASE WHEN process_node_status = 'Active' THEN 1 END)
+      comment: "Count of active process nodes — measures technology portfolio breadth and manufacturing flexibility."
+    - name: "avg_baseline_yield_percent"
+      expr: AVG(CAST(baseline_yield_percent AS DOUBLE))
+      comment: "Average baseline yield percentage across process nodes — key manufacturing efficiency and cost KPI."
+    - name: "avg_cost_per_wafer_usd"
+      expr: AVG(CAST(cost_per_wafer_usd AS DOUBLE))
+      comment: "Average cost per wafer in USD — primary cost structure KPI for technology node investment decisions."
+    - name: "avg_cycle_time_days"
+      expr: AVG(CAST(cycle_time_days AS DOUBLE))
+      comment: "Average cycle time in days — manufacturing throughput KPI affecting delivery lead times and WIP."
+    - name: "avg_minimum_feature_size_nm"
+      expr: AVG(CAST(minimum_feature_size_nm AS DOUBLE))
+      comment: "Average minimum feature size in nm — tracks technology advancement trajectory across the node portfolio."
+    - name: "total_qualified_nodes"
+      expr: COUNT(CASE WHEN qualification_status = 'Qualified' THEN 1 END)
+      comment: "Count of fully qualified process nodes — measures manufacturing readiness and production capacity options."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_ip_core`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Product IP core portfolio metrics covering licensing economics, performance, and lifecycle — used by IP strategy, legal, and product executives to manage IP monetization and portfolio investment decisions."
+  source: "`vibe_semiconductors_v1`.`product`.`product_ip_core`"
+  dimensions:
+    - name: "product_ip_core_status"
+      expr: product_ip_core_status
+      comment: "Current status of the IP core (Active, EOL, Development) for portfolio health."
+    - name: "lifecycle_status"
+      expr: lifecycle_status
+      comment: "Lifecycle stage of the IP core for roadmap planning."
+    - name: "ip_category"
+      expr: ip_category
+      comment: "Category of IP core (CPU, Memory, Interface, Analog) for portfolio composition analysis."
+    - name: "ip_type"
+      expr: ip_type
+      comment: "IP type (Hard, Soft, Firm) for licensing model and integration analysis."
+    - name: "licensing_model"
+      expr: licensing_model
+      comment: "Licensing model (Royalty, Flat Fee, Subscription) for revenue structure analysis."
+    - name: "verification_status"
+      expr: verification_status
+      comment: "Verification status of the IP core (Verified, In-Progress, Pending) for readiness tracking."
+    - name: "design_for_testability"
+      expr: design_for_testability
+      comment: "Boolean indicating DFT inclusion — quality and test coverage flag."
+    - name: "rtl_language"
+      expr: rtl_language
+      comment: "RTL language (Verilog, VHDL, SystemVerilog) for EDA tool compatibility analysis."
+    - name: "release_year"
+      expr: YEAR(release_date)
+      comment: "Year the IP core was released — used for portfolio vintage and revenue ramp analysis."
+  measures:
+    - name: "total_active_ip_cores"
+      expr: COUNT(CASE WHEN lifecycle_status = 'Active' THEN 1 END)
+      comment: "Count of active IP cores — primary IP portfolio breadth KPI for product strategy."
+    - name: "total_nre_cost_usd"
+      expr: SUM(CAST(nre_cost_usd AS DOUBLE))
+      comment: "Total NRE cost across IP cores in USD — measures IP development investment for ROI analysis."
+    - name: "avg_nre_cost_usd"
+      expr: AVG(CAST(nre_cost_usd AS DOUBLE))
+      comment: "Average NRE cost per IP core in USD — benchmarks IP development investment per asset."
+    - name: "avg_per_unit_royalty_usd"
+      expr: AVG(CAST(per_unit_royalty_usd AS DOUBLE))
+      comment: "Average per-unit royalty in USD — IP monetization pricing benchmark."
+    - name: "avg_operating_frequency_mhz"
+      expr: AVG(CAST(operating_frequency_mhz AS DOUBLE))
+      comment: "Average operating frequency in MHz across IP cores — performance portfolio benchmark."
+    - name: "avg_power_consumption_mw"
+      expr: AVG(CAST(power_consumption_mw AS DOUBLE))
+      comment: "Average power consumption in mW — power efficiency benchmark for IP portfolio."
+    - name: "avg_area_mm2"
+      expr: AVG(CAST(area_mm2 AS DOUBLE))
+      comment: "Average IP core area in mm² — silicon efficiency benchmark for integration cost analysis."
+    - name: "total_dft_enabled_cores"
+      expr: COUNT(CASE WHEN design_for_testability = TRUE THEN 1 END)
+      comment: "Count of IP cores with DFT — measures test quality coverage across the IP portfolio."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_ltb_notification`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Last-Time-Buy notification metrics covering LTB revenue, unit volumes, and customer acknowledgment — used by product management and sales executives to manage EOL revenue capture and customer transition."
+  source: "`vibe_semiconductors_v1`.`product`.`product_ltb_notification`"
+  dimensions:
+    - name: "notification_status"
+      expr: notification_status
+      comment: "Current status of the LTB notification (Draft, Issued, Closed) for pipeline management."
+    - name: "product_ltb_notification_status"
+      expr: product_ltb_notification_status
+      comment: "Operational status of the LTB notification record."
+    - name: "notification_type"
+      expr: notification_type
+      comment: "Type of LTB notification for classification and routing."
+    - name: "discontinuance_reason_code"
+      expr: discontinuance_reason_code
+      comment: "Reason code for product discontinuance — used to analyze EOL drivers (technology, demand, cost)."
+    - name: "customer_acknowledgment_required"
+      expr: customer_acknowledgment_required
+      comment: "Boolean indicating customer acknowledgment is required — flags high-touch EOL transitions."
+    - name: "regulatory_approval_required"
+      expr: regulatory_approval_required
+      comment: "Boolean indicating regulatory approval is required before EOL — compliance risk flag."
+    - name: "replacement_product_qualification_required"
+      expr: replacement_product_qualification_required
+      comment: "Boolean indicating replacement product qualification is required — tracks transition complexity."
+    - name: "notification_issue_year"
+      expr: YEAR(notification_issue_date)
+      comment: "Year LTB notification was issued — used for EOL volume trend analysis."
+    - name: "final_order_year"
+      expr: YEAR(final_order_date)
+      comment: "Year of final order deadline — used for LTB revenue timing and supply planning."
+  measures:
+    - name: "total_ltb_notifications"
+      expr: COUNT(1)
+      comment: "Total count of LTB notifications — measures EOL portfolio activity and revenue capture workload."
+    - name: "total_estimated_ltb_revenue"
+      expr: SUM(CAST(estimated_ltb_revenue AS DOUBLE))
+      comment: "Total estimated LTB revenue in USD — primary EOL revenue capture KPI for financial planning."
+    - name: "total_actual_ltb_revenue"
+      expr: SUM(CAST(actual_ltb_revenue AS DOUBLE))
+      comment: "Total actual LTB revenue realized in USD — measures EOL revenue capture effectiveness vs. estimates."
+    - name: "avg_estimated_ltb_revenue"
+      expr: AVG(CAST(estimated_ltb_revenue AS DOUBLE))
+      comment: "Average estimated LTB revenue per notification — benchmarks EOL revenue opportunity sizing."
+    - name: "total_notifications_requiring_customer_ack"
+      expr: COUNT(CASE WHEN customer_acknowledgment_required = TRUE THEN 1 END)
+      comment: "Count of LTB notifications requiring customer acknowledgment — measures customer engagement workload."
+    - name: "total_notifications_requiring_regulatory_approval"
+      expr: COUNT(CASE WHEN regulatory_approval_required = TRUE THEN 1 END)
+      comment: "Count of LTB notifications requiring regulatory approval — compliance risk exposure metric."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_qualification_program`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Product qualification metrics tracking program completion, test coverage, reliability performance, and deviation rates for quality assurance and time-to-market management."
+  source: "`vibe_semiconductors_v1`.`product`.`product_qualification_program`"
+  dimensions:
+    - name: "program_status"
+      expr: program_status
+      comment: "Qualification program status for project tracking and resource allocation"
+    - name: "qualification_type"
+      expr: qualification_type
+      comment: "Qualification type (AEC-Q100, JEDEC, custom) for standard compliance"
+    - name: "qualification_standard"
+      expr: qualification_standard
+      comment: "Applicable qualification standard for test plan definition"
+    - name: "deviation_granted"
+      expr: deviation_granted
+      comment: "Deviation approval status for risk and compliance tracking"
+    - name: "waiver_granted"
+      expr: waiver_granted
+      comment: "Waiver approval status for exception management"
+    - name: "htol_enabled"
+      expr: htol_enabled
+      comment: "High-temperature operating life test inclusion for reliability assessment"
+    - name: "tc_enabled"
+      expr: tc_enabled
+      comment: "Temperature cycling test inclusion for thermal stress qualification"
+    - name: "hast_enabled"
+      expr: hast_enabled
+      comment: "Highly accelerated stress test inclusion for moisture reliability"
+  measures:
+    - name: "total_programs"
+      expr: COUNT(1)
+      comment: "Total qualification program count for workload and resource planning"
+    - name: "distinct_products"
       expr: COUNT(DISTINCT ic_catalog_id)
-      comment: "Number of distinct products with configuration rules — product configurability coverage metric."
-    - name: "distinct_rule_types"
-      expr: COUNT(DISTINCT rule_type)
-      comment: "Number of distinct rule types — configuration logic complexity metric for product engineering reviews."
+      comment: "Number of unique products under qualification for portfolio readiness tracking"
+    - name: "deviation_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN deviation_granted = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of programs with approved deviations for quality risk assessment"
+    - name: "waiver_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN waiver_granted = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of programs with approved waivers for exception tracking"
+    - name: "htol_coverage_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN htol_enabled = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of programs including HTOL testing for reliability coverage"
+    - name: "tc_coverage_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN tc_enabled = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of programs including temperature cycling for thermal stress coverage"
+    - name: "hast_coverage_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN hast_enabled = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of programs including HAST for moisture reliability coverage"
+    - name: "avg_lot_count"
+      expr: AVG(CAST(lot_count AS DOUBLE))
+      comment: "Average lot count per program for sample size and statistical confidence"
+    - name: "distinct_suppliers"
+      expr: COUNT(DISTINCT supplier_id)
+      comment: "Number of unique suppliers under qualification for supply chain diversification"
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_sample_request`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Product sample request metrics covering request volume, conversion rates, and evaluation outcomes — used by sales and product management executives to track design-win pipeline and sample program effectiveness."
+  source: "`vibe_semiconductors_v1`.`product`.`product_sample_request`"
+  dimensions:
+    - name: "product_sample_request_status"
+      expr: product_sample_request_status
+      comment: "Current status of the sample request (Pending, Approved, Shipped, Evaluated) for pipeline tracking."
+    - name: "approval_status"
+      expr: approval_status
+      comment: "Approval status of the sample request for workflow management."
+    - name: "sample_type"
+      expr: sample_type
+      comment: "Type of sample (Engineering, Production, Qualification) for request classification."
+    - name: "request_source"
+      expr: request_source
+      comment: "Source channel of the sample request (Direct, Distributor, Online) for channel analysis."
+    - name: "design_win_status"
+      expr: design_win_status
+      comment: "Design win status resulting from the sample evaluation — primary sales pipeline conversion KPI dimension."
+    - name: "design_win_conversion_flag"
+      expr: design_win_conversion_flag
+      comment: "Boolean indicating the sample led to a design win — conversion rate KPI dimension."
+    - name: "expedited_flag"
+      expr: expedited_flag
+      comment: "Boolean indicating expedited sample request — measures urgency and customer priority."
+    - name: "priority"
+      expr: priority
+      comment: "Priority level of the sample request for workload management."
+    - name: "target_application"
+      expr: target_application
+      comment: "Target application for the sample — used for market segment and use-case analysis."
+    - name: "request_year"
+      expr: YEAR(request_timestamp)
+      comment: "Year the sample was requested — used for demand trend analysis."
+    - name: "ship_year"
+      expr: YEAR(ship_date)
+      comment: "Year the sample was shipped — used for fulfillment cycle time analysis."
+  measures:
+    - name: "total_sample_requests"
+      expr: COUNT(1)
+      comment: "Total count of product sample requests — measures design-win pipeline activity and customer engagement volume."
+    - name: "total_design_win_conversions"
+      expr: COUNT(CASE WHEN design_win_conversion_flag = TRUE THEN 1 END)
+      comment: "Count of sample requests that converted to design wins — primary sample program ROI KPI."
+    - name: "total_sample_cost"
+      expr: SUM(CAST(sample_cost_amount AS DOUBLE))
+      comment: "Total sample cost in USD — measures investment in the sample program for ROI analysis."
+    - name: "avg_sample_cost"
+      expr: AVG(CAST(sample_cost_amount AS DOUBLE))
+      comment: "Average sample cost per request in USD — benchmarks sample program cost efficiency."
+    - name: "avg_evaluation_score"
+      expr: AVG(CAST(evaluation_score AS DOUBLE))
+      comment: "Average evaluation score from customer feedback — measures product quality perception and design-win readiness."
+    - name: "total_expedited_requests"
+      expr: COUNT(CASE WHEN expedited_flag = TRUE THEN 1 END)
+      comment: "Count of expedited sample requests — measures urgent customer demand and supply chain responsiveness."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_spec`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Product specification metrics covering performance achievement vs. targets and compliance status — used by product engineering and technology executives to track design goal attainment and specification quality."
+  source: "`vibe_semiconductors_v1`.`product`.`product_spec`"
+  dimensions:
+    - name: "spec_status"
+      expr: spec_status
+      comment: "Current status of the product spec (Draft, Approved, Obsolete) for spec portfolio health."
+    - name: "product_spec_status"
+      expr: product_spec_status
+      comment: "Operational status of the product spec record."
+    - name: "automotive_grade"
+      expr: automotive_grade
+      comment: "Automotive grade classification for market segment analysis."
+    - name: "functional_safety_rating"
+      expr: functional_safety_rating
+      comment: "Functional safety rating (ASIL-A through ASIL-D) for safety-critical application segmentation."
+    - name: "transistor_architecture"
+      expr: transistor_architecture
+      comment: "Transistor architecture for technology generation analysis."
+    - name: "rohs_compliant"
+      expr: rohs_compliant
+      comment: "RoHS compliance flag for environmental regulatory segmentation."
+    - name: "reach_compliant"
+      expr: reach_compliant
+      comment: "REACH compliance flag for chemical regulatory segmentation."
+    - name: "operating_condition_corner"
+      expr: operating_condition_corner
+      comment: "Operating condition corner (TT, SS, FF, etc.) for characterization analysis."
+    - name: "approval_year"
+      expr: YEAR(approval_date)
+      comment: "Year the spec was approved — used for spec vintage and revision cycle analysis."
+  measures:
+    - name: "avg_max_frequency_achieved_mhz"
+      expr: AVG(CAST(max_frequency_achieved_mhz AS DOUBLE))
+      comment: "Average achieved maximum frequency in MHz — measures performance delivery vs. design targets."
+    - name: "avg_max_frequency_target_mhz"
+      expr: AVG(CAST(max_frequency_target_mhz AS DOUBLE))
+      comment: "Average target maximum frequency in MHz — baseline for performance achievement gap analysis."
+    - name: "avg_dynamic_power_achieved_mw"
+      expr: AVG(CAST(dynamic_power_achieved_mw AS DOUBLE))
+      comment: "Average achieved dynamic power in mW — measures power efficiency delivery vs. design targets."
+    - name: "avg_dynamic_power_target_mw"
+      expr: AVG(CAST(dynamic_power_target_mw AS DOUBLE))
+      comment: "Average target dynamic power in mW — baseline for power efficiency achievement gap analysis."
+    - name: "avg_die_area_achieved_mm2"
+      expr: AVG(CAST(die_area_achieved_mm2 AS DOUBLE))
+      comment: "Average achieved die area in mm² — measures silicon efficiency delivery vs. design targets."
+    - name: "avg_die_area_target_mm2"
+      expr: AVG(CAST(die_area_target_mm2 AS DOUBLE))
+      comment: "Average target die area in mm² — baseline for silicon efficiency achievement gap analysis."
+    - name: "avg_esd_protection_level_kv"
+      expr: AVG(CAST(esd_protection_level_kv AS DOUBLE))
+      comment: "Average ESD protection level in kV — quality and reliability specification benchmark."
+    - name: "avg_leakage_power_achieved_mw"
+      expr: AVG(CAST(leakage_power_achieved_mw AS DOUBLE))
+      comment: "Average achieved leakage power in mW — low-power design quality KPI for IoT and mobile segments."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`product_sku`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "SKU-level metrics tracking orderable configurations, lifecycle status, pricing, lead times, and compliance for sales operations and supply chain planning."
+  source: "`vibe_semiconductors_v1`.`product`.`sku`"
+  dimensions:
+    - name: "lifecycle_status"
+      expr: lifecycle_status
+      comment: "SKU lifecycle stage for availability and ordering policy"
+    - name: "sku_status"
+      expr: sku_status
+      comment: "SKU operational status for order fulfillment eligibility"
+    - name: "orderable_flag"
+      expr: orderable_flag
+      comment: "Orderable status for sales and distribution planning"
+    - name: "shippable_flag"
+      expr: shippable_flag
+      comment: "Shippable status for logistics and fulfillment readiness"
+    - name: "temperature_range"
+      expr: temperature_range
+      comment: "Operating temperature range for application suitability"
+    - name: "speed_grade"
+      expr: speed_grade
+      comment: "Performance speed grade for product differentiation"
+    - name: "voltage_variant"
+      expr: voltage_variant
+      comment: "Voltage variant for power supply compatibility"
+    - name: "rohs_compliant"
+      expr: rohs_compliant
+      comment: "RoHS compliance status for regulatory reporting"
+    - name: "halogen_free"
+      expr: halogen_free
+      comment: "Halogen-free status for environmental compliance"
+    - name: "itar_controlled"
+      expr: itar_controlled
+      comment: "ITAR export control flag for trade compliance"
+  measures:
+    - name: "total_skus"
+      expr: COUNT(1)
+      comment: "Total SKU count for catalog breadth and complexity tracking"
+    - name: "orderable_sku_count"
+      expr: COUNT(CASE WHEN orderable_flag = TRUE THEN 1 END)
+      comment: "Count of orderable SKUs for sales availability tracking"
+    - name: "shippable_sku_count"
+      expr: COUNT(CASE WHEN shippable_flag = TRUE THEN 1 END)
+      comment: "Count of shippable SKUs for fulfillment capacity planning"
+    - name: "avg_list_price_usd"
+      expr: AVG(CAST(list_price_usd AS DOUBLE))
+      comment: "Average list price for pricing strategy benchmarking"
+    - name: "avg_standard_cost_usd"
+      expr: AVG(CAST(standard_cost_usd AS DOUBLE))
+      comment: "Average standard cost for margin analysis and cost management"
+    - name: "avg_unit_weight_grams"
+      expr: AVG(CAST(unit_weight_grams AS DOUBLE))
+      comment: "Average unit weight for logistics and shipping cost modeling"
+    - name: "rohs_compliance_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN rohs_compliant = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of SKUs meeting RoHS compliance for regulatory readiness"
+    - name: "halogen_free_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN halogen_free = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of halogen-free SKUs for environmental compliance tracking"
 $$;

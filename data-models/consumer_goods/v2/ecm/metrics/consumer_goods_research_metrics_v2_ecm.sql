@@ -1,66 +1,59 @@
--- Metric views for domain: research | Business: Consumer_Goods | Version: 2 | Generated on: 2026-06-23 23:48:34
+-- Metric views for domain: research | Business: Consumer Goods | Version: 2 | Generated on: 2026-06-28 00:14:33
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`research_claim_substantiation`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Claim Substantiation business metrics"
+  comment: "Claim substantiation portfolio metrics tracking approval rates, renewal compliance, and statistical confidence across product claims — critical for regulatory and marketing risk management."
   source: "`vibe_consumer_goods_v1`.`research`.`claim_substantiation`"
   dimensions:
-    - name: "Advertising Standard Compliance"
-      expr: advertising_standard_compliance
-    - name: "Challenge History"
-      expr: challenge_history
-    - name: "Channel Applicability"
-      expr: channel_applicability
-    - name: "Claim Approval Status"
-      expr: claim_approval_status
-    - name: "Claim Category"
-      expr: claim_category
-    - name: "Claim Code"
-      expr: claim_code
-    - name: "Claim Effective Date"
-      expr: claim_effective_date
-    - name: "Claim Expiry Date"
-      expr: claim_expiry_date
-    - name: "Claim Text"
-      expr: claim_text
-    - name: "Claim Type"
+    - name: "claim_type"
       expr: claim_type
-    - name: "Clinical Study Reference"
-      expr: clinical_study_reference
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Efficacy Result Summary"
-      expr: efficacy_result_summary
-    - name: "Last Modified Timestamp"
-      expr: last_modified_timestamp
-    - name: "Legal Review Date"
-      expr: legal_review_date
-    - name: "Legal Review Status"
+      comment: "Type of product claim (e.g. Efficacy, Safety, Environmental) for segmenting substantiation workload and risk."
+    - name: "claim_approval_status"
+      expr: claim_approval_status
+      comment: "Approval status of the claim substantiation, used to track the pipeline of approved vs. pending claims."
+    - name: "claim_category"
+      expr: claim_category
+      comment: "Category of the claim (e.g. Skin Care, Hair Care) for brand and category-level compliance monitoring."
+    - name: "evidence_type"
+      expr: evidence_type
+      comment: "Type of evidence supporting the claim (e.g. Clinical, Consumer Test, Lab) for evidence quality analysis."
+    - name: "legal_review_status"
       expr: legal_review_status
+      comment: "Legal review status of the claim, used to identify claims awaiting or failing legal clearance."
+    - name: "regulatory_approval_status"
+      expr: regulatory_approval_status
+      comment: "Regulatory approval status of the claim, critical for market launch readiness and compliance reporting."
+    - name: "renewal_required_flag"
+      expr: renewal_required_flag
+      comment: "Flag indicating whether the claim substantiation requires periodic renewal, used for compliance calendar management."
+    - name: "claim_expiry_year"
+      expr: YEAR(claim_expiry_date)
+      comment: "Year the claim expires, used to identify near-term renewal obligations and compliance risk."
   measures:
-    - name: "Row Count"
+    - name: "total_claim_substantiations"
       expr: COUNT(1)
-    - name: "Distinct Claim Substantiation"
-      expr: COUNT(DISTINCT claim_substantiation_id)
-    - name: "Total Confidence Level Percent"
-      expr: SUM(confidence_level_percent)
-    - name: "Average Confidence Level Percent"
-      expr: AVG(confidence_level_percent)
-    - name: "Total P Value"
-      expr: SUM(p_value)
-    - name: "Average P Value"
-      expr: AVG(p_value)
-    - name: "Total Substantiation Cost Amount"
-      expr: SUM(substantiation_cost_amount)
-    - name: "Average Substantiation Cost Amount"
-      expr: AVG(substantiation_cost_amount)
-    - name: "Total Substantiation Cost Currency"
-      expr: SUM(substantiation_cost_currency)
-    - name: "Average Substantiation Cost Currency"
-      expr: AVG(substantiation_cost_currency)
+      comment: "Total number of claim substantiation records. Baseline KPI for the size and complexity of the claims portfolio."
+    - name: "avg_confidence_level_percent"
+      expr: AVG(CAST(confidence_level_percent AS DOUBLE))
+      comment: "Average statistical confidence level across all claim substantiations. Tracks the scientific robustness of the claims portfolio."
+    - name: "avg_p_value"
+      expr: AVG(CAST(p_value AS DOUBLE))
+      comment: "Average p-value across claim substantiations. Monitors statistical significance quality; lower values indicate stronger evidence."
+    - name: "total_substantiation_cost"
+      expr: SUM(CAST(substantiation_cost_amount AS DOUBLE))
+      comment: "Total cost incurred for claim substantiation activities. Tracks the financial investment in claims compliance and evidence generation."
+    - name: "avg_substantiation_cost"
+      expr: AVG(CAST(substantiation_cost_amount AS DOUBLE))
+      comment: "Average cost per claim substantiation. Benchmarks efficiency of the substantiation process and identifies cost outliers."
+    - name: "statistically_significant_claims_count"
+      expr: COUNT(CASE WHEN statistical_significance_flag = TRUE THEN 1 END)
+      comment: "Number of claims with statistically significant evidence. Tracks the proportion of the portfolio backed by rigorous science."
+    - name: "renewal_required_claims_count"
+      expr: COUNT(CASE WHEN renewal_required_flag = TRUE THEN 1 END)
+      comment: "Number of claims requiring renewal. Drives compliance calendar planning and resource allocation for re-substantiation."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`research_consumer_test`
@@ -68,90 +61,58 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Consumer Test business metrics"
+  comment: "Consumer testing performance metrics tracking study outcomes, satisfaction scores, and statistical quality across consumer validation studies for product development decisions."
   source: "`vibe_consumer_goods_v1`.`research`.`consumer_test`"
   dimensions:
-    - name: "Adverse Event Description"
-      expr: adverse_event_description
-    - name: "Adverse Event Reported"
-      expr: adverse_event_reported
-    - name: "Claim Substantiation Outcome"
-      expr: claim_substantiation_outcome
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Ethics Committee Approval"
-      expr: ethics_committee_approval
-    - name: "Modified Timestamp"
-      expr: modified_timestamp
-    - name: "Nps Score"
-      expr: nps_score
-    - name: "Open Text Verbatim"
-      expr: open_text_verbatim
-    - name: "Overall Study Outcome"
-      expr: overall_study_outcome
-    - name: "Primary Claim Tested"
-      expr: primary_claim_tested
-    - name: "Prototype Code"
-      expr: prototype_code
-    - name: "Purchase Intent Score"
-      expr: purchase_intent_score
-    - name: "Regulatory Approval Status"
-      expr: regulatory_approval_status
-    - name: "Sample Size"
-      expr: sample_size
-    - name: "Secondary Claims Tested"
-      expr: secondary_claims_tested
-    - name: "Statistical Significance Flag"
+    - name: "test_type"
+      expr: test_type
+      comment: "Type of consumer test (e.g. Blind, Branded, Monadic) for methodology-level performance analysis."
+    - name: "study_status"
+      expr: study_status
+      comment: "Current status of the consumer study (e.g. Active, Completed, Cancelled) for pipeline monitoring."
+    - name: "study_design"
+      expr: study_design
+      comment: "Study design methodology used, enabling comparison of test quality across design approaches."
+    - name: "target_consumer_segment"
+      expr: target_consumer_segment
+      comment: "Target consumer segment for the test, enabling segment-level performance and preference analysis."
+    - name: "test_geography"
+      expr: test_geography
+      comment: "Geographic market where the consumer test was conducted, for regional performance benchmarking."
+    - name: "statistical_significance_flag"
       expr: statistical_significance_flag
+      comment: "Flag indicating whether the test results are statistically significant, used to filter actionable vs. inconclusive studies."
+    - name: "test_start_year"
+      expr: YEAR(test_start_date)
+      comment: "Year the consumer test started, used for trend analysis of testing activity and outcomes over time."
   measures:
-    - name: "Row Count"
+    - name: "total_consumer_tests"
       expr: COUNT(1)
-    - name: "Distinct Consumer Test"
-      expr: COUNT(DISTINCT consumer_test_id)
-    - name: "Total Confidence Level"
-      expr: SUM(confidence_level)
-    - name: "Average Confidence Level"
-      expr: AVG(confidence_level)
-    - name: "Total Efficacy Perception Rating"
-      expr: SUM(efficacy_perception_rating)
-    - name: "Average Efficacy Perception Rating"
-      expr: AVG(efficacy_perception_rating)
-    - name: "Total Fragrance Rating"
-      expr: SUM(fragrance_rating)
-    - name: "Average Fragrance Rating"
-      expr: AVG(fragrance_rating)
-    - name: "Total Lather Rating"
-      expr: SUM(lather_rating)
-    - name: "Average Lather Rating"
-      expr: AVG(lather_rating)
-    - name: "Total Overall Satisfaction Rating"
-      expr: SUM(overall_satisfaction_rating)
-    - name: "Average Overall Satisfaction Rating"
-      expr: AVG(overall_satisfaction_rating)
-    - name: "Total P Value"
-      expr: SUM(p_value)
-    - name: "Average P Value"
-      expr: AVG(p_value)
-    - name: "Total Rating Scale Max"
-      expr: SUM(rating_scale_max)
-    - name: "Average Rating Scale Max"
-      expr: AVG(rating_scale_max)
-    - name: "Total Rating Scale Min"
-      expr: SUM(rating_scale_min)
-    - name: "Average Rating Scale Min"
-      expr: AVG(rating_scale_min)
-    - name: "Total Skin Feel Rating"
-      expr: SUM(skin_feel_rating)
-    - name: "Average Skin Feel Rating"
-      expr: AVG(skin_feel_rating)
-    - name: "Total Study Cost Amount"
-      expr: SUM(study_cost_amount)
-    - name: "Average Study Cost Amount"
-      expr: AVG(study_cost_amount)
-    - name: "Total Study Cost Currency"
-      expr: SUM(study_cost_currency)
-    - name: "Average Study Cost Currency"
-      expr: AVG(study_cost_currency)
+      comment: "Total number of consumer tests conducted. Tracks the volume of consumer validation activity supporting product development."
+    - name: "avg_overall_satisfaction_rating"
+      expr: AVG(CAST(overall_satisfaction_rating AS DOUBLE))
+      comment: "Average overall consumer satisfaction rating across all tests. Primary KPI for consumer acceptance of product prototypes."
+    - name: "avg_efficacy_perception_rating"
+      expr: AVG(CAST(efficacy_perception_rating AS DOUBLE))
+      comment: "Average consumer-perceived efficacy rating. Tracks how well products deliver on their claimed benefits in consumer perception."
+    - name: "avg_skin_feel_rating"
+      expr: AVG(CAST(skin_feel_rating AS DOUBLE))
+      comment: "Average skin feel rating from consumer tests. Key sensory KPI for personal care product development decisions."
+    - name: "avg_fragrance_rating"
+      expr: AVG(CAST(fragrance_rating AS DOUBLE))
+      comment: "Average fragrance rating from consumer tests. Tracks consumer acceptance of fragrance profiles across product development iterations."
+    - name: "avg_study_cost"
+      expr: AVG(CAST(study_cost_amount AS DOUBLE))
+      comment: "Average cost per consumer study. Benchmarks research investment efficiency and identifies cost outliers."
+    - name: "total_study_cost"
+      expr: SUM(CAST(study_cost_amount AS DOUBLE))
+      comment: "Total investment in consumer testing. Tracks the financial commitment to consumer validation across the product portfolio."
+    - name: "avg_confidence_level"
+      expr: AVG(CAST(confidence_level AS DOUBLE))
+      comment: "Average statistical confidence level across consumer tests. Monitors the scientific rigor of consumer validation studies."
+    - name: "statistically_significant_tests_count"
+      expr: COUNT(CASE WHEN statistical_significance_flag = TRUE THEN 1 END)
+      comment: "Number of consumer tests with statistically significant results. Tracks the proportion of studies generating actionable, reliable insights."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`research_consumer_test_result`
@@ -159,62 +120,55 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Consumer Test Result business metrics"
+  comment: "Granular consumer test result metrics measuring attribute-level ratings, NPS, purchase intent, and adverse event rates to validate product performance at the respondent level."
   source: "`vibe_consumer_goods_v1`.`research`.`consumer_test_result`"
   dimensions:
-    - name: "Adverse Event Description"
-      expr: adverse_event_description
-    - name: "Adverse Event Reported"
-      expr: adverse_event_reported
-    - name: "Attribute Tested"
+    - name: "test_type"
+      expr: test_type
+      comment: "Type of consumer test (e.g., HUT, CLT, Sensory Panel) for methodology segmentation."
+    - name: "attribute_tested"
       expr: attribute_tested
-    - name: "Benchmark Comparison"
-      expr: benchmark_comparison
-    - name: "Claim Substantiation Outcome"
-      expr: claim_substantiation_outcome
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Data Quality Flag"
-      expr: data_quality_flag
-    - name: "Ethics Approval Number"
-      expr: ethics_approval_number
-    - name: "Modified Timestamp"
-      expr: modified_timestamp
-    - name: "Nps Category"
-      expr: nps_category
-    - name: "Nps Score"
-      expr: nps_score
-    - name: "Principal Investigator"
-      expr: principal_investigator
-    - name: "Purchase Intent"
-      expr: purchase_intent
-    - name: "Rating Label"
-      expr: rating_label
-    - name: "Rating Scale Type"
-      expr: rating_scale_type
-    - name: "Regulatory Submission Included"
+      comment: "Specific product attribute being tested (e.g., Lather, Fragrance, Skin Feel) for attribute-level performance analysis."
+    - name: "result_status"
+      expr: consumer_test_result_status
+      comment: "Status of the test result record for data quality filtering."
+    - name: "statistical_significance_flag"
+      expr: statistical_significance_flag
+      comment: "Flag indicating statistical significance of the result, critical for claim substantiation."
+    - name: "respondent_demographic_segment"
+      expr: respondent_demographic_segment
+      comment: "Demographic segment of the respondent for segment-level performance analysis."
+    - name: "test_location"
+      expr: test_location
+      comment: "Location where the test was conducted for geographic performance comparison."
+    - name: "regulatory_submission_included"
       expr: regulatory_submission_included
+      comment: "Flag indicating whether this result is included in a regulatory submission, for compliance tracking."
+    - name: "test_date_month"
+      expr: DATE_TRUNC('MONTH', test_date)
+      comment: "Month of the test date for trend analysis of consumer test activity."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Consumer Test Result"
+    - name: "total_test_results"
       expr: COUNT(DISTINCT consumer_test_result_id)
-    - name: "Total Compliance Rate"
-      expr: SUM(compliance_rate)
-    - name: "Average Compliance Rate"
-      expr: AVG(compliance_rate)
-    - name: "Total Confidence Level"
-      expr: SUM(confidence_level)
-    - name: "Average Confidence Level"
-      expr: AVG(confidence_level)
-    - name: "Total P Value"
-      expr: SUM(p_value)
-    - name: "Average P Value"
-      expr: AVG(p_value)
-    - name: "Total Rating Value"
-      expr: SUM(rating_value)
-    - name: "Average Rating Value"
-      expr: AVG(rating_value)
+      comment: "Total number of consumer test result records. Baseline measure of consumer evidence volume."
+    - name: "avg_rating_value"
+      expr: AVG(CAST(rating_value AS DOUBLE))
+      comment: "Average attribute rating value across all test results. Core consumer acceptance KPI for product development decisions."
+    - name: "avg_score_value"
+      expr: AVG(CAST(score_value AS DOUBLE))
+      comment: "Average score value across test results. Tracks overall consumer performance scores for launch readiness assessment."
+    - name: "avg_p_value"
+      expr: AVG(CAST(p_value AS DOUBLE))
+      comment: "Average p-value across test results. Monitors statistical rigor of consumer evidence used for claim substantiation."
+    - name: "avg_confidence_level"
+      expr: AVG(CAST(confidence_level AS DOUBLE))
+      comment: "Average confidence level across test results. Tracks robustness of consumer evidence for regulatory and marketing claims."
+    - name: "adverse_event_result_count"
+      expr: COUNT(CASE WHEN adverse_event_reported = TRUE THEN consumer_test_result_id END)
+      comment: "Number of test results with adverse events reported. Safety KPI that triggers product safety and regulatory review."
+    - name: "avg_compliance_rate"
+      expr: AVG(CAST(compliance_rate AS DOUBLE))
+      comment: "Average protocol compliance rate across test results. Tracks data quality and study integrity."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`research_inci_library`
@@ -222,66 +176,55 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Inci Library business metrics"
+  comment: "INCI ingredient library metrics tracking regulatory status, restriction flags, sustainability certifications, and concentration limits to manage ingredient compliance and portfolio governance."
   source: "`vibe_consumer_goods_v1`.`research`.`inci_library`"
   dimensions:
-    - name: "Allergen Flag"
+    - name: "library_status"
+      expr: inci_library_status
+      comment: "Current status of the INCI library entry (e.g., Active, Restricted, Prohibited) for compliance filtering."
+    - name: "function_category"
+      expr: function_category
+      comment: "Functional category of the ingredient (e.g., Preservative, Emollient, Surfactant) for ingredient role analysis."
+    - name: "origin_type"
+      expr: origin_type
+      comment: "Origin type of the ingredient (e.g., Natural, Synthetic, Biotechnology) for naturalness portfolio analysis."
+    - name: "is_prohibited"
+      expr: is_prohibited
+      comment: "Flag indicating the ingredient is prohibited, for regulatory compliance risk management."
+    - name: "is_restricted"
+      expr: is_restricted
+      comment: "Flag indicating the ingredient is restricted, for regulatory compliance risk management."
+    - name: "allergen_flag"
       expr: allergen_flag
-    - name: "Approval Date"
-      expr: approval_date
-    - name: "Cas Number"
-      expr: cas_number
-    - name: "Chemical Family"
-      expr: chemical_family
-    - name: "Color Specification"
-      expr: color_specification
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Ec Number"
-      expr: ec_number
-    - name: "Function Class"
-      expr: function_class
-    - name: "Grade Quality Level"
-      expr: grade_quality_level
-    - name: "Halal Certified Flag"
-      expr: halal_certified_flag
-    - name: "Inci Name"
-      expr: inci_name
-    - name: "Kosher Certified Flag"
-      expr: kosher_certified_flag
-    - name: "Last Modified Timestamp"
-      expr: last_modified_timestamp
-    - name: "Last Review Date"
-      expr: last_review_date
-    - name: "Natural Origin Flag"
-      expr: natural_origin_flag
-    - name: "Next Review Date"
-      expr: next_review_date
+      comment: "Flag indicating allergen status, for consumer safety and labeling compliance."
+    - name: "svhc_flag"
+      expr: svhc_flag
+      comment: "Flag indicating Substance of Very High Concern (SVHC) status under REACH, for regulatory risk management."
+    - name: "sustainable_sourcing_flag"
+      expr: sustainable_sourcing_flag
+      comment: "Flag indicating sustainable sourcing certification, for ESG portfolio analysis."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Inci Library"
+    - name: "total_inci_entries"
       expr: COUNT(DISTINCT inci_library_id)
-    - name: "Total Approved Concentration Max Percentage"
-      expr: SUM(approved_concentration_max_percentage)
-    - name: "Average Approved Concentration Max Percentage"
-      expr: AVG(approved_concentration_max_percentage)
-    - name: "Total Approved Concentration Min Percentage"
-      expr: SUM(approved_concentration_min_percentage)
-    - name: "Average Approved Concentration Min Percentage"
-      expr: AVG(approved_concentration_min_percentage)
-    - name: "Total Maximum Permitted Concentration Percentage"
-      expr: SUM(maximum_permitted_concentration_percentage)
-    - name: "Average Maximum Permitted Concentration Percentage"
-      expr: AVG(maximum_permitted_concentration_percentage)
-    - name: "Total Moisture Content Max Percentage"
-      expr: SUM(moisture_content_max_percentage)
-    - name: "Average Moisture Content Max Percentage"
-      expr: AVG(moisture_content_max_percentage)
-    - name: "Total Purity Percentage"
-      expr: SUM(purity_percentage)
-    - name: "Average Purity Percentage"
-      expr: AVG(purity_percentage)
+      comment: "Total number of INCI library entries. Baseline measure of ingredient library coverage."
+    - name: "prohibited_ingredient_count"
+      expr: COUNT(CASE WHEN is_prohibited = TRUE THEN inci_library_id END)
+      comment: "Number of prohibited ingredients in the library. Tracks regulatory risk exposure in the ingredient portfolio."
+    - name: "restricted_ingredient_count"
+      expr: COUNT(CASE WHEN is_restricted = TRUE THEN inci_library_id END)
+      comment: "Number of restricted ingredients in the library. Tracks compliance complexity and formulation constraints."
+    - name: "svhc_ingredient_count"
+      expr: COUNT(CASE WHEN svhc_flag = TRUE THEN inci_library_id END)
+      comment: "Number of SVHC-flagged ingredients. Tracks REACH regulatory risk in the ingredient portfolio."
+    - name: "allergen_ingredient_count"
+      expr: COUNT(CASE WHEN allergen_flag = TRUE THEN inci_library_id END)
+      comment: "Number of allergen-flagged ingredients. Tracks consumer safety risk and labeling obligation volume."
+    - name: "avg_maximum_permitted_concentration_pct"
+      expr: AVG(CAST(maximum_permitted_concentration_percentage AS DOUBLE))
+      comment: "Average maximum permitted concentration across INCI library entries. Tracks formulation headroom across the ingredient portfolio."
+    - name: "avg_purity_pct"
+      expr: AVG(CAST(purity_percentage AS DOUBLE))
+      comment: "Average purity percentage across INCI library entries. Tracks ingredient quality standards in the library."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`research_innovation_brief`
@@ -289,86 +232,52 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Innovation Brief business metrics"
+  comment: "Innovation pipeline metrics tracking brief volume, financial targets, and strategic alignment of consumer goods innovation requests."
   source: "`vibe_consumer_goods_v1`.`research`.`innovation_brief`"
   dimensions:
-    - name: "Approval Date"
-      expr: approval_date
-    - name: "Attachments Reference"
-      expr: attachments_reference
-    - name: "Brief Code"
-      expr: brief_code
-    - name: "Brief Status"
-      expr: brief_status
-    - name: "Brief Title"
-      expr: brief_title
-    - name: "Brief Type"
+    - name: "brief_status"
+      expr: innovation_brief_status
+      comment: "Current status of the innovation brief (e.g. Draft, Approved, Rejected) for funnel and conversion analysis."
+    - name: "brief_type"
       expr: brief_type
-    - name: "Business Opportunity Description"
-      expr: business_opportunity_description
-    - name: "Competitive Benchmark Products"
-      expr: competitive_benchmark_products
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Currency Code"
-      expr: currency_code
-    - name: "Desired Product Benefits"
-      expr: desired_product_benefits
-    - name: "Innovation Priority Tier"
+      comment: "Type of innovation brief (e.g. New Product, Renovation, Line Extension) for portfolio mix analysis."
+    - name: "innovation_priority_tier"
       expr: innovation_priority_tier
-    - name: "Key Performance Indicators"
-      expr: key_performance_indicators
-    - name: "Last Modified Timestamp"
-      expr: last_modified_timestamp
-    - name: "Market Size Currency Code"
-      expr: market_size_currency_code
-    - name: "Npv Currency Code"
-      expr: npv_currency_code
+      comment: "Priority tier of the innovation brief, used to segment investment and resource allocation by strategic importance."
+    - name: "target_consumer_segment"
+      expr: target_consumer_segment
+      comment: "Target consumer segment for the innovation, enabling demand-driven portfolio analysis."
+    - name: "target_launch_date_month"
+      expr: DATE_TRUNC('month', target_launch_date)
+      comment: "Month of the planned launch date for the innovation brief, enabling launch pipeline forecasting."
+    - name: "submission_year"
+      expr: YEAR(submission_date)
+      comment: "Year the innovation brief was submitted, used for cohort and trend analysis of innovation intake."
   measures:
-    - name: "Row Count"
+    - name: "total_innovation_briefs"
       expr: COUNT(1)
-    - name: "Distinct Innovation Brief"
-      expr: COUNT(DISTINCT innovation_brief_id)
-    - name: "Total Budget Currency Code"
-      expr: SUM(budget_currency_code)
-    - name: "Average Budget Currency Code"
-      expr: AVG(budget_currency_code)
-    - name: "Total Estimated Development Budget"
-      expr: SUM(estimated_development_budget)
-    - name: "Average Estimated Development Budget"
-      expr: AVG(estimated_development_budget)
-    - name: "Total Estimated Market Size"
-      expr: SUM(estimated_market_size)
-    - name: "Average Estimated Market Size"
-      expr: AVG(estimated_market_size)
-    - name: "Total Estimated Npv"
-      expr: SUM(estimated_npv)
-    - name: "Average Estimated Npv"
-      expr: AVG(estimated_npv)
-    - name: "Total Estimated Roi Percent"
-      expr: SUM(estimated_roi_percent)
-    - name: "Average Estimated Roi Percent"
-      expr: AVG(estimated_roi_percent)
-    - name: "Total Strategic Fit Rationale"
-      expr: SUM(strategic_fit_rationale)
-    - name: "Average Strategic Fit Rationale"
-      expr: AVG(strategic_fit_rationale)
-    - name: "Total Sustainability Target Score"
-      expr: SUM(sustainability_target_score)
-    - name: "Average Sustainability Target Score"
-      expr: AVG(sustainability_target_score)
-    - name: "Total Target Cogs"
-      expr: SUM(target_cogs)
-    - name: "Average Target Cogs"
-      expr: AVG(target_cogs)
-    - name: "Total Target Gross Margin Percent"
-      expr: SUM(target_gross_margin_percent)
-    - name: "Average Target Gross Margin Percent"
-      expr: AVG(target_gross_margin_percent)
-    - name: "Total Target Rsp"
-      expr: SUM(target_rsp)
-    - name: "Average Target Rsp"
-      expr: AVG(target_rsp)
+      comment: "Total number of innovation briefs submitted. Tracks the volume and velocity of the innovation intake pipeline."
+    - name: "total_estimated_development_budget"
+      expr: SUM(CAST(estimated_development_budget AS DOUBLE))
+      comment: "Total estimated development budget across all innovation briefs. Tracks the financial scale of the innovation pipeline before project approval."
+    - name: "avg_estimated_npv"
+      expr: AVG(CAST(estimated_npv AS DOUBLE))
+      comment: "Average estimated net present value across innovation briefs. Key financial metric for prioritizing which innovations to fund."
+    - name: "total_estimated_npv"
+      expr: SUM(CAST(estimated_npv AS DOUBLE))
+      comment: "Total estimated NPV across all innovation briefs. Represents the aggregate financial value of the innovation pipeline."
+    - name: "avg_estimated_roi_percent"
+      expr: AVG(CAST(estimated_roi_percent AS DOUBLE))
+      comment: "Average estimated ROI percentage across innovation briefs. Tracks the expected return quality of the innovation portfolio."
+    - name: "avg_target_gross_margin_percent"
+      expr: AVG(CAST(target_gross_margin_percent AS DOUBLE))
+      comment: "Average target gross margin percentage across innovation briefs. Monitors margin ambition embedded in the innovation pipeline."
+    - name: "avg_sustainability_target_score"
+      expr: AVG(CAST(sustainability_target_score AS DOUBLE))
+      comment: "Average sustainability target score across innovation briefs. Tracks ESG ambition at the ideation stage of the innovation funnel."
+    - name: "approved_briefs_count"
+      expr: COUNT(CASE WHEN innovation_brief_status = 'Approved' THEN 1 END)
+      comment: "Number of innovation briefs that have been approved. Measures the conversion rate of ideas into funded projects."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`research_lab_test`
@@ -376,113 +285,52 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Lab Test business metrics"
+  comment: "Laboratory testing metrics tracking test throughput, pass/fail rates, and out-of-specification events — key quality and R&D efficiency KPIs for consumer goods product development."
   source: "`vibe_consumer_goods_v1`.`research`.`lab_test`"
   dimensions:
-    - name: "Analyst Name"
-      expr: analyst_name
-    - name: "Calibration Date"
-      expr: calibration_date
-    - name: "Comments"
-      expr: comments
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Lab Location"
-      expr: lab_location
-    - name: "Modified Timestamp"
-      expr: modified_timestamp
-    - name: "Oos Flag"
-      expr: oos_flag
-    - name: "Pass Fail Status"
+    - name: "test_type"
+      expr: test_type
+      comment: "Type of laboratory test (e.g. Microbiological, Chemical, Physical) for workload and quality analysis by test category."
+    - name: "test_status"
+      expr: test_status
+      comment: "Current status of the lab test (e.g. Pending, In Progress, Completed) for throughput and backlog monitoring."
+    - name: "pass_fail_status"
       expr: pass_fail_status
-    - name: "Regulatory Flag"
-      expr: regulatory_flag
-    - name: "Result Text"
-      expr: result_text
-    - name: "Result Unit"
-      expr: result_unit
-    - name: "Retest Flag"
+      comment: "Pass or fail outcome of the lab test, used to track quality rates and identify problematic formulations."
+    - name: "oos_flag"
+      expr: oos_flag
+      comment: "Out-of-specification flag for the lab test result. Identifies tests requiring investigation and potential reformulation."
+    - name: "retest_flag"
       expr: retest_flag
-    - name: "Review Date"
-      expr: review_date
-    - name: "Reviewer Name"
-      expr: reviewer_name
-    - name: "Stability Timepoint"
-      expr: stability_timepoint
-    - name: "Storage Condition"
-      expr: storage_condition
+      comment: "Flag indicating whether the test required a retest, used to track first-pass quality rates in the lab."
+    - name: "regulatory_flag"
+      expr: regulatory_flag
+      comment: "Flag indicating whether the test is required for regulatory compliance, used to prioritize regulatory-critical testing."
+    - name: "test_date_month"
+      expr: DATE_TRUNC('month', test_date)
+      comment: "Month of the lab test, used for trend analysis of testing volume and quality outcomes over time."
   measures:
-    - name: "Row Count"
+    - name: "total_lab_tests"
       expr: COUNT(1)
-    - name: "Distinct Lab Test"
-      expr: COUNT(DISTINCT lab_test_id)
-    - name: "Total Result Value"
-      expr: SUM(result_value)
-    - name: "Average Result Value"
-      expr: AVG(result_value)
-    - name: "Total Specification Max"
-      expr: SUM(specification_max)
-    - name: "Average Specification Max"
-      expr: AVG(specification_max)
-    - name: "Total Specification Min"
-      expr: SUM(specification_min)
-    - name: "Average Specification Min"
-      expr: AVG(specification_min)
-    - name: "Total Specification Target"
-      expr: SUM(specification_target)
-    - name: "Average Specification Target"
-      expr: AVG(specification_target)
-$$;
-
-CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`research_panel_session`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Panel Session business metrics"
-  source: "`vibe_consumer_goods_v1`.`research`.`panel_session`"
-  dimensions:
-    - name: "Compliance Status"
-      expr: compliance_status
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Data Collection Method"
-      expr: data_collection_method
-    - name: "Panel Session Description"
-      expr: panel_session_description
-    - name: "Device Type"
-      expr: device_type
-    - name: "Duration Minutes"
-      expr: duration_minutes
-    - name: "End Timestamp"
-      expr: end_timestamp
-    - name: "Language"
-      expr: language
-    - name: "Location"
-      expr: location
-    - name: "Moderator Name"
-      expr: moderator_name
-    - name: "Notes"
-      expr: notes
-    - name: "Recruitment Method"
-      expr: recruitment_method
-    - name: "Sample Size"
-      expr: sample_size
-    - name: "Session Code"
-      expr: session_code
-    - name: "Session Name"
-      expr: session_name
-    - name: "Session Type"
-      expr: session_type
-  measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Panel Session"
-      expr: COUNT(DISTINCT panel_session_id)
-    - name: "Total Incentive Amount"
-      expr: SUM(incentive_amount)
-    - name: "Average Incentive Amount"
-      expr: AVG(incentive_amount)
+      comment: "Total number of lab tests conducted. Baseline KPI for laboratory throughput and capacity utilization."
+    - name: "avg_result_value"
+      expr: AVG(CAST(result_value AS DOUBLE))
+      comment: "Average measured result value across lab tests. Tracks central tendency of test outcomes for specification compliance monitoring."
+    - name: "avg_specification_target"
+      expr: AVG(CAST(specification_target AS DOUBLE))
+      comment: "Average specification target value across lab tests. Used to benchmark actual results against intended targets."
+    - name: "oos_tests_count"
+      expr: COUNT(CASE WHEN oos_flag = TRUE THEN 1 END)
+      comment: "Number of out-of-specification lab tests. Critical quality KPI — high OOS rates signal formulation or process issues requiring immediate investigation."
+    - name: "retest_required_count"
+      expr: COUNT(CASE WHEN retest_flag = TRUE THEN 1 END)
+      comment: "Number of lab tests requiring a retest. Tracks first-pass quality rate and laboratory efficiency."
+    - name: "regulatory_tests_count"
+      expr: COUNT(CASE WHEN regulatory_flag = TRUE THEN 1 END)
+      comment: "Number of regulatory-required lab tests. Tracks compliance testing workload and ensures regulatory obligations are met."
+    - name: "distinct_formulations_tested"
+      expr: COUNT(DISTINCT research_formulation_id)
+      comment: "Number of distinct formulations tested in the lab. Tracks the breadth of laboratory testing coverage across the formulation portfolio."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`research_patent_family`
@@ -490,62 +338,43 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Patent Family business metrics"
+  comment: "Patent family portfolio metrics tracking family size, royalty rates, strategic importance, and licensing status to manage IP portfolio strategy and monetization."
   source: "`vibe_consumer_goods_v1`.`research`.`patent_family`"
   dimensions:
-    - name: "Assignee Name"
-      expr: assignee_name
-    - name: "Confidentiality Expiry Date"
-      expr: confidentiality_expiry_date
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Patent Family Description"
-      expr: patent_family_description
-    - name: "Expiration Date"
-      expr: expiration_date
-    - name: "Family Code"
-      expr: family_code
-    - name: "Family Name"
-      expr: family_name
-    - name: "Family Type"
+    - name: "family_status"
+      expr: family_status
+      comment: "Current status of the patent family (e.g., Active, Expired, Abandoned) for portfolio health analysis."
+    - name: "family_type"
       expr: family_type
-    - name: "Filing Date"
-      expr: filing_date
-    - name: "Grant Date"
-      expr: grant_date
-    - name: "Ipc Classification"
-      expr: ipc_classification
-    - name: "Is Confidential"
-      expr: is_confidential
-    - name: "Jurisdiction"
-      expr: jurisdiction
-    - name: "Keywords"
-      expr: keywords
-    - name: "Licensing Status"
+      comment: "Type of patent family for portfolio composition analysis."
+    - name: "technology_area"
+      expr: technology_area
+      comment: "Technology area covered by the patent family for technology portfolio analysis."
+    - name: "licensing_status"
       expr: licensing_status
-    - name: "Market Region"
-      expr: market_region
+      comment: "Licensing status of the patent family for IP monetization tracking."
+    - name: "jurisdiction"
+      expr: jurisdiction
+      comment: "Primary jurisdiction of the patent family for geographic IP coverage analysis."
+    - name: "is_confidential"
+      expr: is_confidential
+      comment: "Flag indicating confidential patent family status for access control and disclosure management."
+    - name: "filing_year"
+      expr: YEAR(filing_date)
+      comment: "Year of patent family filing for trend analysis of IP generation activity."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Patent Family"
+    - name: "total_patent_families"
       expr: COUNT(DISTINCT patent_family_id)
-    - name: "Total Assignee Code"
-      expr: SUM(assignee_code)
-    - name: "Average Assignee Code"
-      expr: AVG(assignee_code)
-    - name: "Total Royalty Currency"
-      expr: SUM(royalty_currency)
-    - name: "Average Royalty Currency"
-      expr: AVG(royalty_currency)
-    - name: "Total Royalty Rate"
-      expr: SUM(royalty_rate)
-    - name: "Average Royalty Rate"
-      expr: AVG(royalty_rate)
-    - name: "Total Strategic Importance Score"
-      expr: SUM(strategic_importance_score)
-    - name: "Average Strategic Importance Score"
-      expr: AVG(strategic_importance_score)
+      comment: "Total number of patent families. Baseline measure of IP portfolio breadth."
+    - name: "avg_strategic_importance_score"
+      expr: AVG(CAST(strategic_importance_score AS DOUBLE))
+      comment: "Average strategic importance score across patent families. Tracks IP portfolio quality and competitive value."
+    - name: "avg_royalty_rate"
+      expr: AVG(CAST(royalty_rate AS DOUBLE))
+      comment: "Average royalty rate across licensed patent families. Tracks IP monetization performance."
+    - name: "total_royalty_rate"
+      expr: SUM(CAST(royalty_rate AS DOUBLE))
+      comment: "Sum of royalty rates across all patent families. Proxy for total IP licensing revenue potential."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`research_patent_filing`
@@ -553,66 +382,46 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Patent Filing business metrics"
+  comment: "Patent portfolio metrics tracking filing activity, maintenance costs, and IP coverage — strategic KPIs for protecting consumer goods innovation investments."
   source: "`vibe_consumer_goods_v1`.`research`.`patent_filing`"
   dimensions:
-    - name: "Abstract"
-      expr: abstract
-    - name: "Application Number"
-      expr: application_number
-    - name: "Assignee Country Code"
-      expr: assignee_country_code
-    - name: "Assignee Name"
-      expr: assignee_name
-    - name: "Backward Citations Count"
-      expr: backward_citations_count
-    - name: "Claims Count"
-      expr: claims_count
-    - name: "Cpc Class"
-      expr: cpc_class
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Expiry Date"
-      expr: expiry_date
-    - name: "Filing Date"
-      expr: filing_date
-    - name: "Forward Citations Count"
-      expr: forward_citations_count
-    - name: "Grant Date"
-      expr: grant_date
-    - name: "Independent Claims Count"
-      expr: independent_claims_count
-    - name: "Internal Reference Code"
-      expr: internal_reference_code
-    - name: "Inventors List"
-      expr: inventors_list
-    - name: "Jurisdiction Code"
-      expr: jurisdiction_code
+    - name: "patent_filing_status"
+      expr: patent_filing_status
+      comment: "Current status of the patent filing (e.g. Filed, Granted, Abandoned, Expired) for IP portfolio health monitoring."
+    - name: "patent_type"
+      expr: patent_type
+      comment: "Type of patent (e.g. Utility, Design, Process) for IP portfolio composition analysis."
+    - name: "jurisdiction"
+      expr: jurisdiction
+      comment: "Jurisdiction where the patent is filed, used for geographic IP coverage analysis and freedom-to-operate assessment."
+    - name: "technology_domain"
+      expr: technology_domain
+      comment: "Technology domain of the patent (e.g. Formulation, Packaging, Process) for R&D investment and IP strategy alignment."
+    - name: "commercial_value_tier"
+      expr: commercial_value_tier
+      comment: "Commercial value tier of the patent, used to prioritize maintenance investment and licensing strategy."
+    - name: "pct_application_flag"
+      expr: pct_application_flag
+      comment: "Flag indicating PCT (international) application, used to track global IP protection coverage."
+    - name: "filing_year"
+      expr: YEAR(filing_date)
+      comment: "Year of patent filing, used for trend analysis of IP generation activity and portfolio vintage."
   measures:
-    - name: "Row Count"
+    - name: "total_patent_filings"
       expr: COUNT(1)
-    - name: "Distinct Patent Filing"
-      expr: COUNT(DISTINCT patent_filing_id)
-    - name: "Total Commercial Value Tier"
-      expr: SUM(commercial_value_tier)
-    - name: "Average Commercial Value Tier"
-      expr: AVG(commercial_value_tier)
-    - name: "Total Cost Currency Code"
-      expr: SUM(cost_currency_code)
-    - name: "Average Cost Currency Code"
-      expr: AVG(cost_currency_code)
-    - name: "Total Estimated Annual Maintenance Cost"
-      expr: SUM(estimated_annual_maintenance_cost)
-    - name: "Average Estimated Annual Maintenance Cost"
-      expr: AVG(estimated_annual_maintenance_cost)
-    - name: "Total Freedom To Operate Status"
-      expr: SUM(freedom_to_operate_status)
-    - name: "Average Freedom To Operate Status"
-      expr: AVG(freedom_to_operate_status)
-    - name: "Total Pct Application Number"
-      expr: SUM(pct_application_number)
-    - name: "Average Pct Application Number"
-      expr: AVG(pct_application_number)
+      comment: "Total number of patent filings. Tracks the volume of IP generation activity and innovation output."
+    - name: "total_annual_maintenance_cost"
+      expr: SUM(CAST(estimated_annual_maintenance_cost AS DOUBLE))
+      comment: "Total estimated annual maintenance cost across all patent filings. Tracks the ongoing financial obligation of the IP portfolio."
+    - name: "avg_annual_maintenance_cost"
+      expr: AVG(CAST(estimated_annual_maintenance_cost AS DOUBLE))
+      comment: "Average annual maintenance cost per patent filing. Benchmarks IP maintenance efficiency and identifies high-cost patents for value review."
+    - name: "pct_applications_count"
+      expr: COUNT(CASE WHEN pct_application_flag = TRUE THEN 1 END)
+      comment: "Number of PCT (international) patent applications. Tracks the breadth of global IP protection strategy."
+    - name: "distinct_jurisdictions_covered"
+      expr: COUNT(DISTINCT jurisdiction)
+      comment: "Number of distinct jurisdictions with patent filings. Measures the geographic breadth of IP protection coverage."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`research_prototype`
@@ -620,90 +429,55 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Prototype business metrics"
+  comment: "Prototype development metrics tracking packaging cost, sustainability, fill volumes, and consumer test eligibility to manage the physical product development pipeline."
   source: "`vibe_consumer_goods_v1`.`research`.`prototype`"
   dimensions:
-    - name: "Closure Type"
-      expr: closure_type
-    - name: "Prototype Code"
-      expr: prototype_code
-    - name: "Compatibility Test Completion Date"
-      expr: compatibility_test_completion_date
-    - name: "Consumer Test Eligible Flag"
-      expr: consumer_test_eligible_flag
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Formulation Compatibility Test Status"
-      expr: formulation_compatibility_test_status
-    - name: "Manufacturing Scale"
-      expr: manufacturing_scale
-    - name: "Modified Timestamp"
-      expr: modified_timestamp
-    - name: "Prototype Name"
-      expr: prototype_name
-    - name: "Notes"
-      expr: notes
-    - name: "Packaging Approval Date"
-      expr: packaging_approval_date
-    - name: "Packaging Approved By"
-      expr: packaging_approved_by
-    - name: "Packaging Configuration Code"
-      expr: packaging_configuration_code
-    - name: "Primary Container Material"
-      expr: primary_container_material
-    - name: "Primary Container Type"
-      expr: primary_container_type
-    - name: "Prototype Status"
+    - name: "prototype_status"
       expr: prototype_status
+      comment: "Current status of the prototype (e.g., In Development, Approved, Superseded) for pipeline tracking."
+    - name: "prototype_type"
+      expr: prototype_type
+      comment: "Type of prototype (e.g., Formulation, Packaging, Combined) for development category analysis."
+    - name: "primary_container_material"
+      expr: primary_container_material
+      comment: "Primary container material (e.g., HDPE, Glass, Aluminium) for sustainability and cost analysis."
+    - name: "recyclability_classification"
+      expr: recyclability_classification
+      comment: "Recyclability classification of the prototype packaging for ESG portfolio analysis."
+    - name: "sustainable_material_flag"
+      expr: sustainable_material_flag
+      comment: "Flag indicating use of sustainable materials, for ESG compliance tracking."
+    - name: "consumer_test_eligible_flag"
+      expr: consumer_test_eligible_flag
+      comment: "Flag indicating the prototype is eligible for consumer testing, for pipeline readiness tracking."
+    - name: "stability_test_status"
+      expr: stability_test_status
+      comment: "Stability test status of the prototype for quality gate tracking."
+    - name: "generation"
+      expr: generation
+      comment: "Generation of the prototype (e.g., Gen 1, Gen 2) for iteration analysis."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Prototype"
+    - name: "total_prototypes"
       expr: COUNT(DISTINCT prototype_id)
-    - name: "Total Container Capacity Ml"
-      expr: SUM(container_capacity_ml)
-    - name: "Average Container Capacity Ml"
-      expr: AVG(container_capacity_ml)
-    - name: "Total Container Diameter Mm"
-      expr: SUM(container_diameter_mm)
-    - name: "Average Container Diameter Mm"
-      expr: AVG(container_diameter_mm)
-    - name: "Total Container Height Mm"
-      expr: SUM(container_height_mm)
-    - name: "Average Container Height Mm"
-      expr: AVG(container_height_mm)
-    - name: "Total Container Weight Grams"
-      expr: SUM(container_weight_grams)
-    - name: "Average Container Weight Grams"
-      expr: AVG(container_weight_grams)
-    - name: "Total Decoration Method"
-      expr: SUM(decoration_method)
-    - name: "Average Decoration Method"
-      expr: AVG(decoration_method)
-    - name: "Total Estimated Packaging Cost"
-      expr: SUM(estimated_packaging_cost)
-    - name: "Average Estimated Packaging Cost"
-      expr: AVG(estimated_packaging_cost)
-    - name: "Total Fill Volume Ml"
-      expr: SUM(fill_volume_ml)
-    - name: "Average Fill Volume Ml"
-      expr: AVG(fill_volume_ml)
-    - name: "Total Fill Weight"
-      expr: SUM(fill_weight)
-    - name: "Average Fill Weight"
-      expr: AVG(fill_weight)
-    - name: "Total Generation"
-      expr: SUM(generation)
-    - name: "Average Generation"
-      expr: AVG(generation)
-    - name: "Total Packaging Cost Currency Code"
-      expr: SUM(packaging_cost_currency_code)
-    - name: "Average Packaging Cost Currency Code"
-      expr: AVG(packaging_cost_currency_code)
-    - name: "Total Recycled Content Percent"
-      expr: SUM(recycled_content_percent)
-    - name: "Average Recycled Content Percent"
-      expr: AVG(recycled_content_percent)
+      comment: "Total number of prototypes developed. Baseline measure of physical product development activity."
+    - name: "total_estimated_packaging_cost"
+      expr: SUM(CAST(estimated_packaging_cost AS DOUBLE))
+      comment: "Total estimated packaging cost across all prototypes. Core cost management KPI for packaging development."
+    - name: "avg_estimated_packaging_cost"
+      expr: AVG(CAST(estimated_packaging_cost AS DOUBLE))
+      comment: "Average estimated packaging cost per prototype. Benchmarks packaging cost efficiency across development iterations."
+    - name: "avg_recycled_content_pct"
+      expr: AVG(CAST(recycled_content_percent AS DOUBLE))
+      comment: "Average recycled content percentage across prototypes. Tracks ESG packaging sustainability performance."
+    - name: "avg_fill_volume_ml"
+      expr: AVG(CAST(fill_volume_ml AS DOUBLE))
+      comment: "Average fill volume in ml across prototypes. Tracks product sizing decisions across the development pipeline."
+    - name: "avg_container_weight_grams"
+      expr: AVG(CAST(container_weight_grams AS DOUBLE))
+      comment: "Average container weight in grams across prototypes. Tracks lightweighting progress as a sustainability and cost KPI."
+    - name: "consumer_test_eligible_count"
+      expr: COUNT(CASE WHEN consumer_test_eligible_flag = TRUE THEN prototype_id END)
+      comment: "Number of prototypes eligible for consumer testing. Tracks pipeline readiness for consumer validation."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`research_raw_material_spec`
@@ -711,90 +485,55 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Raw Material Spec business metrics"
+  comment: "Raw material specification metrics tracking cost, purity, regulatory compliance, and sustainability flags to manage ingredient sourcing strategy and regulatory risk."
   source: "`vibe_consumer_goods_v1`.`research`.`raw_material_spec`"
   dimensions:
-    - name: "Approval Date"
-      expr: approval_date
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Einecs Number"
-      expr: einecs_number
-    - name: "Eu Restricted Flag"
-      expr: eu_restricted_flag
-    - name: "Hazard Classification"
-      expr: hazard_classification
-    - name: "Last Modified Timestamp"
-      expr: last_modified_timestamp
-    - name: "Material Name"
-      expr: material_name
-    - name: "Notes"
-      expr: notes
-    - name: "Organic Certified Flag"
-      expr: organic_certified_flag
-    - name: "Palm Oil Derivative Flag"
-      expr: palm_oil_derivative_flag
-    - name: "Raw Material Code"
-      expr: raw_material_code
-    - name: "Rd Approval Status"
+    - name: "spec_status"
+      expr: raw_material_spec_status
+      comment: "Current status of the raw material specification (e.g., Active, Obsolete, Under Review) for portfolio management."
+    - name: "rd_approval_status"
       expr: rd_approval_status
-    - name: "Regulatory Classification"
-      expr: regulatory_classification
-    - name: "Sds Available Flag"
-      expr: sds_available_flag
-    - name: "Shelf Life Months"
-      expr: shelf_life_months
-    - name: "Specification Version"
-      expr: specification_version
+      comment: "R&D approval status of the raw material specification for development pipeline tracking."
+    - name: "physical_form"
+      expr: physical_form
+      comment: "Physical form of the raw material (e.g., Liquid, Powder, Solid) for formulation compatibility analysis."
+    - name: "eu_restricted_flag"
+      expr: eu_restricted_flag
+      comment: "Flag indicating EU restriction on the raw material, for regulatory compliance risk analysis."
+    - name: "us_fda_restricted_flag"
+      expr: us_fda_restricted_flag
+      comment: "Flag indicating US FDA restriction on the raw material, for regulatory compliance risk analysis."
+    - name: "organic_certified_flag"
+      expr: organic_certified_flag
+      comment: "Flag indicating organic certification, for sustainability and premium positioning analysis."
+    - name: "palm_oil_derivative_flag"
+      expr: palm_oil_derivative_flag
+      comment: "Flag indicating palm oil derivative content, for deforestation and sustainability risk tracking."
+    - name: "hazardous_flag"
+      expr: hazardous_flag
+      comment: "Flag indicating hazardous material classification, for safety and regulatory risk management."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Raw Material Spec"
+    - name: "total_raw_material_specs"
       expr: COUNT(DISTINCT raw_material_spec_id)
-    - name: "Total Approved Concentration Max Percent"
-      expr: SUM(approved_concentration_max_percent)
-    - name: "Average Approved Concentration Max Percent"
-      expr: AVG(approved_concentration_max_percent)
-    - name: "Total Approved Concentration Min Percent"
-      expr: SUM(approved_concentration_min_percent)
-    - name: "Average Approved Concentration Min Percent"
-      expr: AVG(approved_concentration_min_percent)
-    - name: "Total Cost Currency Code"
-      expr: SUM(cost_currency_code)
-    - name: "Average Cost Currency Code"
-      expr: AVG(cost_currency_code)
-    - name: "Total Cost Per Kg"
-      expr: SUM(cost_per_kg)
-    - name: "Average Cost Per Kg"
-      expr: AVG(cost_per_kg)
-    - name: "Total Eu Maximum Concentration Percent"
-      expr: SUM(eu_maximum_concentration_percent)
-    - name: "Average Eu Maximum Concentration Percent"
-      expr: AVG(eu_maximum_concentration_percent)
-    - name: "Total Moisture Content Percent"
-      expr: SUM(moisture_content_percent)
-    - name: "Average Moisture Content Percent"
-      expr: AVG(moisture_content_percent)
-    - name: "Total Particle Size Microns"
-      expr: SUM(particle_size_microns)
-    - name: "Average Particle Size Microns"
-      expr: AVG(particle_size_microns)
-    - name: "Total Purity Percent"
-      expr: SUM(purity_percent)
-    - name: "Average Purity Percent"
-      expr: AVG(purity_percent)
-    - name: "Total Storage Temperature Max C"
-      expr: SUM(storage_temperature_max_c)
-    - name: "Average Storage Temperature Max C"
-      expr: AVG(storage_temperature_max_c)
-    - name: "Total Storage Temperature Min C"
-      expr: SUM(storage_temperature_min_c)
-    - name: "Average Storage Temperature Min C"
-      expr: AVG(storage_temperature_min_c)
-    - name: "Total Us Fda Maximum Concentration Percent"
-      expr: SUM(us_fda_maximum_concentration_percent)
-    - name: "Average Us Fda Maximum Concentration Percent"
-      expr: AVG(us_fda_maximum_concentration_percent)
+      comment: "Total number of raw material specifications. Baseline measure of ingredient portfolio breadth."
+    - name: "avg_cost_per_kg"
+      expr: AVG(CAST(cost_per_kg AS DOUBLE))
+      comment: "Average cost per kg across raw material specifications. Core procurement cost KPI for formulation cost management."
+    - name: "avg_purity_pct"
+      expr: AVG(CAST(purity_pct AS DOUBLE))
+      comment: "Average purity percentage across raw material specifications. Tracks ingredient quality standards across the portfolio."
+    - name: "eu_restricted_material_count"
+      expr: COUNT(CASE WHEN eu_restricted_flag = TRUE THEN raw_material_spec_id END)
+      comment: "Number of raw materials with EU restrictions. Tracks regulatory compliance risk in the ingredient portfolio."
+    - name: "palm_oil_derivative_count"
+      expr: COUNT(CASE WHEN palm_oil_derivative_flag = TRUE THEN raw_material_spec_id END)
+      comment: "Number of raw materials that are palm oil derivatives. Tracks deforestation and sustainability risk in the ingredient portfolio."
+    - name: "hazardous_material_count"
+      expr: COUNT(CASE WHEN hazardous_flag = TRUE THEN raw_material_spec_id END)
+      comment: "Number of hazardous raw materials in the specification portfolio. Tracks safety and handling risk."
+    - name: "avg_approved_concentration_max_pct"
+      expr: AVG(CAST(approved_concentration_max_percent AS DOUBLE))
+      comment: "Average maximum approved concentration percentage across raw material specs. Tracks formulation headroom for ingredient use."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`research_rd_project`
@@ -802,74 +541,61 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Rd Project business metrics"
+  comment: "Strategic R&D portfolio metrics tracking investment, budget performance, and project pipeline health across all active research and development initiatives."
   source: "`vibe_consumer_goods_v1`.`research`.`rd_project`"
   dimensions:
-    - name: "Actual Launch Date"
-      expr: actual_launch_date
-    - name: "Business Opportunity Context"
-      expr: business_opportunity_context
-    - name: "Cancellation Reason"
-      expr: cancellation_reason
-    - name: "Competitive Benchmark"
-      expr: competitive_benchmark
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Currency Code"
-      expr: currency_code
-    - name: "Current Milestone"
-      expr: current_milestone
-    - name: "Desired Benefits"
-      expr: desired_benefits
-    - name: "Key Performance Indicators"
-      expr: key_performance_indicators
-    - name: "Lessons Learned"
-      expr: lessons_learned
-    - name: "Milestone Due Date"
-      expr: milestone_due_date
-    - name: "Modified Timestamp"
-      expr: modified_timestamp
-    - name: "Patent Filing Status"
-      expr: patent_filing_status
-    - name: "Patent Number"
-      expr: patent_number
-    - name: "Project Code"
-      expr: project_code
-    - name: "Project Completion Date"
-      expr: project_completion_date
+    - name: "project_status"
+      expr: rd_project_status
+      comment: "Current lifecycle status of the R&D project (e.g. Active, On Hold, Completed, Cancelled) for pipeline segmentation."
+    - name: "project_type"
+      expr: project_type
+      comment: "Classification of the R&D project type (e.g. Innovation, Renovation, Cost Reduction) for portfolio mix analysis."
+    - name: "stage_gate_phase"
+      expr: stage_gate_phase
+      comment: "Current stage-gate phase of the project, enabling funnel and throughput analysis across development stages."
+    - name: "strategic_priority_tier"
+      expr: strategic_priority_tier
+      comment: "Strategic priority tier assigned to the project, used to segment investment and resource allocation by priority."
+    - name: "portfolio_category"
+      expr: portfolio_category
+      comment: "Portfolio category grouping for the project, enabling cross-category investment and pipeline analysis."
+    - name: "risk_level"
+      expr: risk_level
+      comment: "Risk level classification of the project, used to monitor high-risk project concentration in the portfolio."
+    - name: "target_launch_date_month"
+      expr: DATE_TRUNC('month', target_launch_date)
+      comment: "Month of the planned product launch date, enabling launch pipeline forecasting by time period."
+    - name: "project_start_year"
+      expr: YEAR(project_start_date)
+      comment: "Year the project started, used for cohort and vintage analysis of the R&D portfolio."
   measures:
-    - name: "Row Count"
+    - name: "total_rd_projects"
       expr: COUNT(1)
-    - name: "Distinct Rd Project"
+      comment: "Total number of R&D projects in the portfolio. Baseline KPI for pipeline size and capacity planning."
+    - name: "total_budget_allocated"
+      expr: SUM(CAST(budget_allocated AS DOUBLE))
+      comment: "Total R&D budget allocated across all projects. Core financial KPI for investment oversight and resource governance."
+    - name: "total_budget_spent"
+      expr: SUM(CAST(budget_spent AS DOUBLE))
+      comment: "Total R&D budget actually spent across all projects. Tracks actual investment burn against allocation."
+    - name: "avg_budget_per_project"
+      expr: AVG(CAST(budget_allocated AS DOUBLE))
+      comment: "Average budget allocated per R&D project. Benchmarks investment intensity and identifies outlier projects."
+    - name: "total_sustainability_score"
+      expr: SUM(CAST(sustainability_score AS DOUBLE))
+      comment: "Sum of sustainability scores across all R&D projects. Used to track aggregate ESG commitment embedded in the innovation pipeline."
+    - name: "avg_sustainability_score"
+      expr: AVG(CAST(sustainability_score AS DOUBLE))
+      comment: "Average sustainability score across R&D projects. Tracks the portfolio-level ESG quality of innovation investments."
+    - name: "avg_target_cogs"
+      expr: AVG(CAST(target_cogs AS DOUBLE))
+      comment: "Average target cost of goods sold across R&D projects. Monitors cost competitiveness of the innovation pipeline at design stage."
+    - name: "avg_target_rsp"
+      expr: AVG(CAST(target_rsp AS DOUBLE))
+      comment: "Average target retail selling price across R&D projects. Tracks the intended price positioning of the innovation pipeline."
+    - name: "distinct_active_projects"
       expr: COUNT(DISTINCT rd_project_id)
-    - name: "Total Budget Allocated"
-      expr: SUM(budget_allocated)
-    - name: "Average Budget Allocated"
-      expr: AVG(budget_allocated)
-    - name: "Total Budget Spent"
-      expr: SUM(budget_spent)
-    - name: "Average Budget Spent"
-      expr: AVG(budget_spent)
-    - name: "Total Strategic Fit Rationale"
-      expr: SUM(strategic_fit_rationale)
-    - name: "Average Strategic Fit Rationale"
-      expr: AVG(strategic_fit_rationale)
-    - name: "Total Strategic Priority Tier"
-      expr: SUM(strategic_priority_tier)
-    - name: "Average Strategic Priority Tier"
-      expr: AVG(strategic_priority_tier)
-    - name: "Total Sustainability Score"
-      expr: SUM(sustainability_score)
-    - name: "Average Sustainability Score"
-      expr: AVG(sustainability_score)
-    - name: "Total Target Cogs"
-      expr: SUM(target_cogs)
-    - name: "Average Target Cogs"
-      expr: AVG(target_cogs)
-    - name: "Total Target Rsp"
-      expr: SUM(target_rsp)
-    - name: "Average Target Rsp"
-      expr: AVG(target_rsp)
+      comment: "Count of distinct active R&D projects. Ensures accurate pipeline headcount without double-counting."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`research_regulatory_dossier`
@@ -877,464 +603,152 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Regulatory Dossier business metrics"
+  comment: "Regulatory dossier metrics tracking submission pipeline, approval rates, and compliance completeness — essential for market authorization and launch readiness governance."
   source: "`vibe_consumer_goods_v1`.`research`.`regulatory_dossier`"
   dimensions:
-    - name: "Actual Approval Date"
-      expr: actual_approval_date
-    - name: "Actual Submission Date"
-      expr: actual_submission_date
-    - name: "Additional Information Due Date"
-      expr: additional_information_due_date
-    - name: "Additional Information Requested"
-      expr: additional_information_requested
-    - name: "Allergen Declaration Complete"
-      expr: allergen_declaration_complete
-    - name: "Animal Testing Statement"
-      expr: animal_testing_statement
-    - name: "Authority Reference Number"
-      expr: authority_reference_number
-    - name: "Claim Substantiation Status"
-      expr: claim_substantiation_status
-    - name: "Cmr Substance Present"
-      expr: cmr_substance_present
-    - name: "Cpnp Reference Number"
-      expr: cpnp_reference_number
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Dossier Reference Number"
-      expr: dossier_reference_number
-    - name: "Dossier Status"
+    - name: "dossier_status"
       expr: dossier_status
-    - name: "Dossier Type"
+      comment: "Current status of the regulatory dossier (e.g. In Preparation, Submitted, Approved, Rejected) for submission pipeline monitoring."
+    - name: "dossier_type"
       expr: dossier_type
-    - name: "Dossier Version"
-      expr: dossier_version
-    - name: "Expected Approval Date"
-      expr: expected_approval_date
+      comment: "Type of regulatory dossier (e.g. CPNP, FDA, ASEAN) for jurisdiction-specific compliance tracking."
+    - name: "submission_jurisdiction"
+      expr: submission_jurisdiction
+      comment: "Jurisdiction for the regulatory submission, used for geographic compliance coverage analysis."
+    - name: "regulatory_framework"
+      expr: regulatory_framework
+      comment: "Regulatory framework governing the dossier (e.g. EU Cosmetics Regulation, FDA OTC) for framework-level compliance analysis."
+    - name: "safety_assessment_status"
+      expr: safety_assessment_status
+      comment: "Safety assessment status within the dossier, used to identify dossiers blocked by incomplete safety documentation."
+    - name: "gmp_compliance_status"
+      expr: gmp_compliance_status
+      comment: "GMP compliance status of the dossier, critical for regulatory submission eligibility."
+    - name: "submission_year"
+      expr: YEAR(submission_date)
+      comment: "Year of regulatory submission, used for trend analysis of submission activity and approval cycle times."
   measures:
-    - name: "Row Count"
+    - name: "total_regulatory_dossiers"
       expr: COUNT(1)
-    - name: "Distinct Regulatory Dossier"
-      expr: COUNT(DISTINCT regulatory_dossier_id)
+      comment: "Total number of regulatory dossiers. Tracks the volume of regulatory submission activity and market authorization pipeline."
+    - name: "approved_dossiers_count"
+      expr: COUNT(CASE WHEN dossier_status = 'Approved' THEN 1 END)
+      comment: "Number of approved regulatory dossiers. Tracks market authorization success rate and launch readiness."
+    - name: "rejected_dossiers_count"
+      expr: COUNT(CASE WHEN dossier_status = 'Rejected' THEN 1 END)
+      comment: "Number of rejected regulatory dossiers. Tracks regulatory failure rate and identifies systemic compliance gaps."
+    - name: "additional_info_requested_count"
+      expr: COUNT(CASE WHEN additional_information_requested = TRUE THEN 1 END)
+      comment: "Number of dossiers where regulatory authorities requested additional information. Tracks dossier quality and submission completeness."
+    - name: "inci_listing_complete_count"
+      expr: COUNT(CASE WHEN inci_listing_complete = TRUE THEN 1 END)
+      comment: "Number of dossiers with complete INCI ingredient listings. Tracks labeling compliance readiness across the submission portfolio."
+    - name: "distinct_jurisdictions_submitted"
+      expr: COUNT(DISTINCT submission_jurisdiction)
+      comment: "Number of distinct jurisdictions with regulatory submissions. Tracks the geographic breadth of market authorization activity."
 $$;
 
-CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`research_research_formulation`
+CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`research_formulation`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Research Formulation business metrics"
+  comment: "R&D formulation portfolio metrics tracking development status, sustainability performance, and consumer test scores across the active formulation pipeline."
   source: "`vibe_consumer_goods_v1`.`research`.`research_formulation`"
   dimensions:
-    - name: "Approved Date"
-      expr: approved_date
-    - name: "Claim Support Required"
-      expr: claim_support_required
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Cruelty Free Flag"
-      expr: cruelty_free_flag
-    - name: "Development Status"
-      expr: development_status
-    - name: "Discontinued Date"
-      expr: discontinued_date
-    - name: "Formulation Code"
-      expr: formulation_code
-    - name: "Formulation Description"
-      expr: formulation_description
-    - name: "Formulation Name"
-      expr: formulation_name
-    - name: "Formulation Type"
+    - name: "research_formulation_status"
+      expr: research_formulation_status
+      comment: "Current development status of the research formulation (e.g. In Development, Approved, Discontinued) for pipeline monitoring."
+    - name: "formulation_type"
       expr: formulation_type
-    - name: "Fragrance Type"
-      expr: fragrance_type
-    - name: "Last Modified Timestamp"
-      expr: last_modified_timestamp
-    - name: "Microbiological Challenge Test Passed"
-      expr: microbiological_challenge_test_passed
-    - name: "Mixing Time Minutes"
-      expr: mixing_time_minutes
-    - name: "Patent Filed Flag"
-      expr: patent_filed_flag
-    - name: "Patent Number"
-      expr: patent_number
+      comment: "Type of formulation (e.g. Cream, Gel, Serum) for category-level portfolio analysis."
+    - name: "lifecycle_stage"
+      expr: lifecycle_stage
+      comment: "Lifecycle stage of the formulation (e.g. Concept, Development, Scale-Up) for stage-gate pipeline analysis."
+    - name: "safety_assessment_status"
+      expr: safety_assessment_status
+      comment: "Safety assessment status of the formulation, used to identify formulations pending or failing safety clearance."
+    - name: "stability_test_status"
+      expr: stability_test_status
+      comment: "Stability test status of the formulation, used to track launch readiness and identify stability failures."
+    - name: "vegan_compliant_flag"
+      expr: vegan_compliant_flag
+      comment: "Flag indicating vegan compliance of the formulation, used to track the vegan-certified portfolio proportion."
+    - name: "cruelty_free_flag"
+      expr: cruelty_free_flag
+      comment: "Flag indicating cruelty-free status of the formulation, used to track ethical sourcing compliance in the portfolio."
   measures:
-    - name: "Row Count"
+    - name: "total_research_formulations"
       expr: COUNT(1)
-    - name: "Distinct Research Formulation"
-      expr: COUNT(DISTINCT research_formulation_id)
-    - name: "Total Allergen Declaration"
-      expr: SUM(allergen_declaration)
-    - name: "Average Allergen Declaration"
-      expr: AVG(allergen_declaration)
-    - name: "Total Batch Size Kg"
-      expr: SUM(batch_size_kg)
-    - name: "Average Batch Size Kg"
-      expr: AVG(batch_size_kg)
-    - name: "Total Consumer Test Score"
-      expr: SUM(consumer_test_score)
-    - name: "Average Consumer Test Score"
-      expr: AVG(consumer_test_score)
-    - name: "Total Cooling Rate Celsius Per Min"
-      expr: SUM(cooling_rate_celsius_per_min)
-    - name: "Average Cooling Rate Celsius Per Min"
-      expr: AVG(cooling_rate_celsius_per_min)
-    - name: "Total Cost Currency Code"
-      expr: SUM(cost_currency_code)
-    - name: "Average Cost Currency Code"
-      expr: AVG(cost_currency_code)
-    - name: "Total Cost Target Per Unit"
-      expr: SUM(cost_target_per_unit)
-    - name: "Average Cost Target Per Unit"
-      expr: AVG(cost_target_per_unit)
-    - name: "Total Mixing Temperature Celsius"
-      expr: SUM(mixing_temperature_celsius)
-    - name: "Average Mixing Temperature Celsius"
-      expr: AVG(mixing_temperature_celsius)
-    - name: "Total Natural Content Percentage"
-      expr: SUM(natural_content_percentage)
-    - name: "Average Natural Content Percentage"
-      expr: AVG(natural_content_percentage)
-    - name: "Total Sensory Evaluation Score"
-      expr: SUM(sensory_evaluation_score)
-    - name: "Average Sensory Evaluation Score"
-      expr: AVG(sensory_evaluation_score)
-    - name: "Total Sustainability Score"
-      expr: SUM(sustainability_score)
-    - name: "Average Sustainability Score"
-      expr: AVG(sustainability_score)
-    - name: "Total Target Ph Max"
-      expr: SUM(target_ph_max)
-    - name: "Average Target Ph Max"
-      expr: AVG(target_ph_max)
-    - name: "Total Target Ph Min"
-      expr: SUM(target_ph_min)
-    - name: "Average Target Ph Min"
-      expr: AVG(target_ph_min)
+      comment: "Total number of research formulations in development. Tracks the size and diversity of the active formulation pipeline."
+    - name: "avg_sustainability_score"
+      expr: AVG(CAST(sustainability_score AS DOUBLE))
+      comment: "Average sustainability score across research formulations. Tracks the ESG quality of the formulation pipeline against corporate sustainability targets."
+    - name: "avg_consumer_test_score"
+      expr: AVG(CAST(consumer_test_score AS DOUBLE))
+      comment: "Average consumer test score across research formulations. Tracks consumer acceptance quality of the formulation pipeline."
+    - name: "avg_natural_content_percentage"
+      expr: AVG(CAST(natural_content_percentage AS DOUBLE))
+      comment: "Average natural content percentage across formulations. Tracks the portfolio's progress toward natural ingredient targets."
+    - name: "avg_cost_target_per_unit"
+      expr: AVG(CAST(cost_target_per_unit AS DOUBLE))
+      comment: "Average cost target per unit across research formulations. Monitors cost competitiveness of the formulation pipeline at design stage."
+    - name: "vegan_compliant_formulations_count"
+      expr: COUNT(CASE WHEN vegan_compliant_flag = TRUE THEN 1 END)
+      comment: "Number of vegan-compliant formulations. Tracks progress toward vegan portfolio targets and consumer demand alignment."
+    - name: "cruelty_free_formulations_count"
+      expr: COUNT(CASE WHEN cruelty_free_flag = TRUE THEN 1 END)
+      comment: "Number of cruelty-free formulations. Tracks ethical compliance coverage of the formulation portfolio."
 $$;
 
-CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`research_research_formulation_ingredient`
+CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`research_stability_study`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Research Formulation Ingredient business metrics"
-  source: "`vibe_consumer_goods_v1`.`research`.`research_formulation_ingredient`"
-  dimensions:
-    - name: "Addition Order"
-      expr: addition_order
-    - name: "Allergen Flag"
-      expr: allergen_flag
-    - name: "Approval Date"
-      expr: approval_date
-    - name: "Asean Restricted Flag"
-      expr: asean_restricted_flag
-    - name: "Cas Number"
-      expr: cas_number
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Einecs Number"
-      expr: einecs_number
-    - name: "Eu Restricted Flag"
-      expr: eu_restricted_flag
-    - name: "Function Class"
-      expr: function_class
-    - name: "Inci Name"
-      expr: inci_name
-    - name: "Inclusion Basis"
-      expr: inclusion_basis
-    - name: "Ingredient Sequence Number"
-      expr: ingredient_sequence_number
-    - name: "Ingredient Status"
-      expr: ingredient_status
-    - name: "Last Modified Timestamp"
-      expr: last_modified_timestamp
-    - name: "Natural Origin Flag"
-      expr: natural_origin_flag
-    - name: "Notes"
-      expr: notes
-  measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Research Formulation Ingredient"
-      expr: COUNT(DISTINCT research_formulation_ingredient_id)
-    - name: "Total Asean Maximum Concentration Percent"
-      expr: SUM(asean_maximum_concentration_percent)
-    - name: "Average Asean Maximum Concentration Percent"
-      expr: AVG(asean_maximum_concentration_percent)
-    - name: "Total Cost Currency Code"
-      expr: SUM(cost_currency_code)
-    - name: "Average Cost Currency Code"
-      expr: AVG(cost_currency_code)
-    - name: "Total Cost Per Kg"
-      expr: SUM(cost_per_kg)
-    - name: "Average Cost Per Kg"
-      expr: AVG(cost_per_kg)
-    - name: "Total Eu Maximum Concentration Percent"
-      expr: SUM(eu_maximum_concentration_percent)
-    - name: "Average Eu Maximum Concentration Percent"
-      expr: AVG(eu_maximum_concentration_percent)
-    - name: "Total Maximum Concentration Percent"
-      expr: SUM(maximum_concentration_percent)
-    - name: "Average Maximum Concentration Percent"
-      expr: AVG(maximum_concentration_percent)
-    - name: "Total Minimum Concentration Percent"
-      expr: SUM(minimum_concentration_percent)
-    - name: "Average Minimum Concentration Percent"
-      expr: AVG(minimum_concentration_percent)
-    - name: "Total Target Concentration Percent"
-      expr: SUM(target_concentration_percent)
-    - name: "Average Target Concentration Percent"
-      expr: AVG(target_concentration_percent)
-    - name: "Total Us Fda Maximum Concentration Percent"
-      expr: SUM(us_fda_maximum_concentration_percent)
-    - name: "Average Us Fda Maximum Concentration Percent"
-      expr: AVG(us_fda_maximum_concentration_percent)
-$$;
-
-CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`research_research_packaging_spec`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Research Packaging Spec business metrics"
-  source: "`vibe_consumer_goods_v1`.`research`.`research_packaging_spec`"
-  dimensions:
-    - name: "Approval Date"
-      expr: approval_date
-    - name: "Barrier Properties"
-      expr: barrier_properties
-    - name: "Child Resistant Certified"
-      expr: child_resistant_certified
-    - name: "Closure Type"
-      expr: closure_type
-    - name: "Color Specification"
-      expr: color_specification
-    - name: "Compatibility Test Date"
-      expr: compatibility_test_date
-    - name: "Compatibility Test Result"
-      expr: compatibility_test_result
-    - name: "Component Type"
-      expr: component_type
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Eu Reach Compliant"
-      expr: eu_reach_compliant
-    - name: "Fda Food Contact Approved"
-      expr: fda_food_contact_approved
-    - name: "Formulation Compatibility Status"
-      expr: formulation_compatibility_status
-    - name: "Last Modified Timestamp"
-      expr: last_modified_timestamp
-    - name: "Lead Time Days"
-      expr: lead_time_days
-    - name: "Material Grade"
-      expr: material_grade
-    - name: "Material Type"
-      expr: material_type
-  measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Research Packaging Spec"
-      expr: COUNT(DISTINCT research_packaging_spec_id)
-    - name: "Total Capacity Ml"
-      expr: SUM(capacity_ml)
-    - name: "Average Capacity Ml"
-      expr: AVG(capacity_ml)
-    - name: "Total Component Height Mm"
-      expr: SUM(component_height_mm)
-    - name: "Average Component Height Mm"
-      expr: AVG(component_height_mm)
-    - name: "Total Component Length Mm"
-      expr: SUM(component_length_mm)
-    - name: "Average Component Length Mm"
-      expr: AVG(component_length_mm)
-    - name: "Total Component Weight Grams"
-      expr: SUM(component_weight_grams)
-    - name: "Average Component Weight Grams"
-      expr: AVG(component_weight_grams)
-    - name: "Total Component Width Mm"
-      expr: SUM(component_width_mm)
-    - name: "Average Component Width Mm"
-      expr: AVG(component_width_mm)
-    - name: "Total Cost Currency Code"
-      expr: SUM(cost_currency_code)
-    - name: "Average Cost Currency Code"
-      expr: AVG(cost_currency_code)
-    - name: "Total Cost Per Unit"
-      expr: SUM(cost_per_unit)
-    - name: "Average Cost Per Unit"
-      expr: AVG(cost_per_unit)
-    - name: "Total Decoration Method"
-      expr: SUM(decoration_method)
-    - name: "Average Decoration Method"
-      expr: AVG(decoration_method)
-    - name: "Total Recycled Content Percentage"
-      expr: SUM(recycled_content_percentage)
-    - name: "Average Recycled Content Percentage"
-      expr: AVG(recycled_content_percentage)
-    - name: "Total Sustainability Score"
-      expr: SUM(sustainability_score)
-    - name: "Average Sustainability Score"
-      expr: AVG(sustainability_score)
-$$;
-
-CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`research_research_sample`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Research Sample business metrics"
-  source: "`vibe_consumer_goods_v1`.`research`.`research_sample`"
-  dimensions:
-    - name: "Batch Number"
-      expr: batch_number
-    - name: "Research Sample Code"
-      expr: research_sample_code
-    - name: "Collected By"
-      expr: collected_by
-    - name: "Collection Location"
-      expr: collection_location
-    - name: "Collection Timestamp"
-      expr: collection_timestamp
-    - name: "Compliance Flag"
-      expr: compliance_flag
-    - name: "Research Sample Description"
-      expr: research_sample_description
-    - name: "Expiry Date"
-      expr: expiry_date
-    - name: "Hazard Classification"
-      expr: hazard_classification
-    - name: "Is Control"
-      expr: is_control
-    - name: "Material Category"
-      expr: material_category
-    - name: "Research Sample Name"
-      expr: research_sample_name
-    - name: "Notes"
-      expr: notes
-    - name: "Quality Status"
-      expr: quality_status
-    - name: "Record Audit Created"
-      expr: record_audit_created
-    - name: "Record Audit Updated"
-      expr: record_audit_updated
-  measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Research Sample"
-      expr: COUNT(DISTINCT research_sample_id)
-    - name: "Total Concentration Percent"
-      expr: SUM(concentration_percent)
-    - name: "Average Concentration Percent"
-      expr: AVG(concentration_percent)
-    - name: "Total Storage Temperature C"
-      expr: SUM(storage_temperature_c)
-    - name: "Average Storage Temperature C"
-      expr: AVG(storage_temperature_c)
-    - name: "Total Volume Ml"
-      expr: SUM(volume_ml)
-    - name: "Average Volume Ml"
-      expr: AVG(volume_ml)
-    - name: "Total Weight G"
-      expr: SUM(weight_g)
-    - name: "Average Weight G"
-      expr: AVG(weight_g)
-$$;
-
-CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`research_research_stability_study`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Research Stability Study business metrics"
+  comment: "Stability study metrics tracking study completion, shelf-life outcomes, and GMP compliance across R&D stability programs — essential for product launch readiness and regulatory submission."
   source: "`vibe_consumer_goods_v1`.`research`.`research_stability_study`"
   dimensions:
-    - name: "Approved By"
-      expr: approved_by
-    - name: "Batch Number"
-      expr: batch_number
-    - name: "Chamber Code"
-      expr: chamber_code
-    - name: "Color Stability Method"
-      expr: color_stability_method
-    - name: "Comments"
-      expr: comments
-    - name: "Container Closure System"
-      expr: container_closure_system
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Data Source System"
-      expr: data_source_system
-    - name: "Deviation Count"
-      expr: deviation_count
-    - name: "Gmp Compliant Flag"
-      expr: gmp_compliant_flag
-    - name: "Ich Condition"
+    - name: "study_status"
+      expr: study_status
+      comment: "Current status of the stability study (e.g. Ongoing, Completed, Failed) for pipeline and launch readiness monitoring."
+    - name: "study_type"
+      expr: study_type
+      comment: "Type of stability study (e.g. Accelerated, Real-Time, Photostability) for methodology-level analysis."
+    - name: "ich_condition"
       expr: ich_condition
-    - name: "Inci Ingredient List"
-      expr: inci_ingredient_list
-    - name: "Last Modified Timestamp"
-      expr: last_modified_timestamp
-    - name: "Microbial Limit Cfu Per G"
-      expr: microbial_limit_cfu_per_g
-    - name: "Overall Stability Conclusion"
-      expr: overall_stability_conclusion
-    - name: "Ph Target Range"
-      expr: ph_target_range
+      comment: "ICH stability condition (e.g. 25°C/60%RH, 40°C/75%RH) for regulatory condition-level performance analysis."
+    - name: "storage_condition"
+      expr: storage_condition
+      comment: "Storage condition applied during the stability study, used to compare outcomes across environmental conditions."
+    - name: "gmp_compliant_flag"
+      expr: gmp_compliant_flag
+      comment: "Flag indicating GMP compliance of the stability study, critical for regulatory submission eligibility."
+    - name: "regulatory_submission_flag"
+      expr: regulatory_submission_flag
+      comment: "Flag indicating whether the study is included in a regulatory submission, used to track regulatory-grade study coverage."
+    - name: "study_start_year"
+      expr: YEAR(study_start_date)
+      comment: "Year the stability study started, used for cohort analysis of study outcomes and shelf-life trends."
   measures:
-    - name: "Row Count"
+    - name: "total_stability_studies"
       expr: COUNT(1)
-    - name: "Distinct Research Stability Study"
-      expr: COUNT(DISTINCT research_stability_study_id)
-$$;
-
-CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`research_respondent`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Respondent business metrics"
-  source: "`vibe_consumer_goods_v1`.`research`.`respondent`"
-  dimensions:
-    - name: "Address Line1"
-      expr: address_line1
-    - name: "Address Line2"
-      expr: address_line2
-    - name: "City"
-      expr: city
-    - name: "Consent Given Date"
-      expr: consent_given_date
-    - name: "Consent Revoked Flag"
-      expr: consent_revoked_flag
-    - name: "Country Code"
-      expr: country_code
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Date Of Birth"
-      expr: date_of_birth
-    - name: "Device Type"
-      expr: device_type
-    - name: "Education Level"
-      expr: education_level
-    - name: "Email"
-      expr: email
-    - name: "Ethnicity"
-      expr: ethnicity
-    - name: "External Code"
-      expr: external_code
-    - name: "Full Name"
-      expr: full_name
-    - name: "Gender"
-      expr: gender
-    - name: "Household Size"
-      expr: household_size
-  measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Respondent"
-      expr: COUNT(DISTINCT respondent_id)
+      comment: "Total number of stability studies conducted. Tracks the volume of stability testing supporting product development and regulatory submissions."
+    - name: "avg_temperature_celsius"
+      expr: AVG(CAST(temperature_celsius AS DOUBLE))
+      comment: "Average storage temperature across stability studies. Used to verify study conditions align with ICH guidelines."
+    - name: "avg_humidity_pct"
+      expr: AVG(CAST(humidity_pct AS DOUBLE))
+      comment: "Average humidity percentage across stability studies. Monitors environmental condition consistency across the stability program."
+    - name: "gmp_compliant_studies_count"
+      expr: COUNT(CASE WHEN gmp_compliant_flag = TRUE THEN 1 END)
+      comment: "Number of GMP-compliant stability studies. Tracks the proportion of the stability portfolio eligible for regulatory submission."
+    - name: "regulatory_submission_studies_count"
+      expr: COUNT(CASE WHEN regulatory_submission_flag = TRUE THEN 1 END)
+      comment: "Number of stability studies included in regulatory submissions. Tracks regulatory-grade evidence generation for market authorization."
+    - name: "distinct_formulations_in_stability"
+      expr: COUNT(DISTINCT research_formulation_id)
+      comment: "Number of distinct formulations under stability testing. Tracks stability coverage of the active formulation portfolio."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`research_safety_assessment`
@@ -1342,70 +756,52 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Safety Assessment business metrics"
+  comment: "Product safety assessment metrics tracking assessment outcomes, margin of safety, and compliance status — critical for regulatory approval and consumer protection governance."
   source: "`vibe_consumer_goods_v1`.`research`.`safety_assessment`"
   dimensions:
-    - name: "Application Frequency"
-      expr: application_frequency
-    - name: "Application Site"
-      expr: application_site
-    - name: "Approval Date"
-      expr: approval_date
-    - name: "Assessment Code"
-      expr: assessment_code
-    - name: "Assessment Date"
-      expr: assessment_date
-    - name: "Assessment Start Date"
-      expr: assessment_start_date
-    - name: "Assessment Status"
+    - name: "assessment_status"
       expr: assessment_status
-    - name: "Assessment Type"
+      comment: "Current status of the safety assessment (e.g. In Progress, Approved, Rejected) for compliance pipeline monitoring."
+    - name: "assessment_type"
       expr: assessment_type
-    - name: "Assessor Name"
-      expr: assessor_name
-    - name: "Assessor Qualification"
-      expr: assessor_qualification
-    - name: "Conditions Of Use"
-      expr: conditions_of_use
-    - name: "Contraindications"
-      expr: contraindications
-    - name: "Cpnp Notification Required"
+      comment: "Type of safety assessment (e.g. Dermatological, Toxicological, Microbiological) for risk categorization."
+    - name: "safety_conclusion"
+      expr: safety_conclusion
+      comment: "Overall safety conclusion of the assessment (e.g. Safe, Conditionally Safe, Unsafe) for risk portfolio analysis."
+    - name: "regulatory_market_scope"
+      expr: regulatory_market_scope
+      comment: "Market scope covered by the safety assessment (e.g. EU, US, ASEAN) for regulatory coverage analysis."
+    - name: "restricted_substances_compliance"
+      expr: restricted_substances_compliance
+      comment: "Flag indicating compliance with restricted substances regulations, used to identify non-compliant formulations."
+    - name: "cpnp_notification_required"
       expr: cpnp_notification_required
-    - name: "Cpnp Reference Number"
-      expr: cpnp_reference_number
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Document Location"
-      expr: document_location
+      comment: "Flag indicating whether CPNP notification is required, used for EU regulatory compliance tracking."
+    - name: "assessment_year"
+      expr: YEAR(assessment_date)
+      comment: "Year the safety assessment was conducted, used for trend analysis of safety compliance activity."
   measures:
-    - name: "Row Count"
+    - name: "total_safety_assessments"
       expr: COUNT(1)
-    - name: "Distinct Safety Assessment"
-      expr: COUNT(DISTINCT safety_assessment_id)
-    - name: "Total Allergen Declaration"
-      expr: SUM(allergen_declaration)
-    - name: "Average Allergen Declaration"
-      expr: AVG(allergen_declaration)
-    - name: "Total Assessor Registration Number"
-      expr: SUM(assessor_registration_number)
-    - name: "Average Assessor Registration Number"
-      expr: AVG(assessor_registration_number)
-    - name: "Total Exposure Duration"
-      expr: SUM(exposure_duration)
-    - name: "Average Exposure Duration"
-      expr: AVG(exposure_duration)
-    - name: "Total Margin Of Safety"
-      expr: SUM(margin_of_safety)
-    - name: "Average Margin Of Safety"
-      expr: AVG(margin_of_safety)
-    - name: "Total Noael Value"
-      expr: SUM(noael_value)
-    - name: "Average Noael Value"
-      expr: AVG(noael_value)
-    - name: "Total Systemic Exposure Estimate"
-      expr: SUM(systemic_exposure_estimate)
-    - name: "Average Systemic Exposure Estimate"
-      expr: AVG(systemic_exposure_estimate)
+      comment: "Total number of safety assessments conducted. Baseline KPI for regulatory compliance workload and portfolio coverage."
+    - name: "avg_margin_of_safety"
+      expr: AVG(CAST(margin_of_safety AS DOUBLE))
+      comment: "Average margin of safety across all assessed formulations. Critical risk KPI — low values signal potential consumer safety concerns requiring immediate action."
+    - name: "avg_noael_value"
+      expr: AVG(CAST(noael_value AS DOUBLE))
+      comment: "Average No Observed Adverse Effect Level (NOAEL) across safety assessments. Tracks the toxicological safety threshold of the product portfolio."
+    - name: "avg_systemic_exposure_estimate"
+      expr: AVG(CAST(systemic_exposure_estimate AS DOUBLE))
+      comment: "Average systemic exposure estimate across assessments. Monitors consumer exposure levels relative to safety thresholds."
+    - name: "restricted_substances_non_compliant_count"
+      expr: COUNT(CASE WHEN restricted_substances_compliance = FALSE THEN 1 END)
+      comment: "Number of safety assessments flagging restricted substances non-compliance. Drives urgent remediation actions to prevent regulatory penalties and market withdrawal."
+    - name: "cpnp_notification_required_count"
+      expr: COUNT(CASE WHEN cpnp_notification_required = TRUE THEN 1 END)
+      comment: "Number of products requiring CPNP notification. Tracks EU regulatory filing obligations and compliance calendar."
+    - name: "distinct_formulations_assessed"
+      expr: COUNT(DISTINCT research_formulation_id)
+      comment: "Number of distinct research formulations that have undergone safety assessment. Tracks safety coverage of the active formulation portfolio."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`research_scale_up_trial`
@@ -1413,94 +809,46 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Scale Up Trial business metrics"
+  comment: "Scale-up trial metrics tracking manufacturing readiness, yield performance, and deviation rates as R&D formulations transition to commercial production — critical for launch readiness decisions."
   source: "`vibe_consumer_goods_v1`.`research`.`scale_up_trial`"
   dimensions:
-    - name: "Appearance Assessment"
-      expr: appearance_assessment
-    - name: "Color Measurement"
-      expr: color_measurement
-    - name: "Corrective Action Taken"
-      expr: corrective_action_taken
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Deviation Description"
-      expr: deviation_description
-    - name: "Deviation Impact Assessment"
-      expr: deviation_impact_assessment
-    - name: "Deviation Observed Flag"
-      expr: deviation_observed_flag
-    - name: "In Process Test Results"
-      expr: in_process_test_results
-    - name: "Last Modified Timestamp"
-      expr: last_modified_timestamp
-    - name: "Lessons Learned"
-      expr: lessons_learned
-    - name: "Manufacturing Readiness Level"
+    - name: "trial_status"
+      expr: trial_status
+      comment: "Current status of the scale-up trial (e.g. Planned, In Progress, Completed, Failed) for manufacturing readiness tracking."
+    - name: "trial_type"
+      expr: trial_type
+      comment: "Type of scale-up trial (e.g. Pilot, Commercial Scale) for stage-appropriate performance benchmarking."
+    - name: "manufacturing_readiness_level"
       expr: manufacturing_readiness_level
-    - name: "Manufacturing Sign Off Date"
-      expr: manufacturing_sign_off_date
-    - name: "Manufacturing Site Code"
-      expr: manufacturing_site_code
-    - name: "Mixing Speed Rpm"
-      expr: mixing_speed_rpm
-    - name: "Mixing Time Minutes"
-      expr: mixing_time_minutes
-    - name: "Next Steps"
-      expr: next_steps
+      comment: "Manufacturing readiness level achieved, used to assess technology transfer progress and launch readiness."
+    - name: "deviation_observed_flag"
+      expr: deviation_observed_flag
+      comment: "Flag indicating whether a process deviation was observed during the trial, used to identify problematic scale-up transitions."
+    - name: "trial_year"
+      expr: YEAR(trial_date)
+      comment: "Year the scale-up trial was conducted, used for trend analysis of manufacturing readiness over time."
   measures:
-    - name: "Row Count"
+    - name: "total_scale_up_trials"
       expr: COUNT(1)
-    - name: "Distinct Scale Up Trial"
-      expr: COUNT(DISTINCT scale_up_trial_id)
-    - name: "Total Actual Output Kg"
-      expr: SUM(actual_output_kg)
-    - name: "Average Actual Output Kg"
-      expr: AVG(actual_output_kg)
-    - name: "Total Batch Size Kg"
-      expr: SUM(batch_size_kg)
-    - name: "Average Batch Size Kg"
-      expr: AVG(batch_size_kg)
-    - name: "Total Cooling Rate Celsius Per Min"
-      expr: SUM(cooling_rate_celsius_per_min)
-    - name: "Average Cooling Rate Celsius Per Min"
-      expr: AVG(cooling_rate_celsius_per_min)
-    - name: "Total Cost Currency Code"
-      expr: SUM(cost_currency_code)
-    - name: "Average Cost Currency Code"
-      expr: AVG(cost_currency_code)
-    - name: "Total Equipment Configuration"
-      expr: SUM(equipment_configuration)
-    - name: "Average Equipment Configuration"
-      expr: AVG(equipment_configuration)
-    - name: "Total Heating Rate Celsius Per Min"
-      expr: SUM(heating_rate_celsius_per_min)
-    - name: "Average Heating Rate Celsius Per Min"
-      expr: AVG(heating_rate_celsius_per_min)
-    - name: "Total Pass Fail Rationale"
-      expr: SUM(pass_fail_rationale)
-    - name: "Average Pass Fail Rationale"
-      expr: AVG(pass_fail_rationale)
-    - name: "Total Ph Value"
-      expr: SUM(ph_value)
-    - name: "Average Ph Value"
-      expr: AVG(ph_value)
-    - name: "Total Process Temperature Celsius"
-      expr: SUM(process_temperature_celsius)
-    - name: "Average Process Temperature Celsius"
-      expr: AVG(process_temperature_celsius)
-    - name: "Total Scale Factor"
-      expr: SUM(scale_factor)
-    - name: "Average Scale Factor"
-      expr: AVG(scale_factor)
-    - name: "Total Trial Cost Amount"
-      expr: SUM(trial_cost_amount)
-    - name: "Average Trial Cost Amount"
-      expr: AVG(trial_cost_amount)
-    - name: "Total Yield Percentage"
-      expr: SUM(yield_percentage)
-    - name: "Average Yield Percentage"
-      expr: AVG(yield_percentage)
+      comment: "Total number of scale-up trials conducted. Tracks the volume of technology transfer activity from R&D to manufacturing."
+    - name: "avg_yield_pct"
+      expr: AVG(CAST(yield_pct AS DOUBLE))
+      comment: "Average yield percentage across scale-up trials. Primary manufacturing efficiency KPI — low yields signal process issues requiring reformulation or process optimization."
+    - name: "avg_actual_output_kg"
+      expr: AVG(CAST(actual_output_kg AS DOUBLE))
+      comment: "Average actual output in kilograms per scale-up trial. Tracks production volume achievement against planned batch sizes."
+    - name: "total_trial_cost"
+      expr: SUM(CAST(trial_cost_amount AS DOUBLE))
+      comment: "Total cost of scale-up trials. Tracks the financial investment in technology transfer and manufacturing readiness activities."
+    - name: "avg_trial_cost"
+      expr: AVG(CAST(trial_cost_amount AS DOUBLE))
+      comment: "Average cost per scale-up trial. Benchmarks technology transfer efficiency and identifies cost outliers."
+    - name: "deviation_trials_count"
+      expr: COUNT(CASE WHEN deviation_observed_flag = TRUE THEN 1 END)
+      comment: "Number of scale-up trials with observed process deviations. High deviation rates signal manufacturing readiness risk and potential launch delays."
+    - name: "avg_scale_factor"
+      expr: AVG(CAST(scale_factor AS DOUBLE))
+      comment: "Average scale factor achieved across trials. Tracks the magnitude of scale-up from lab to commercial production."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`research_sensory_evaluation`
@@ -1508,86 +856,55 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Sensory Evaluation business metrics"
+  comment: "Sensory evaluation metrics tracking overall liking, purchase intent, attribute scores, and panel quality to guide formulation decisions and consumer acceptance."
   source: "`vibe_consumer_goods_v1`.`research`.`sensory_evaluation`"
   dimensions:
-    - name: "Approval Status"
-      expr: approval_status
-    - name: "Approval Timestamp"
-      expr: approval_timestamp
-    - name: "Attributes Assessed"
-      expr: attributes_assessed
-    - name: "Benchmark Product Code"
-      expr: benchmark_product_code
-    - name: "Blinding Method"
-      expr: blinding_method
-    - name: "Completion Timestamp"
-      expr: completion_timestamp
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Evaluation Code"
-      expr: evaluation_code
-    - name: "Evaluation Date"
-      expr: evaluation_date
-    - name: "Evaluation Methodology"
-      expr: evaluation_methodology
-    - name: "Evaluation Notes"
-      expr: evaluation_notes
-    - name: "Evaluation Status"
+    - name: "evaluation_status"
       expr: evaluation_status
-    - name: "Formulation Version"
-      expr: formulation_version
-    - name: "Modified Timestamp"
-      expr: modified_timestamp
-    - name: "Panel Type"
+      comment: "Current status of the sensory evaluation (e.g., Planned, Completed, Cancelled) for pipeline tracking."
+    - name: "evaluation_type"
+      expr: evaluation_type
+      comment: "Type of sensory evaluation (e.g., Descriptive, Hedonic, Discrimination) for methodology analysis."
+    - name: "panel_type"
       expr: panel_type
-    - name: "Panelist Count"
-      expr: panelist_count
+      comment: "Type of sensory panel (e.g., Expert, Consumer, Semi-Trained) for panel quality segmentation."
+    - name: "product_category"
+      expr: product_category
+      comment: "Product category evaluated for category-level sensory performance analysis."
+    - name: "approval_status"
+      expr: approval_status
+      comment: "Approval status of the sensory evaluation for quality gate tracking."
+    - name: "regulatory_compliance_flag"
+      expr: regulatory_compliance_flag
+      comment: "Flag indicating regulatory compliance of the evaluation methodology."
+    - name: "evaluation_year"
+      expr: YEAR(evaluation_date)
+      comment: "Year of the sensory evaluation for trend analysis of sensory testing activity."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Sensory Evaluation"
+    - name: "total_sensory_evaluations"
       expr: COUNT(DISTINCT sensory_evaluation_id)
-    - name: "Total After Feel Score"
-      expr: SUM(after_feel_score)
-    - name: "Average After Feel Score"
-      expr: AVG(after_feel_score)
-    - name: "Total Color Score"
-      expr: SUM(color_score)
-    - name: "Average Color Score"
-      expr: AVG(color_score)
-    - name: "Total Confidence Level"
-      expr: SUM(confidence_level)
-    - name: "Average Confidence Level"
-      expr: AVG(confidence_level)
-    - name: "Total Data Quality Score"
-      expr: SUM(data_quality_score)
-    - name: "Average Data Quality Score"
-      expr: AVG(data_quality_score)
-    - name: "Total Odor Score"
-      expr: SUM(odor_score)
-    - name: "Average Odor Score"
-      expr: AVG(odor_score)
-    - name: "Total Overall Liking Score"
-      expr: SUM(overall_liking_score)
-    - name: "Average Overall Liking Score"
-      expr: AVG(overall_liking_score)
-    - name: "Total Purchase Intent Score"
-      expr: SUM(purchase_intent_score)
-    - name: "Average Purchase Intent Score"
-      expr: AVG(purchase_intent_score)
-    - name: "Total Rinse Off Feel Score"
-      expr: SUM(rinse_off_feel_score)
-    - name: "Average Rinse Off Feel Score"
-      expr: AVG(rinse_off_feel_score)
-    - name: "Total Spreadability Score"
-      expr: SUM(spreadability_score)
-    - name: "Average Spreadability Score"
-      expr: AVG(spreadability_score)
-    - name: "Total Texture Score"
-      expr: SUM(texture_score)
-    - name: "Average Texture Score"
-      expr: AVG(texture_score)
+      comment: "Total number of sensory evaluations conducted. Baseline measure of sensory testing activity."
+    - name: "avg_overall_liking_score"
+      expr: AVG(CAST(overall_liking_score AS DOUBLE))
+      comment: "Average overall liking score across sensory evaluations. Primary consumer acceptance KPI for formulation decisions."
+    - name: "avg_purchase_intent_score"
+      expr: AVG(CAST(purchase_intent_score AS DOUBLE))
+      comment: "Average purchase intent score across sensory evaluations. Tracks commercial viability of formulations."
+    - name: "avg_texture_score"
+      expr: AVG(CAST(texture_score AS DOUBLE))
+      comment: "Average texture score across sensory evaluations. Tracks a key sensory attribute for consumer goods formulations."
+    - name: "avg_odor_score"
+      expr: AVG(CAST(odor_score AS DOUBLE))
+      comment: "Average odor/fragrance score across sensory evaluations. Tracks fragrance performance as a key consumer acceptance driver."
+    - name: "avg_color_score"
+      expr: AVG(CAST(color_score AS DOUBLE))
+      comment: "Average color score across sensory evaluations. Tracks visual quality attribute performance."
+    - name: "avg_data_quality_score"
+      expr: AVG(CAST(data_quality_score AS DOUBLE))
+      comment: "Average data quality score across sensory evaluations. Tracks panel reliability and data integrity."
+    - name: "avg_confidence_level"
+      expr: AVG(CAST(confidence_level AS DOUBLE))
+      comment: "Average statistical confidence level across sensory evaluations. Tracks robustness of sensory evidence."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`research_stability_timepoint`
@@ -1595,58 +912,58 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Stability Timepoint business metrics"
+  comment: "Stability timepoint measurement metrics tracking pass/fail rates, deviation incidence, measured values vs. specifications, and regulatory reportability across stability study timepoints."
   source: "`vibe_consumer_goods_v1`.`research`.`stability_timepoint`"
   dimensions:
-    - name: "Analyst Name"
-      expr: analyst_name
-    - name: "Batch Number"
-      expr: batch_number
-    - name: "Comments"
-      expr: comments
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Data Integrity Hash"
-      expr: data_integrity_hash
-    - name: "Deviation Flag"
-      expr: deviation_flag
-    - name: "Deviation Reference Number"
-      expr: deviation_reference_number
-    - name: "Instrument Code"
-      expr: instrument_code
-    - name: "Last Modified Timestamp"
-      expr: last_modified_timestamp
-    - name: "Measurement Date"
-      expr: measurement_date
-    - name: "Pass Fail Status"
+    - name: "pass_fail_status"
       expr: pass_fail_status
-    - name: "Record Status"
-      expr: record_status
-    - name: "Regulatory Reportable Flag"
+      comment: "Pass/fail outcome at the stability timepoint. Core quality gate dimension for shelf-life and release decisions."
+    - name: "storage_condition"
+      expr: storage_condition
+      comment: "Storage condition at the timepoint for condition-level stability performance analysis."
+    - name: "test_parameter"
+      expr: test_parameter
+      comment: "Stability parameter being measured (e.g., pH, Viscosity, Appearance) for parameter-level trend analysis."
+    - name: "timepoint_label"
+      expr: timepoint_label
+      comment: "Label of the stability timepoint (e.g., T0, T3M, T6M) for time-series stability analysis."
+    - name: "deviation_flag"
+      expr: deviation_flag
+      comment: "Flag indicating a deviation was observed at this timepoint. Critical quality KPI for stability failure analysis."
+    - name: "regulatory_reportable_flag"
       expr: regulatory_reportable_flag
-    - name: "Retest Flag"
+      comment: "Flag indicating the result is regulatory reportable, for compliance obligation tracking."
+    - name: "retest_flag"
       expr: retest_flag
-    - name: "Retest Reason"
-      expr: retest_reason
-    - name: "Review Date"
-      expr: review_date
+      comment: "Flag indicating this is a retest measurement, for retest rate analysis."
+    - name: "measurement_date_month"
+      expr: DATE_TRUNC('MONTH', measurement_date)
+      comment: "Month of measurement for trend analysis of stability testing activity."
   measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Stability Timepoint"
+    - name: "total_timepoints"
       expr: COUNT(DISTINCT stability_timepoint_id)
-    - name: "Total Measured Value"
-      expr: SUM(measured_value)
-    - name: "Average Measured Value"
-      expr: AVG(measured_value)
-    - name: "Total Storage Humidity Pct"
-      expr: SUM(storage_humidity_pct)
-    - name: "Average Storage Humidity Pct"
-      expr: AVG(storage_humidity_pct)
-    - name: "Total Storage Temperature C"
-      expr: SUM(storage_temperature_c)
-    - name: "Average Storage Temperature C"
-      expr: AVG(storage_temperature_c)
+      comment: "Total number of stability timepoint measurements. Baseline measure of stability data volume."
+    - name: "deviation_timepoint_count"
+      expr: COUNT(CASE WHEN deviation_flag = TRUE THEN stability_timepoint_id END)
+      comment: "Number of timepoints with deviations observed. Critical quality KPI triggering stability failure investigation."
+    - name: "regulatory_reportable_count"
+      expr: COUNT(CASE WHEN regulatory_reportable_flag = TRUE THEN stability_timepoint_id END)
+      comment: "Number of regulatory reportable stability results. Tracks compliance obligation volume for regulatory affairs."
+    - name: "avg_measured_value"
+      expr: AVG(CAST(measured_value AS DOUBLE))
+      comment: "Average measured value across stability timepoints. Tracks central tendency of stability parameters over time."
+    - name: "avg_ph_value"
+      expr: AVG(CAST(ph_value AS DOUBLE))
+      comment: "Average pH value across stability timepoints. pH stability is a critical quality attribute for most consumer goods formulations."
+    - name: "avg_viscosity_cps"
+      expr: AVG(CAST(viscosity_cps AS DOUBLE))
+      comment: "Average viscosity in cPs across stability timepoints. Viscosity stability is a key physical quality attribute."
+    - name: "avg_storage_temperature_c"
+      expr: AVG(CAST(storage_temperature_c AS DOUBLE))
+      comment: "Average actual storage temperature across timepoints. Validates study condition adherence."
+    - name: "avg_timepoint_months"
+      expr: AVG(CAST(timepoint_months AS DOUBLE))
+      comment: "Average timepoint interval in months across all measurements. Tracks study duration distribution."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`research_stage_gate_milestone`
@@ -1654,135 +971,50 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Stage Gate Milestone business metrics"
+  comment: "Stage-gate milestone metrics tracking R&D project progression, investment approvals, and decision quality across the innovation funnel — core governance KPIs for portfolio steering."
   source: "`vibe_consumer_goods_v1`.`research`.`stage_gate_milestone`"
   dimensions:
-    - name: "Action Items"
-      expr: action_items
-    - name: "Created Timestamp"
-      expr: created_timestamp
-    - name: "Delay Reason"
-      expr: delay_reason
-    - name: "Deliverables Checklist Status"
-      expr: deliverables_checklist_status
-    - name: "Gate Attendees"
-      expr: gate_attendees
-    - name: "Gate Criteria Met Count"
-      expr: gate_criteria_met_count
-    - name: "Gate Criteria Total Count"
-      expr: gate_criteria_total_count
-    - name: "Gate Decision"
-      expr: gate_decision
-    - name: "Gate Duration Days"
-      expr: gate_duration_days
-    - name: "Gate Name"
-      expr: gate_name
-    - name: "Gate Number"
-      expr: gate_number
-    - name: "Gate Status"
+    - name: "gate_status"
       expr: gate_status
-    - name: "Investment Currency Code"
-      expr: investment_currency_code
-    - name: "Is Milestone Delayed"
+      comment: "Current status of the stage-gate review (e.g. Pending, Approved, Rejected, On Hold) for funnel throughput analysis."
+    - name: "gate_decision"
+      expr: gate_decision
+      comment: "Decision outcome at the gate review (e.g. Go, No-Go, Hold) for conversion rate and portfolio quality analysis."
+    - name: "gate_name"
+      expr: gate_name
+      comment: "Name of the stage-gate (e.g. Gate 1, Gate 3, Launch Gate) for funnel stage-level analysis."
+    - name: "is_milestone_delayed"
       expr: is_milestone_delayed
-    - name: "Modified Timestamp"
-      expr: modified_timestamp
-    - name: "Next Gate Target Date"
-      expr: next_gate_target_date
+      comment: "Flag indicating whether the milestone is delayed, used to track schedule adherence and identify bottlenecks in the innovation funnel."
+    - name: "regulatory_compliance_status"
+      expr: regulatory_compliance_status
+      comment: "Regulatory compliance status at the gate, used to identify projects with unresolved compliance issues blocking progression."
+    - name: "planned_date_month"
+      expr: DATE_TRUNC('month', planned_date)
+      comment: "Month of the planned gate review date, used for capacity planning of gate review resources."
   measures:
-    - name: "Row Count"
+    - name: "total_gate_milestones"
       expr: COUNT(1)
-    - name: "Distinct Stage Gate Milestone"
-      expr: COUNT(DISTINCT stage_gate_milestone_id)
-    - name: "Total Consumer Acceptance Score"
-      expr: SUM(consumer_acceptance_score)
-    - name: "Average Consumer Acceptance Score"
-      expr: AVG(consumer_acceptance_score)
-    - name: "Total Decision Rationale"
-      expr: SUM(decision_rationale)
-    - name: "Average Decision Rationale"
-      expr: AVG(decision_rationale)
-    - name: "Total Deliverables Completion Percentage"
-      expr: SUM(deliverables_completion_percentage)
-    - name: "Average Deliverables Completion Percentage"
-      expr: AVG(deliverables_completion_percentage)
-    - name: "Total Investment Approved Amount"
-      expr: SUM(investment_approved_amount)
-    - name: "Average Investment Approved Amount"
-      expr: AVG(investment_approved_amount)
-    - name: "Total Market Attractiveness Score"
-      expr: SUM(market_attractiveness_score)
-    - name: "Average Market Attractiveness Score"
-      expr: AVG(market_attractiveness_score)
-    - name: "Total Npv Estimate"
-      expr: SUM(npv_estimate)
-    - name: "Average Npv Estimate"
-      expr: AVG(npv_estimate)
-    - name: "Total Risk Assessment Score"
-      expr: SUM(risk_assessment_score)
-    - name: "Average Risk Assessment Score"
-      expr: AVG(risk_assessment_score)
-    - name: "Total Roi Estimate Percentage"
-      expr: SUM(roi_estimate_percentage)
-    - name: "Average Roi Estimate Percentage"
-      expr: AVG(roi_estimate_percentage)
-    - name: "Total Sustainability Score"
-      expr: SUM(sustainability_score)
-    - name: "Average Sustainability Score"
-      expr: AVG(sustainability_score)
-    - name: "Total Technical Feasibility Score"
-      expr: SUM(technical_feasibility_score)
-    - name: "Average Technical Feasibility Score"
-      expr: AVG(technical_feasibility_score)
-$$;
-
-CREATE OR REPLACE VIEW `vibe_consumer_goods_v1`.`_metrics`.`research_study_protocol`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Study Protocol business metrics"
-  source: "`vibe_consumer_goods_v1`.`research`.`study_protocol`"
-  dimensions:
-    - name: "Amendment Date"
-      expr: amendment_date
-    - name: "Amendment Number"
-      expr: amendment_number
-    - name: "Blinding"
-      expr: blinding
-    - name: "Creation Timestamp"
-      expr: creation_timestamp
-    - name: "Data Retention Period"
-      expr: data_retention_period
-    - name: "Data Sharing Policy"
-      expr: data_sharing_policy
-    - name: "Study Protocol Description"
-      expr: study_protocol_description
-    - name: "Design Type"
-      expr: design_type
-    - name: "Effective End Date"
-      expr: effective_end_date
-    - name: "Effective Start Date"
-      expr: effective_start_date
-    - name: "Ethics Approval Date"
-      expr: ethics_approval_date
-    - name: "Ethics Approval Number"
-      expr: ethics_approval_number
-    - name: "Exclusion Criteria"
-      expr: exclusion_criteria
-    - name: "Inclusion Criteria"
-      expr: inclusion_criteria
-    - name: "Indication"
-      expr: indication
-    - name: "Is Confidential"
-      expr: is_confidential
-  measures:
-    - name: "Row Count"
-      expr: COUNT(1)
-    - name: "Distinct Study Protocol"
-      expr: COUNT(DISTINCT study_protocol_id)
-    - name: "Total Sample Size"
-      expr: SUM(sample_size)
-    - name: "Average Sample Size"
-      expr: AVG(sample_size)
+      comment: "Total number of stage-gate milestones reviewed. Tracks the volume of governance activity across the innovation portfolio."
+    - name: "total_investment_approved"
+      expr: SUM(CAST(investment_approved_amount AS DOUBLE))
+      comment: "Total investment approved at stage-gate reviews. Core financial governance KPI tracking capital committed to the innovation pipeline."
+    - name: "avg_investment_approved"
+      expr: AVG(CAST(investment_approved_amount AS DOUBLE))
+      comment: "Average investment approved per gate milestone. Benchmarks investment intensity at each stage of the innovation funnel."
+    - name: "avg_npv_estimate"
+      expr: AVG(CAST(npv_estimate AS DOUBLE))
+      comment: "Average NPV estimate at gate reviews. Tracks the financial quality of projects progressing through the innovation funnel."
+    - name: "avg_technical_feasibility_score"
+      expr: AVG(CAST(technical_feasibility_score AS DOUBLE))
+      comment: "Average technical feasibility score at gate reviews. Monitors the technical readiness quality of projects advancing through the funnel."
+    - name: "avg_market_attractiveness_score"
+      expr: AVG(CAST(market_attractiveness_score AS DOUBLE))
+      comment: "Average market attractiveness score at gate reviews. Tracks the commercial quality of projects in the innovation pipeline."
+    - name: "delayed_milestones_count"
+      expr: COUNT(CASE WHEN is_milestone_delayed = TRUE THEN 1 END)
+      comment: "Number of delayed stage-gate milestones. Tracks schedule adherence and identifies systemic bottlenecks in the innovation process."
+    - name: "avg_deliverables_completion_pct"
+      expr: AVG(CAST(deliverables_completion_percentage AS DOUBLE))
+      comment: "Average deliverables completion percentage at gate reviews. Tracks readiness quality of projects entering gate reviews."
 $$;

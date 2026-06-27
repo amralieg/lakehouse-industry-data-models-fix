@@ -1,5 +1,5 @@
 -- Schema for Domain: quality | Business:  | Version: v2_ecm
--- Generated on: 2026-06-22 15:33:34
+-- Generated on: 2026-06-27 00:09:59
 
 -- ========= DATABASE =========
 CREATE DATABASE IF NOT EXISTS `vibe_construction_v1`.`quality` COMMENT 'QA/QC (Quality Assurance/Quality Control) domain managing ITP (Inspection and Test Plans), NCR (Non-Conformance Reports), inspection checklists, material test certificates, weld records, FAT (Factory Acceptance Test), SAT (Site Acceptance Test), and defect tracking through DLP. Ensures construction deliverables meet specifications and ISO 9001 standards.';
@@ -11,7 +11,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`itp` (
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project to which this ITP applies. Links the quality control framework to the parent project.',
     `firm_profile_id` BIGINT COMMENT 'Foreign key linking to bid.firm_profile. Business justification: Required for Contract Responsibility Report linking ITP contractor to subcontractor record for compliance and billing.',
     `permit_to_work_id` BIGINT COMMENT 'Foreign key linking to safety.permit_to_work. Business justification: ITP execution is performed under a Permit‑to‑Work; linking ensures the ITP is authorized and aligns with safety permitting processes.',
-    `employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: ITP approval workflow requires tracking the internal QC inspector responsible for the plan, enabling accountability and audit trails.',
+    `hr_employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: ITP approval workflow requires tracking the internal QC inspector responsible for the plan, enabling accountability and audit trails.',
     `subcontract_id` BIGINT COMMENT 'Foreign key linking to contract.subcontract. Business justification: Subcontractor ITP: Subcontractors submit ITPs under a specific subcontract; FK ties ITP to the subcontract for responsibility and schedule management.',
     `technical_specification_id` BIGINT COMMENT 'Foreign key linking to design.technical_specification. Business justification: ITPs are created from specific technical specifications; FK ensures correct acceptance criteria.',
     `acceptance_criteria` STRING COMMENT 'Detailed acceptance criteria and tolerances that must be met for the work to pass inspection. Defines the pass/fail thresholds for quality verification.',
@@ -53,10 +53,10 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`itp` (
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`itp_line` (
     `itp_line_id` BIGINT COMMENT 'Unique identifier for the ITP line item. Primary key for the ITP line entity.',
     `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: ITP line execution is assigned to a specific worker; required for execution accountability.',
+    `firm_profile_id` BIGINT COMMENT 'Foreign key linking to bid.firm_profile. Business justification: Needed for detailed ITP line responsibility tracking; ties each activity to the subcontractor performing the work.',
     `itp_id` BIGINT COMMENT 'Reference to the parent ITP document that contains this line item. Links the line to its header ITP.',
     `crew_id` BIGINT COMMENT 'Foreign key linking to workforce.crew. Business justification: ITP line often executed by a crew; linking crew provides crew‑level accountability.',
     `wbs_element_id` BIGINT COMMENT 'Foreign key linking to project.wbs_element. Business justification: Each ITP line item is associated with the WBS element where the activity occurs.',
-    `wbs_node_id` BIGINT COMMENT 'Foreign key linking to schedule.wbs_node. Business justification: ITP lines are scoped to WBS nodes; linking via wbs_node_id replaces denormalized wbs_code for accurate WBS‑based inspection planning.',
     `acceptance_criteria` STRING COMMENT 'The specific criteria, tolerances, or standards that must be met for the inspection or test to pass. Defines what constitutes acceptable quality.',
     `activity_description` STRING COMMENT 'Detailed description of the specific inspection or test activity to be performed at this hold point, witness point, or review point.',
     `applicable_standard` STRING COMMENT 'The industry standard, code, or specification that governs this inspection activity (e.g., ASTM, ASME, ACI, AISC, BS, EN, ISO standard reference).',
@@ -103,12 +103,12 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`inspection` (
     `checklist_id` BIGINT COMMENT 'Reference to the standardized inspection checklist template used for this inspection. Defines the verification criteria and check items.',
     `account_id` BIGINT COMMENT 'Foreign key linking to client.account. Business justification: Inspection requests originate from a client account; required for client‑billing and inspection tracking reports.',
     `contact_id` BIGINT COMMENT 'Foreign key linking to client.contact. Business justification: Client contact may attend or request the inspection; needed for audit of client participation.',
-    `compliance_permit_id` BIGINT COMMENT 'Foreign key linking to compliance.permit. Business justification: Permit‑mandated inspections: inspections are scheduled to satisfy conditions of an active permit, linking inspection records to the governing permit.',
+    `regulatory_permit_id` BIGINT COMMENT 'Foreign key linking to compliance.permit. Business justification: Permit‑mandated inspections: inspections are scheduled to satisfy conditions of an active permit, linking inspection records to the governing permit.',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project under which this inspection is performed.',
     `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: Inspection logs which craft worker performed the inspection; required for QC audit reports.',
     `crew_id` BIGINT COMMENT 'Foreign key linking to workforce.crew. Business justification: Inspections are scheduled for specific crews; needed for crew‑based inspection planning.',
     `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Inspection reports must reference the exact drawing inspected for traceability and compliance.',
-    `employee_id` BIGINT COMMENT 'Reference to the qualified inspector or quality control engineer who conducted the inspection. Primary party responsible for verification.',
+    `hr_employee_id` BIGINT COMMENT 'Reference to the qualified inspector or quality control engineer who conducted the inspection. Primary party responsible for verification.',
     `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Required for Cost Allocation Report: each inspection activity is charged to a cost code for budgeting and client billing.',
     `firm_profile_id` BIGINT COMMENT 'Foreign key linking to bid.firm_profile. Business justification: Inspection witness verification requires linking the subcontractor representative to the inspection record for audit trails.',
     `goods_receipt_id` BIGINT COMMENT 'Foreign key linking to procurement.goods_receipt. Business justification: Needed to link inspection results to the goods receipt that triggered the inspection, supporting receipt‑inspection traceability.',
@@ -158,7 +158,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`ncr` (
     `activity_id` BIGINT COMMENT 'Foreign key linking to schedule.activity. Business justification: NCR impact analysis requires knowing which activity triggered the non‑conformance; activity_id records that relationship.',
     `agreement_id` BIGINT COMMENT 'Foreign key linking to contract.agreement. Business justification: NCRs affect contract performance and liquidated damages; contract reference is required for claim and settlement processes.',
     `account_id` BIGINT COMMENT 'Foreign key linking to client.account. Business justification: NCRs are tracked against the client account for contract compliance and client‑specific reporting.',
-    `contact_id` BIGINT COMMENT 'Foreign key linking to client.contact. Business justification: Clients can raise non‑conformances; linking to the reporting client contact enables traceability.',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project where the non-conformance was identified.',
     `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: NCR assigns a specific worker to resolve the issue; needed for corrective‑action tracking.',
     `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: NCRs are raised against a specific drawing; linking enables automated impact analysis.',
@@ -218,7 +217,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`corrective_action` (
     `project_change_order_id` BIGINT COMMENT 'Reference to the Change Order (CO) generated as a result of this corrective action, if cost or schedule impacts require contract modification.',
     `rfi_id` BIGINT COMMENT 'Reference to the Request for Information (RFI) issued to clarify design or specification ambiguities related to this corrective action.',
     `ncr_id` BIGINT COMMENT 'Reference to the parent Non-Conformance Report that triggered this corrective or preventive action.',
-    `employee_id` BIGINT COMMENT 'Reference to the employee, subcontractor, or organizational unit assigned to execute this corrective action.',
+    `hr_employee_id` BIGINT COMMENT 'Reference to the employee, subcontractor, or organizational unit assigned to execute this corrective action.',
     `tertiary_corrective_created_by_employee_id` BIGINT COMMENT 'Reference to the user who created this corrective action record.',
     `action_description` STRING COMMENT 'Detailed narrative of the specific remediation steps to be taken, including scope, method, materials, and acceptance criteria.',
     `action_number` STRING COMMENT 'Business-readable identifier for the corrective or preventive action, typically formatted as NCR-XXXX-CA-YY for traceability.',
@@ -302,7 +301,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`checklist_execution` (
     `checklist_site_construction_project_id` BIGINT COMMENT 'Reference to the construction site or facility where the inspection took place.',
     `firm_profile_id` BIGINT COMMENT 'Reference to the contractor or subcontractor whose work is being inspected.',
     `permit_to_work_id` BIGINT COMMENT 'Foreign key linking to safety.permit_to_work. Business justification: Checklist execution on site requires a Permit‑to‑Work; linking records the permit governing the execution for safety compliance.',
-    `employee_id` BIGINT COMMENT 'Reference to the qualified QA/QC inspector who performed the checklist execution. Must be a certified quality professional.',
+    `hr_employee_id` BIGINT COMMENT 'Reference to the qualified QA/QC inspector who performed the checklist execution. Must be a certified quality professional.',
     `tertiary_checklist_approved_by_employee_id` BIGINT COMMENT 'Reference to the QA/QC manager or authorized person who approved the checklist execution results.',
     `wbs_element_id` BIGINT COMMENT 'Foreign key linking to project.wbs_element. Business justification: Execution of a checklist is performed against a specific WBS element on site.',
     `approval_status` STRING COMMENT 'Current approval workflow status of the checklist execution: draft (in progress), submitted (awaiting review), approved (accepted), rejected (not accepted), or revision required.. Valid values are `draft|submitted|approved|rejected|revision_required`',
@@ -364,7 +363,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`test_certificate` (
     `certificate_type` STRING COMMENT 'Classification of the test certificate indicating the source and nature of testing. MTC (Material Test Certificate) from supplier, laboratory test from independent lab, factory test (FAT - Factory Acceptance Test), site test (SAT - Site Acceptance Test), third-party test from accredited body, or supplier certificate.. Valid values are `MTC|laboratory_test|factory_test|site_test|third_party_test|supplier_certificate`',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this test certificate record was first created in the quality management system.',
     `delivery_lot_number` STRING COMMENT 'Delivery or shipment lot number identifying the specific material consignment from which the sample was taken. Links certificate to goods receipt.',
-    `test_certificate_description` STRING COMMENT '',
     `document_url` STRING COMMENT 'URL or file path to the digital copy of the test certificate document stored in the document management system (e.g., Aconex, BIM 360, Procore).',
     `heat_number` STRING COMMENT 'Steel mill heat number for steel and rebar materials, identifying the specific furnace melt. Essential for metallurgical traceability.',
     `issuing_laboratory` STRING COMMENT 'Name of the testing laboratory or organization that performed the tests and issued the certificate.',
@@ -378,16 +376,13 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`test_certificate` (
     `sampling_date` DATE COMMENT 'Date when the material sample was collected from the batch, delivery, or construction site for testing.',
     `sampling_location` STRING COMMENT 'Physical location where the material sample was collected (e.g., site name, warehouse, delivery truck, production line, grid reference).',
     `specification_requirement` STRING COMMENT 'Required values or acceptance criteria per project specification, contract, or standard (e.g., minimum compressive strength 30 MPa, yield strength 420 MPa min).',
-    `test_certificate_status` STRING COMMENT '',
     `technician_name` STRING COMMENT 'Name of the laboratory technician or engineer who performed the testing and signed the certificate.',
     `test_date` DATE COMMENT 'Date when the laboratory or field testing was performed on the sample.',
     `test_method` STRING COMMENT 'Specific testing procedure or method applied (e.g., compression test, tensile test, slump test, sieve analysis, chemical analysis).',
     `test_parameters` STRING COMMENT 'List of specific properties or characteristics measured during testing (e.g., compressive strength, yield strength, elongation, gradation, moisture content). Stored as structured text or JSON.',
     `test_results` STRING COMMENT 'Measured values and outcomes for each test parameter. Stored as structured text or JSON containing parameter-value pairs with units.',
     `test_standard` STRING COMMENT 'Industry or regulatory test standard followed during testing (e.g., ASTM C39, BS EN 12390, AASHTO T22, ISO 6892). Defines the test methodology and acceptance criteria.',
-    `updated_timestamp` TIMESTAMP COMMENT '',
     `work_package_code` STRING COMMENT 'Work Breakdown Structure (WBS) code or work package identifier indicating where the tested material will be used in the project.',
-    `created_by` STRING COMMENT '',
     CONSTRAINT pk_test_certificate PRIMARY KEY(`test_certificate_id`)
 ) COMMENT 'Material test certificate and laboratory test result record capturing certified testing outcomes for construction materials (concrete, steel, aggregates, bitumen, soil, asphalt, geotextiles). Stores certificate number, sample ID, material type, batch/heat number, sampling date and location, test standard (ASTM, BS, EN, AASHTO), test parameters and measured values, pass/fail determination, issuing laboratory, laboratory accreditation number, and traceability to purchase order and delivery lot. Covers both third-party MTC documents received from suppliers and in-house/independent lab test results for site-sampled materials.';
 
@@ -395,6 +390,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`weld_record` (
     `weld_record_id` BIGINT COMMENT 'Unique identifier for the weld record. Primary key for weld inspection and traceability documentation.',
     `agreement_id` BIGINT COMMENT 'Foreign key linking to contract.agreement. Business justification: Weld records are subject to contract specifications and warranties; linking to agreement enables contract‑level quality assurance.',
     `asset_id` BIGINT COMMENT 'Foreign key linking to equipment.asset. Business justification: Welding records require linking the welding machine (asset) to ensure equipment maintenance, certification, and traceability of weld quality.',
+    `carbon_emission_id` BIGINT COMMENT 'Foreign key linking to sustainability.carbon_emission. Business justification: Carbon accounting tracks emissions per welding activity; linking weld records to the corresponding carbon emission entry provides granular emission data for reporting.',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project under which this weld was performed.',
     `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: Weld record must capture the worker who performed the weld for traceability and compliance.',
     `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Weld records must be linked to the drawing showing weld details for verification.',
@@ -407,7 +403,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`weld_record` (
     `base_material_grade` STRING COMMENT 'Material specification and grade of the base metal being welded. Critical for ensuring compatibility with welding procedures and filler materials.. Valid values are `^[A-Z0-9-]+$`',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this weld record was first created in the system. Audit trail for data lineage.',
     `defect_description` STRING COMMENT 'Detailed description of any defects, discontinuities, or non-conformances identified during visual or NDT inspection. Includes type, location, and severity of defects.',
-    `weld_record_description` STRING COMMENT '',
     `filler_material_grade` STRING COMMENT 'Specification and grade of the welding consumable (electrode, wire, or rod) used to create the weld joint.. Valid values are `^[A-Z0-9-]+$`',
     `heat_number` STRING COMMENT 'Heat or lot number of the base material used in the weld. Provides traceability to material test certificates and chemical composition records.. Valid values are `^[A-Z0-9-]+$`',
     `interpass_temperature_c` DECIMAL(18,2) COMMENT 'Maximum temperature maintained between weld passes, measured in degrees Celsius. Controls cooling rate and prevents overheating.',
@@ -428,8 +423,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`weld_record` (
     `remarks` STRING COMMENT 'Additional notes, observations, or special conditions related to the weld execution, inspection, or acceptance. Free-text field for contextual information.',
     `rework_completion_date` DATE COMMENT 'Date on which any required rework or repair of the weld was completed. Null if no rework was required.',
     `rework_required_flag` BOOLEAN COMMENT 'Indicates whether the weld requires repair, grinding, or re-welding to meet acceptance criteria. True if rework is needed, False if weld is acceptable as-is.',
-    `weld_record_status` STRING COMMENT '',
-    `updated_timestamp` TIMESTAMP COMMENT '',
     `weld_date` DATE COMMENT 'Date on which the welding activity was performed. Principal business event timestamp for the weld record lifecycle.',
     `weld_length_mm` DECIMAL(18,2) COMMENT 'Total length of the weld seam measured in millimeters. Used for production tracking and inspection planning.',
     `weld_number` STRING COMMENT 'Unique business identifier for the weld joint. Externally-known alphanumeric code used for traceability across project documentation, drawings, and inspection reports.. Valid values are `^[A-Z0-9-]+$`',
@@ -441,7 +434,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`weld_record` (
     `witness_required_flag` BOOLEAN COMMENT 'Indicates whether third-party or client witness is required for the weld inspection per the ITP. True if witness hold point applies, False otherwise.',
     `wps_number` STRING COMMENT 'Reference to the approved Welding Procedure Specification that governs the welding parameters, techniques, and materials for this weld. Ensures compliance with qualified welding procedures.. Valid values are `^[A-Z0-9-]+$`',
     `wqc_number` STRING COMMENT 'Certificate number of the qualified welder who performed the weld. Verifies that the welder is certified and authorized to perform welding under the specified WPS.. Valid values are `^[A-Z0-9-]+$`',
-    `created_by` STRING COMMENT '',
     CONSTRAINT pk_weld_record PRIMARY KEY(`weld_record_id`)
 ) COMMENT 'Weld inspection and traceability record for structural and pressure-system welding activities. Captures weld ID, weld procedure specification (WPS) reference, welder qualification certificate (WQC) number, joint type, material grade, NDT (Non-Destructive Testing) method applied, NDT result, acceptance standard (AWS, ASME, ISO 3834), and final acceptance status. Critical for structural integrity compliance.';
 
@@ -462,7 +454,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`acceptance_test` (
     `corrective_action_required` STRING COMMENT 'Description of corrective actions required to address any defects or non-conformances identified during the test. Links to NCR (Non-Conformance Report) if applicable.',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this acceptance test record was first created in the system. Audit trail for record creation.',
     `defects_identified` STRING COMMENT 'List of specific defects or non-conformances identified during the acceptance test. Each defect should be documented with severity and required corrective action.',
-    `acceptance_test_description` STRING COMMENT '',
     `equipment_description` STRING COMMENT 'Detailed description of the equipment, system, or assembly being tested. Includes make, model, serial number, and key specifications.',
     `manufacturer_name` STRING COMMENT 'Name of the equipment manufacturer. Particularly relevant for FAT conducted at the manufacturers facility.',
     `modified_by` STRING COMMENT 'Username or identifier of the user who last modified this acceptance test record. Audit trail for accountability.',
@@ -471,7 +462,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`acceptance_test` (
     `retest_date` DATE COMMENT 'Scheduled or actual date for retest after corrective actions. Null if no retest is required.',
     `retest_required` BOOLEAN COMMENT 'Indicates whether a retest is required after corrective actions are completed. True if the test failed or had conditional pass requiring verification.',
     `specification_reference` STRING COMMENT 'Reference to the technical specification or contract requirements against which the equipment was tested. Defines the acceptance criteria.',
-    `acceptance_test_status` STRING COMMENT '',
     `test_date` DATE COMMENT 'The date on which the acceptance test was conducted. Principal business event timestamp for the test execution.',
     `test_duration_hours` DECIMAL(18,2) COMMENT 'Total duration of the acceptance test in hours. Captures the time from test start to completion.',
     `test_engineer_name` STRING COMMENT 'Name of the engineer or technician who conducted the acceptance test. Primary responsible party for test execution.',
@@ -486,7 +476,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`acceptance_test` (
     `test_status` STRING COMMENT 'Current lifecycle status of the acceptance test. Tracks progression from scheduling through execution to final acceptance decision.. Valid values are `scheduled|in_progress|passed|failed|conditional_pass|cancelled`',
     `test_temperature_c` DECIMAL(18,2) COMMENT 'Ambient temperature in degrees Celsius during the acceptance test. Environmental condition that may affect test results.',
     `test_type` STRING COMMENT 'Type of acceptance test being performed. FAT (Factory Acceptance Test) is conducted at the manufacturers facility before shipment. SAT (Site Acceptance Test) is conducted at the project site after installation.. Valid values are `FAT|SAT`',
-    `updated_timestamp` TIMESTAMP COMMENT '',
     `witness_party` STRING COMMENT 'Names and organizations of all parties who witnessed the acceptance test. Typically includes client representatives, consultant engineers, and regulatory inspectors.',
     `created_by` STRING COMMENT 'Username or identifier of the user who created this acceptance test record. Audit trail for accountability.',
     CONSTRAINT pk_acceptance_test PRIMARY KEY(`acceptance_test_id`)
@@ -499,20 +488,19 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`defect` (
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project where the defect was identified.',
     `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Defects are logged against the drawing that defines the affected element for corrective action.',
     `firm_profile_id` BIGINT COMMENT 'System identifier for the contractor or subcontractor responsible for rectifying the defect.',
-    `employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: Defect register records which employee identified the defect, needed for root‑cause analysis and performance reporting.',
+    `hr_employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: Defect register records which employee identified the defect, needed for root‑cause analysis and performance reporting.',
     `inspection_id` BIGINT COMMENT 'System identifier for the inspection record during which this defect was identified (e.g., ITP inspection, FAT, SAT, DLP walkthrough).',
     `ncr_id` BIGINT COMMENT 'Foreign key linking to quality.ncr. Business justification: Defect may be raised from an NCR; linking provides traceability.',
     `technical_specification_id` BIGINT COMMENT 'Foreign key linking to design.technical_specification. Business justification: Defect records often cite the specific spec clause violated; FK enables traceability.',
-    `waste_record_id` BIGINT COMMENT 'Foreign key linking to sustainability.waste_record. Business justification: Defects often generate waste; linking a defect to the waste record that captures the disposed material supports waste tracking and cost analysis.',
     `wbs_element_id` BIGINT COMMENT 'Foreign key linking to project.wbs_element. Business justification: Defects are recorded against the WBS element where they occur, enabling root‑cause analysis.',
     `actual_rectification_date` DATE COMMENT 'Actual date when the defect rectification work was completed.',
     `assigned_to` STRING COMMENT 'Name of the individual or team currently assigned to manage or rectify the defect.',
     `closure_date` DATE COMMENT 'Date when the defect record was formally closed after successful verification and acceptance.',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the defect record was first created in the system.',
-    `defect_description` STRING COMMENT 'Detailed description of the defect including nature, extent, and any observable symptoms or deviations from specification.',
     `defect_number` STRING COMMENT 'Business-facing unique identifier or reference number for the defect, typically used in correspondence and reporting.',
     `defect_status` STRING COMMENT 'Current lifecycle status of the defect: open (newly identified), assigned (allocated to responsible party), in_progress (rectification underway), rectified (work completed, awaiting verification), verified (inspected and accepted), closed (fully resolved), rejected (not a valid defect). [ENUM-REF-CANDIDATE: open|assigned|in_progress|rectified|verified|closed|rejected — 7 candidates stripped; promote to reference product]',
     `defect_type` STRING COMMENT 'Classification of the defect by nature: workmanship (poor execution), material (defective materials), design (design flaw), installation (incorrect installation), finish (cosmetic/surface defects), structural (load-bearing issues), MEP (Mechanical Electrical Plumbing systems), or other. [ENUM-REF-CANDIDATE: workmanship|material|design|installation|finish|structural|MEP|other — 8 candidates stripped; promote to reference product]',
+    `defect_description` STRING COMMENT 'Detailed description of the defect including nature, extent, and any observable symptoms or deviations from specification.',
     `dlp_expiry_date` DATE COMMENT 'Date when the Defects Liability Period (DLP) expires for the work package or project area where this defect was identified. Defects identified before this date must be rectified by the contractor at no cost to the client.',
     `identified_by` STRING COMMENT 'Name of the person or role who identified the defect (e.g., QA/QC inspector, client representative, commissioning engineer, site supervisor).',
     `identified_date` DATE COMMENT 'Date when the defect was first identified or discovered during inspection, commissioning, or DLP (Defects Liability Period) walkthrough.',
@@ -533,7 +521,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`defect` (
     `target_rectification_date` DATE COMMENT 'Target or planned date by which the defect should be rectified, often driven by DLP (Defects Liability Period) expiry or contractual milestones.',
     `title` STRING COMMENT 'Short descriptive title or summary of the defect for quick identification and reporting.',
     `trade_discipline` STRING COMMENT 'Construction trade or discipline responsible for the work where the defect occurred (e.g., Concrete, Steel, MEP, HVAC, Electrical, Plumbing, Finishes, Painting).',
-    `updated_timestamp` TIMESTAMP COMMENT '',
     `verification_date` DATE COMMENT 'Date when the rectified defect was inspected and verified as satisfactorily resolved by QA/QC or client representative.',
     `verified_by` STRING COMMENT 'Name of the person or role who verified the defect rectification (e.g., QA/QC inspector, client representative, project engineer).',
     `created_by` STRING COMMENT 'Username or identifier of the person who created the defect record in the system.',
@@ -544,10 +531,9 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`punch_list` (
     `punch_list_id` BIGINT COMMENT 'Unique identifier for the punch list record. Primary key for the punch list entity.',
     `agreement_id` BIGINT COMMENT 'Foreign key linking to contract.agreement. Business justification: Punch list close‑out is a contractual deliverable; linking to agreement tracks fulfillment of contract milestones.',
     `account_id` BIGINT COMMENT 'Foreign key linking to client.account. Business justification: Client oversees punch‑list during project handover; required for client‑focused punch‑list status reports.',
-    `compliance_permit_id` BIGINT COMMENT 'Foreign key linking to compliance.permit. Business justification: Permit closeout punch list: punch list items must be resolved before a permit can be closed, linking punch list to its permit.',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project to which this punch list belongs.',
     `firm_profile_id` BIGINT COMMENT 'Foreign key linking to bid.firm_profile. Business justification: Punch list responsibility matrix must reference the subcontractor responsible for each item to drive close‑out.',
-    `employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: Punch list creation is logged with the employee who prepared it, required for traceability in handover documentation.',
+    `hr_employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: Punch list creation is logged with the employee who prepared it, required for traceability in handover documentation.',
     `wbs_element_id` BIGINT COMMENT 'Foreign key linking to project.wbs_element. Business justification: Punch lists are generated per WBS element to allocate cost and schedule impacts accurately.',
     `actual_closeout_date` DATE COMMENT 'The actual date on which the punch list was fully closed, indicating all items have been resolved and accepted. Nullable until closure is achieved.',
     `client_representative` STRING COMMENT 'Name of the client or owner representative who is involved in the punch list review and acceptance process.',
@@ -556,7 +542,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`punch_list` (
     `contract_reference` STRING COMMENT 'Reference to the contract or contract package under which this punch list is being managed. Links the punch list to contractual obligations and terms.',
     `created_timestamp` TIMESTAMP COMMENT 'The timestamp when this punch list record was first created in the system. Part of the audit trail for record lifecycle tracking.',
     `critical_items_count` STRING COMMENT 'The count of items classified as critical or high-priority, typically those that block handover or pose safety/operational risks.',
-    `punch_list_description` STRING COMMENT '',
     `discipline` STRING COMMENT 'The engineering or construction discipline that this punch list primarily covers. Used to route items to the appropriate trade or subcontractor for resolution. [ENUM-REF-CANDIDATE: civil|structural|architectural|mechanical|electrical|plumbing|hvac|instrumentation|piping|general — 10 candidates stripped; promote to reference product]',
     `dlp_commencement_gate` BOOLEAN COMMENT 'Boolean flag indicating whether closure of this punch list triggers the start of the Defects Liability Period (DLP). True means DLP clock starts upon punch list closure.',
     `document_reference` STRING COMMENT 'Reference to the formal punch list document, report, or file stored in the document management system (e.g., Aconex, BIM 360). Enables traceability to the source document.',
@@ -578,7 +563,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`punch_list` (
     `specification_reference` STRING COMMENT 'Reference to the technical specification, design document, or quality standard against which the punch list items are being evaluated.',
     `target_closeout_date` DATE COMMENT 'The planned or contractually required date by which all items on the punch list must be resolved and the list closed. Critical for handover and DLP (Defects Liability Period) commencement.',
     `total_items_count` STRING COMMENT 'The total number of punch list items (defects, incomplete works, commissioning tasks) recorded on this punch list.',
-    `updated_timestamp` TIMESTAMP COMMENT '',
     `created_by` STRING COMMENT 'The username or identifier of the user who created this punch list record in the system. Part of the audit trail for accountability.',
     `creation_date` DATE COMMENT 'The date on which the punch list was initially created or issued. Marks the start of the close-out tracking process for the associated milestone.',
     CONSTRAINT pk_punch_list PRIMARY KEY(`punch_list_id`)
@@ -595,7 +579,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`punch_item` (
     `firm_profile_id` BIGINT COMMENT 'Reference to the subcontractor or trade contractor responsible for rectifying the punch item. Drives accountability and work assignment during close-out.',
     `punch_list_id` BIGINT COMMENT 'Reference to the parent punch list record that contains this item. Links the item to the overall punch list inspection event.',
     `crew_id` BIGINT COMMENT 'Foreign key linking to workforce.crew. Business justification: Punch items can be assigned to a crew for coordinated resolution; supports crew workload tracking.',
-    `employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: Punch list items are assigned to a responsible employee; linking enables tracking of responsibility and performance.',
+    `hr_employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: Punch list items are assigned to a responsible employee; linking enables tracking of responsibility and performance.',
     `technical_specification_id` BIGINT COMMENT 'Foreign key linking to design.technical_specification. Business justification: Punch items may reference a spec clause; FK supports audit of spec compliance.',
     `wbs_element_id` BIGINT COMMENT 'Foreign key linking to project.wbs_element. Business justification: Each punch item must be tied to its originating WBS element for traceability and cost tracking.',
     `actual_completion_date` DATE COMMENT 'Actual date when the punch item was completed and ready for verification. Used to track schedule performance and close-out progress.',
@@ -607,7 +591,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`punch_item` (
     `cost_impact` DECIMAL(18,2) COMMENT 'Estimated or actual cost incurred to rectify the punch item. Used for financial tracking and back-charge to responsible parties.',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the punch item record was first created in the system. Provides audit trail for data lineage.',
     `deferred_to_dlp` BOOLEAN COMMENT 'Flag indicating whether the punch item was deferred to the DLP (Defects Liability Period) for post-handover rectification. True if deferred; false otherwise.',
-    `punch_item_description` STRING COMMENT '',
     `dlp_end_date` DATE COMMENT 'End date of the DLP (Defects Liability Period) applicable to this punch item if deferred. Defines the contractual deadline for rectification.',
     `identified_by` STRING COMMENT 'Name of the inspector, quality engineer, or project manager who identified the punch item during the inspection walkthrough.',
     `identified_date` DATE COMMENT 'Date when the punch item was identified during the inspection. Marks the start of the remediation lifecycle.',
@@ -621,17 +604,14 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`punch_item` (
     `rejection_reason` STRING COMMENT 'Reason provided by the verification inspector if the punch item was rejected after attempted completion. Drives rework and quality improvement.',
     `remarks` STRING COMMENT 'Additional notes, comments, or observations related to the punch item. Captures context, special conditions, or coordination issues.',
     `target_completion_date` DATE COMMENT 'Target date by which the punch item must be rectified. Drives scheduling and resource allocation for close-out activities.',
-    `updated_timestamp` TIMESTAMP COMMENT '',
     `verification_date` DATE COMMENT 'Date when the completed punch item was inspected and verified as satisfactory. Marks the closure of the remediation cycle.',
     `verification_inspector` STRING COMMENT 'Name of the inspector or quality engineer who verified that the punch item was satisfactorily completed. Provides accountability for quality sign-off.',
-    `created_by` STRING COMMENT '',
     CONSTRAINT pk_punch_item PRIMARY KEY(`punch_item_id`)
 ) COMMENT 'Individual punch list item within a punch list record. Captures item number, description, location, category (structural, MEP, architectural, civil), responsible subcontractor, priority, target completion date, actual completion date, verification inspector, and closure status. Drives the close-out workflow for practical completion.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`quality_plan` (
     `quality_plan_id` BIGINT COMMENT 'Unique identifier for the Project Quality Plan (PQP). Primary key.',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project this quality plan governs.',
-    `sustainability_plan_id` BIGINT COMMENT 'Foreign key linking to sustainability.sustainability_plan. Business justification: Integrated project governance aligns quality plans with sustainability plans; the FK ensures coordinated approvals and shared objectives across both domains.',
     `wbs_element_id` BIGINT COMMENT 'Foreign key linking to project.wbs_element. Business justification: Quality plans can be defined per WBS element to address element‑specific requirements.',
     `applicable_standards` STRING COMMENT 'List of quality standards, codes, and specifications applicable to the project (e.g., ISO 9001, ASTM, ACI, AISC, project-specific specifications).',
     `approval_date` DATE COMMENT 'Date when the quality plan was formally approved by authorized personnel.',
@@ -647,7 +627,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`quality_plan` (
     `contract_reference` STRING COMMENT 'Reference to the construction contract that mandates this quality plan.',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the quality plan record was first created in the system.',
     `defect_liability_period_days` STRING COMMENT 'Duration in days of the Defects Liability Period during which quality defects must be rectified.',
-    `quality_plan_description` STRING COMMENT '',
     `document_control_procedure` STRING COMMENT 'Description of document control procedures for quality records, including numbering, distribution, revision, and archival.',
     `effective_date` DATE COMMENT 'Date when the quality plan becomes binding and operational for the project.',
     `expiry_date` DATE COMMENT 'Date when the quality plan ceases to be active, typically at project completion or handover.',
@@ -670,11 +649,9 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`quality_plan` (
     `reviewed_by_name` STRING COMMENT 'Name of the individual who reviewed the quality plan for technical accuracy and completeness.',
     `reviewed_by_role` STRING COMMENT 'Organizational role or title of the reviewer (e.g., Project Manager, Senior QA/QC Manager).',
     `scope_of_work` STRING COMMENT 'Description of the project scope covered by this quality plan, including major deliverables and work packages.',
-    `quality_plan_status` STRING COMMENT '',
     `subcontractor_quality_management` STRING COMMENT 'Description of quality management requirements and oversight procedures for subcontractors and suppliers.',
     `title` STRING COMMENT 'Descriptive title of the Project Quality Plan document.',
     `training_requirements` STRING COMMENT 'Description of quality-related training requirements for project personnel, including induction, competency assessments, and certifications.',
-    `updated_timestamp` TIMESTAMP COMMENT '',
     `version` STRING COMMENT 'Version identifier for the quality plan document, incremented with each revision.',
     `created_by` STRING COMMENT 'User identifier of the person who created the quality plan record in the system.',
     CONSTRAINT pk_quality_plan PRIMARY KEY(`quality_plan_id`)
@@ -683,7 +660,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`quality_plan` (
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`quality_audit` (
     `quality_audit_id` BIGINT COMMENT 'Unique identifier for the quality audit record. Primary key.',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project being audited.',
-    `employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: Audit reports require the lead auditors employee ID for internal audit tracking and regulator‑required audit logs.',
+    `hr_employee_id` BIGINT COMMENT 'Foreign key linking to hr.employee. Business justification: Audit reports require the lead auditors employee ID for internal audit tracking and regulator‑required audit logs.',
     `quality_plan_id` BIGINT COMMENT 'Foreign key linking to quality.quality_plan. Business justification: Each quality audit evaluates a specific quality plan; many audits can be linked to one plan.',
     `wbs_element_id` BIGINT COMMENT 'Foreign key linking to project.wbs_element. Business justification: Audits may target specific WBS elements; linking records audit findings to the element.',
     `areas_audited` STRING COMMENT 'Comma-separated list of physical locations, work areas, or processes audited (e.g., Site Office, Concrete Batching Plant, Welding Shop, Material Testing Lab).',
@@ -704,7 +681,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`quality_audit` (
     `corrective_action_due_date` DATE COMMENT 'The deadline by which all corrective actions arising from the audit must be completed.',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this audit record was first created in the system.',
     `criteria` STRING COMMENT 'The standards, specifications, or requirements against which the audit is conducted (e.g., ISO 9001:2015, Project Quality Plan Rev 3, Contract Specification Section 5).',
-    `quality_audit_description` STRING COMMENT '',
     `documents_reviewed` STRING COMMENT 'Summary or list of key documents reviewed during the audit (e.g., Quality Plan, ITP registers, NCR logs, calibration certificates).',
     `duration_hours` DECIMAL(18,2) COMMENT 'Total duration of the audit in hours, including preparation, fieldwork, and reporting time.',
     `end_date` DATE COMMENT 'The date when the audit fieldwork was completed.',
@@ -723,9 +699,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`quality_audit` (
     `report_issued_date` DATE COMMENT 'The date when the formal audit report was issued to the auditee.',
     `report_reference` STRING COMMENT 'Document reference number or file path to the formal audit report.',
     `start_date` DATE COMMENT 'The date when the audit fieldwork began, applicable for multi-day audits.',
-    `quality_audit_status` STRING COMMENT '',
     `team_members` STRING COMMENT 'Comma-separated list of audit team member names who participated in the audit.',
-    `updated_timestamp` TIMESTAMP COMMENT '',
     `created_by` STRING COMMENT 'Username or identifier of the person who created this audit record.',
     CONSTRAINT pk_quality_audit PRIMARY KEY(`quality_audit_id`)
 ) COMMENT 'Internal or external quality audit record assessing compliance with the Project Quality Plan, ISO 9001, and contractual QA/QC requirements. Captures audit type (internal/external/third-party), audit date, scope, auditor, findings (observations, minor non-conformances, major non-conformances), corrective action requests raised, and audit closure status.';
@@ -733,12 +707,11 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`quality_audit` (
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`quality_submittal` (
     `quality_submittal_id` BIGINT COMMENT 'Unique identifier for the quality submittal record. Primary key.',
     `agreement_id` BIGINT COMMENT 'Foreign key linking to contract.agreement. Business justification: Submittals are contract deliverables; linking to agreement supports compliance verification and audit trails.',
-    `compliance_permit_id` BIGINT COMMENT 'Foreign key linking to compliance.permit. Business justification: Permit submittal tracking: submittals are submitted to obtain or modify permits, linking submittal records to the relevant permit.',
+    `regulatory_permit_id` BIGINT COMMENT 'Foreign key linking to compliance.permit. Business justification: Permit submittal tracking: submittals are submitted to obtain or modify permits, linking submittal records to the relevant permit.',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project for which this submittal is being made.',
+    `engineering_submittal_id` BIGINT COMMENT 'SSOT reference to canonical design.design_submittal (single source of truth).',
     `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Submittals must be linked to the drawing they pertain to for reviewer reference.',
     `firm_profile_id` BIGINT COMMENT 'Foreign key linking to bid.firm_profile. Business justification: Submittal tracking requires linking each submittal to the originating subcontractor for approval workflow.',
-    `design_submittal_id` BIGINT COMMENT '',
-    `quality_design_submittal_ref_design_submittal_id` BIGINT COMMENT 'Reference to single source of truth design.design_submittal (SSOT duplicate resolution).',
     `quality_plan_id` BIGINT COMMENT 'Foreign key linking to quality.quality_plan. Business justification: Quality submittals are made against a quality plan; many submittals can belong to one plan.',
     `technical_specification_id` BIGINT COMMENT 'Foreign key linking to design.technical_specification. Business justification: Submittals often satisfy a particular spec clause; FK enables automated compliance checks.',
     `wbs_element_id` BIGINT COMMENT 'Foreign key linking to project.wbs_element. Business justification: Submittals are often scoped to a specific WBS element; FK enables tracking of approvals per element.',
@@ -751,7 +724,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`quality_submittal` (
     `contractual_review_days` STRING COMMENT 'Number of calendar or working days allowed per contract for the review and return of submittals. Used to monitor compliance with contract terms.',
     `cost_impact` DECIMAL(18,2) COMMENT 'Estimated cost impact (positive or negative) associated with the submittal, particularly relevant for material substitutions or design changes.',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the submittal record was first created in the system. Audit trail for record creation.',
-    `quality_submittal_description` STRING COMMENT '',
     `document_reference` STRING COMMENT 'Reference to the document management system location, file path, or document control number where the submittal files are stored.',
     `final_approval_date` DATE COMMENT 'Date when the submittal received final approval and was cleared for procurement or construction use.',
     `linked_change_order_number` STRING COMMENT 'Reference to any change order that this submittal is associated with, particularly for design changes or material substitutions.',
@@ -774,17 +746,15 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`quality_submittal` (
     `revision_number` STRING COMMENT 'Revision identifier for the submittal (e.g., Rev 0, Rev A, Rev 1). Tracks iterations and resubmissions following review comments.',
     `schedule_impact_days` STRING COMMENT 'Number of days of schedule impact (delay or acceleration) resulting from the submittal review outcome or material approval.',
     `specification_section` STRING COMMENT 'Reference to the project specification section or clause that this submittal addresses (e.g., Section 03300 - Cast-in-Place Concrete).',
-    `quality_submittal_status` STRING COMMENT '',
     `submission_date` DATE COMMENT 'Date when the submittal was formally submitted to the engineer, consultant, or client for review. Key milestone for tracking review turnaround times.',
     `submittal_description` STRING COMMENT 'Detailed description of the submittal content, scope, and purpose. Provides context for reviewers on what is being submitted and why.',
     `submittal_number` STRING COMMENT 'Unique business identifier for the submittal, typically following project-specific numbering conventions (e.g., S-001, SUB-MEP-2024-045).',
     `submittal_type` STRING COMMENT 'Category of submittal being submitted for review and approval. Defines the nature of the documentation or sample being provided. [ENUM-REF-CANDIDATE: material_sample|shop_drawing|method_statement|product_data_sheet|test_certificate|manufacturer_literature|design_mix|calculation|warranty_certificate — 9 candidates stripped; promote to reference product]',
     `title` STRING COMMENT 'Descriptive title of the submittal indicating the material, equipment, or work item being submitted (e.g., Structural Steel Shop Drawings, Concrete Mix Design).',
-    `updated_timestamp` TIMESTAMP COMMENT '',
     `wbs_code` STRING COMMENT 'Work Breakdown Structure code identifying the project phase, area, or work package to which this submittal belongs.',
     `created_by` STRING COMMENT 'Username or identifier of the person who created the submittal record in the system.',
     CONSTRAINT pk_quality_submittal PRIMARY KEY(`quality_submittal_id`)
-) COMMENT 'Quality submittal record tracking contractor submissions of material samples, shop drawings, method statements, and product data sheets for engineer/client review and approval prior to construction. Captures submittal number, submittal type, revision, submission date, review status (approved/approved-with-comments/rejected/resubmit), reviewer comments, and final disposition. Distinct from document transmittals — submittals are specifically QA/QC pre-construction approval records.';
+) COMMENT 'Quality submittal record tracking contractor submissions of material samples, shop drawings, method statements, and product data sheets for engineer/client review and approval prior to construction. Captures submittal number, submittal type, revision, submission date, review status (approved/approved-with-comments/rejected/resubmit), reviewer comments, and final disposition. Distinct from document transmittals — submittals are specifically QA/QC pre-construction approval records. [SSOT: distinct source of truth for quality domain]';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`ndt_record` (
     `ndt_record_id` BIGINT COMMENT 'Unique identifier for the NDT record. Primary key for the NDT record entity.',
@@ -801,7 +771,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`ndt_record` (
     `component_identifier` STRING COMMENT 'Unique identifier or tag number of the component being tested, as per engineering drawings or asset register.',
     `contractor_name` STRING COMMENT 'Name of the contractor or subcontractor responsible for performing the NDT.',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this NDT record was first created in the system.',
-    `ndt_record_description` STRING COMMENT '',
     `equipment_serial_number` STRING COMMENT 'Serial number of the NDT equipment used, for traceability and calibration verification.',
     `equipment_used` STRING COMMENT 'Description or model of the NDT equipment used (e.g., ultrasonic flaw detector, X-ray machine, magnetic yoke).',
     `indication_count` STRING COMMENT 'Number of indications or defects identified during the NDT.',
@@ -817,7 +786,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`ndt_record` (
     `retest_date` DATE COMMENT 'Scheduled or actual date for retesting the component after repair or corrective action.',
     `retest_required` BOOLEAN COMMENT 'Indicates whether a retest is required after repair or due to inconclusive results (True/False).',
     `specification_reference` STRING COMMENT 'Reference to the project specification, technical standard, or code that governs the NDT requirements (e.g., ASME Section VIII, AWS D1.1, project QA/QC plan).',
-    `ndt_record_status` STRING COMMENT '',
     `technician_certification_expiry_date` DATE COMMENT 'Expiry date of the NDT technicians certification, ensuring the technician was qualified at the time of testing.',
     `technician_certification_level` STRING COMMENT 'Certification level of the NDT technician as per ASNT SNT-TC-1A or PCN (Level I, Level II, Level III).. Valid values are `Level I|Level II|Level III`',
     `technician_certification_number` STRING COMMENT 'Unique certification number issued to the NDT technician by the certifying body (ASNT, PCN, or equivalent).',
@@ -827,11 +795,12 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`ndt_record` (
     `test_number` STRING COMMENT 'Unique business identifier for the NDT test, typically assigned by the QA/QC team or testing contractor.',
     `test_procedure_reference` STRING COMMENT 'Reference number of the approved NDT procedure or work instruction followed during testing.',
     `test_procedure_version` STRING COMMENT 'Version number of the NDT procedure used, ensuring traceability to the correct revision.',
+    `test_report_number` STRING COMMENT '',
     `test_report_reference` STRING COMMENT 'Reference number or document ID of the formal NDT test report issued by the testing contractor.',
     `test_result` STRING COMMENT 'Overall result of the NDT: pass (acceptable), fail (rejected), or conditional (requires further review or repair).. Valid values are `pass|fail|conditional`',
     `test_status` STRING COMMENT 'Current lifecycle status of the NDT test.. Valid values are `scheduled|in_progress|completed|cancelled`',
-    `updated_timestamp` TIMESTAMP COMMENT '',
     `weld_number` STRING COMMENT 'Unique identifier for the weld joint being tested, if applicable. Used for traceability in welding quality control.',
+    `witness_name` STRING COMMENT '',
     `witness_party` STRING COMMENT 'Name of the party who witnessed the NDT (e.g., client representative, consultant, third-party inspector).',
     `created_by` STRING COMMENT 'Username or identifier of the user who created this NDT record.',
     CONSTRAINT pk_ndt_record PRIMARY KEY(`ndt_record_id`)
@@ -839,13 +808,14 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`ndt_record` (
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` (
     `concrete_pour_record_id` BIGINT COMMENT 'Unique identifier for the concrete pour record. Primary key for this quality assurance document.',
-    `agreement_id` BIGINT COMMENT 'Foreign key linking to contract.agreement. Business justification: Concrete pour records affect contract performance guarantees and liquidated damages; contract link is required for claim handling.',
     `asset_id` BIGINT COMMENT 'Foreign key linking to equipment.asset. Business justification: Concrete pour records must capture the concrete pump (asset) used for each pour to allocate costs and meet regulatory equipment usage logs.',
-    `compliance_permit_id` BIGINT COMMENT 'Foreign key linking to compliance.permit. Business justification: Concrete pour permits: each concrete pour requires a specific permit, tracking pour records to the associated permit.',
+    `carbon_emission_id` BIGINT COMMENT 'Foreign key linking to sustainability.carbon_emission. Business justification: Concrete pours are a major source of CO₂; associating each pour with a carbon emission record enables accurate scope‑1/2 emissions calculation.',
+    `regulatory_permit_id` BIGINT COMMENT 'Foreign key linking to compliance.permit. Business justification: Concrete pour permits: each concrete pour requires a specific permit, tracking pour records to the associated permit.',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project where this concrete pour occurred.',
     `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Concrete pour records reference structural drawings to confirm element locations.',
     `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Concrete pour records incur costs; associating with a cost code supports cost roll‑up for concrete works in financial statements.',
     `firm_profile_id` BIGINT COMMENT 'Foreign key linking to bid.firm_profile. Business justification: Concrete pour logs require the responsible subcontractor to be identified for schedule and quality reporting.',
+    `inspection_id` BIGINT COMMENT '',
     `itp_id` BIGINT COMMENT 'Reference to the ITP (Inspection and Test Plan) governing this concrete pour activity.',
     `ncr_id` BIGINT COMMENT 'Reference to the NCR (Non-Conformance Report) if one was raised for this pour.',
     `wbs_element_id` BIGINT COMMENT 'Foreign key linking to project.wbs_element. Business justification: Concrete pour records are scoped to the WBS element (e.g., slab) for schedule and quality tracking.',
@@ -859,12 +829,12 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` 
     `consultant_witness_name` STRING COMMENT 'Name of the consultant or third-party representative who witnessed the concrete pour, if applicable.',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this concrete pour record was first created in the system.',
     `cube_sample_ids` STRING COMMENT 'Comma-separated list of concrete cube sample identifiers taken from this pour for compressive strength testing.',
+    `cube_samples_taken` STRING COMMENT '',
     `curing_duration_days` STRING COMMENT 'Planned or actual duration of the concrete curing period in days.',
     `curing_method` STRING COMMENT 'Method used for curing the concrete after placement (e.g., wet covering, curing compound, plastic sheeting, water ponding).. Valid values are `wet_covering|curing_compound|plastic_sheeting|water_ponding|steam_curing|membrane_curing`',
     `curing_start_date` DATE COMMENT 'Date when the concrete curing process began.',
     `cylinder_sample_ids` STRING COMMENT 'Comma-separated list of concrete cylinder sample identifiers taken from this pour for compressive strength testing.',
     `delivery_docket_numbers` STRING COMMENT 'Comma-separated list of delivery docket or ticket numbers for all concrete trucks that delivered to this pour.',
-    `concrete_pour_record_description` STRING COMMENT '',
     `element_location` STRING COMMENT 'Specific location description of the structural element within the project (e.g., grid reference, building zone).',
     `element_reference` STRING COMMENT '',
     `element_type` STRING COMMENT 'Type of structural element being poured (e.g., foundation, slab, column, beam, wall). [ENUM-REF-CANDIDATE: foundation|slab|column|beam|wall|deck|footing|pile_cap|shear_wall|retaining_wall — 10 candidates stripped; promote to reference product]',
@@ -880,7 +850,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` 
     `number_of_trucks` STRING COMMENT 'Total number of concrete delivery trucks used for this pour.',
     `pour_date` DATE COMMENT 'The date on which the concrete pour was executed.',
     `pour_end_time` TIMESTAMP COMMENT 'Timestamp when the concrete placement was completed.',
-    `pour_location` STRING COMMENT '',
     `pour_number` STRING COMMENT 'Unique business identifier for this concrete pour event, typically assigned sequentially within the project.',
     `pour_start_time` TIMESTAMP COMMENT 'Timestamp when the concrete placement began.',
     `pour_status` STRING COMMENT 'Current lifecycle status of the concrete pour activity. [ENUM-REF-CANDIDATE: planned|approved|in_progress|completed|curing|tested|accepted|rejected — 8 candidates stripped; promote to reference product]',
@@ -891,20 +860,15 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` 
     `slump_test_passed` BOOLEAN COMMENT 'Indicates whether the slump test result met the specification requirements (True/False).',
     `slump_test_result_mm` STRING COMMENT 'Measured slump value in millimeters from the concrete workability test performed on site.',
     `slump_value_mm` DECIMAL(18,2) COMMENT '',
-    `concrete_pour_record_status` STRING COMMENT '',
     `supplier_name` STRING COMMENT 'Name of the concrete supplier company providing the ready-mix concrete.',
-    `temperature_at_placement_c` DECIMAL(18,2) COMMENT '',
     `total_pour_volume_m3` DECIMAL(18,2) COMMENT 'Total volume of concrete placed during this pour event, measured in cubic meters.',
-    `updated_timestamp` TIMESTAMP COMMENT '',
+    `volume_poured_m3` DECIMAL(18,2) COMMENT '',
     `weather_conditions` STRING COMMENT 'Description of weather conditions during the pour (e.g., sunny, cloudy, rainy, windy).',
-    `created_by` STRING COMMENT '',
     CONSTRAINT pk_concrete_pour_record PRIMARY KEY(`concrete_pour_record_id`)
 ) COMMENT 'Concrete pour record capturing the quality data for each concrete placement event. Stores pour date, pour location (element type, grid, level), mix design reference, approved submittal number, batch plant, delivery docket numbers, slump test results, cube/cylinder sample IDs, pour volume, ambient temperature, curing method, and inspector sign-off. Critical QA evidence for structural concrete compliance.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`lab_test` (
     `lab_test_id` BIGINT COMMENT 'Unique identifier for the laboratory test record. Primary key for the lab_test product.',
-    `agreement_id` BIGINT COMMENT 'Foreign key linking to contract.agreement. Business justification: Lab test results support contract‑specified material compliance; linking enables contract‑level verification and payment certification.',
-    `asset_id` BIGINT COMMENT 'Foreign key linking to equipment.asset. Business justification: Lab tests are conducted using specific testing equipment; linking to the asset supports calibration records, compliance, and cost tracking.',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project for which this material sample was tested.',
     `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Lab tests on materials are tied to the drawing that defines the element where material is used.',
     `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Lab test services are charged to cost codes; linking enables proper expense allocation in the lab cost ledger.',
@@ -918,33 +882,27 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`lab_test` (
     `acceptance_criteria` STRING COMMENT '',
     `accreditation_body` STRING COMMENT 'Name of the national or international accreditation body that issued the laboratory accreditation, such as UKAS, A2LA, NATA, or equivalent.',
     `batch_number` STRING COMMENT 'Manufacturer or supplier batch number or lot number for the material, enabling traceability to production records.',
-    `calibration_reference` STRING COMMENT '',
-    `cost_code` DECIMAL(18,2) COMMENT 'Cost code or account code for charging the laboratory testing costs to the appropriate project budget line.',
+    `cost_code` STRING COMMENT 'Cost code or account code for charging the laboratory testing costs to the appropriate project budget line.',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this laboratory test record was first created in the system.',
     `delivery_ticket_number` STRING COMMENT 'Delivery docket or ticket number associated with the material delivery from which the sample was taken.',
-    `lab_test_description` STRING COMMENT '',
-    `equipment_used` STRING COMMENT '',
+    `lab_test_number` STRING COMMENT '',
     `laboratory_accreditation_number` STRING COMMENT 'Accreditation certificate number or registration number issued by the national accreditation body (e.g., UKAS, A2LA, NATA) confirming the laboratory meets ISO/IEC 17025 standards.',
-    `last_modified_timestamp` TIMESTAMP COMMENT '',
     `material_description` STRING COMMENT 'Detailed description of the material sample including grade, mix design reference, supplier, or other identifying characteristics.',
     `material_type` STRING COMMENT 'Type of construction material being tested. Determines applicable test standards and acceptance criteria. [ENUM-REF-CANDIDATE: concrete|soil|asphalt|aggregate|steel|rebar|weld|grout|mortar|other — 10 candidates stripped; promote to reference product]',
     `measured_result` DECIMAL(18,2) COMMENT 'Numerical value of the test result as measured by the laboratory.',
-    `measured_value` DECIMAL(18,2) COMMENT '',
     `modified_timestamp` TIMESTAMP COMMENT 'Timestamp when this laboratory test record was last modified or updated.',
-    `ncr_raised` BOOLEAN COMMENT '',
     `pass_fail_status` STRING COMMENT '',
     `remarks` STRING COMMENT 'Additional comments, observations, or notes regarding the test, sample condition, deviations, or special circumstances.',
-    `result_date` DATE COMMENT '',
+    `report_issue_date` DATE COMMENT '',
+    `report_number` STRING COMMENT '',
     `result_unit` STRING COMMENT 'Unit of measure for the test result, such as MPa, psi, kg/m3, percent, mm, or other applicable units.',
     `result_value` DECIMAL(18,2) COMMENT '',
     `retest_flag` BOOLEAN COMMENT 'Indicates whether this test is a retest following a previous failure or non-conformance.',
-    `retest_required` BOOLEAN COMMENT '',
     `reviewed_by` STRING COMMENT 'Name or identifier of the laboratory supervisor or authorized signatory who reviewed and approved the test results.',
     `sampled_by` STRING COMMENT 'Name or identifier of the person or organization responsible for collecting the sample.',
     `sampling_date` DATE COMMENT 'Date when the material sample was collected from the construction site or delivery location.',
     `sampling_location` STRING COMMENT 'Physical location or grid reference where the sample was collected, including building, floor, zone, or chainage reference.',
-    `specification_requirement` STRING COMMENT 'Required or target value per project specifications or applicable standards against which the test result is evaluated.',
-    `lab_test_status` STRING COMMENT '',
+    `specification_requirement` DECIMAL(18,2) COMMENT 'Required or target value per project specifications or applicable standards against which the test result is evaluated.',
     `supplier_name` STRING COMMENT 'Name of the material supplier or manufacturer who provided the tested material.',
     `technician_name` STRING COMMENT '',
     `test_age_days` STRING COMMENT 'Age of the sample at the time of testing, measured in days from sampling date. Critical for concrete cube/cylinder tests (typically 7, 28, or 56 days).',
@@ -953,8 +911,8 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`lab_test` (
     `test_method` STRING COMMENT 'Specific test method or procedure code applied, such as ASTM C39 for concrete compressive strength or ASTM D1557 for soil compaction.',
     `test_number` STRING COMMENT 'Laboratory-assigned test number or report reference number for tracking and retrieval of test documentation.',
     `test_parameter` STRING COMMENT 'The specific property or characteristic being measured, such as compressive strength, slump, moisture content, or gradation.',
+    `test_parameters` STRING COMMENT '',
     `test_report_reference` STRING COMMENT 'Document reference or file path to the full laboratory test report or certificate.',
-    `test_result` STRING COMMENT '',
     `test_result_status` STRING COMMENT 'Pass/fail determination based on comparison of measured result against specification requirements and tolerances.. Valid values are `pass|fail|conditional|retest_required|pending`',
     `test_result_value` DECIMAL(18,2) COMMENT '',
     `test_standard` STRING COMMENT 'Industry or international standard governing the test procedure, such as ASTM, BS, EN, AASHTO, or ISO standards.',
@@ -964,11 +922,10 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`lab_test` (
     `tolerance_lower_limit` DECIMAL(18,2) COMMENT 'Minimum acceptable value for the test parameter. Results below this threshold constitute a failure.',
     `tolerance_upper_limit` DECIMAL(18,2) COMMENT 'Maximum acceptable value for the test parameter. Results above this threshold may constitute a failure depending on the parameter.',
     `unit_of_measure` STRING COMMENT '',
-    `updated_timestamp` TIMESTAMP COMMENT '',
     `wbs_code` STRING COMMENT 'Work Breakdown Structure code identifying the project phase, activity, or work package to which this test relates.',
     `witness_name` STRING COMMENT 'Name of the client, consultant, or third-party representative who witnessed the test, if applicable.',
+    `witness_party` STRING COMMENT '',
     `witness_required` BOOLEAN COMMENT 'Indicates whether client, consultant, or third-party witness was required to be present during testing per contract or ITP requirements.',
-    `created_by` STRING COMMENT '',
     CONSTRAINT pk_lab_test PRIMARY KEY(`lab_test_id`)
 ) COMMENT 'Laboratory test record for construction material samples submitted to an accredited testing laboratory. Captures sample ID, material type, sampling date and location, test standard (ASTM, BS, EN, AASHTO), test parameters, measured results, pass/fail determination, laboratory accreditation number, and report reference. Covers concrete cube/cylinder tests, soil compaction, asphalt core tests, and aggregate grading.';
 
@@ -985,6 +942,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`sample` (
     `wbs_element_id` BIGINT COMMENT '',
     `approval_date` DATE COMMENT 'Calendar date of approval.',
     `approved_by` STRING COMMENT 'Individual who signed off on the test result.',
+    `batch_lot_number` STRING COMMENT '',
     `batch_number` STRING COMMENT 'Group identifier for samples collected or processed together.',
     `chain_of_custody_reference` STRING COMMENT '',
     `sample_code` STRING COMMENT 'Business identifier assigned to the sample, following the company coding convention.',
@@ -994,42 +952,38 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`sample` (
     `compliance_standard` STRING COMMENT 'Regulatory or industry standard governing the test.',
     `condition` STRING COMMENT '',
     `created_timestamp` TIMESTAMP COMMENT 'Date and time the sample record was first entered into the system.',
-    `sample_description` STRING COMMENT '',
-    `dispatched_to_lab_date` DATE COMMENT '',
     `disposal_date` DATE COMMENT 'When the sample was removed from inventory.',
+    `disposition` STRING COMMENT '',
     `expiration_date` DATE COMMENT 'When the sample expires for compliance or quality purposes.',
     `humidity_percent` DECIMAL(18,2) COMMENT 'Percentage humidity recorded during testing.',
     `is_critical` BOOLEAN COMMENT 'True if the sample is designated as critical for safety or regulatory compliance.',
-    `last_modified_timestamp` TIMESTAMP COMMENT '',
+    `location` STRING COMMENT '',
     `material` STRING COMMENT 'Primary material that the sample consists of.',
     `material_description` STRING COMMENT '',
-    `material_type` STRING COMMENT '',
     `modified_timestamp` TIMESTAMP COMMENT '',
     `sample_name` STRING COMMENT 'Descriptive name given to the sample for easy identification.',
     `notes` STRING COMMENT 'Additional comments, observations, or remarks about the sample.',
     `quality_status` STRING COMMENT 'Result of the quality assessment for the sample.',
     `quantity` DECIMAL(18,2) COMMENT '',
-    `received_by_lab_date` DATE COMMENT '',
     `remarks` STRING COMMENT '',
     `sample_number` STRING COMMENT '',
+    `sample_status` STRING COMMENT 'Indicates where the sample is in its testing or handling workflow.',
     `sample_type` STRING COMMENT 'Category indicating the kind of material or component the sample represents.',
-    `sampled_by` STRING COMMENT '',
     `sampling_date` DATE COMMENT '',
     `sampling_location` STRING COMMENT '',
-    `sample_status` STRING COMMENT 'Indicates where the sample is in its testing or handling workflow.',
-    `storage_conditions` STRING COMMENT '',
+    `sampling_method` STRING COMMENT '',
+    `storage_condition` STRING COMMENT '',
     `storage_location` STRING COMMENT 'Designated area where the sample is kept after collection.',
     `temperature_c` DECIMAL(18,2) COMMENT 'Temperature in degrees Celsius recorded during testing.',
-    `test_date` DATE COMMENT 'Exact date and time the test was executed.',
+    `test_date` TIMESTAMP COMMENT 'Exact date and time the test was executed.',
     `test_method` STRING COMMENT 'Standardized test procedure used to evaluate the sample.',
-    `test_required` STRING COMMENT '',
     `test_result_unit` STRING COMMENT 'Unit associated with the test result value.',
     `test_result_value` DECIMAL(18,2) COMMENT 'Measured value produced by the test (e.g., strength, concentration).',
     `unit_of_measure` STRING COMMENT '',
     `updated_timestamp` TIMESTAMP COMMENT 'Date and time of the most recent modification to the sample record.',
     `volume_l` DECIMAL(18,2) COMMENT 'Measured volume of the sample in liters.',
     `weight_kg` DECIMAL(18,2) COMMENT 'Mass of the sample measured in kilograms.',
-    `created_by` STRING COMMENT '',
+    `witness_party` STRING COMMENT '',
     CONSTRAINT pk_sample PRIMARY KEY(`sample_id`)
 ) COMMENT 'Master reference table for sample. Referenced by sample_id.';
 
@@ -1041,6 +995,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`laboratory` (
     `accreditation_body` STRING COMMENT 'Organization that granted accreditation to the laboratory.',
     `accreditation_expiry_date` DATE COMMENT 'Expiration date of the current accreditation.',
     `accreditation_number` STRING COMMENT 'Unique identifier of the laboratorys accreditation certificate.',
+    `accreditation_standard` STRING COMMENT '',
     `accreditation_status` STRING COMMENT '',
     `address` STRING COMMENT '',
     `address_line` STRING COMMENT '',
@@ -1053,6 +1008,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`laboratory` (
     `closing_date` DATE COMMENT 'Date the laboratory ceased operations, if applicable.',
     `laboratory_code` STRING COMMENT 'Business identifier assigned to the laboratory by the organization.',
     `contact_email` STRING COMMENT '',
+    `contact_name` STRING COMMENT '',
     `contact_person` STRING COMMENT '',
     `contact_phone` STRING COMMENT '',
     `country_code` STRING COMMENT 'Three‑letter country identifier for the laboratory location.',
@@ -1062,14 +1018,14 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`laboratory` (
     `email_address` STRING COMMENT 'Email address used for laboratory communications.',
     `equipment_summary` STRING COMMENT 'Brief description of key testing equipment available at the laboratory.',
     `hazardous_materials_allowed` BOOLEAN COMMENT 'True if the laboratory is permitted to test hazardous substances.',
-    `is_accredited` BOOLEAN COMMENT '',
     `is_approved` BOOLEAN COMMENT '',
     `is_certified` BOOLEAN COMMENT 'True if the laboratory is currently certified under the relevant standard.',
+    `is_external` BOOLEAN COMMENT '',
     `is_internal` BOOLEAN COMMENT '',
-    `is_third_party` BOOLEAN COMMENT '',
     `lab_area_sqm` DECIMAL(18,2) COMMENT 'Total usable floor area of the laboratory.',
+    `laboratory_status` STRING COMMENT 'Lifecycle status indicating whether the laboratory is operational.',
+    `laboratory_type` STRING COMMENT 'Classification of the laboratory based on primary testing capabilities.',
     `last_inspection_date` DATE COMMENT 'When the laboratory was last inspected for compliance.',
-    `last_modified_timestamp` TIMESTAMP COMMENT '',
     `latitude` DOUBLE COMMENT 'Latitude coordinate of the laboratory site.',
     `longitude` DOUBLE COMMENT 'Longitude coordinate of the laboratory site.',
     `manager_name` STRING COMMENT 'Full name of the person responsible for the laboratory.',
@@ -1081,21 +1037,15 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`laboratory` (
     `operating_hours` STRING COMMENT 'Typical daily operating window for the laboratory.',
     `phone_number` STRING COMMENT 'Main telephone number for reaching the laboratory.',
     `postal_code` STRING COMMENT 'Postal code for the laboratory address.',
-    `primary_contact_name` STRING COMMENT '',
     `quality_management_system` STRING COMMENT 'Standard or framework governing quality processes at the laboratory.',
     `region` STRING COMMENT 'Broad region used for reporting and analytics.',
     `remarks` STRING COMMENT '',
     `safety_rating` STRING COMMENT 'Overall safety performance grade for the laboratory.',
     `sample_storage_temperature_c` DECIMAL(18,2) COMMENT 'Typical temperature at which samples are stored before analysis.',
-    `scope_of_accreditation` STRING COMMENT '',
     `scope_of_testing` STRING COMMENT '',
     `state_province` STRING COMMENT 'Administrative region of the laboratory.',
-    `laboratory_status` STRING COMMENT 'Lifecycle status indicating whether the laboratory is operational.',
-    `test_disciplines` STRING COMMENT '',
-    `laboratory_type` STRING COMMENT 'Classification of the laboratory based on primary testing capabilities.',
     `updated_timestamp` TIMESTAMP COMMENT 'Date‑time of the most recent modification to the laboratory record.',
     `waste_disposal_method` STRING COMMENT 'Primary approach for handling hazardous and non‑hazardous waste.',
-    `created_by` STRING COMMENT '',
     CONSTRAINT pk_laboratory PRIMARY KEY(`laboratory_id`)
 ) COMMENT 'Master reference table for laboratory. Referenced by lab_id.';
 
@@ -1117,6 +1067,7 @@ ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ADD CONSTRAINT `fk_qua
 ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ADD CONSTRAINT `fk_quality_quality_audit_quality_plan_id` FOREIGN KEY (`quality_plan_id`) REFERENCES `vibe_construction_v1`.`quality`.`quality_plan`(`quality_plan_id`);
 ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ADD CONSTRAINT `fk_quality_quality_submittal_quality_plan_id` FOREIGN KEY (`quality_plan_id`) REFERENCES `vibe_construction_v1`.`quality`.`quality_plan`(`quality_plan_id`);
 ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ADD CONSTRAINT `fk_quality_ndt_record_itp_id` FOREIGN KEY (`itp_id`) REFERENCES `vibe_construction_v1`.`quality`.`itp`(`itp_id`);
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ADD CONSTRAINT `fk_quality_concrete_pour_record_inspection_id` FOREIGN KEY (`inspection_id`) REFERENCES `vibe_construction_v1`.`quality`.`inspection`(`inspection_id`);
 ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ADD CONSTRAINT `fk_quality_concrete_pour_record_itp_id` FOREIGN KEY (`itp_id`) REFERENCES `vibe_construction_v1`.`quality`.`itp`(`itp_id`);
 ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ADD CONSTRAINT `fk_quality_concrete_pour_record_ncr_id` FOREIGN KEY (`ncr_id`) REFERENCES `vibe_construction_v1`.`quality`.`ncr`(`ncr_id`);
 ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ADD CONSTRAINT `fk_quality_lab_test_itp_id` FOREIGN KEY (`itp_id`) REFERENCES `vibe_construction_v1`.`quality`.`itp`(`itp_id`);
@@ -1132,1254 +1083,1263 @@ ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ADD CONSTRAINT `fk_quality
 ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ADD CONSTRAINT `fk_quality_laboratory_parent_laboratory_id` FOREIGN KEY (`parent_laboratory_id`) REFERENCES `vibe_construction_v1`.`quality`.`laboratory`(`laboratory_id`);
 
 -- ========= TAGS =========
-ALTER SCHEMA `vibe_construction_v1`.`quality` SET TAGS ('dbx_division' = 'operations');
-ALTER SCHEMA `vibe_construction_v1`.`quality` SET TAGS ('dbx_domain' = 'quality');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` SET TAGS ('dbx_subdomain' = 'inspection_planning');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` SET TAGS ('dbx_model_quality_target' = '80');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` SET TAGS ('dbx_structure_preserved' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` SET TAGS ('dbx_ssot_owner' = 'quality');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` SET TAGS ('dbx_mvm_ssot_reviewed' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `itp_id` SET TAGS ('dbx_business_glossary_term' = 'Inspection and Test Plan (ITP) ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `firm_profile_id` SET TAGS ('dbx_business_glossary_term' = 'Contractor Sub Firm Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `permit_to_work_id` SET TAGS ('dbx_business_glossary_term' = 'Permit To Work Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Qc Inspector Employee Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `subcontract_id` SET TAGS ('dbx_business_glossary_term' = 'Subcontract Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `technical_specification_id` SET TAGS ('dbx_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `acceptance_criteria` SET TAGS ('dbx_business_glossary_term' = 'Acceptance Criteria');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `applicable_standards` SET TAGS ('dbx_business_glossary_term' = 'Applicable Quality Standards');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'ITP Approval Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `approval_status` SET TAGS ('dbx_business_glossary_term' = 'Inspection and Test Plan (ITP) Approval Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'ITP Approved By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `client_inspector_responsible_party` SET TAGS ('dbx_business_glossary_term' = 'Client Inspector Responsible Party');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `defect_liability_period_days` SET TAGS ('dbx_business_glossary_term' = 'Defects Liability Period (DLP) Days');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `discipline` SET TAGS ('dbx_business_glossary_term' = 'Engineering Discipline');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `document_storage_location` SET TAGS ('dbx_business_glossary_term' = 'Document Storage Location');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `effective_date` SET TAGS ('dbx_business_glossary_term' = 'ITP Effective Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `expiry_date` SET TAGS ('dbx_business_glossary_term' = 'ITP Expiry Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `fat_required` SET TAGS ('dbx_business_glossary_term' = 'Factory Acceptance Test (FAT) Required Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `hold_point_required` SET TAGS ('dbx_business_glossary_term' = 'Hold Point Required Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `inspection_frequency` SET TAGS ('dbx_business_glossary_term' = 'Inspection Frequency');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `inspection_scope` SET TAGS ('dbx_business_glossary_term' = 'Inspection Scope');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `itp_number` SET TAGS ('dbx_business_glossary_term' = 'Inspection and Test Plan (ITP) Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `itp_number` SET TAGS ('dbx_value_regex' = '^ITP-[A-Z0-9]{4,12}$');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Last Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `material_test_certificate_required` SET TAGS ('dbx_business_glossary_term' = 'Material Test Certificate (MTC) Required Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `ndt_method_required` SET TAGS ('dbx_business_glossary_term' = 'Non-Destructive Testing (NDT) Method Required');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `prepared_by` SET TAGS ('dbx_business_glossary_term' = 'ITP Prepared By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `qc_inspector_responsible_party` SET TAGS ('dbx_business_glossary_term' = 'Quality Control (QC) Inspector Responsible Party');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `remarks` SET TAGS ('dbx_business_glossary_term' = 'ITP Remarks');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `review_point_required` SET TAGS ('dbx_business_glossary_term' = 'Review Point Required Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `reviewed_by` SET TAGS ('dbx_business_glossary_term' = 'ITP Reviewed By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `revision_date` SET TAGS ('dbx_business_glossary_term' = 'Document Revision Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Document Revision Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `revision_number` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{1,3}$');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `sat_required` SET TAGS ('dbx_business_glossary_term' = 'Site Acceptance Test (SAT) Required Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `test_method_reference` SET TAGS ('dbx_business_glossary_term' = 'Test Method Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `title` SET TAGS ('dbx_business_glossary_term' = 'Inspection and Test Plan (ITP) Title');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `wbs_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{2,6}(.[A-Z0-9]{2,6}){0,5}$');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `witness_point_required` SET TAGS ('dbx_business_glossary_term' = 'Witness Point Required Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `work_package_description` SET TAGS ('dbx_business_glossary_term' = 'Work Package Description');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` SET TAGS ('dbx_subdomain' = 'inspection_planning');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` SET TAGS ('dbx_model_quality_target' = '80');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` SET TAGS ('dbx_structure_preserved' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` SET TAGS ('dbx_ssot_owner' = 'quality');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` SET TAGS ('dbx_mvm_ssot_reviewed' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `itp_line_id` SET TAGS ('dbx_business_glossary_term' = 'Inspection and Test Plan (ITP) Line ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `craft_worker_id` SET TAGS ('dbx_business_glossary_term' = 'Responsible Worker Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `itp_id` SET TAGS ('dbx_business_glossary_term' = 'Inspection and Test Plan (ITP) ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `crew_id` SET TAGS ('dbx_business_glossary_term' = 'Responsible Crew Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `wbs_node_id` SET TAGS ('dbx_business_glossary_term' = 'Wbs Node Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `acceptance_criteria` SET TAGS ('dbx_business_glossary_term' = 'Acceptance Criteria');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `activity_description` SET TAGS ('dbx_business_glossary_term' = 'Activity Description');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `applicable_standard` SET TAGS ('dbx_business_glossary_term' = 'Applicable Standard');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Approved By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `approved_date` SET TAGS ('dbx_business_glossary_term' = 'Approved Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `calibration_required` SET TAGS ('dbx_business_glossary_term' = 'Calibration Required');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `client_witness_required` SET TAGS ('dbx_business_glossary_term' = 'Client Witness Required');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `consultant_witness_required` SET TAGS ('dbx_business_glossary_term' = 'Consultant Witness Required');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `cost_code` SET TAGS ('dbx_business_glossary_term' = 'Cost Code');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `critical_path_flag` SET TAGS ('dbx_business_glossary_term' = 'Critical Path Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `effective_date` SET TAGS ('dbx_business_glossary_term' = 'Effective Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `environmental_conditions` SET TAGS ('dbx_business_glossary_term' = 'Environmental Conditions');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `estimated_duration_hours` SET TAGS ('dbx_business_glossary_term' = 'Estimated Duration Hours');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `hold_point_type` SET TAGS ('dbx_business_glossary_term' = 'Hold Point Type');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `hold_point_type` SET TAGS ('dbx_value_regex' = 'hold|witness|review|surveillance');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `inspection_frequency` SET TAGS ('dbx_business_glossary_term' = 'Inspection Frequency');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `inspection_method` SET TAGS ('dbx_business_glossary_term' = 'Inspection Method');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `inspection_stage` SET TAGS ('dbx_business_glossary_term' = 'Inspection Stage');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `itp_line_status` SET TAGS ('dbx_business_glossary_term' = 'Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `itp_line_status` SET TAGS ('dbx_value_regex' = 'planned|ready|in_progress|completed|waived|cancelled');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `line_number` SET TAGS ('dbx_business_glossary_term' = 'Line Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `mandatory_flag` SET TAGS ('dbx_business_glossary_term' = 'Mandatory Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `ncr_trigger_criteria` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Report (NCR) Trigger Criteria');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `notification_lead_time_hours` SET TAGS ('dbx_business_glossary_term' = 'Notification Lead Time Hours');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `reference_document` SET TAGS ('dbx_business_glossary_term' = 'Reference Document');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `remarks` SET TAGS ('dbx_business_glossary_term' = 'Remarks');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `required_documentation` SET TAGS ('dbx_business_glossary_term' = 'Required Documentation');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `responsible_discipline` SET TAGS ('dbx_business_glossary_term' = 'Responsible Discipline');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Revision Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `safety_requirements` SET TAGS ('dbx_business_glossary_term' = 'Safety Requirements');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `sampling_plan` SET TAGS ('dbx_business_glossary_term' = 'Sampling Plan');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `sequence_dependency` SET TAGS ('dbx_business_glossary_term' = 'Sequence Dependency');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `superseded_date` SET TAGS ('dbx_business_glossary_term' = 'Superseded Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `test_equipment_required` SET TAGS ('dbx_business_glossary_term' = 'Test Equipment Required');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `third_party_witness_required` SET TAGS ('dbx_business_glossary_term' = 'Third Party Witness Required');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` SET TAGS ('dbx_subdomain' = 'field_testing');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` SET TAGS ('dbx_model_quality_target' = '80');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` SET TAGS ('dbx_structure_preserved' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` SET TAGS ('dbx_ssot_owner' = 'quality');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` SET TAGS ('dbx_mvm_ssot_reviewed' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `inspection_id` SET TAGS ('dbx_business_glossary_term' = 'Inspection ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `activity_id` SET TAGS ('dbx_business_glossary_term' = 'Activity Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Asset Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `checklist_id` SET TAGS ('dbx_business_glossary_term' = 'Checklist Template ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Client Account Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `contact_id` SET TAGS ('dbx_business_glossary_term' = 'Client Contact Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `compliance_permit_id` SET TAGS ('dbx_business_glossary_term' = 'Permit Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `craft_worker_id` SET TAGS ('dbx_business_glossary_term' = 'Inspector Worker Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `crew_id` SET TAGS ('dbx_business_glossary_term' = 'Crew Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Inspector ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `firm_profile_id` SET TAGS ('dbx_business_glossary_term' = 'Witness Sub Firm Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `goods_receipt_id` SET TAGS ('dbx_business_glossary_term' = 'Goods Receipt Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `incident_id` SET TAGS ('dbx_business_glossary_term' = 'Incident Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `itp_line_id` SET TAGS ('dbx_business_glossary_term' = 'Itp Line Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `purchase_order_id` SET TAGS ('dbx_business_glossary_term' = 'Purchase Order Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `attachment_count` SET TAGS ('dbx_business_glossary_term' = 'Attachment Count');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `checklist_template_name` SET TAGS ('dbx_business_glossary_term' = 'Checklist Template Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `checklist_template_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `checklist_version` SET TAGS ('dbx_business_glossary_term' = 'Checklist Version');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `corrective_action_required` SET TAGS ('dbx_business_glossary_term' = 'Corrective Action Required Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `defects_identified` SET TAGS ('dbx_business_glossary_term' = 'Defects Identified');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `end_time` SET TAGS ('dbx_business_glossary_term' = 'Inspection End Time');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `humidity_percent` SET TAGS ('dbx_business_glossary_term' = 'Humidity Percentage');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `inspection_date` SET TAGS ('dbx_business_glossary_term' = 'Inspection Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `inspection_number` SET TAGS ('dbx_business_glossary_term' = 'Inspection Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `inspection_status` SET TAGS ('dbx_business_glossary_term' = 'Inspection Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `inspection_type` SET TAGS ('dbx_business_glossary_term' = 'Inspection Type');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `inspector_certification` SET TAGS ('dbx_business_glossary_term' = 'Inspector Certification');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `inspector_signature_captured` SET TAGS ('dbx_business_glossary_term' = 'Inspector Signature Captured Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `items_failed` SET TAGS ('dbx_business_glossary_term' = 'Items Failed');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `items_not_applicable` SET TAGS ('dbx_business_glossary_term' = 'Items Not Applicable');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `items_passed` SET TAGS ('dbx_business_glossary_term' = 'Items Passed');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Last Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `location_description` SET TAGS ('dbx_business_glossary_term' = 'Inspection Location Description');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `location_type` SET TAGS ('dbx_business_glossary_term' = 'Inspection Location Type');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `location_type` SET TAGS ('dbx_value_regex' = 'site|factory|workshop|laboratory|warehouse|offsite');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `ncr_raised` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Report (NCR) Raised Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `ncr_reference` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Report (NCR) Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `observations` SET TAGS ('dbx_business_glossary_term' = 'Inspection Observations');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `overall_outcome` SET TAGS ('dbx_business_glossary_term' = 'Overall Inspection Outcome');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `overall_outcome` SET TAGS ('dbx_value_regex' = 'pass|fail|conditional_pass');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `photo_count` SET TAGS ('dbx_business_glossary_term' = 'Photo Count');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `reinspection_date` SET TAGS ('dbx_business_glossary_term' = 'Reinspection Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `reinspection_required` SET TAGS ('dbx_business_glossary_term' = 'Reinspection Required Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `specification_reference` SET TAGS ('dbx_business_glossary_term' = 'Specification Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `start_time` SET TAGS ('dbx_business_glossary_term' = 'Inspection Start Time');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `temperature_celsius` SET TAGS ('dbx_business_glossary_term' = 'Temperature in Celsius');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `total_check_items` SET TAGS ('dbx_business_glossary_term' = 'Total Check Items');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `weather_conditions` SET TAGS ('dbx_business_glossary_term' = 'Weather Conditions');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `witness_signature_captured` SET TAGS ('dbx_business_glossary_term' = 'Witness Signature Captured Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `work_package_reference` SET TAGS ('dbx_business_glossary_term' = 'Work Package Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` SET TAGS ('dbx_subdomain' = 'defect_control');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` SET TAGS ('dbx_model_quality_target' = '80');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` SET TAGS ('dbx_structure_preserved' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` SET TAGS ('dbx_ssot_owner' = 'quality');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` SET TAGS ('dbx_mvm_ssot_reviewed' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `ncr_id` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Report (NCR) ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `activity_id` SET TAGS ('dbx_business_glossary_term' = 'Activity Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Client Account Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `contact_id` SET TAGS ('dbx_business_glossary_term' = 'Client Contact Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `craft_worker_id` SET TAGS ('dbx_business_glossary_term' = 'Responsible Worker Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `firm_profile_id` SET TAGS ('dbx_business_glossary_term' = 'Responsible Sub Firm Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `incident_id` SET TAGS ('dbx_business_glossary_term' = 'Incident Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `permit_condition_id` SET TAGS ('dbx_business_glossary_term' = 'Permit Condition Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `technical_specification_id` SET TAGS ('dbx_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Vendor Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Work Package ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `ncr_category` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Report (NCR) Category');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `ncr_category` SET TAGS ('dbx_value_regex' = 'material|workmanship|design|documentation|dimensional|procedural');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `client_notification_date` SET TAGS ('dbx_business_glossary_term' = 'Client Notification Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `client_notification_required` SET TAGS ('dbx_business_glossary_term' = 'Client Notification Required');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `closed_by` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Report (NCR) Closed By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `closure_date` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Report (NCR) Closure Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `corrective_action_completion_date` SET TAGS ('dbx_business_glossary_term' = 'Corrective Action Completion Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `corrective_action_description` SET TAGS ('dbx_business_glossary_term' = 'Corrective Action Description');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `corrective_action_responsible_party` SET TAGS ('dbx_business_glossary_term' = 'Corrective Action Responsible Party');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `corrective_action_target_date` SET TAGS ('dbx_business_glossary_term' = 'Corrective Action Target Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `cost_impact_currency` SET TAGS ('dbx_business_glossary_term' = 'Cost Impact Currency');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `cost_impact_currency` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `ncr_description` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Description');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `discipline` SET TAGS ('dbx_business_glossary_term' = 'Engineering Discipline');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `disposition` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Disposition');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `disposition` SET TAGS ('dbx_value_regex' = 'accept_as_is|rework|repair|reject|scrap|use_as_is_with_concession');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `disposition_approved_by` SET TAGS ('dbx_business_glossary_term' = 'Disposition Approved By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `disposition_approved_date` SET TAGS ('dbx_business_glossary_term' = 'Disposition Approved Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `disposition_justification` SET TAGS ('dbx_business_glossary_term' = 'Disposition Justification');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `effectiveness_review_comments` SET TAGS ('dbx_business_glossary_term' = 'Effectiveness Review Comments');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `estimated_cost_impact` SET TAGS ('dbx_business_glossary_term' = 'Estimated Cost Impact');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `estimated_cost_impact` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `hold_release_date` SET TAGS ('dbx_business_glossary_term' = 'Hold Release Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `hold_status` SET TAGS ('dbx_business_glossary_term' = 'Hold Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `identified_date` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Identified Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Last Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `location_description` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Location Description');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `ncr_number` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Report (NCR) Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `ncr_number` SET TAGS ('dbx_value_regex' = '^NCR-[A-Z0-9]{4,20}$');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `ncr_status` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Report (NCR) Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `preventive_action_description` SET TAGS ('dbx_business_glossary_term' = 'Preventive Action Description');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `preventive_action_responsible_party` SET TAGS ('dbx_business_glossary_term' = 'Preventive Action Responsible Party');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `quantity_affected` SET TAGS ('dbx_business_glossary_term' = 'Quantity Affected');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `reported_by` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Reported By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `reported_by_organization` SET TAGS ('dbx_business_glossary_term' = 'Reported By Organization');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `root_cause_analysis` SET TAGS ('dbx_business_glossary_term' = 'Root Cause Analysis');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `schedule_impact_days` SET TAGS ('dbx_business_glossary_term' = 'Schedule Impact Days');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `severity` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Severity');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `severity` SET TAGS ('dbx_value_regex' = 'critical|major|minor');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `unit_of_measure` SET TAGS ('dbx_business_glossary_term' = 'Unit of Measure');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `verification_date` SET TAGS ('dbx_business_glossary_term' = 'Verification Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `verification_method` SET TAGS ('dbx_business_glossary_term' = 'Verification Method');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `verification_performed_by` SET TAGS ('dbx_business_glossary_term' = 'Verification Performed By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `verification_result` SET TAGS ('dbx_business_glossary_term' = 'Verification Result');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `verification_result` SET TAGS ('dbx_value_regex' = 'passed|failed|conditional');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` SET TAGS ('dbx_subdomain' = 'defect_control');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` SET TAGS ('dbx_model_quality_target' = '80');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` SET TAGS ('dbx_structure_preserved' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` SET TAGS ('dbx_ssot_owner' = 'quality');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` SET TAGS ('dbx_mvm_ssot_reviewed' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `corrective_action_id` SET TAGS ('dbx_business_glossary_term' = 'Corrective Action Identifier');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `craft_worker_id` SET TAGS ('dbx_business_glossary_term' = 'Responsible Worker Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `project_change_order_id` SET TAGS ('dbx_business_glossary_term' = 'Linked Change Order (CO) ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `rfi_id` SET TAGS ('dbx_business_glossary_term' = 'Linked Request for Information (RFI) ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `ncr_id` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Report (NCR) ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Responsible Party ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `tertiary_corrective_created_by_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Created By ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `tertiary_corrective_created_by_employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `tertiary_corrective_created_by_employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `action_description` SET TAGS ('dbx_business_glossary_term' = 'Corrective Action Description');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `action_number` SET TAGS ('dbx_business_glossary_term' = 'Corrective Action Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `action_status` SET TAGS ('dbx_business_glossary_term' = 'Corrective Action Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `action_status` SET TAGS ('dbx_value_regex' = 'open|in_progress|pending_verification|verified|closed|cancelled');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `action_type` SET TAGS ('dbx_business_glossary_term' = 'Corrective Action / Preventive Action (CAPA) Type');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `action_type` SET TAGS ('dbx_value_regex' = 'corrective|preventive|containment|interim');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `actual_completion_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Completion Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `actual_cost` SET TAGS ('dbx_business_glossary_term' = 'Corrective Action Actual Cost');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `assigned_date` SET TAGS ('dbx_business_glossary_term' = 'Action Assigned Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `client_approval_date` SET TAGS ('dbx_business_glossary_term' = 'Client Approval Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `cost_estimate` SET TAGS ('dbx_business_glossary_term' = 'Corrective Action Cost Estimate');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `document_reference` SET TAGS ('dbx_business_glossary_term' = 'Document Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `effectiveness_review_comments` SET TAGS ('dbx_business_glossary_term' = 'Effectiveness Review Comments');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `effectiveness_review_date` SET TAGS ('dbx_business_glossary_term' = 'Effectiveness Review Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `effectiveness_review_outcome` SET TAGS ('dbx_business_glossary_term' = 'Effectiveness Review Outcome');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `effectiveness_review_outcome` SET TAGS ('dbx_value_regex' = 'effective|partially_effective|ineffective|pending_review');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `is_systemic_issue` SET TAGS ('dbx_business_glossary_term' = 'Systemic Issue Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `lessons_learned` SET TAGS ('dbx_business_glossary_term' = 'Lessons Learned');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `priority` SET TAGS ('dbx_business_glossary_term' = 'Corrective Action Priority');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `priority` SET TAGS ('dbx_value_regex' = 'critical|high|medium|low');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `recurrence_prevention_measures` SET TAGS ('dbx_business_glossary_term' = 'Recurrence Prevention Measures');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `requires_client_approval` SET TAGS ('dbx_business_glossary_term' = 'Requires Client Approval Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `requires_design_change` SET TAGS ('dbx_business_glossary_term' = 'Requires Design Change Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `root_cause_analysis` SET TAGS ('dbx_business_glossary_term' = 'Root Cause Analysis (RCA)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `schedule_impact_days` SET TAGS ('dbx_business_glossary_term' = 'Schedule Impact Days');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `target_completion_date` SET TAGS ('dbx_business_glossary_term' = 'Target Completion Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `verification_date` SET TAGS ('dbx_business_glossary_term' = 'Verification Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `verification_method` SET TAGS ('dbx_business_glossary_term' = 'Verification Method');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `verification_method` SET TAGS ('dbx_value_regex' = 'inspection|testing|document_review|audit|site_observation|measurement');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `verified_by_name` SET TAGS ('dbx_business_glossary_term' = 'Verified By Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `verified_by_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` SET TAGS ('dbx_subdomain' = 'inspection_planning');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` SET TAGS ('dbx_model_quality_target' = '80');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` SET TAGS ('dbx_structure_preserved' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` SET TAGS ('dbx_ssot_owner' = 'quality');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` SET TAGS ('dbx_mvm_ssot_reviewed' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `checklist_id` SET TAGS ('dbx_business_glossary_term' = 'Checklist ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Contract ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `permit_condition_id` SET TAGS ('dbx_business_glossary_term' = 'Permit Condition Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `acceptance_criteria` SET TAGS ('dbx_business_glossary_term' = 'Acceptance Criteria');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `activity_type` SET TAGS ('dbx_business_glossary_term' = 'Activity Type');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `applicable_standard` SET TAGS ('dbx_business_glossary_term' = 'Applicable Standard');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `approval_status` SET TAGS ('dbx_business_glossary_term' = 'Approval Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `approval_status` SET TAGS ('dbx_value_regex' = 'draft|under_review|approved|superseded|obsolete');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Approved By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `approved_date` SET TAGS ('dbx_business_glossary_term' = 'Approved Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `average_pass_rate` SET TAGS ('dbx_business_glossary_term' = 'Average Pass Rate (Percentage)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `checklist_code` SET TAGS ('dbx_business_glossary_term' = 'Checklist Code');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `checklist_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{6,20}$');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `critical_items_count` SET TAGS ('dbx_business_glossary_term' = 'Critical Items Count');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `checklist_description` SET TAGS ('dbx_business_glossary_term' = 'Checklist Description');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `discipline` SET TAGS ('dbx_business_glossary_term' = 'Discipline');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `effective_from_date` SET TAGS ('dbx_business_glossary_term' = 'Effective From Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `effective_to_date` SET TAGS ('dbx_business_glossary_term' = 'Effective To Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `estimated_duration_minutes` SET TAGS ('dbx_business_glossary_term' = 'Estimated Duration (Minutes)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `frequency` SET TAGS ('dbx_business_glossary_term' = 'Frequency');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `hold_point_flag` SET TAGS ('dbx_business_glossary_term' = 'Hold Point Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `inspection_stage` SET TAGS ('dbx_business_glossary_term' = 'Inspection Stage');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `inspection_stage` SET TAGS ('dbx_value_regex' = 'pre_work|during_work|post_work|hold_point|witness_point');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `inspection_type` SET TAGS ('dbx_business_glossary_term' = 'Inspection Type');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `mandatory_flag` SET TAGS ('dbx_business_glossary_term' = 'Mandatory Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `modified_by` SET TAGS ('dbx_business_glossary_term' = 'Modified By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `checklist_name` SET TAGS ('dbx_business_glossary_term' = 'Checklist Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `checklist_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `ncr_trigger_threshold` SET TAGS ('dbx_business_glossary_term' = 'NCR (Non-Conformance Report) Trigger Threshold');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Notes');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `reference_documents` SET TAGS ('dbx_business_glossary_term' = 'Reference Documents');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `required_equipment` SET TAGS ('dbx_business_glossary_term' = 'Required Equipment');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `required_qualifications` SET TAGS ('dbx_business_glossary_term' = 'Required Qualifications');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `revision_date` SET TAGS ('dbx_business_glossary_term' = 'Revision Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Revision Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `revision_number` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{1,10}$');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `safety_requirements` SET TAGS ('dbx_business_glossary_term' = 'Safety Requirements');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `total_check_items` SET TAGS ('dbx_business_glossary_term' = 'Total Check Items');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `usage_count` SET TAGS ('dbx_business_glossary_term' = 'Usage Count');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `witness_point_flag` SET TAGS ('dbx_business_glossary_term' = 'Witness Point Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `created_by` SET TAGS ('dbx_business_glossary_term' = 'Created By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` SET TAGS ('dbx_subdomain' = 'inspection_planning');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` SET TAGS ('dbx_model_quality_target' = '80');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` SET TAGS ('dbx_structure_preserved' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` SET TAGS ('dbx_ssot_owner' = 'quality');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` SET TAGS ('dbx_mvm_ssot_reviewed' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `checklist_execution_id` SET TAGS ('dbx_business_glossary_term' = 'Checklist Execution ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `checklist_id` SET TAGS ('dbx_business_glossary_term' = 'Checklist Template ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `checklist_site_construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Site ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `firm_profile_id` SET TAGS ('dbx_business_glossary_term' = 'Contractor ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `permit_to_work_id` SET TAGS ('dbx_business_glossary_term' = 'Permit To Work Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Inspector ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `tertiary_checklist_approved_by_employee_id` SET TAGS ('dbx_business_glossary_term' = 'Approved By ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `tertiary_checklist_approved_by_employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `tertiary_checklist_approved_by_employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `approval_status` SET TAGS ('dbx_business_glossary_term' = 'Approval Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `approval_status` SET TAGS ('dbx_value_regex' = 'draft|submitted|approved|rejected|revision_required');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `approval_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Approval Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `compliance_percentage` SET TAGS ('dbx_business_glossary_term' = 'Compliance Percentage');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `corrective_action_required` SET TAGS ('dbx_business_glossary_term' = 'Corrective Action Required');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `critical_failure_flag` SET TAGS ('dbx_business_glossary_term' = 'Critical Failure Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `defects_identified` SET TAGS ('dbx_business_glossary_term' = 'Defects Identified');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `document_reference_number` SET TAGS ('dbx_business_glossary_term' = 'Document Reference Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `execution_date` SET TAGS ('dbx_business_glossary_term' = 'Execution Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `execution_end_time` SET TAGS ('dbx_business_glossary_term' = 'Execution End Time');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `execution_number` SET TAGS ('dbx_business_glossary_term' = 'Execution Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `execution_start_time` SET TAGS ('dbx_business_glossary_term' = 'Execution Start Time');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `fail_count` SET TAGS ('dbx_business_glossary_term' = 'Fail Count');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `humidity_percentage` SET TAGS ('dbx_business_glossary_term' = 'Humidity Percentage');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `inspection_stage` SET TAGS ('dbx_business_glossary_term' = 'Inspection Stage');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `inspection_stage` SET TAGS ('dbx_value_regex' = 'pre_construction|during_construction|post_construction|commissioning|DLP');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `inspection_type` SET TAGS ('dbx_business_glossary_term' = 'Inspection Type');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `inspector_name` SET TAGS ('dbx_business_glossary_term' = 'Inspector Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `inspector_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `inspector_remarks` SET TAGS ('dbx_business_glossary_term' = 'Inspector Remarks');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `inspector_signature_captured` SET TAGS ('dbx_business_glossary_term' = 'Inspector Signature Captured');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `inspector_signature_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Inspector Signature Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `location_description` SET TAGS ('dbx_business_glossary_term' = 'Location Description');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `na_count` SET TAGS ('dbx_business_glossary_term' = 'Not Applicable (N/A) Count');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `ncr_generated_flag` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Report (NCR) Generated Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `overall_result` SET TAGS ('dbx_business_glossary_term' = 'Overall Result');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `overall_result` SET TAGS ('dbx_value_regex' = 'pass|fail|conditional_pass|not_applicable');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `pass_count` SET TAGS ('dbx_business_glossary_term' = 'Pass Count');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `temperature_celsius` SET TAGS ('dbx_business_glossary_term' = 'Temperature (Celsius)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `total_items` SET TAGS ('dbx_business_glossary_term' = 'Total Items');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `weather_conditions` SET TAGS ('dbx_business_glossary_term' = 'Weather Conditions');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `witness_name` SET TAGS ('dbx_business_glossary_term' = 'Witness Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `witness_name` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `witness_name` SET TAGS ('dbx_pii_identifier' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `witness_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `witness_required_flag` SET TAGS ('dbx_business_glossary_term' = 'Witness Required Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `witness_signature_captured` SET TAGS ('dbx_business_glossary_term' = 'Witness Signature Captured');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `witness_signature_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Witness Signature Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `work_activity_description` SET TAGS ('dbx_business_glossary_term' = 'Work Activity Description');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` SET TAGS ('dbx_subdomain' = 'field_testing');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` SET TAGS ('dbx_model_quality_target' = '80');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` SET TAGS ('dbx_structure_preserved' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` SET TAGS ('dbx_ssot_owner' = 'quality');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` SET TAGS ('dbx_mvm_ssot_reviewed' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `test_certificate_id` SET TAGS ('dbx_business_glossary_term' = 'Test Certificate Identifier');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `firm_profile_id` SET TAGS ('dbx_business_glossary_term' = 'Supplier Sub Firm Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `itp_id` SET TAGS ('dbx_business_glossary_term' = 'Itp Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `material_catalog_id` SET TAGS ('dbx_business_glossary_term' = 'Procurement Material Master Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `ncr_id` SET TAGS ('dbx_business_glossary_term' = 'Ncr Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `sample_id` SET TAGS ('dbx_business_glossary_term' = 'Sample ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `sustainable_material_id` SET TAGS ('dbx_business_glossary_term' = 'Sustainable Material Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `accreditation_body` SET TAGS ('dbx_business_glossary_term' = 'Accreditation Body');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Approved By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `approved_by` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `batch_number` SET TAGS ('dbx_business_glossary_term' = 'Batch Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `certificate_expiry_date` SET TAGS ('dbx_business_glossary_term' = 'Certificate Expiry Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `certificate_issue_date` SET TAGS ('dbx_business_glossary_term' = 'Certificate Issue Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `certificate_number` SET TAGS ('dbx_business_glossary_term' = 'Certificate Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `certificate_status` SET TAGS ('dbx_business_glossary_term' = 'Certificate Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `certificate_type` SET TAGS ('dbx_business_glossary_term' = 'Certificate Type');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `certificate_type` SET TAGS ('dbx_value_regex' = 'MTC|laboratory_test|factory_test|site_test|third_party_test|supplier_certificate');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `delivery_lot_number` SET TAGS ('dbx_business_glossary_term' = 'Delivery Lot Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `document_url` SET TAGS ('dbx_business_glossary_term' = 'Document URL');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `heat_number` SET TAGS ('dbx_business_glossary_term' = 'Heat Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `issuing_laboratory` SET TAGS ('dbx_business_glossary_term' = 'Issuing Laboratory');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `laboratory_accreditation_number` SET TAGS ('dbx_business_glossary_term' = 'Laboratory Accreditation Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `material_description` SET TAGS ('dbx_business_glossary_term' = 'Material Description');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `material_type` SET TAGS ('dbx_business_glossary_term' = 'Material Type');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `pass_fail_status` SET TAGS ('dbx_business_glossary_term' = 'Pass/Fail Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `pass_fail_status` SET TAGS ('dbx_value_regex' = 'pass|fail|conditional_pass|pending_review');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `purchase_order_number` SET TAGS ('dbx_business_glossary_term' = 'Purchase Order (PO) Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `remarks` SET TAGS ('dbx_business_glossary_term' = 'Remarks');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `sampling_date` SET TAGS ('dbx_business_glossary_term' = 'Sampling Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `sampling_location` SET TAGS ('dbx_business_glossary_term' = 'Sampling Location');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `specification_requirement` SET TAGS ('dbx_business_glossary_term' = 'Specification Requirement');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `technician_name` SET TAGS ('dbx_business_glossary_term' = 'Technician Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `technician_name` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `technician_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `test_date` SET TAGS ('dbx_business_glossary_term' = 'Test Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `test_method` SET TAGS ('dbx_business_glossary_term' = 'Test Method');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `test_parameters` SET TAGS ('dbx_business_glossary_term' = 'Test Parameters');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `test_results` SET TAGS ('dbx_business_glossary_term' = 'Test Results');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `test_standard` SET TAGS ('dbx_business_glossary_term' = 'Test Standard');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `work_package_code` SET TAGS ('dbx_business_glossary_term' = 'Work Package Code');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` SET TAGS ('dbx_subdomain' = 'field_testing');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` SET TAGS ('dbx_model_quality_target' = '80');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` SET TAGS ('dbx_structure_preserved' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` SET TAGS ('dbx_ssot_owner' = 'quality');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` SET TAGS ('dbx_mvm_ssot_reviewed' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `weld_record_id` SET TAGS ('dbx_business_glossary_term' = 'Weld Record ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Asset Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `craft_worker_id` SET TAGS ('dbx_business_glossary_term' = 'Welder Worker Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `firm_profile_id` SET TAGS ('dbx_business_glossary_term' = 'Contractor Sub Firm Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `itp_id` SET TAGS ('dbx_business_glossary_term' = 'Itp Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `acceptance_standard` SET TAGS ('dbx_business_glossary_term' = 'Weld Acceptance Standard');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `acceptance_standard` SET TAGS ('dbx_value_regex' = 'AWS D1.1|ASME Section IX|ISO 3834|API 1104|EN 1090|AISC 360');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `acceptance_status` SET TAGS ('dbx_business_glossary_term' = 'Weld Acceptance Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `acceptance_status` SET TAGS ('dbx_value_regex' = 'accepted|rejected|rework_required|pending_review');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `base_material_grade` SET TAGS ('dbx_business_glossary_term' = 'Base Material Grade');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `base_material_grade` SET TAGS ('dbx_value_regex' = '^[A-Z0-9-]+$');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `defect_description` SET TAGS ('dbx_business_glossary_term' = 'Weld Defect Description');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `filler_material_grade` SET TAGS ('dbx_business_glossary_term' = 'Filler Material Grade');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `filler_material_grade` SET TAGS ('dbx_value_regex' = '^[A-Z0-9-]+$');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `heat_number` SET TAGS ('dbx_business_glossary_term' = 'Material Heat Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `heat_number` SET TAGS ('dbx_value_regex' = '^[A-Z0-9-]+$');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `interpass_temperature_c` SET TAGS ('dbx_business_glossary_term' = 'Interpass Temperature (°C)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `joint_type` SET TAGS ('dbx_business_glossary_term' = 'Weld Joint Type');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Last Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `material_thickness_mm` SET TAGS ('dbx_business_glossary_term' = 'Material Thickness (mm)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `ndt_date` SET TAGS ('dbx_business_glossary_term' = 'Non-Destructive Testing (NDT) Inspection Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `ndt_inspector_certification` SET TAGS ('dbx_business_glossary_term' = 'Non-Destructive Testing (NDT) Inspector Certification Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `ndt_inspector_certification` SET TAGS ('dbx_value_regex' = '^[A-Z0-9-]+$');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `ndt_inspector_name` SET TAGS ('dbx_business_glossary_term' = 'Non-Destructive Testing (NDT) Inspector Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `ndt_inspector_name` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `ndt_inspector_name` SET TAGS ('dbx_pii_name' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `ndt_inspector_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `ndt_method` SET TAGS ('dbx_business_glossary_term' = 'Non-Destructive Testing (NDT) Method');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `ndt_report_number` SET TAGS ('dbx_business_glossary_term' = 'Non-Destructive Testing (NDT) Report Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `ndt_report_number` SET TAGS ('dbx_value_regex' = '^[A-Z0-9-]+$');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `ndt_result` SET TAGS ('dbx_business_glossary_term' = 'Non-Destructive Testing (NDT) Result');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `ndt_result` SET TAGS ('dbx_value_regex' = 'accept|reject|conditional|retest');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `preheat_temperature_c` SET TAGS ('dbx_business_glossary_term' = 'Preheat Temperature (°C)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `pwht_completion_date` SET TAGS ('dbx_business_glossary_term' = 'Post-Weld Heat Treatment (PWHT) Completion Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `pwht_required_flag` SET TAGS ('dbx_business_glossary_term' = 'Post-Weld Heat Treatment (PWHT) Required Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `qc_approval_date` SET TAGS ('dbx_business_glossary_term' = 'Quality Control (QC) Approval Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `qc_inspector_name` SET TAGS ('dbx_business_glossary_term' = 'Quality Control (QC) Inspector Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `qc_inspector_name` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `qc_inspector_name` SET TAGS ('dbx_pii_name' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `qc_inspector_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `remarks` SET TAGS ('dbx_business_glossary_term' = 'Weld Record Remarks');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `rework_completion_date` SET TAGS ('dbx_business_glossary_term' = 'Rework Completion Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `rework_required_flag` SET TAGS ('dbx_business_glossary_term' = 'Rework Required Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `weld_date` SET TAGS ('dbx_business_glossary_term' = 'Weld Execution Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `weld_length_mm` SET TAGS ('dbx_business_glossary_term' = 'Weld Length (mm)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `weld_number` SET TAGS ('dbx_business_glossary_term' = 'Weld Identification Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `weld_number` SET TAGS ('dbx_value_regex' = '^[A-Z0-9-]+$');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `weld_position` SET TAGS ('dbx_business_glossary_term' = 'Weld Position');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `weld_type` SET TAGS ('dbx_business_glossary_term' = 'Welding Process Type');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `weld_type` SET TAGS ('dbx_value_regex' = 'SMAW|GMAW|GTAW|FCAW|SAW|PAW');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `welder_stamp` SET TAGS ('dbx_business_glossary_term' = 'Welder Identification Stamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `welder_stamp` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]+$');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `witness_name` SET TAGS ('dbx_business_glossary_term' = 'Witness Inspector Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `witness_name` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `witness_name` SET TAGS ('dbx_pii_name' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `witness_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `witness_organization` SET TAGS ('dbx_business_glossary_term' = 'Witness Organization Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `witness_required_flag` SET TAGS ('dbx_business_glossary_term' = 'Witness Required Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `wps_number` SET TAGS ('dbx_business_glossary_term' = 'Welding Procedure Specification (WPS) Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `wps_number` SET TAGS ('dbx_value_regex' = '^[A-Z0-9-]+$');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `wqc_number` SET TAGS ('dbx_business_glossary_term' = 'Welder Qualification Certificate (WQC) Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `wqc_number` SET TAGS ('dbx_value_regex' = '^[A-Z0-9-]+$');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` SET TAGS ('dbx_subdomain' = 'field_testing');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` SET TAGS ('dbx_model_quality_target' = '80');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` SET TAGS ('dbx_structure_preserved' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` SET TAGS ('dbx_ssot_owner' = 'quality');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` SET TAGS ('dbx_mvm_ssot_reviewed' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `acceptance_test_id` SET TAGS ('dbx_business_glossary_term' = 'Acceptance Test ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Equipment Asset ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `itp_id` SET TAGS ('dbx_business_glossary_term' = 'Itp Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `ncr_id` SET TAGS ('dbx_business_glossary_term' = 'Ncr Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `acceptance_certificate_number` SET TAGS ('dbx_business_glossary_term' = 'Acceptance Certificate Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `acceptance_date` SET TAGS ('dbx_business_glossary_term' = 'Acceptance Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `acceptance_status` SET TAGS ('dbx_business_glossary_term' = 'Acceptance Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `acceptance_status` SET TAGS ('dbx_value_regex' = 'accepted|rejected|conditional_acceptance|pending_retest');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `client_representative_name` SET TAGS ('dbx_business_glossary_term' = 'Client Representative Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `client_representative_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `client_representative_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `client_representative_name` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `client_representative_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `client_representative_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `client_representative_name` SET TAGS ('dbx_mask' = 'non-prod');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `compliance_standard` SET TAGS ('dbx_business_glossary_term' = 'Compliance Standard');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `contractor_name` SET TAGS ('dbx_business_glossary_term' = 'Contractor Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `contractor_name` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `contractor_name` SET TAGS ('dbx_pii_identifier' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `contractor_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `corrective_action_required` SET TAGS ('dbx_business_glossary_term' = 'Corrective Action Required');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `defects_identified` SET TAGS ('dbx_business_glossary_term' = 'Defects Identified');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `equipment_description` SET TAGS ('dbx_business_glossary_term' = 'Equipment Description');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `manufacturer_name` SET TAGS ('dbx_business_glossary_term' = 'Manufacturer Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `manufacturer_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `modified_by` SET TAGS ('dbx_business_glossary_term' = 'Record Modified By User');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `remarks` SET TAGS ('dbx_business_glossary_term' = 'Test Remarks');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `retest_date` SET TAGS ('dbx_business_glossary_term' = 'Retest Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `retest_required` SET TAGS ('dbx_business_glossary_term' = 'Retest Required Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `specification_reference` SET TAGS ('dbx_business_glossary_term' = 'Specification Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_date` SET TAGS ('dbx_business_glossary_term' = 'Test Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_duration_hours` SET TAGS ('dbx_business_glossary_term' = 'Test Duration Hours');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_engineer_name` SET TAGS ('dbx_business_glossary_term' = 'Test Engineer Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_engineer_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_findings` SET TAGS ('dbx_business_glossary_term' = 'Test Findings');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_humidity_percent` SET TAGS ('dbx_business_glossary_term' = 'Test Humidity Percent');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_location` SET TAGS ('dbx_business_glossary_term' = 'Test Location');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_number` SET TAGS ('dbx_business_glossary_term' = 'Test Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_procedure_reference` SET TAGS ('dbx_business_glossary_term' = 'Test Procedure Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_procedure_version` SET TAGS ('dbx_business_glossary_term' = 'Test Procedure Version');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_report_reference` SET TAGS ('dbx_business_glossary_term' = 'Test Report Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_result` SET TAGS ('dbx_business_glossary_term' = 'Test Result');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_result` SET TAGS ('dbx_value_regex' = 'pass|fail|conditional_pass');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_status` SET TAGS ('dbx_business_glossary_term' = 'Test Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_status` SET TAGS ('dbx_value_regex' = 'scheduled|in_progress|passed|failed|conditional_pass|cancelled');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_temperature_c` SET TAGS ('dbx_business_glossary_term' = 'Test Temperature Celsius');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_type` SET TAGS ('dbx_business_glossary_term' = 'Test Type');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_type` SET TAGS ('dbx_value_regex' = 'FAT|SAT');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `witness_party` SET TAGS ('dbx_business_glossary_term' = 'Witness Party');
-ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `created_by` SET TAGS ('dbx_business_glossary_term' = 'Record Created By User');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` SET TAGS ('dbx_subdomain' = 'defect_control');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` SET TAGS ('dbx_model_quality_target' = '80');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` SET TAGS ('dbx_structure_preserved' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` SET TAGS ('dbx_ssot_owner' = 'quality');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` SET TAGS ('dbx_mvm_ssot_reviewed' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `defect_id` SET TAGS ('dbx_business_glossary_term' = 'Defect ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `activity_id` SET TAGS ('dbx_business_glossary_term' = 'Activity Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `firm_profile_id` SET TAGS ('dbx_business_glossary_term' = 'Responsible Contractor ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Identified By Employee Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `inspection_id` SET TAGS ('dbx_business_glossary_term' = 'Related Inspection ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `ncr_id` SET TAGS ('dbx_business_glossary_term' = 'Ncr Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `technical_specification_id` SET TAGS ('dbx_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `waste_record_id` SET TAGS ('dbx_business_glossary_term' = 'Waste Record Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `actual_rectification_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Rectification Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `assigned_to` SET TAGS ('dbx_business_glossary_term' = 'Assigned To');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `closure_date` SET TAGS ('dbx_business_glossary_term' = 'Closure Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `defect_description` SET TAGS ('dbx_business_glossary_term' = 'Defect Description');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `defect_number` SET TAGS ('dbx_business_glossary_term' = 'Defect Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `defect_status` SET TAGS ('dbx_business_glossary_term' = 'Defect Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `defect_type` SET TAGS ('dbx_business_glossary_term' = 'Defect Type');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `dlp_expiry_date` SET TAGS ('dbx_business_glossary_term' = 'DLP (Defects Liability Period) Expiry Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `identified_by` SET TAGS ('dbx_business_glossary_term' = 'Identified By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `identified_date` SET TAGS ('dbx_business_glossary_term' = 'Defect Identified Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `identified_phase` SET TAGS ('dbx_business_glossary_term' = 'Identified Phase');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `identified_phase` SET TAGS ('dbx_value_regex' = 'construction|pre_commissioning|commissioning|handover|DLP|post_handover');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `impact_on_handover` SET TAGS ('dbx_business_glossary_term' = 'Impact on Handover');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `location_building` SET TAGS ('dbx_business_glossary_term' = 'Location Building');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `location_grid_reference` SET TAGS ('dbx_business_glossary_term' = 'Location Grid Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `location_level` SET TAGS ('dbx_business_glossary_term' = 'Location Level');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `location_zone` SET TAGS ('dbx_business_glossary_term' = 'Location Zone');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `modified_by` SET TAGS ('dbx_business_glossary_term' = 'Modified By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `photo_reference` SET TAGS ('dbx_business_glossary_term' = 'Photo Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `rectification_cost` SET TAGS ('dbx_business_glossary_term' = 'Rectification Cost');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `rectification_cost` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `rectification_method` SET TAGS ('dbx_business_glossary_term' = 'Rectification Method');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `remarks` SET TAGS ('dbx_business_glossary_term' = 'Remarks');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `responsible_contractor_name` SET TAGS ('dbx_business_glossary_term' = 'Responsible Contractor Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `responsible_contractor_name` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `responsible_contractor_name` SET TAGS ('dbx_pii_identifier' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `responsible_contractor_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `severity` SET TAGS ('dbx_business_glossary_term' = 'Defect Severity');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `severity` SET TAGS ('dbx_value_regex' = 'critical|major|minor|cosmetic');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `target_rectification_date` SET TAGS ('dbx_business_glossary_term' = 'Target Rectification Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `title` SET TAGS ('dbx_business_glossary_term' = 'Defect Title');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `trade_discipline` SET TAGS ('dbx_business_glossary_term' = 'Trade Discipline');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `verification_date` SET TAGS ('dbx_business_glossary_term' = 'Verification Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `verified_by` SET TAGS ('dbx_business_glossary_term' = 'Verified By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `created_by` SET TAGS ('dbx_business_glossary_term' = 'Created By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` SET TAGS ('dbx_subdomain' = 'defect_control');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` SET TAGS ('dbx_model_quality_target' = '80');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` SET TAGS ('dbx_structure_preserved' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` SET TAGS ('dbx_ssot_owner' = 'quality');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` SET TAGS ('dbx_mvm_ssot_reviewed' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `punch_list_id` SET TAGS ('dbx_business_glossary_term' = 'Punch List ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Client Account Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `compliance_permit_id` SET TAGS ('dbx_business_glossary_term' = 'Permit Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `firm_profile_id` SET TAGS ('dbx_business_glossary_term' = 'Responsible Sub Firm Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Prepared By Employee Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `actual_closeout_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Close-Out Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `client_representative` SET TAGS ('dbx_business_glossary_term' = 'Client Representative');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `closed_items_count` SET TAGS ('dbx_business_glossary_term' = 'Closed Items Count');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `completion_percentage` SET TAGS ('dbx_business_glossary_term' = 'Completion Percentage');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `contract_reference` SET TAGS ('dbx_business_glossary_term' = 'Contract Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `critical_items_count` SET TAGS ('dbx_business_glossary_term' = 'Critical Items Count');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `discipline` SET TAGS ('dbx_business_glossary_term' = 'Discipline');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `dlp_commencement_gate` SET TAGS ('dbx_business_glossary_term' = 'Defects Liability Period (DLP) Commencement Gate');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `document_reference` SET TAGS ('dbx_business_glossary_term' = 'Document Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `handover_gate` SET TAGS ('dbx_business_glossary_term' = 'Handover Gate');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `inspection_date` SET TAGS ('dbx_business_glossary_term' = 'Inspection Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `milestone_type` SET TAGS ('dbx_business_glossary_term' = 'Milestone Type');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `modified_by` SET TAGS ('dbx_business_glossary_term' = 'Modified By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `punch_list_name` SET TAGS ('dbx_business_glossary_term' = 'Punch List Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `punch_list_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `open_items_count` SET TAGS ('dbx_business_glossary_term' = 'Open Items Count');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `prepared_by` SET TAGS ('dbx_business_glossary_term' = 'Prepared By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `priority` SET TAGS ('dbx_business_glossary_term' = 'Punch List Priority');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `priority` SET TAGS ('dbx_value_regex' = 'critical|high|medium|low');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `project_area` SET TAGS ('dbx_business_glossary_term' = 'Project Area');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `punch_list_number` SET TAGS ('dbx_business_glossary_term' = 'Punch List Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `punch_list_status` SET TAGS ('dbx_business_glossary_term' = 'Punch List Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `punch_list_status` SET TAGS ('dbx_value_regex' = 'draft|open|in_progress|under_review|closed|cancelled');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `remarks` SET TAGS ('dbx_business_glossary_term' = 'Remarks');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `responsible_party_type` SET TAGS ('dbx_business_glossary_term' = 'Responsible Party Type');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `responsible_party_type` SET TAGS ('dbx_value_regex' = 'general_contractor|subcontractor|supplier|joint_venture|client|consultant');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `reviewed_by` SET TAGS ('dbx_business_glossary_term' = 'Reviewed By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `specification_reference` SET TAGS ('dbx_business_glossary_term' = 'Specification Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `target_closeout_date` SET TAGS ('dbx_business_glossary_term' = 'Target Close-Out Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `total_items_count` SET TAGS ('dbx_business_glossary_term' = 'Total Items Count');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `created_by` SET TAGS ('dbx_business_glossary_term' = 'Created By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `creation_date` SET TAGS ('dbx_business_glossary_term' = 'Punch List Creation Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` SET TAGS ('dbx_subdomain' = 'defect_control');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` SET TAGS ('dbx_model_quality_target' = '80');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` SET TAGS ('dbx_structure_preserved' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` SET TAGS ('dbx_ssot_owner' = 'quality');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` SET TAGS ('dbx_mvm_ssot_reviewed' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `punch_item_id` SET TAGS ('dbx_business_glossary_term' = 'Punch Item ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `activity_id` SET TAGS ('dbx_business_glossary_term' = 'Activity Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `craft_worker_id` SET TAGS ('dbx_business_glossary_term' = 'Responsible Worker Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `firm_profile_id` SET TAGS ('dbx_business_glossary_term' = 'Responsible Subcontractor ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `punch_list_id` SET TAGS ('dbx_business_glossary_term' = 'Punch List ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `crew_id` SET TAGS ('dbx_business_glossary_term' = 'Responsible Crew Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Responsible Party Employee Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `technical_specification_id` SET TAGS ('dbx_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `actual_completion_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Completion Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `punch_item_category` SET TAGS ('dbx_business_glossary_term' = 'Punch Item Category');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `punch_item_category` SET TAGS ('dbx_value_regex' = 'structural|mep|architectural|civil|finishes|landscaping');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `client_representative_name` SET TAGS ('dbx_business_glossary_term' = 'Client Representative Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `client_representative_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `client_representative_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `client_representative_name` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `client_representative_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `client_representative_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `client_representative_name` SET TAGS ('dbx_mask' = 'non-prod');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `closure_status` SET TAGS ('dbx_business_glossary_term' = 'Closure Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `closure_status` SET TAGS ('dbx_value_regex' = 'pending|accepted|rejected|deferred');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `corrective_action` SET TAGS ('dbx_business_glossary_term' = 'Corrective Action');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `cost_currency_code` SET TAGS ('dbx_business_glossary_term' = 'Cost Currency Code');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `cost_currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `cost_impact` SET TAGS ('dbx_business_glossary_term' = 'Cost Impact');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `cost_impact` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `deferred_to_dlp` SET TAGS ('dbx_business_glossary_term' = 'Deferred to DLP (Defects Liability Period)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `dlp_end_date` SET TAGS ('dbx_business_glossary_term' = 'DLP (Defects Liability Period) End Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `identified_by` SET TAGS ('dbx_business_glossary_term' = 'Identified By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `identified_date` SET TAGS ('dbx_business_glossary_term' = 'Identified Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `item_description` SET TAGS ('dbx_business_glossary_term' = 'Punch Item Description');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `item_number` SET TAGS ('dbx_business_glossary_term' = 'Punch Item Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `location` SET TAGS ('dbx_business_glossary_term' = 'Punch Item Location');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `photo_reference` SET TAGS ('dbx_business_glossary_term' = 'Photo Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `priority` SET TAGS ('dbx_business_glossary_term' = 'Punch Item Priority');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `priority` SET TAGS ('dbx_value_regex' = 'critical|high|medium|low');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `punch_item_status` SET TAGS ('dbx_business_glossary_term' = 'Punch Item Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `punch_item_status` SET TAGS ('dbx_value_regex' = 'open|in_progress|completed|verified|closed|rejected');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `rejection_reason` SET TAGS ('dbx_business_glossary_term' = 'Rejection Reason');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `remarks` SET TAGS ('dbx_business_glossary_term' = 'Remarks');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `target_completion_date` SET TAGS ('dbx_business_glossary_term' = 'Target Completion Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `verification_date` SET TAGS ('dbx_business_glossary_term' = 'Verification Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `verification_inspector` SET TAGS ('dbx_business_glossary_term' = 'Verification Inspector');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` SET TAGS ('dbx_subdomain' = 'inspection_planning');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` SET TAGS ('dbx_model_quality_target' = '80');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` SET TAGS ('dbx_structure_preserved' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` SET TAGS ('dbx_ssot_owner' = 'quality');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` SET TAGS ('dbx_mvm_ssot_reviewed' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `quality_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Quality Plan ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `sustainability_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Sustainability Plan Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `applicable_standards` SET TAGS ('dbx_business_glossary_term' = 'Applicable Standards');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `approval_status` SET TAGS ('dbx_business_glossary_term' = 'Approval Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `approval_status` SET TAGS ('dbx_value_regex' = 'pending|approved|rejected|conditional');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `approved_by_name` SET TAGS ('dbx_business_glossary_term' = 'Approved By Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `approved_by_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `approved_by_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `approved_by_role` SET TAGS ('dbx_business_glossary_term' = 'Approved By Role');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `audit_schedule_reference` SET TAGS ('dbx_business_glossary_term' = 'Audit Schedule Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `calibration_procedure_reference` SET TAGS ('dbx_business_glossary_term' = 'Calibration Procedure Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `client_approval_date` SET TAGS ('dbx_business_glossary_term' = 'Client Approval Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `client_approval_required` SET TAGS ('dbx_business_glossary_term' = 'Client Approval Required');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `client_approved_by_name` SET TAGS ('dbx_business_glossary_term' = 'Client Approved By Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `client_approved_by_name` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `client_approved_by_name` SET TAGS ('dbx_pii_type' = 'person_name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `client_approved_by_name` SET TAGS ('dbx_mask_non_prod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `client_approved_by_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `client_approved_by_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `client_approved_by_name` SET TAGS ('dbx_mask' = 'non-prod');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `continuous_improvement_mechanism` SET TAGS ('dbx_business_glossary_term' = 'Continuous Improvement Mechanism');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `contract_reference` SET TAGS ('dbx_business_glossary_term' = 'Contract Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `defect_liability_period_days` SET TAGS ('dbx_business_glossary_term' = 'Defects Liability Period (DLP) Days');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `document_control_procedure` SET TAGS ('dbx_business_glossary_term' = 'Document Control Procedure');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `effective_date` SET TAGS ('dbx_business_glossary_term' = 'Effective Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `expiry_date` SET TAGS ('dbx_business_glossary_term' = 'Expiry Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `handover_quality_requirements` SET TAGS ('dbx_business_glossary_term' = 'Handover Quality Requirements');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `inspection_regime_summary` SET TAGS ('dbx_business_glossary_term' = 'Inspection Regime Summary');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `itp_register_reference` SET TAGS ('dbx_business_glossary_term' = 'Inspection and Test Plan (ITP) Register Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `material_control_procedure` SET TAGS ('dbx_business_glossary_term' = 'Material Control Procedure');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `modified_by` SET TAGS ('dbx_business_glossary_term' = 'Modified By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `ncr_procedure_reference` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Report (NCR) Procedure Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `organizational_structure` SET TAGS ('dbx_business_glossary_term' = 'Organizational Structure');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `plan_number` SET TAGS ('dbx_business_glossary_term' = 'Project Quality Plan (PQP) Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `plan_status` SET TAGS ('dbx_business_glossary_term' = 'Plan Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `plan_status` SET TAGS ('dbx_value_regex' = 'draft|under_review|approved|active|superseded|archived');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `prepared_by_name` SET TAGS ('dbx_business_glossary_term' = 'Prepared By Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `prepared_by_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `prepared_by_role` SET TAGS ('dbx_business_glossary_term' = 'Prepared By Role');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `quality_manager_name` SET TAGS ('dbx_business_glossary_term' = 'Quality Manager Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `quality_manager_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `quality_objectives` SET TAGS ('dbx_business_glossary_term' = 'Quality Objectives');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `quality_policy_reference` SET TAGS ('dbx_business_glossary_term' = 'Quality Policy Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `remarks` SET TAGS ('dbx_business_glossary_term' = 'Remarks');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `reviewed_by_name` SET TAGS ('dbx_business_glossary_term' = 'Reviewed By Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `reviewed_by_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `reviewed_by_role` SET TAGS ('dbx_business_glossary_term' = 'Reviewed By Role');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `scope_of_work` SET TAGS ('dbx_business_glossary_term' = 'Scope of Work');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `subcontractor_quality_management` SET TAGS ('dbx_business_glossary_term' = 'Subcontractor Quality Management');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `title` SET TAGS ('dbx_business_glossary_term' = 'Quality Plan Title');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `training_requirements` SET TAGS ('dbx_business_glossary_term' = 'Training Requirements');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `version` SET TAGS ('dbx_business_glossary_term' = 'Plan Version Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `created_by` SET TAGS ('dbx_business_glossary_term' = 'Created By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` SET TAGS ('dbx_subdomain' = 'defect_control');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` SET TAGS ('dbx_model_quality_target' = '80');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` SET TAGS ('dbx_structure_preserved' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` SET TAGS ('dbx_ssot_owner' = 'quality');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` SET TAGS ('dbx_mvm_ssot_reviewed' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `quality_audit_id` SET TAGS ('dbx_business_glossary_term' = 'Quality Audit ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `employee_id` SET TAGS ('dbx_business_glossary_term' = 'Lead Auditor Employee Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `employee_id` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `employee_id` SET TAGS ('dbx_pii' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `quality_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Quality Plan Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `areas_audited` SET TAGS ('dbx_business_glossary_term' = 'Areas Audited');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `audit_date` SET TAGS ('dbx_business_glossary_term' = 'Audit Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `audit_number` SET TAGS ('dbx_business_glossary_term' = 'Audit Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `audit_scope` SET TAGS ('dbx_business_glossary_term' = 'Audit Scope');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `audit_status` SET TAGS ('dbx_business_glossary_term' = 'Audit Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `audit_status` SET TAGS ('dbx_value_regex' = 'planned|in_progress|completed|closed|cancelled');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `audit_type` SET TAGS ('dbx_business_glossary_term' = 'Audit Type');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `audit_type` SET TAGS ('dbx_value_regex' = 'internal|external|third_party|surveillance|certification');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `auditee_department` SET TAGS ('dbx_business_glossary_term' = 'Auditee Department');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `auditee_representative_name` SET TAGS ('dbx_business_glossary_term' = 'Auditee Representative Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `auditee_representative_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `auditee_representative_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `auditor_organization` SET TAGS ('dbx_business_glossary_term' = 'Auditor Organization');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `car_raised_count` SET TAGS ('dbx_business_glossary_term' = 'Corrective Action Request (CAR) Raised Count');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `certification_body` SET TAGS ('dbx_business_glossary_term' = 'Certification Body');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `certification_standard` SET TAGS ('dbx_business_glossary_term' = 'Certification Standard');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `closed_by` SET TAGS ('dbx_business_glossary_term' = 'Closed By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `closure_date` SET TAGS ('dbx_business_glossary_term' = 'Audit Closure Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `conclusion` SET TAGS ('dbx_business_glossary_term' = 'Audit Conclusion');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `conclusion` SET TAGS ('dbx_value_regex' = 'satisfactory|satisfactory_with_observations|unsatisfactory|not_recommended_for_certification');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `corrective_action_due_date` SET TAGS ('dbx_business_glossary_term' = 'Corrective Action Due Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `criteria` SET TAGS ('dbx_business_glossary_term' = 'Audit Criteria');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `documents_reviewed` SET TAGS ('dbx_business_glossary_term' = 'Documents Reviewed');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `duration_hours` SET TAGS ('dbx_business_glossary_term' = 'Audit Duration Hours');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `end_date` SET TAGS ('dbx_business_glossary_term' = 'Audit End Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `findings_summary` SET TAGS ('dbx_business_glossary_term' = 'Audit Findings Summary');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `follow_up_audit_date` SET TAGS ('dbx_business_glossary_term' = 'Follow-Up Audit Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `follow_up_audit_required` SET TAGS ('dbx_business_glossary_term' = 'Follow-Up Audit Required');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `lead_auditor_name` SET TAGS ('dbx_business_glossary_term' = 'Lead Auditor Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `lead_auditor_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `major_nc_count` SET TAGS ('dbx_business_glossary_term' = 'Major Non-Conformance (NC) Count');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `minor_nc_count` SET TAGS ('dbx_business_glossary_term' = 'Minor Non-Conformance (NC) Count');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `modified_by` SET TAGS ('dbx_business_glossary_term' = 'Modified By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `observations_count` SET TAGS ('dbx_business_glossary_term' = 'Observations Count');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `personnel_interviewed` SET TAGS ('dbx_business_glossary_term' = 'Personnel Interviewed');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `positive_findings` SET TAGS ('dbx_business_glossary_term' = 'Positive Findings');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `remarks` SET TAGS ('dbx_business_glossary_term' = 'Remarks');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `report_issued_date` SET TAGS ('dbx_business_glossary_term' = 'Audit Report Issued Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `report_reference` SET TAGS ('dbx_business_glossary_term' = 'Audit Report Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `start_date` SET TAGS ('dbx_business_glossary_term' = 'Audit Start Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `team_members` SET TAGS ('dbx_business_glossary_term' = 'Audit Team Members');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `created_by` SET TAGS ('dbx_business_glossary_term' = 'Created By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('dbx_subdomain' = 'inspection_planning');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('dbx_model_quality_target' = '80');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('dbx_structure_preserved' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('dbx_ssot_owner' = 'quality');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('dbx_ssot_ref' = 'design.design_submittal');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('dbx_ssot' = 'authoritative');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('dbx_ssot_canonical' = 'design.design_submittal');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('dbx_ssot_status' = 'duplicate');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('dbx_ssot_pair_resolved' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('dbx_ssot_master' = 'design.design_submittal');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('dbx_mvm_ssot_role' = 'child');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('dbx_ssot_reference' = 'design.design_submittal');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('dbx_ssot_role' = 'duplicate');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('dbx_ssot_pair' = 'design.design_submittal');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `quality_submittal_id` SET TAGS ('dbx_business_glossary_term' = 'Quality Submittal ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `compliance_permit_id` SET TAGS ('dbx_business_glossary_term' = 'Permit Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `firm_profile_id` SET TAGS ('dbx_business_glossary_term' = 'Subcontractor Sub Firm Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `design_submittal_id` SET TAGS ('dbx_ssot_reference_fk' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `design_submittal_id` SET TAGS ('dbx_ssot_reference' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `design_submittal_id` SET TAGS ('dbx_ssot_owner' = 'design.design_submittal');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `quality_design_submittal_ref_design_submittal_id` SET TAGS ('dbx_ssot_reference' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `quality_design_submittal_ref_design_submittal_id` SET TAGS ('dbx_ssot_fk' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `quality_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Quality Plan Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `technical_specification_id` SET TAGS ('dbx_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `actual_review_days` SET TAGS ('dbx_business_glossary_term' = 'Actual Review Days');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `approval_code` SET TAGS ('dbx_business_glossary_term' = 'Approval Code');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `approval_code` SET TAGS ('dbx_value_regex' = 'A|B|C|D|E|R');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `certification_required` SET TAGS ('dbx_business_glossary_term' = 'Certification Required');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `compliance_standard` SET TAGS ('dbx_business_glossary_term' = 'Compliance Standard');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `contractor_name` SET TAGS ('dbx_business_glossary_term' = 'Contractor Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `contractor_name` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `contractor_name` SET TAGS ('dbx_pii_identifier' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `contractor_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `contractor_response` SET TAGS ('dbx_business_glossary_term' = 'Contractor Response');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `contractual_review_days` SET TAGS ('dbx_business_glossary_term' = 'Contractual Review Days');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `cost_impact` SET TAGS ('dbx_business_glossary_term' = 'Cost Impact');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `cost_impact` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `document_reference` SET TAGS ('dbx_business_glossary_term' = 'Document Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `final_approval_date` SET TAGS ('dbx_business_glossary_term' = 'Final Approval Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `linked_change_order_number` SET TAGS ('dbx_business_glossary_term' = 'Linked Change Order (CO) Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `linked_rfi_number` SET TAGS ('dbx_business_glossary_term' = 'Linked Request for Information (RFI) Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `manufacturer_model_number` SET TAGS ('dbx_business_glossary_term' = 'Manufacturer Model Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `manufacturer_name` SET TAGS ('dbx_business_glossary_term' = 'Manufacturer Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `manufacturer_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `modified_by` SET TAGS ('dbx_business_glossary_term' = 'Modified By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `remarks` SET TAGS ('dbx_business_glossary_term' = 'Remarks');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `required_on_site_date` SET TAGS ('dbx_business_glossary_term' = 'Required On-Site Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `resubmission_date` SET TAGS ('dbx_business_glossary_term' = 'Resubmission Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `resubmission_required` SET TAGS ('dbx_business_glossary_term' = 'Resubmission Required');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `review_completion_date` SET TAGS ('dbx_business_glossary_term' = 'Review Completion Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `review_priority` SET TAGS ('dbx_business_glossary_term' = 'Review Priority');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `review_priority` SET TAGS ('dbx_value_regex' = 'critical|high|normal|low');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `review_start_date` SET TAGS ('dbx_business_glossary_term' = 'Review Start Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `review_status` SET TAGS ('dbx_business_glossary_term' = 'Review Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `reviewer_comments` SET TAGS ('dbx_business_glossary_term' = 'Reviewer Comments');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_business_glossary_term' = 'Reviewer Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `reviewer_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `reviewer_organization` SET TAGS ('dbx_business_glossary_term' = 'Reviewer Organization');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `revision_number` SET TAGS ('dbx_business_glossary_term' = 'Revision Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `schedule_impact_days` SET TAGS ('dbx_business_glossary_term' = 'Schedule Impact Days');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `specification_section` SET TAGS ('dbx_business_glossary_term' = 'Specification Section');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `submission_date` SET TAGS ('dbx_business_glossary_term' = 'Submission Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `submittal_description` SET TAGS ('dbx_business_glossary_term' = 'Submittal Description');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `submittal_number` SET TAGS ('dbx_business_glossary_term' = 'Submittal Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `submittal_type` SET TAGS ('dbx_business_glossary_term' = 'Submittal Type');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `title` SET TAGS ('dbx_business_glossary_term' = 'Submittal Title');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
-ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `created_by` SET TAGS ('dbx_business_glossary_term' = 'Created By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` SET TAGS ('dbx_subdomain' = 'field_testing');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` SET TAGS ('dbx_model_quality_target' = '80');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` SET TAGS ('dbx_structure_preserved' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` SET TAGS ('dbx_ssot_owner' = 'quality');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` SET TAGS ('dbx_mvm_ssot_reviewed' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `ndt_record_id` SET TAGS ('dbx_business_glossary_term' = 'Non-Destructive Testing (NDT) Record ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Asset Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `itp_id` SET TAGS ('dbx_business_glossary_term' = 'Inspection and Test Plan (ITP) ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `acceptance_criteria` SET TAGS ('dbx_business_glossary_term' = 'Acceptance Criteria');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `acceptance_status` SET TAGS ('dbx_business_glossary_term' = 'Acceptance Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `acceptance_status` SET TAGS ('dbx_value_regex' = 'accepted|rejected|conditional|pending_review');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `calibration_due_date` SET TAGS ('dbx_business_glossary_term' = 'Calibration Due Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `calibration_reference` SET TAGS ('dbx_business_glossary_term' = 'Equipment Calibration Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `component_description` SET TAGS ('dbx_business_glossary_term' = 'Component Description');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `component_identifier` SET TAGS ('dbx_business_glossary_term' = 'Component Identifier');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `contractor_name` SET TAGS ('dbx_business_glossary_term' = 'Contractor Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `contractor_name` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `contractor_name` SET TAGS ('dbx_pii_identifier' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `contractor_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `equipment_serial_number` SET TAGS ('dbx_business_glossary_term' = 'Equipment Serial Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `equipment_used` SET TAGS ('dbx_business_glossary_term' = 'NDT Equipment Used');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `indication_count` SET TAGS ('dbx_business_glossary_term' = 'Indication Count');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `indication_findings` SET TAGS ('dbx_business_glossary_term' = 'Indication Findings');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `indication_severity` SET TAGS ('dbx_business_glossary_term' = 'Indication Severity');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `indication_severity` SET TAGS ('dbx_value_regex' = 'minor|major|critical');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `modified_by` SET TAGS ('dbx_business_glossary_term' = 'Modified By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `ncr_number` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Report (NCR) Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `ncr_raised` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Report (NCR) Raised');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `ndt_method` SET TAGS ('dbx_business_glossary_term' = 'Non-Destructive Testing (NDT) Method');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `remarks` SET TAGS ('dbx_business_glossary_term' = 'Remarks');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `repair_required` SET TAGS ('dbx_business_glossary_term' = 'Repair Required');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `retest_date` SET TAGS ('dbx_business_glossary_term' = 'Retest Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `retest_required` SET TAGS ('dbx_business_glossary_term' = 'Retest Required');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `specification_reference` SET TAGS ('dbx_business_glossary_term' = 'Specification Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `technician_certification_expiry_date` SET TAGS ('dbx_business_glossary_term' = 'Technician Certification Expiry Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `technician_certification_level` SET TAGS ('dbx_business_glossary_term' = 'Technician Certification Level');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `technician_certification_level` SET TAGS ('dbx_value_regex' = 'Level I|Level II|Level III');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `technician_certification_number` SET TAGS ('dbx_business_glossary_term' = 'Technician Certification Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `technician_name` SET TAGS ('dbx_business_glossary_term' = 'NDT Technician Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `technician_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `test_date` SET TAGS ('dbx_business_glossary_term' = 'NDT Test Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `test_location` SET TAGS ('dbx_business_glossary_term' = 'NDT Test Location');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `test_number` SET TAGS ('dbx_business_glossary_term' = 'NDT Test Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `test_procedure_reference` SET TAGS ('dbx_business_glossary_term' = 'Test Procedure Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `test_procedure_version` SET TAGS ('dbx_business_glossary_term' = 'Test Procedure Version');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `test_report_reference` SET TAGS ('dbx_business_glossary_term' = 'Test Report Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `test_result` SET TAGS ('dbx_business_glossary_term' = 'NDT Test Result');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `test_result` SET TAGS ('dbx_value_regex' = 'pass|fail|conditional');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `test_status` SET TAGS ('dbx_business_glossary_term' = 'NDT Test Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `test_status` SET TAGS ('dbx_value_regex' = 'scheduled|in_progress|completed|cancelled');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `weld_number` SET TAGS ('dbx_business_glossary_term' = 'Weld Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `witness_party` SET TAGS ('dbx_business_glossary_term' = 'Witness Party');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `created_by` SET TAGS ('dbx_business_glossary_term' = 'Created By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` SET TAGS ('dbx_subdomain' = 'field_testing');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` SET TAGS ('dbx_model_quality_target' = '80');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` SET TAGS ('dbx_structure_preserved' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` SET TAGS ('dbx_ssot_owner' = 'quality');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` SET TAGS ('dbx_mvm_ssot_reviewed' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `concrete_pour_record_id` SET TAGS ('dbx_business_glossary_term' = 'Concrete Pour Record ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Asset Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `compliance_permit_id` SET TAGS ('dbx_business_glossary_term' = 'Permit Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `firm_profile_id` SET TAGS ('dbx_business_glossary_term' = 'Contractor Sub Firm Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `itp_id` SET TAGS ('dbx_business_glossary_term' = 'Inspection and Test Plan (ITP) ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `ncr_id` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Report (NCR) ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `acceptance_status` SET TAGS ('dbx_business_glossary_term' = 'Acceptance Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `acceptance_status` SET TAGS ('dbx_value_regex' = 'pending|accepted|conditionally_accepted|rejected');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `ambient_temperature_c` SET TAGS ('dbx_business_glossary_term' = 'Ambient Temperature (Celsius)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `approved_submittal_number` SET TAGS ('dbx_business_glossary_term' = 'Approved Submittal Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `batch_plant_name` SET TAGS ('dbx_business_glossary_term' = 'Batch Plant Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `batch_plant_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `client_witness_name` SET TAGS ('dbx_business_glossary_term' = 'Client Witness Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `client_witness_name` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `client_witness_name` SET TAGS ('dbx_pii_identifier' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `client_witness_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `concrete_grade` SET TAGS ('dbx_business_glossary_term' = 'Concrete Grade');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `concrete_temperature_c` SET TAGS ('dbx_business_glossary_term' = 'Concrete Temperature (Celsius)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `consultant_witness_name` SET TAGS ('dbx_business_glossary_term' = 'Consultant Witness Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `consultant_witness_name` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `consultant_witness_name` SET TAGS ('dbx_pii_identifier' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `consultant_witness_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `cube_sample_ids` SET TAGS ('dbx_business_glossary_term' = 'Cube Sample IDs');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `curing_duration_days` SET TAGS ('dbx_business_glossary_term' = 'Curing Duration (Days)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `curing_method` SET TAGS ('dbx_business_glossary_term' = 'Curing Method');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `curing_method` SET TAGS ('dbx_value_regex' = 'wet_covering|curing_compound|plastic_sheeting|water_ponding|steam_curing|membrane_curing');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `curing_start_date` SET TAGS ('dbx_business_glossary_term' = 'Curing Start Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `cylinder_sample_ids` SET TAGS ('dbx_business_glossary_term' = 'Cylinder Sample IDs');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `delivery_docket_numbers` SET TAGS ('dbx_business_glossary_term' = 'Delivery Docket Numbers');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `element_location` SET TAGS ('dbx_business_glossary_term' = 'Element Location');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `element_type` SET TAGS ('dbx_business_glossary_term' = 'Element Type');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `grid_reference` SET TAGS ('dbx_business_glossary_term' = 'Grid Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `inspector_name` SET TAGS ('dbx_business_glossary_term' = 'Inspector Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `inspector_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `inspector_signature_date` SET TAGS ('dbx_business_glossary_term' = 'Inspector Signature Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `concrete_pour_record_level` SET TAGS ('dbx_business_glossary_term' = 'Level');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `mix_design_reference` SET TAGS ('dbx_business_glossary_term' = 'Mix Design Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `ncr_raised` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Report (NCR) Raised');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `number_of_samples_taken` SET TAGS ('dbx_business_glossary_term' = 'Number of Samples Taken');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `number_of_trucks` SET TAGS ('dbx_business_glossary_term' = 'Number of Trucks');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `pour_date` SET TAGS ('dbx_business_glossary_term' = 'Pour Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `pour_end_time` SET TAGS ('dbx_business_glossary_term' = 'Pour End Time');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `pour_number` SET TAGS ('dbx_business_glossary_term' = 'Pour Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `pour_start_time` SET TAGS ('dbx_business_glossary_term' = 'Pour Start Time');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `pour_status` SET TAGS ('dbx_business_glossary_term' = 'Pour Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `remarks` SET TAGS ('dbx_business_glossary_term' = 'Remarks');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `slump_specification_mm` SET TAGS ('dbx_business_glossary_term' = 'Slump Specification (Millimeters)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `slump_test_passed` SET TAGS ('dbx_business_glossary_term' = 'Slump Test Passed');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `slump_test_result_mm` SET TAGS ('dbx_business_glossary_term' = 'Slump Test Result (Millimeters)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `supplier_name` SET TAGS ('dbx_business_glossary_term' = 'Supplier Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `supplier_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `total_pour_volume_m3` SET TAGS ('dbx_business_glossary_term' = 'Total Pour Volume (Cubic Meters)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `weather_conditions` SET TAGS ('dbx_business_glossary_term' = 'Weather Conditions');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` SET TAGS ('dbx_subdomain' = 'field_testing');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` SET TAGS ('dbx_model_quality_target' = '80');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` SET TAGS ('dbx_structure_preserved' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` SET TAGS ('dbx_ssot_owner' = 'quality');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` SET TAGS ('dbx_mvm_ssot_reviewed' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `lab_test_id` SET TAGS ('dbx_business_glossary_term' = 'Laboratory Test ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Asset Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `itp_id` SET TAGS ('dbx_business_glossary_term' = 'Itp Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `ncr_id` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Report (NCR) ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `original_test_lab_test_id` SET TAGS ('dbx_business_glossary_term' = 'Original Test ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `sample_id` SET TAGS ('dbx_business_glossary_term' = 'Sample Identification Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `technical_specification_id` SET TAGS ('dbx_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `accreditation_body` SET TAGS ('dbx_business_glossary_term' = 'Accreditation Body');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `batch_number` SET TAGS ('dbx_business_glossary_term' = 'Batch Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `cost_code` SET TAGS ('dbx_business_glossary_term' = 'Cost Code');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `delivery_ticket_number` SET TAGS ('dbx_business_glossary_term' = 'Delivery Ticket Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `laboratory_accreditation_number` SET TAGS ('dbx_business_glossary_term' = 'Laboratory Accreditation Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `material_description` SET TAGS ('dbx_business_glossary_term' = 'Material Description');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `material_type` SET TAGS ('dbx_business_glossary_term' = 'Material Type');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `measured_result` SET TAGS ('dbx_business_glossary_term' = 'Measured Result');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `remarks` SET TAGS ('dbx_business_glossary_term' = 'Remarks');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `result_unit` SET TAGS ('dbx_business_glossary_term' = 'Result Unit of Measure');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `retest_flag` SET TAGS ('dbx_business_glossary_term' = 'Retest Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `reviewed_by` SET TAGS ('dbx_business_glossary_term' = 'Reviewed By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `sampled_by` SET TAGS ('dbx_business_glossary_term' = 'Sampled By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `sampling_date` SET TAGS ('dbx_business_glossary_term' = 'Sampling Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `sampling_location` SET TAGS ('dbx_business_glossary_term' = 'Sampling Location');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `specification_requirement` SET TAGS ('dbx_business_glossary_term' = 'Specification Requirement');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `supplier_name` SET TAGS ('dbx_business_glossary_term' = 'Supplier Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `supplier_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `technician_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `technician_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `test_age_days` SET TAGS ('dbx_business_glossary_term' = 'Test Age (Days)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `test_certificate_number` SET TAGS ('dbx_business_glossary_term' = 'Test Certificate Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `test_date` SET TAGS ('dbx_business_glossary_term' = 'Test Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `test_method` SET TAGS ('dbx_business_glossary_term' = 'Test Method');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `test_number` SET TAGS ('dbx_business_glossary_term' = 'Test Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `test_parameter` SET TAGS ('dbx_business_glossary_term' = 'Test Parameter');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `test_report_reference` SET TAGS ('dbx_business_glossary_term' = 'Test Report Reference');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `test_result_status` SET TAGS ('dbx_business_glossary_term' = 'Test Result Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `test_result_status` SET TAGS ('dbx_value_regex' = 'pass|fail|conditional|retest_required|pending');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `test_standard` SET TAGS ('dbx_business_glossary_term' = 'Test Standard');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `tested_by` SET TAGS ('dbx_business_glossary_term' = 'Tested By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `tolerance_lower_limit` SET TAGS ('dbx_business_glossary_term' = 'Tolerance Lower Limit');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `tolerance_upper_limit` SET TAGS ('dbx_business_glossary_term' = 'Tolerance Upper Limit');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `wbs_code` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `witness_name` SET TAGS ('dbx_business_glossary_term' = 'Witness Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `witness_name` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `witness_name` SET TAGS ('dbx_pii_identifier' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `witness_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `witness_required` SET TAGS ('dbx_business_glossary_term' = 'Witness Required');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` SET TAGS ('dbx_subdomain' = 'field_testing');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` SET TAGS ('dbx_model_quality_target' = '80');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` SET TAGS ('dbx_structure_preserved' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` SET TAGS ('dbx_ssot_owner' = 'quality');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` SET TAGS ('dbx_mvm_ssot_reviewed' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `sample_id` SET TAGS ('dbx_business_glossary_term' = 'Sample Identifier');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `laboratory_id` SET TAGS ('dbx_business_glossary_term' = 'Lab Id');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `parent_sample_id` SET TAGS ('dbx_business_glossary_term' = 'Parent Sample Id');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `parent_sample_id` SET TAGS ('dbx_self_ref_fk' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `site_location_id` SET TAGS ('dbx_business_glossary_term' = 'Location Id');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Approved By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `batch_number` SET TAGS ('dbx_business_glossary_term' = 'Batch Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `sample_code` SET TAGS ('dbx_business_glossary_term' = 'Sample Code');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `collected_by` SET TAGS ('dbx_business_glossary_term' = 'Collected By');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `collection_date` SET TAGS ('dbx_business_glossary_term' = 'Collection Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `compliance_standard` SET TAGS ('dbx_business_glossary_term' = 'Compliance Standard');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `disposal_date` SET TAGS ('dbx_business_glossary_term' = 'Disposal Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `expiration_date` SET TAGS ('dbx_business_glossary_term' = 'Expiration Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `humidity_percent` SET TAGS ('dbx_business_glossary_term' = 'Humidity Percent');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `is_critical` SET TAGS ('dbx_business_glossary_term' = 'Is Critical');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `material` SET TAGS ('dbx_business_glossary_term' = 'Material');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `sample_name` SET TAGS ('dbx_business_glossary_term' = 'Sample Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `sample_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Notes');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `quality_status` SET TAGS ('dbx_business_glossary_term' = 'Quality Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `sample_type` SET TAGS ('dbx_business_glossary_term' = 'Sample Type');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `sample_status` SET TAGS ('dbx_business_glossary_term' = 'Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `storage_location` SET TAGS ('dbx_business_glossary_term' = 'Storage Location');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `temperature_c` SET TAGS ('dbx_business_glossary_term' = 'Temperature C');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `test_date` SET TAGS ('dbx_business_glossary_term' = 'Test Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `test_method` SET TAGS ('dbx_business_glossary_term' = 'Test Method');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `test_result_unit` SET TAGS ('dbx_business_glossary_term' = 'Test Result Unit');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `test_result_value` SET TAGS ('dbx_business_glossary_term' = 'Test Result Value');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Updated Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `volume_l` SET TAGS ('dbx_business_glossary_term' = 'Sample Volume L');
-ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `weight_kg` SET TAGS ('dbx_business_glossary_term' = 'Sample Weight Kg');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` SET TAGS ('dbx_subdomain' = 'field_testing');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` SET TAGS ('dbx_model_quality_target' = '80');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` SET TAGS ('dbx_structure_preserved' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` SET TAGS ('dbx_ssot_owner' = 'quality');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` SET TAGS ('dbx_mvm_ssot_reviewed' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `laboratory_id` SET TAGS ('dbx_business_glossary_term' = 'Laboratory Identifier');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `parent_laboratory_id` SET TAGS ('dbx_business_glossary_term' = 'Parent Laboratory Id');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `parent_laboratory_id` SET TAGS ('dbx_self_ref_fk' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `accreditation_body` SET TAGS ('dbx_business_glossary_term' = 'Accreditation Body');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `accreditation_expiry_date` SET TAGS ('dbx_business_glossary_term' = 'Accreditation Expiry Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `accreditation_number` SET TAGS ('dbx_business_glossary_term' = 'Accreditation Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `address` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `address` SET TAGS ('dbx_pii_address' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `address_line` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `address_line` SET TAGS ('dbx_pii_address' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `address_line1` SET TAGS ('dbx_business_glossary_term' = 'Address Line1');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `address_line1` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `address_line1` SET TAGS ('dbx_pii_address' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `address_line2` SET TAGS ('dbx_business_glossary_term' = 'Address Line2');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `address_line2` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `address_line2` SET TAGS ('dbx_pii_address' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `capacity_tests_per_day` SET TAGS ('dbx_business_glossary_term' = 'Capacity Tests Per Day');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `certification_details` SET TAGS ('dbx_business_glossary_term' = 'Certification Details');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `city` SET TAGS ('dbx_business_glossary_term' = 'City');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `city` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `city` SET TAGS ('dbx_pii_address' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `closing_date` SET TAGS ('dbx_business_glossary_term' = 'Closing Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `laboratory_code` SET TAGS ('dbx_business_glossary_term' = 'Code');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `contact_email` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `contact_email` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `contact_phone` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `contact_phone` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `country_code` SET TAGS ('dbx_business_glossary_term' = 'Country Code');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `data_sharing_agreement` SET TAGS ('dbx_business_glossary_term' = 'Data Sharing Agreement');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `laboratory_description` SET TAGS ('dbx_business_glossary_term' = 'Description');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `email_address` SET TAGS ('dbx_business_glossary_term' = 'Email Address');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `email_address` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `email_address` SET TAGS ('dbx_pii_email' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `email_address` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `equipment_summary` SET TAGS ('dbx_business_glossary_term' = 'Equipment Summary');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `hazardous_materials_allowed` SET TAGS ('dbx_business_glossary_term' = 'Hazardous Materials Allowed');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `is_certified` SET TAGS ('dbx_business_glossary_term' = 'Is Certified');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `lab_area_sqm` SET TAGS ('dbx_business_glossary_term' = 'Lab Area Sqm');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `last_inspection_date` SET TAGS ('dbx_business_glossary_term' = 'Last Inspection Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `latitude` SET TAGS ('dbx_business_glossary_term' = 'Latitude');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `latitude` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `latitude` SET TAGS ('dbx_pii_address' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `longitude` SET TAGS ('dbx_business_glossary_term' = 'Longitude');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `longitude` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `longitude` SET TAGS ('dbx_pii_address' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `manager_name` SET TAGS ('dbx_business_glossary_term' = 'Manager Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `manager_name` SET TAGS ('dbx_restricted' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `manager_name` SET TAGS ('dbx_pii_name' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `manager_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `max_sample_weight_kg` SET TAGS ('dbx_business_glossary_term' = 'Max Sample Weight Kg');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `laboratory_name` SET TAGS ('dbx_business_glossary_term' = 'Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `laboratory_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `next_inspection_due` SET TAGS ('dbx_business_glossary_term' = 'Next Inspection Due');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `opening_date` SET TAGS ('dbx_business_glossary_term' = 'Opening Date');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `operating_hours` SET TAGS ('dbx_business_glossary_term' = 'Operating Hours');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `phone_number` SET TAGS ('dbx_business_glossary_term' = 'Phone Number');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `phone_number` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `phone_number` SET TAGS ('dbx_pii_phone' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `phone_number` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `postal_code` SET TAGS ('dbx_business_glossary_term' = 'Postal Code');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `postal_code` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `postal_code` SET TAGS ('dbx_pii_address' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `primary_contact_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `primary_contact_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `quality_management_system` SET TAGS ('dbx_business_glossary_term' = 'Quality Management System');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `region` SET TAGS ('dbx_business_glossary_term' = 'Region');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `safety_rating` SET TAGS ('dbx_business_glossary_term' = 'Safety Rating');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `sample_storage_temperature_c` SET TAGS ('dbx_business_glossary_term' = 'Sample Storage Temperature C');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `state_province` SET TAGS ('dbx_business_glossary_term' = 'State Province');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `state_province` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `state_province` SET TAGS ('dbx_pii_address' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `laboratory_status` SET TAGS ('dbx_business_glossary_term' = 'Status');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `laboratory_type` SET TAGS ('dbx_business_glossary_term' = 'Type');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Updated Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `waste_disposal_method` SET TAGS ('dbx_business_glossary_term' = 'Waste Disposal Method');
+ALTER SCHEMA `vibe_construction_v1`.`quality` SET TAGS ('pii_division' = 'operations');
+ALTER SCHEMA `vibe_construction_v1`.`quality` SET TAGS ('pii_domain' = 'quality');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` SET TAGS ('pii_data_type' = 'master_data');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` SET TAGS ('pii_subdomain' = 'inspection_planning');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` SET TAGS ('pii_ssot_view' = 'mvm_quality_itp_ssot');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` SET TAGS ('pii_mvm_ssot_owner' = 'quality');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `itp_id` SET TAGS ('pii_business_glossary_term' = 'Inspection and Test Plan (ITP) ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `firm_profile_id` SET TAGS ('pii_business_glossary_term' = 'Contractor Sub Firm Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `permit_to_work_id` SET TAGS ('pii_business_glossary_term' = 'Permit To Work Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'Qc Inspector Employee Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `subcontract_id` SET TAGS ('pii_business_glossary_term' = 'Subcontract Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `technical_specification_id` SET TAGS ('pii_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `acceptance_criteria` SET TAGS ('pii_business_glossary_term' = 'Acceptance Criteria');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `applicable_standards` SET TAGS ('pii_business_glossary_term' = 'Applicable Quality Standards');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `approval_date` SET TAGS ('pii_business_glossary_term' = 'ITP Approval Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `approval_status` SET TAGS ('pii_business_glossary_term' = 'Inspection and Test Plan (ITP) Approval Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `approved_by` SET TAGS ('pii_business_glossary_term' = 'ITP Approved By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `client_inspector_responsible_party` SET TAGS ('pii_business_glossary_term' = 'Client Inspector Responsible Party');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `defect_liability_period_days` SET TAGS ('pii_business_glossary_term' = 'Defects Liability Period (DLP) Days');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `discipline` SET TAGS ('pii_business_glossary_term' = 'Engineering Discipline');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `document_storage_location` SET TAGS ('pii_business_glossary_term' = 'Document Storage Location');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `effective_date` SET TAGS ('pii_business_glossary_term' = 'ITP Effective Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `expiry_date` SET TAGS ('pii_business_glossary_term' = 'ITP Expiry Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `fat_required` SET TAGS ('pii_business_glossary_term' = 'Factory Acceptance Test (FAT) Required Flag');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `hold_point_required` SET TAGS ('pii_business_glossary_term' = 'Hold Point Required Flag');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `inspection_frequency` SET TAGS ('pii_business_glossary_term' = 'Inspection Frequency');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `inspection_scope` SET TAGS ('pii_business_glossary_term' = 'Inspection Scope');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `itp_number` SET TAGS ('pii_business_glossary_term' = 'Inspection and Test Plan (ITP) Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `itp_number` SET TAGS ('pii_value_regex' = '^ITP-[A-Z0-9]{4,12}$');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `last_modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Record Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `material_test_certificate_required` SET TAGS ('pii_business_glossary_term' = 'Material Test Certificate (MTC) Required Flag');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `ndt_method_required` SET TAGS ('pii_business_glossary_term' = 'Non-Destructive Testing (NDT) Method Required');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `prepared_by` SET TAGS ('pii_business_glossary_term' = 'ITP Prepared By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `qc_inspector_responsible_party` SET TAGS ('pii_business_glossary_term' = 'Quality Control (QC) Inspector Responsible Party');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `remarks` SET TAGS ('pii_business_glossary_term' = 'ITP Remarks');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `review_point_required` SET TAGS ('pii_business_glossary_term' = 'Review Point Required Flag');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `reviewed_by` SET TAGS ('pii_business_glossary_term' = 'ITP Reviewed By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `revision_date` SET TAGS ('pii_business_glossary_term' = 'Document Revision Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `revision_number` SET TAGS ('pii_business_glossary_term' = 'Document Revision Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `revision_number` SET TAGS ('pii_value_regex' = '^[A-Z0-9]{1,3}$');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `sat_required` SET TAGS ('pii_business_glossary_term' = 'Site Acceptance Test (SAT) Required Flag');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `test_method_reference` SET TAGS ('pii_business_glossary_term' = 'Test Method Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `title` SET TAGS ('pii_business_glossary_term' = 'Inspection and Test Plan (ITP) Title');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `wbs_code` SET TAGS ('pii_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `wbs_code` SET TAGS ('pii_value_regex' = '^[A-Z0-9]{2,6}(.[A-Z0-9]{2,6}){0,5}$');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `witness_point_required` SET TAGS ('pii_business_glossary_term' = 'Witness Point Required Flag');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `work_package_description` SET TAGS ('pii_business_glossary_term' = 'Work Package Description');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` SET TAGS ('pii_data_type' = 'master_data');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` SET TAGS ('pii_subdomain' = 'inspection_planning');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` SET TAGS ('pii_mvm_ssot_owner' = 'quality');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `itp_line_id` SET TAGS ('pii_business_glossary_term' = 'Inspection and Test Plan (ITP) Line ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `craft_worker_id` SET TAGS ('pii_business_glossary_term' = 'Responsible Worker Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `firm_profile_id` SET TAGS ('pii_business_glossary_term' = 'Contractor Sub Firm Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `itp_id` SET TAGS ('pii_business_glossary_term' = 'Inspection and Test Plan (ITP) ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `crew_id` SET TAGS ('pii_business_glossary_term' = 'Responsible Crew Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `wbs_element_id` SET TAGS ('pii_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `acceptance_criteria` SET TAGS ('pii_business_glossary_term' = 'Acceptance Criteria');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `activity_description` SET TAGS ('pii_business_glossary_term' = 'Activity Description');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `applicable_standard` SET TAGS ('pii_business_glossary_term' = 'Applicable Standard');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `approved_by` SET TAGS ('pii_business_glossary_term' = 'Approved By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `approved_date` SET TAGS ('pii_business_glossary_term' = 'Approved Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `calibration_required` SET TAGS ('pii_business_glossary_term' = 'Calibration Required');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `client_witness_required` SET TAGS ('pii_business_glossary_term' = 'Client Witness Required');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `consultant_witness_required` SET TAGS ('pii_business_glossary_term' = 'Consultant Witness Required');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `cost_code` SET TAGS ('pii_business_glossary_term' = 'Cost Code');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `critical_path_flag` SET TAGS ('pii_business_glossary_term' = 'Critical Path Flag');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `effective_date` SET TAGS ('pii_business_glossary_term' = 'Effective Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `environmental_conditions` SET TAGS ('pii_business_glossary_term' = 'Environmental Conditions');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `estimated_duration_hours` SET TAGS ('pii_business_glossary_term' = 'Estimated Duration Hours');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `hold_point_type` SET TAGS ('pii_business_glossary_term' = 'Hold Point Type');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `hold_point_type` SET TAGS ('pii_value_regex' = 'hold|witness|review|surveillance');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `inspection_frequency` SET TAGS ('pii_business_glossary_term' = 'Inspection Frequency');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `inspection_method` SET TAGS ('pii_business_glossary_term' = 'Inspection Method');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `inspection_stage` SET TAGS ('pii_business_glossary_term' = 'Inspection Stage');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `itp_line_status` SET TAGS ('pii_business_glossary_term' = 'Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `itp_line_status` SET TAGS ('pii_value_regex' = 'planned|ready|in_progress|completed|waived|cancelled');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `line_number` SET TAGS ('pii_business_glossary_term' = 'Line Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `mandatory_flag` SET TAGS ('pii_business_glossary_term' = 'Mandatory Flag');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `ncr_trigger_criteria` SET TAGS ('pii_business_glossary_term' = 'Non-Conformance Report (NCR) Trigger Criteria');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `notification_lead_time_hours` SET TAGS ('pii_business_glossary_term' = 'Notification Lead Time Hours');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `reference_document` SET TAGS ('pii_business_glossary_term' = 'Reference Document');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `remarks` SET TAGS ('pii_business_glossary_term' = 'Remarks');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `required_documentation` SET TAGS ('pii_business_glossary_term' = 'Required Documentation');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `responsible_discipline` SET TAGS ('pii_business_glossary_term' = 'Responsible Discipline');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `revision_number` SET TAGS ('pii_business_glossary_term' = 'Revision Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `safety_requirements` SET TAGS ('pii_business_glossary_term' = 'Safety Requirements');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `sampling_plan` SET TAGS ('pii_business_glossary_term' = 'Sampling Plan');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `sequence_dependency` SET TAGS ('pii_business_glossary_term' = 'Sequence Dependency');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `superseded_date` SET TAGS ('pii_business_glossary_term' = 'Superseded Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `test_equipment_required` SET TAGS ('pii_business_glossary_term' = 'Test Equipment Required');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `third_party_witness_required` SET TAGS ('pii_business_glossary_term' = 'Third Party Witness Required');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` SET TAGS ('pii_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` SET TAGS ('pii_subdomain' = 'field_verification');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` SET TAGS ('pii_industry' = 'construction');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` SET TAGS ('pii_ssot_view' = 'mvm_quality_inspection_ssot');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` SET TAGS ('pii_mvm_ssot_owner' = 'quality');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `inspection_id` SET TAGS ('pii_business_glossary_term' = 'Inspection ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `activity_id` SET TAGS ('pii_business_glossary_term' = 'Activity Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `asset_id` SET TAGS ('pii_business_glossary_term' = 'Asset Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `checklist_id` SET TAGS ('pii_business_glossary_term' = 'Checklist Template ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `account_id` SET TAGS ('pii_business_glossary_term' = 'Client Account Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `contact_id` SET TAGS ('pii_business_glossary_term' = 'Client Contact Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `regulatory_permit_id` SET TAGS ('pii_business_glossary_term' = 'Permit Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `craft_worker_id` SET TAGS ('pii_business_glossary_term' = 'Inspector Worker Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `crew_id` SET TAGS ('pii_business_glossary_term' = 'Crew Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `drawing_id` SET TAGS ('pii_business_glossary_term' = 'Drawing Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'Inspector ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `cost_code_id` SET TAGS ('pii_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `firm_profile_id` SET TAGS ('pii_business_glossary_term' = 'Witness Sub Firm Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `goods_receipt_id` SET TAGS ('pii_business_glossary_term' = 'Goods Receipt Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `incident_id` SET TAGS ('pii_business_glossary_term' = 'Incident Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `itp_line_id` SET TAGS ('pii_business_glossary_term' = 'Itp Line Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `purchase_order_id` SET TAGS ('pii_business_glossary_term' = 'Purchase Order Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `wbs_element_id` SET TAGS ('pii_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `attachment_count` SET TAGS ('pii_business_glossary_term' = 'Attachment Count');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `checklist_template_name` SET TAGS ('pii_business_glossary_term' = 'Checklist Template Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `checklist_version` SET TAGS ('pii_business_glossary_term' = 'Checklist Version');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `corrective_action_required` SET TAGS ('pii_business_glossary_term' = 'Corrective Action Required Flag');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `defects_identified` SET TAGS ('pii_business_glossary_term' = 'Defects Identified');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `end_time` SET TAGS ('pii_business_glossary_term' = 'Inspection End Time');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `humidity_percent` SET TAGS ('pii_business_glossary_term' = 'Humidity Percentage');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `inspection_date` SET TAGS ('pii_business_glossary_term' = 'Inspection Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `inspection_number` SET TAGS ('pii_business_glossary_term' = 'Inspection Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `inspection_status` SET TAGS ('pii_business_glossary_term' = 'Inspection Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `inspection_type` SET TAGS ('pii_business_glossary_term' = 'Inspection Type');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `inspector_certification` SET TAGS ('pii_business_glossary_term' = 'Inspector Certification');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `inspector_signature_captured` SET TAGS ('pii_business_glossary_term' = 'Inspector Signature Captured Flag');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `items_failed` SET TAGS ('pii_business_glossary_term' = 'Items Failed');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `items_not_applicable` SET TAGS ('pii_business_glossary_term' = 'Items Not Applicable');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `items_passed` SET TAGS ('pii_business_glossary_term' = 'Items Passed');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `last_modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Record Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `location_description` SET TAGS ('pii_business_glossary_term' = 'Inspection Location Description');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `location_type` SET TAGS ('pii_business_glossary_term' = 'Inspection Location Type');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `location_type` SET TAGS ('pii_value_regex' = 'site|factory|workshop|laboratory|warehouse|offsite');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `ncr_raised` SET TAGS ('pii_business_glossary_term' = 'Non-Conformance Report (NCR) Raised Flag');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `ncr_reference` SET TAGS ('pii_business_glossary_term' = 'Non-Conformance Report (NCR) Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `observations` SET TAGS ('pii_business_glossary_term' = 'Inspection Observations');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `overall_outcome` SET TAGS ('pii_business_glossary_term' = 'Overall Inspection Outcome');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `overall_outcome` SET TAGS ('pii_value_regex' = 'pass|fail|conditional_pass');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `photo_count` SET TAGS ('pii_business_glossary_term' = 'Photo Count');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `reinspection_date` SET TAGS ('pii_business_glossary_term' = 'Reinspection Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `reinspection_required` SET TAGS ('pii_business_glossary_term' = 'Reinspection Required Flag');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `specification_reference` SET TAGS ('pii_business_glossary_term' = 'Specification Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `start_time` SET TAGS ('pii_business_glossary_term' = 'Inspection Start Time');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `temperature_celsius` SET TAGS ('pii_business_glossary_term' = 'Temperature in Celsius');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `total_check_items` SET TAGS ('pii_business_glossary_term' = 'Total Check Items');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `weather_conditions` SET TAGS ('pii_business_glossary_term' = 'Weather Conditions');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `witness_signature_captured` SET TAGS ('pii_business_glossary_term' = 'Witness Signature Captured Flag');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `work_package_reference` SET TAGS ('pii_business_glossary_term' = 'Work Package Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` SET TAGS ('pii_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` SET TAGS ('pii_subdomain' = 'field_verification');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` SET TAGS ('pii_ssot_view' = 'mvm_quality_ncr_ssot');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` SET TAGS ('pii_mvm_ssot_owner' = 'quality');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `ncr_id` SET TAGS ('pii_business_glossary_term' = 'Non-Conformance Report (NCR) ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `activity_id` SET TAGS ('pii_business_glossary_term' = 'Activity Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `account_id` SET TAGS ('pii_business_glossary_term' = 'Client Account Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `craft_worker_id` SET TAGS ('pii_business_glossary_term' = 'Responsible Worker Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `drawing_id` SET TAGS ('pii_business_glossary_term' = 'Drawing Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `cost_code_id` SET TAGS ('pii_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `firm_profile_id` SET TAGS ('pii_business_glossary_term' = 'Responsible Sub Firm Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `incident_id` SET TAGS ('pii_business_glossary_term' = 'Incident Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `permit_condition_id` SET TAGS ('pii_business_glossary_term' = 'Permit Condition Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `technical_specification_id` SET TAGS ('pii_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `vendor_id` SET TAGS ('pii_business_glossary_term' = 'Vendor Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `wbs_element_id` SET TAGS ('pii_business_glossary_term' = 'Work Package ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `ncr_category` SET TAGS ('pii_business_glossary_term' = 'Non-Conformance Report (NCR) Category');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `ncr_category` SET TAGS ('pii_value_regex' = 'material|workmanship|design|documentation|dimensional|procedural');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `client_notification_date` SET TAGS ('pii_business_glossary_term' = 'Client Notification Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `client_notification_required` SET TAGS ('pii_business_glossary_term' = 'Client Notification Required');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `closed_by` SET TAGS ('pii_business_glossary_term' = 'Non-Conformance Report (NCR) Closed By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `closure_date` SET TAGS ('pii_business_glossary_term' = 'Non-Conformance Report (NCR) Closure Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `corrective_action_completion_date` SET TAGS ('pii_business_glossary_term' = 'Corrective Action Completion Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `corrective_action_description` SET TAGS ('pii_business_glossary_term' = 'Corrective Action Description');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `corrective_action_responsible_party` SET TAGS ('pii_business_glossary_term' = 'Corrective Action Responsible Party');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `corrective_action_target_date` SET TAGS ('pii_business_glossary_term' = 'Corrective Action Target Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `cost_impact_currency` SET TAGS ('pii_business_glossary_term' = 'Cost Impact Currency');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `cost_impact_currency` SET TAGS ('pii_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `ncr_description` SET TAGS ('pii_business_glossary_term' = 'Non-Conformance Description');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `discipline` SET TAGS ('pii_business_glossary_term' = 'Engineering Discipline');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `disposition` SET TAGS ('pii_business_glossary_term' = 'Non-Conformance Disposition');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `disposition` SET TAGS ('pii_value_regex' = 'accept_as_is|rework|repair|reject|scrap|use_as_is_with_concession');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `disposition_approved_by` SET TAGS ('pii_business_glossary_term' = 'Disposition Approved By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `disposition_approved_date` SET TAGS ('pii_business_glossary_term' = 'Disposition Approved Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `disposition_justification` SET TAGS ('pii_business_glossary_term' = 'Disposition Justification');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `effectiveness_review_comments` SET TAGS ('pii_business_glossary_term' = 'Effectiveness Review Comments');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `estimated_cost_impact` SET TAGS ('pii_business_glossary_term' = 'Estimated Cost Impact');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `estimated_cost_impact` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `hold_release_date` SET TAGS ('pii_business_glossary_term' = 'Hold Release Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `hold_status` SET TAGS ('pii_business_glossary_term' = 'Hold Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `identified_date` SET TAGS ('pii_business_glossary_term' = 'Non-Conformance Identified Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `last_modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Record Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `location_description` SET TAGS ('pii_business_glossary_term' = 'Non-Conformance Location Description');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `ncr_number` SET TAGS ('pii_business_glossary_term' = 'Non-Conformance Report (NCR) Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `ncr_number` SET TAGS ('pii_value_regex' = '^NCR-[A-Z0-9]{4,20}$');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `ncr_status` SET TAGS ('pii_business_glossary_term' = 'Non-Conformance Report (NCR) Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `preventive_action_description` SET TAGS ('pii_business_glossary_term' = 'Preventive Action Description');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `preventive_action_responsible_party` SET TAGS ('pii_business_glossary_term' = 'Preventive Action Responsible Party');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `quantity_affected` SET TAGS ('pii_business_glossary_term' = 'Quantity Affected');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `reported_by` SET TAGS ('pii_business_glossary_term' = 'Non-Conformance Reported By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `reported_by_organization` SET TAGS ('pii_business_glossary_term' = 'Reported By Organization');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `root_cause_analysis` SET TAGS ('pii_business_glossary_term' = 'Root Cause Analysis');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `schedule_impact_days` SET TAGS ('pii_business_glossary_term' = 'Schedule Impact Days');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `severity` SET TAGS ('pii_business_glossary_term' = 'Non-Conformance Severity');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `severity` SET TAGS ('pii_value_regex' = 'critical|major|minor');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `unit_of_measure` SET TAGS ('pii_business_glossary_term' = 'Unit of Measure');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `verification_date` SET TAGS ('pii_business_glossary_term' = 'Verification Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `verification_method` SET TAGS ('pii_business_glossary_term' = 'Verification Method');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `verification_performed_by` SET TAGS ('pii_business_glossary_term' = 'Verification Performed By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `verification_result` SET TAGS ('pii_business_glossary_term' = 'Verification Result');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `verification_result` SET TAGS ('pii_value_regex' = 'passed|failed|conditional');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` SET TAGS ('pii_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` SET TAGS ('pii_subdomain' = 'field_verification');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` SET TAGS ('pii_ssot_view' = 'mvm_quality_corrective_action_ssot');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` SET TAGS ('pii_mvm_ssot_owner' = 'quality');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `corrective_action_id` SET TAGS ('pii_business_glossary_term' = 'Corrective Action Identifier');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `craft_worker_id` SET TAGS ('pii_business_glossary_term' = 'Responsible Worker Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `cost_code_id` SET TAGS ('pii_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `project_change_order_id` SET TAGS ('pii_business_glossary_term' = 'Linked Change Order (CO) ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `rfi_id` SET TAGS ('pii_business_glossary_term' = 'Linked Request for Information (RFI) ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `ncr_id` SET TAGS ('pii_business_glossary_term' = 'Non-Conformance Report (NCR) ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'Responsible Party ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `tertiary_corrective_created_by_employee_id` SET TAGS ('pii_business_glossary_term' = 'Created By ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `tertiary_corrective_created_by_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `tertiary_corrective_created_by_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `action_description` SET TAGS ('pii_business_glossary_term' = 'Corrective Action Description');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `action_number` SET TAGS ('pii_business_glossary_term' = 'Corrective Action Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `action_status` SET TAGS ('pii_business_glossary_term' = 'Corrective Action Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `action_status` SET TAGS ('pii_value_regex' = 'open|in_progress|pending_verification|verified|closed|cancelled');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `action_type` SET TAGS ('pii_business_glossary_term' = 'Corrective Action / Preventive Action (CAPA) Type');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `action_type` SET TAGS ('pii_value_regex' = 'corrective|preventive|containment|interim');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `actual_completion_date` SET TAGS ('pii_business_glossary_term' = 'Actual Completion Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `actual_cost` SET TAGS ('pii_business_glossary_term' = 'Corrective Action Actual Cost');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `assigned_date` SET TAGS ('pii_business_glossary_term' = 'Action Assigned Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `client_approval_date` SET TAGS ('pii_business_glossary_term' = 'Client Approval Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `cost_estimate` SET TAGS ('pii_business_glossary_term' = 'Corrective Action Cost Estimate');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `currency_code` SET TAGS ('pii_business_glossary_term' = 'Currency Code');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `currency_code` SET TAGS ('pii_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `document_reference` SET TAGS ('pii_business_glossary_term' = 'Document Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `effectiveness_review_comments` SET TAGS ('pii_business_glossary_term' = 'Effectiveness Review Comments');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `effectiveness_review_date` SET TAGS ('pii_business_glossary_term' = 'Effectiveness Review Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `effectiveness_review_outcome` SET TAGS ('pii_business_glossary_term' = 'Effectiveness Review Outcome');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `effectiveness_review_outcome` SET TAGS ('pii_value_regex' = 'effective|partially_effective|ineffective|pending_review');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `is_systemic_issue` SET TAGS ('pii_business_glossary_term' = 'Systemic Issue Flag');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `last_modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `lessons_learned` SET TAGS ('pii_business_glossary_term' = 'Lessons Learned');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `priority` SET TAGS ('pii_business_glossary_term' = 'Corrective Action Priority');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `priority` SET TAGS ('pii_value_regex' = 'critical|high|medium|low');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `recurrence_prevention_measures` SET TAGS ('pii_business_glossary_term' = 'Recurrence Prevention Measures');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `requires_client_approval` SET TAGS ('pii_business_glossary_term' = 'Requires Client Approval Flag');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `requires_design_change` SET TAGS ('pii_business_glossary_term' = 'Requires Design Change Flag');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `root_cause_analysis` SET TAGS ('pii_business_glossary_term' = 'Root Cause Analysis (RCA)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `schedule_impact_days` SET TAGS ('pii_business_glossary_term' = 'Schedule Impact Days');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `target_completion_date` SET TAGS ('pii_business_glossary_term' = 'Target Completion Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `verification_date` SET TAGS ('pii_business_glossary_term' = 'Verification Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `verification_method` SET TAGS ('pii_business_glossary_term' = 'Verification Method');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `verification_method` SET TAGS ('pii_value_regex' = 'inspection|testing|document_review|audit|site_observation|measurement');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `verified_by_name` SET TAGS ('pii_business_glossary_term' = 'Verified By Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` SET TAGS ('pii_data_type' = 'master_data');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` SET TAGS ('pii_subdomain' = 'inspection_planning');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` SET TAGS ('pii_mvm_ssot_owner' = 'quality');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `checklist_id` SET TAGS ('pii_business_glossary_term' = 'Checklist ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Contract ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Project ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `permit_condition_id` SET TAGS ('pii_business_glossary_term' = 'Permit Condition Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `wbs_element_id` SET TAGS ('pii_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `acceptance_criteria` SET TAGS ('pii_business_glossary_term' = 'Acceptance Criteria');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `activity_type` SET TAGS ('pii_business_glossary_term' = 'Activity Type');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `applicable_standard` SET TAGS ('pii_business_glossary_term' = 'Applicable Standard');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `approval_status` SET TAGS ('pii_business_glossary_term' = 'Approval Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `approval_status` SET TAGS ('pii_value_regex' = 'draft|under_review|approved|superseded|obsolete');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `approved_by` SET TAGS ('pii_business_glossary_term' = 'Approved By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `approved_date` SET TAGS ('pii_business_glossary_term' = 'Approved Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `average_pass_rate` SET TAGS ('pii_business_glossary_term' = 'Average Pass Rate (Percentage)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `checklist_code` SET TAGS ('pii_business_glossary_term' = 'Checklist Code');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `checklist_code` SET TAGS ('pii_value_regex' = '^[A-Z0-9]{6,20}$');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `critical_items_count` SET TAGS ('pii_business_glossary_term' = 'Critical Items Count');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `checklist_description` SET TAGS ('pii_business_glossary_term' = 'Checklist Description');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `discipline` SET TAGS ('pii_business_glossary_term' = 'Discipline');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `effective_from_date` SET TAGS ('pii_business_glossary_term' = 'Effective From Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `effective_to_date` SET TAGS ('pii_business_glossary_term' = 'Effective To Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `estimated_duration_minutes` SET TAGS ('pii_business_glossary_term' = 'Estimated Duration (Minutes)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `frequency` SET TAGS ('pii_business_glossary_term' = 'Frequency');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `hold_point_flag` SET TAGS ('pii_business_glossary_term' = 'Hold Point Flag');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `inspection_stage` SET TAGS ('pii_business_glossary_term' = 'Inspection Stage');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `inspection_stage` SET TAGS ('pii_value_regex' = 'pre_work|during_work|post_work|hold_point|witness_point');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `inspection_type` SET TAGS ('pii_business_glossary_term' = 'Inspection Type');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `mandatory_flag` SET TAGS ('pii_business_glossary_term' = 'Mandatory Flag');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `modified_by` SET TAGS ('pii_business_glossary_term' = 'Modified By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `checklist_name` SET TAGS ('pii_business_glossary_term' = 'Checklist Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `ncr_trigger_threshold` SET TAGS ('pii_business_glossary_term' = 'NCR (Non-Conformance Report) Trigger Threshold');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `notes` SET TAGS ('pii_business_glossary_term' = 'Notes');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `reference_documents` SET TAGS ('pii_business_glossary_term' = 'Reference Documents');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `required_equipment` SET TAGS ('pii_business_glossary_term' = 'Required Equipment');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `required_qualifications` SET TAGS ('pii_business_glossary_term' = 'Required Qualifications');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `revision_date` SET TAGS ('pii_business_glossary_term' = 'Revision Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `revision_number` SET TAGS ('pii_business_glossary_term' = 'Revision Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `revision_number` SET TAGS ('pii_value_regex' = '^[A-Z0-9]{1,10}$');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `safety_requirements` SET TAGS ('pii_business_glossary_term' = 'Safety Requirements');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `total_check_items` SET TAGS ('pii_business_glossary_term' = 'Total Check Items');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `usage_count` SET TAGS ('pii_business_glossary_term' = 'Usage Count');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `witness_point_flag` SET TAGS ('pii_business_glossary_term' = 'Witness Point Flag');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `created_by` SET TAGS ('pii_business_glossary_term' = 'Created By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` SET TAGS ('pii_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` SET TAGS ('pii_subdomain' = 'inspection_planning');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` SET TAGS ('pii_mvm_ssot_owner' = 'quality');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `checklist_execution_id` SET TAGS ('pii_business_glossary_term' = 'Checklist Execution ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `checklist_id` SET TAGS ('pii_business_glossary_term' = 'Checklist Template ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `checklist_site_construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Site ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `firm_profile_id` SET TAGS ('pii_business_glossary_term' = 'Contractor ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `permit_to_work_id` SET TAGS ('pii_business_glossary_term' = 'Permit To Work Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'Inspector ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `tertiary_checklist_approved_by_employee_id` SET TAGS ('pii_business_glossary_term' = 'Approved By ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `tertiary_checklist_approved_by_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `tertiary_checklist_approved_by_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `wbs_element_id` SET TAGS ('pii_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `approval_status` SET TAGS ('pii_business_glossary_term' = 'Approval Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `approval_status` SET TAGS ('pii_value_regex' = 'draft|submitted|approved|rejected|revision_required');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `approval_timestamp` SET TAGS ('pii_business_glossary_term' = 'Approval Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `compliance_percentage` SET TAGS ('pii_business_glossary_term' = 'Compliance Percentage');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `corrective_action_required` SET TAGS ('pii_business_glossary_term' = 'Corrective Action Required');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `critical_failure_flag` SET TAGS ('pii_business_glossary_term' = 'Critical Failure Flag');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `defects_identified` SET TAGS ('pii_business_glossary_term' = 'Defects Identified');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `document_reference_number` SET TAGS ('pii_business_glossary_term' = 'Document Reference Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `execution_date` SET TAGS ('pii_business_glossary_term' = 'Execution Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `execution_end_time` SET TAGS ('pii_business_glossary_term' = 'Execution End Time');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `execution_number` SET TAGS ('pii_business_glossary_term' = 'Execution Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `execution_start_time` SET TAGS ('pii_business_glossary_term' = 'Execution Start Time');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `fail_count` SET TAGS ('pii_business_glossary_term' = 'Fail Count');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `humidity_percentage` SET TAGS ('pii_business_glossary_term' = 'Humidity Percentage');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `inspection_stage` SET TAGS ('pii_business_glossary_term' = 'Inspection Stage');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `inspection_stage` SET TAGS ('pii_value_regex' = 'pre_construction|during_construction|post_construction|commissioning|DLP');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `inspection_type` SET TAGS ('pii_business_glossary_term' = 'Inspection Type');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `inspector_name` SET TAGS ('pii_business_glossary_term' = 'Inspector Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `inspector_remarks` SET TAGS ('pii_business_glossary_term' = 'Inspector Remarks');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `inspector_signature_captured` SET TAGS ('pii_business_glossary_term' = 'Inspector Signature Captured');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `inspector_signature_timestamp` SET TAGS ('pii_business_glossary_term' = 'Inspector Signature Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `last_modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `location_description` SET TAGS ('pii_business_glossary_term' = 'Location Description');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `na_count` SET TAGS ('pii_business_glossary_term' = 'Not Applicable (N/A) Count');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `ncr_generated_flag` SET TAGS ('pii_business_glossary_term' = 'Non-Conformance Report (NCR) Generated Flag');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `overall_result` SET TAGS ('pii_business_glossary_term' = 'Overall Result');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `overall_result` SET TAGS ('pii_value_regex' = 'pass|fail|conditional_pass|not_applicable');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `pass_count` SET TAGS ('pii_business_glossary_term' = 'Pass Count');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `temperature_celsius` SET TAGS ('pii_business_glossary_term' = 'Temperature (Celsius)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `total_items` SET TAGS ('pii_business_glossary_term' = 'Total Items');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `weather_conditions` SET TAGS ('pii_business_glossary_term' = 'Weather Conditions');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `witness_name` SET TAGS ('pii_business_glossary_term' = 'Witness Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `witness_name` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `witness_name` SET TAGS ('pii_identifier' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `witness_required_flag` SET TAGS ('pii_business_glossary_term' = 'Witness Required Flag');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `witness_signature_captured` SET TAGS ('pii_business_glossary_term' = 'Witness Signature Captured');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `witness_signature_timestamp` SET TAGS ('pii_business_glossary_term' = 'Witness Signature Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist_execution` ALTER COLUMN `work_activity_description` SET TAGS ('pii_business_glossary_term' = 'Work Activity Description');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` SET TAGS ('pii_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` SET TAGS ('pii_subdomain' = 'material_testing');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` SET TAGS ('pii_ssot_view' = 'mvm_quality_test_certificate_ssot');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` SET TAGS ('pii_mvm_ssot_owner' = 'quality');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `test_certificate_id` SET TAGS ('pii_business_glossary_term' = 'Test Certificate Identifier');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Project ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `firm_profile_id` SET TAGS ('pii_business_glossary_term' = 'Supplier Sub Firm Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `itp_id` SET TAGS ('pii_business_glossary_term' = 'Itp Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `material_catalog_id` SET TAGS ('pii_business_glossary_term' = 'Procurement Material Master Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `ncr_id` SET TAGS ('pii_business_glossary_term' = 'Ncr Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `sample_id` SET TAGS ('pii_business_glossary_term' = 'Sample ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `sustainable_material_id` SET TAGS ('pii_business_glossary_term' = 'Sustainable Material Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `wbs_element_id` SET TAGS ('pii_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `accreditation_body` SET TAGS ('pii_business_glossary_term' = 'Accreditation Body');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `approval_date` SET TAGS ('pii_business_glossary_term' = 'Approval Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `approved_by` SET TAGS ('pii_business_glossary_term' = 'Approved By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `approved_by` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `batch_number` SET TAGS ('pii_business_glossary_term' = 'Batch Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `certificate_expiry_date` SET TAGS ('pii_business_glossary_term' = 'Certificate Expiry Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `certificate_issue_date` SET TAGS ('pii_business_glossary_term' = 'Certificate Issue Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `certificate_number` SET TAGS ('pii_business_glossary_term' = 'Certificate Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `certificate_status` SET TAGS ('pii_business_glossary_term' = 'Certificate Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `certificate_type` SET TAGS ('pii_business_glossary_term' = 'Certificate Type');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `certificate_type` SET TAGS ('pii_value_regex' = 'MTC|laboratory_test|factory_test|site_test|third_party_test|supplier_certificate');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `delivery_lot_number` SET TAGS ('pii_business_glossary_term' = 'Delivery Lot Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `document_url` SET TAGS ('pii_business_glossary_term' = 'Document URL');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `heat_number` SET TAGS ('pii_business_glossary_term' = 'Heat Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `issuing_laboratory` SET TAGS ('pii_business_glossary_term' = 'Issuing Laboratory');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `laboratory_accreditation_number` SET TAGS ('pii_business_glossary_term' = 'Laboratory Accreditation Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `last_modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `material_description` SET TAGS ('pii_business_glossary_term' = 'Material Description');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `material_type` SET TAGS ('pii_business_glossary_term' = 'Material Type');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `pass_fail_status` SET TAGS ('pii_business_glossary_term' = 'Pass/Fail Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `pass_fail_status` SET TAGS ('pii_value_regex' = 'pass|fail|conditional_pass|pending_review');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `purchase_order_number` SET TAGS ('pii_business_glossary_term' = 'Purchase Order (PO) Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `remarks` SET TAGS ('pii_business_glossary_term' = 'Remarks');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `sampling_date` SET TAGS ('pii_business_glossary_term' = 'Sampling Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `sampling_location` SET TAGS ('pii_business_glossary_term' = 'Sampling Location');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `specification_requirement` SET TAGS ('pii_business_glossary_term' = 'Specification Requirement');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `technician_name` SET TAGS ('pii_business_glossary_term' = 'Technician Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `technician_name` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `test_date` SET TAGS ('pii_business_glossary_term' = 'Test Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `test_method` SET TAGS ('pii_business_glossary_term' = 'Test Method');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `test_parameters` SET TAGS ('pii_business_glossary_term' = 'Test Parameters');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `test_results` SET TAGS ('pii_business_glossary_term' = 'Test Results');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `test_standard` SET TAGS ('pii_business_glossary_term' = 'Test Standard');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `work_package_code` SET TAGS ('pii_business_glossary_term' = 'Work Package Code');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` SET TAGS ('pii_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` SET TAGS ('pii_subdomain' = 'material_testing');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` SET TAGS ('pii_mvm_ssot_owner' = 'quality');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `weld_record_id` SET TAGS ('pii_business_glossary_term' = 'Weld Record ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `asset_id` SET TAGS ('pii_business_glossary_term' = 'Asset Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `carbon_emission_id` SET TAGS ('pii_business_glossary_term' = 'Carbon Emission Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `craft_worker_id` SET TAGS ('pii_business_glossary_term' = 'Welder Worker Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `drawing_id` SET TAGS ('pii_business_glossary_term' = 'Drawing Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `cost_code_id` SET TAGS ('pii_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `firm_profile_id` SET TAGS ('pii_business_glossary_term' = 'Contractor Sub Firm Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `itp_id` SET TAGS ('pii_business_glossary_term' = 'Itp Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `wbs_element_id` SET TAGS ('pii_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `acceptance_standard` SET TAGS ('pii_business_glossary_term' = 'Weld Acceptance Standard');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `acceptance_standard` SET TAGS ('pii_value_regex' = 'AWS D1.1|ASME Section IX|ISO 3834|API 1104|EN 1090|AISC 360');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `acceptance_status` SET TAGS ('pii_business_glossary_term' = 'Weld Acceptance Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `acceptance_status` SET TAGS ('pii_value_regex' = 'accepted|rejected|rework_required|pending_review');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `base_material_grade` SET TAGS ('pii_business_glossary_term' = 'Base Material Grade');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `base_material_grade` SET TAGS ('pii_value_regex' = '^[A-Z0-9-]+$');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `defect_description` SET TAGS ('pii_business_glossary_term' = 'Weld Defect Description');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `filler_material_grade` SET TAGS ('pii_business_glossary_term' = 'Filler Material Grade');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `filler_material_grade` SET TAGS ('pii_value_regex' = '^[A-Z0-9-]+$');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `heat_number` SET TAGS ('pii_business_glossary_term' = 'Material Heat Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `heat_number` SET TAGS ('pii_value_regex' = '^[A-Z0-9-]+$');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `interpass_temperature_c` SET TAGS ('pii_business_glossary_term' = 'Interpass Temperature (°C)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `joint_type` SET TAGS ('pii_business_glossary_term' = 'Weld Joint Type');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `last_modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Record Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `material_thickness_mm` SET TAGS ('pii_business_glossary_term' = 'Material Thickness (mm)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `ndt_date` SET TAGS ('pii_business_glossary_term' = 'Non-Destructive Testing (NDT) Inspection Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `ndt_inspector_certification` SET TAGS ('pii_business_glossary_term' = 'Non-Destructive Testing (NDT) Inspector Certification Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `ndt_inspector_certification` SET TAGS ('pii_value_regex' = '^[A-Z0-9-]+$');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `ndt_inspector_name` SET TAGS ('pii_business_glossary_term' = 'Non-Destructive Testing (NDT) Inspector Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `ndt_inspector_name` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `ndt_inspector_name` SET TAGS ('pii_name' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `ndt_method` SET TAGS ('pii_business_glossary_term' = 'Non-Destructive Testing (NDT) Method');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `ndt_report_number` SET TAGS ('pii_business_glossary_term' = 'Non-Destructive Testing (NDT) Report Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `ndt_report_number` SET TAGS ('pii_value_regex' = '^[A-Z0-9-]+$');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `ndt_result` SET TAGS ('pii_business_glossary_term' = 'Non-Destructive Testing (NDT) Result');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `ndt_result` SET TAGS ('pii_value_regex' = 'accept|reject|conditional|retest');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `preheat_temperature_c` SET TAGS ('pii_business_glossary_term' = 'Preheat Temperature (°C)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `pwht_completion_date` SET TAGS ('pii_business_glossary_term' = 'Post-Weld Heat Treatment (PWHT) Completion Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `pwht_required_flag` SET TAGS ('pii_business_glossary_term' = 'Post-Weld Heat Treatment (PWHT) Required Flag');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `qc_approval_date` SET TAGS ('pii_business_glossary_term' = 'Quality Control (QC) Approval Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `qc_inspector_name` SET TAGS ('pii_business_glossary_term' = 'Quality Control (QC) Inspector Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `qc_inspector_name` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `qc_inspector_name` SET TAGS ('pii_name' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `remarks` SET TAGS ('pii_business_glossary_term' = 'Weld Record Remarks');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `rework_completion_date` SET TAGS ('pii_business_glossary_term' = 'Rework Completion Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `rework_required_flag` SET TAGS ('pii_business_glossary_term' = 'Rework Required Flag');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `weld_date` SET TAGS ('pii_business_glossary_term' = 'Weld Execution Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `weld_length_mm` SET TAGS ('pii_business_glossary_term' = 'Weld Length (mm)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `weld_number` SET TAGS ('pii_business_glossary_term' = 'Weld Identification Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `weld_number` SET TAGS ('pii_value_regex' = '^[A-Z0-9-]+$');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `weld_position` SET TAGS ('pii_business_glossary_term' = 'Weld Position');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `weld_type` SET TAGS ('pii_business_glossary_term' = 'Welding Process Type');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `weld_type` SET TAGS ('pii_value_regex' = 'SMAW|GMAW|GTAW|FCAW|SAW|PAW');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `welder_stamp` SET TAGS ('pii_business_glossary_term' = 'Welder Identification Stamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `welder_stamp` SET TAGS ('pii_value_regex' = '^[A-Z0-9]+$');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `witness_name` SET TAGS ('pii_business_glossary_term' = 'Witness Inspector Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `witness_name` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `witness_name` SET TAGS ('pii_name' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `witness_organization` SET TAGS ('pii_business_glossary_term' = 'Witness Organization Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `witness_required_flag` SET TAGS ('pii_business_glossary_term' = 'Witness Required Flag');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `wps_number` SET TAGS ('pii_business_glossary_term' = 'Welding Procedure Specification (WPS) Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `wps_number` SET TAGS ('pii_value_regex' = '^[A-Z0-9-]+$');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `wqc_number` SET TAGS ('pii_business_glossary_term' = 'Welder Qualification Certificate (WQC) Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`weld_record` ALTER COLUMN `wqc_number` SET TAGS ('pii_value_regex' = '^[A-Z0-9-]+$');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` SET TAGS ('pii_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` SET TAGS ('pii_subdomain' = 'material_testing');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` SET TAGS ('pii_mvm_ssot_owner' = 'quality');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `acceptance_test_id` SET TAGS ('pii_business_glossary_term' = 'Acceptance Test ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `asset_id` SET TAGS ('pii_business_glossary_term' = 'Equipment Asset ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `itp_id` SET TAGS ('pii_business_glossary_term' = 'Itp Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `ncr_id` SET TAGS ('pii_business_glossary_term' = 'Ncr Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `wbs_element_id` SET TAGS ('pii_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `acceptance_certificate_number` SET TAGS ('pii_business_glossary_term' = 'Acceptance Certificate Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `acceptance_date` SET TAGS ('pii_business_glossary_term' = 'Acceptance Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `acceptance_status` SET TAGS ('pii_business_glossary_term' = 'Acceptance Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `acceptance_status` SET TAGS ('pii_value_regex' = 'accepted|rejected|conditional_acceptance|pending_retest');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `client_representative_name` SET TAGS ('pii_business_glossary_term' = 'Client Representative Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `compliance_standard` SET TAGS ('pii_business_glossary_term' = 'Compliance Standard');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `contractor_name` SET TAGS ('pii_business_glossary_term' = 'Contractor Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `contractor_name` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `contractor_name` SET TAGS ('pii_identifier' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `corrective_action_required` SET TAGS ('pii_business_glossary_term' = 'Corrective Action Required');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Record Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `defects_identified` SET TAGS ('pii_business_glossary_term' = 'Defects Identified');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `equipment_description` SET TAGS ('pii_business_glossary_term' = 'Equipment Description');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `manufacturer_name` SET TAGS ('pii_business_glossary_term' = 'Manufacturer Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `modified_by` SET TAGS ('pii_business_glossary_term' = 'Record Modified By User');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Record Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `remarks` SET TAGS ('pii_business_glossary_term' = 'Test Remarks');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `retest_date` SET TAGS ('pii_business_glossary_term' = 'Retest Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `retest_required` SET TAGS ('pii_business_glossary_term' = 'Retest Required Flag');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `specification_reference` SET TAGS ('pii_business_glossary_term' = 'Specification Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_date` SET TAGS ('pii_business_glossary_term' = 'Test Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_duration_hours` SET TAGS ('pii_business_glossary_term' = 'Test Duration Hours');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_engineer_name` SET TAGS ('pii_business_glossary_term' = 'Test Engineer Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_findings` SET TAGS ('pii_business_glossary_term' = 'Test Findings');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_humidity_percent` SET TAGS ('pii_business_glossary_term' = 'Test Humidity Percent');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_location` SET TAGS ('pii_business_glossary_term' = 'Test Location');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_number` SET TAGS ('pii_business_glossary_term' = 'Test Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_procedure_reference` SET TAGS ('pii_business_glossary_term' = 'Test Procedure Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_procedure_version` SET TAGS ('pii_business_glossary_term' = 'Test Procedure Version');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_report_reference` SET TAGS ('pii_business_glossary_term' = 'Test Report Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_result` SET TAGS ('pii_business_glossary_term' = 'Test Result');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_result` SET TAGS ('pii_value_regex' = 'pass|fail|conditional_pass');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_status` SET TAGS ('pii_business_glossary_term' = 'Test Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_status` SET TAGS ('pii_value_regex' = 'scheduled|in_progress|passed|failed|conditional_pass|cancelled');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_temperature_c` SET TAGS ('pii_business_glossary_term' = 'Test Temperature Celsius');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_type` SET TAGS ('pii_business_glossary_term' = 'Test Type');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `test_type` SET TAGS ('pii_value_regex' = 'FAT|SAT');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `witness_party` SET TAGS ('pii_business_glossary_term' = 'Witness Party');
+ALTER TABLE `vibe_construction_v1`.`quality`.`acceptance_test` ALTER COLUMN `created_by` SET TAGS ('pii_business_glossary_term' = 'Record Created By User');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` SET TAGS ('pii_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` SET TAGS ('pii_subdomain' = 'field_verification');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` SET TAGS ('pii_ssot_view' = 'mvm_quality_defect_ssot');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` SET TAGS ('pii_mvm_ssot_owner' = 'quality');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `defect_id` SET TAGS ('pii_business_glossary_term' = 'Defect ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `activity_id` SET TAGS ('pii_business_glossary_term' = 'Activity Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `drawing_id` SET TAGS ('pii_business_glossary_term' = 'Drawing Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `firm_profile_id` SET TAGS ('pii_business_glossary_term' = 'Responsible Contractor ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'Identified By Employee Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `inspection_id` SET TAGS ('pii_business_glossary_term' = 'Related Inspection ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `ncr_id` SET TAGS ('pii_business_glossary_term' = 'Ncr Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `technical_specification_id` SET TAGS ('pii_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `wbs_element_id` SET TAGS ('pii_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `actual_rectification_date` SET TAGS ('pii_business_glossary_term' = 'Actual Rectification Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `assigned_to` SET TAGS ('pii_business_glossary_term' = 'Assigned To');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `closure_date` SET TAGS ('pii_business_glossary_term' = 'Closure Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `defect_number` SET TAGS ('pii_business_glossary_term' = 'Defect Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `defect_status` SET TAGS ('pii_business_glossary_term' = 'Defect Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `defect_type` SET TAGS ('pii_business_glossary_term' = 'Defect Type');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `defect_description` SET TAGS ('pii_business_glossary_term' = 'Defect Description');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `dlp_expiry_date` SET TAGS ('pii_business_glossary_term' = 'DLP (Defects Liability Period) Expiry Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `identified_by` SET TAGS ('pii_business_glossary_term' = 'Identified By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `identified_date` SET TAGS ('pii_business_glossary_term' = 'Defect Identified Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `identified_phase` SET TAGS ('pii_business_glossary_term' = 'Identified Phase');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `identified_phase` SET TAGS ('pii_value_regex' = 'construction|pre_commissioning|commissioning|handover|DLP|post_handover');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `impact_on_handover` SET TAGS ('pii_business_glossary_term' = 'Impact on Handover');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `location_building` SET TAGS ('pii_business_glossary_term' = 'Location Building');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `location_grid_reference` SET TAGS ('pii_business_glossary_term' = 'Location Grid Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `location_level` SET TAGS ('pii_business_glossary_term' = 'Location Level');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `location_zone` SET TAGS ('pii_business_glossary_term' = 'Location Zone');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `modified_by` SET TAGS ('pii_business_glossary_term' = 'Modified By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `photo_reference` SET TAGS ('pii_business_glossary_term' = 'Photo Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `rectification_cost` SET TAGS ('pii_business_glossary_term' = 'Rectification Cost');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `rectification_cost` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `rectification_method` SET TAGS ('pii_business_glossary_term' = 'Rectification Method');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `remarks` SET TAGS ('pii_business_glossary_term' = 'Remarks');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `responsible_contractor_name` SET TAGS ('pii_business_glossary_term' = 'Responsible Contractor Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `responsible_contractor_name` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `responsible_contractor_name` SET TAGS ('pii_identifier' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `severity` SET TAGS ('pii_business_glossary_term' = 'Defect Severity');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `severity` SET TAGS ('pii_value_regex' = 'critical|major|minor|cosmetic');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `target_rectification_date` SET TAGS ('pii_business_glossary_term' = 'Target Rectification Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `title` SET TAGS ('pii_business_glossary_term' = 'Defect Title');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `trade_discipline` SET TAGS ('pii_business_glossary_term' = 'Trade Discipline');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `verification_date` SET TAGS ('pii_business_glossary_term' = 'Verification Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `verified_by` SET TAGS ('pii_business_glossary_term' = 'Verified By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`defect` ALTER COLUMN `created_by` SET TAGS ('pii_business_glossary_term' = 'Created By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` SET TAGS ('pii_data_type' = 'master_data');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` SET TAGS ('pii_subdomain' = 'field_verification');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` SET TAGS ('pii_ssot_view' = 'mvm_quality_punch_ssot');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` SET TAGS ('pii_mvm_ssot_owner' = 'quality');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `punch_list_id` SET TAGS ('pii_business_glossary_term' = 'Punch List ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `account_id` SET TAGS ('pii_business_glossary_term' = 'Client Account Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `firm_profile_id` SET TAGS ('pii_business_glossary_term' = 'Responsible Sub Firm Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'Prepared By Employee Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `wbs_element_id` SET TAGS ('pii_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `actual_closeout_date` SET TAGS ('pii_business_glossary_term' = 'Actual Close-Out Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `client_representative` SET TAGS ('pii_business_glossary_term' = 'Client Representative');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `closed_items_count` SET TAGS ('pii_business_glossary_term' = 'Closed Items Count');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `completion_percentage` SET TAGS ('pii_business_glossary_term' = 'Completion Percentage');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `contract_reference` SET TAGS ('pii_business_glossary_term' = 'Contract Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `critical_items_count` SET TAGS ('pii_business_glossary_term' = 'Critical Items Count');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `discipline` SET TAGS ('pii_business_glossary_term' = 'Discipline');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `dlp_commencement_gate` SET TAGS ('pii_business_glossary_term' = 'Defects Liability Period (DLP) Commencement Gate');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `document_reference` SET TAGS ('pii_business_glossary_term' = 'Document Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `handover_gate` SET TAGS ('pii_business_glossary_term' = 'Handover Gate');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `inspection_date` SET TAGS ('pii_business_glossary_term' = 'Inspection Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `milestone_type` SET TAGS ('pii_business_glossary_term' = 'Milestone Type');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `modified_by` SET TAGS ('pii_business_glossary_term' = 'Modified By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `punch_list_name` SET TAGS ('pii_business_glossary_term' = 'Punch List Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `open_items_count` SET TAGS ('pii_business_glossary_term' = 'Open Items Count');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `prepared_by` SET TAGS ('pii_business_glossary_term' = 'Prepared By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `priority` SET TAGS ('pii_business_glossary_term' = 'Punch List Priority');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `priority` SET TAGS ('pii_value_regex' = 'critical|high|medium|low');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `project_area` SET TAGS ('pii_business_glossary_term' = 'Project Area');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `punch_list_number` SET TAGS ('pii_business_glossary_term' = 'Punch List Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `punch_list_status` SET TAGS ('pii_business_glossary_term' = 'Punch List Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `punch_list_status` SET TAGS ('pii_value_regex' = 'draft|open|in_progress|under_review|closed|cancelled');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `remarks` SET TAGS ('pii_business_glossary_term' = 'Remarks');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `responsible_party_type` SET TAGS ('pii_business_glossary_term' = 'Responsible Party Type');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `responsible_party_type` SET TAGS ('pii_value_regex' = 'general_contractor|subcontractor|supplier|joint_venture|client|consultant');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `reviewed_by` SET TAGS ('pii_business_glossary_term' = 'Reviewed By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `specification_reference` SET TAGS ('pii_business_glossary_term' = 'Specification Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `target_closeout_date` SET TAGS ('pii_business_glossary_term' = 'Target Close-Out Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `total_items_count` SET TAGS ('pii_business_glossary_term' = 'Total Items Count');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `created_by` SET TAGS ('pii_business_glossary_term' = 'Created By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `creation_date` SET TAGS ('pii_business_glossary_term' = 'Punch List Creation Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` SET TAGS ('pii_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` SET TAGS ('pii_subdomain' = 'field_verification');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` SET TAGS ('pii_mvm_ssot_owner' = 'quality');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `punch_item_id` SET TAGS ('pii_business_glossary_term' = 'Punch Item ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `activity_id` SET TAGS ('pii_business_glossary_term' = 'Activity Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `craft_worker_id` SET TAGS ('pii_business_glossary_term' = 'Responsible Worker Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `drawing_id` SET TAGS ('pii_business_glossary_term' = 'Drawing Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `cost_code_id` SET TAGS ('pii_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `firm_profile_id` SET TAGS ('pii_business_glossary_term' = 'Responsible Subcontractor ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `punch_list_id` SET TAGS ('pii_business_glossary_term' = 'Punch List ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `crew_id` SET TAGS ('pii_business_glossary_term' = 'Responsible Crew Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'Responsible Party Employee Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `technical_specification_id` SET TAGS ('pii_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `wbs_element_id` SET TAGS ('pii_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `actual_completion_date` SET TAGS ('pii_business_glossary_term' = 'Actual Completion Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `punch_item_category` SET TAGS ('pii_business_glossary_term' = 'Punch Item Category');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `punch_item_category` SET TAGS ('pii_value_regex' = 'structural|mep|architectural|civil|finishes|landscaping');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `client_representative_name` SET TAGS ('pii_business_glossary_term' = 'Client Representative Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `closure_status` SET TAGS ('pii_business_glossary_term' = 'Closure Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `closure_status` SET TAGS ('pii_value_regex' = 'pending|accepted|rejected|deferred');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `corrective_action` SET TAGS ('pii_business_glossary_term' = 'Corrective Action');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `cost_currency_code` SET TAGS ('pii_business_glossary_term' = 'Cost Currency Code');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `cost_currency_code` SET TAGS ('pii_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `cost_impact` SET TAGS ('pii_business_glossary_term' = 'Cost Impact');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `cost_impact` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `deferred_to_dlp` SET TAGS ('pii_business_glossary_term' = 'Deferred to DLP (Defects Liability Period)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `dlp_end_date` SET TAGS ('pii_business_glossary_term' = 'DLP (Defects Liability Period) End Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `identified_by` SET TAGS ('pii_business_glossary_term' = 'Identified By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `identified_date` SET TAGS ('pii_business_glossary_term' = 'Identified Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `item_description` SET TAGS ('pii_business_glossary_term' = 'Punch Item Description');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `item_number` SET TAGS ('pii_business_glossary_term' = 'Punch Item Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `location` SET TAGS ('pii_business_glossary_term' = 'Punch Item Location');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `photo_reference` SET TAGS ('pii_business_glossary_term' = 'Photo Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `priority` SET TAGS ('pii_business_glossary_term' = 'Punch Item Priority');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `priority` SET TAGS ('pii_value_regex' = 'critical|high|medium|low');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `punch_item_status` SET TAGS ('pii_business_glossary_term' = 'Punch Item Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `punch_item_status` SET TAGS ('pii_value_regex' = 'open|in_progress|completed|verified|closed|rejected');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `rejection_reason` SET TAGS ('pii_business_glossary_term' = 'Rejection Reason');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `remarks` SET TAGS ('pii_business_glossary_term' = 'Remarks');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `target_completion_date` SET TAGS ('pii_business_glossary_term' = 'Target Completion Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `verification_date` SET TAGS ('pii_business_glossary_term' = 'Verification Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `verification_inspector` SET TAGS ('pii_business_glossary_term' = 'Verification Inspector');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` SET TAGS ('pii_data_type' = 'master_data');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` SET TAGS ('pii_subdomain' = 'inspection_planning');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` SET TAGS ('pii_mvm_ssot_owner' = 'quality');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `quality_plan_id` SET TAGS ('pii_business_glossary_term' = 'Quality Plan ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `wbs_element_id` SET TAGS ('pii_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `applicable_standards` SET TAGS ('pii_business_glossary_term' = 'Applicable Standards');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `approval_date` SET TAGS ('pii_business_glossary_term' = 'Approval Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `approval_status` SET TAGS ('pii_business_glossary_term' = 'Approval Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `approval_status` SET TAGS ('pii_value_regex' = 'pending|approved|rejected|conditional');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `approved_by_name` SET TAGS ('pii_business_glossary_term' = 'Approved By Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `approved_by_role` SET TAGS ('pii_business_glossary_term' = 'Approved By Role');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `audit_schedule_reference` SET TAGS ('pii_business_glossary_term' = 'Audit Schedule Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `calibration_procedure_reference` SET TAGS ('pii_business_glossary_term' = 'Calibration Procedure Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `client_approval_date` SET TAGS ('pii_business_glossary_term' = 'Client Approval Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `client_approval_required` SET TAGS ('pii_business_glossary_term' = 'Client Approval Required');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `client_approved_by_name` SET TAGS ('pii_business_glossary_term' = 'Client Approved By Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `continuous_improvement_mechanism` SET TAGS ('pii_business_glossary_term' = 'Continuous Improvement Mechanism');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `contract_reference` SET TAGS ('pii_business_glossary_term' = 'Contract Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `defect_liability_period_days` SET TAGS ('pii_business_glossary_term' = 'Defects Liability Period (DLP) Days');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `document_control_procedure` SET TAGS ('pii_business_glossary_term' = 'Document Control Procedure');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `effective_date` SET TAGS ('pii_business_glossary_term' = 'Effective Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `expiry_date` SET TAGS ('pii_business_glossary_term' = 'Expiry Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `handover_quality_requirements` SET TAGS ('pii_business_glossary_term' = 'Handover Quality Requirements');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `inspection_regime_summary` SET TAGS ('pii_business_glossary_term' = 'Inspection Regime Summary');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `itp_register_reference` SET TAGS ('pii_business_glossary_term' = 'Inspection and Test Plan (ITP) Register Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `material_control_procedure` SET TAGS ('pii_business_glossary_term' = 'Material Control Procedure');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `modified_by` SET TAGS ('pii_business_glossary_term' = 'Modified By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `ncr_procedure_reference` SET TAGS ('pii_business_glossary_term' = 'Non-Conformance Report (NCR) Procedure Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `organizational_structure` SET TAGS ('pii_business_glossary_term' = 'Organizational Structure');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `plan_number` SET TAGS ('pii_business_glossary_term' = 'Project Quality Plan (PQP) Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `plan_status` SET TAGS ('pii_business_glossary_term' = 'Plan Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `plan_status` SET TAGS ('pii_value_regex' = 'draft|under_review|approved|active|superseded|archived');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `prepared_by_name` SET TAGS ('pii_business_glossary_term' = 'Prepared By Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `prepared_by_role` SET TAGS ('pii_business_glossary_term' = 'Prepared By Role');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `quality_manager_name` SET TAGS ('pii_business_glossary_term' = 'Quality Manager Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `quality_objectives` SET TAGS ('pii_business_glossary_term' = 'Quality Objectives');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `quality_policy_reference` SET TAGS ('pii_business_glossary_term' = 'Quality Policy Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `remarks` SET TAGS ('pii_business_glossary_term' = 'Remarks');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `reviewed_by_name` SET TAGS ('pii_business_glossary_term' = 'Reviewed By Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `reviewed_by_role` SET TAGS ('pii_business_glossary_term' = 'Reviewed By Role');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `scope_of_work` SET TAGS ('pii_business_glossary_term' = 'Scope of Work');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `subcontractor_quality_management` SET TAGS ('pii_business_glossary_term' = 'Subcontractor Quality Management');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `title` SET TAGS ('pii_business_glossary_term' = 'Quality Plan Title');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `training_requirements` SET TAGS ('pii_business_glossary_term' = 'Training Requirements');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `version` SET TAGS ('pii_business_glossary_term' = 'Plan Version Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_plan` ALTER COLUMN `created_by` SET TAGS ('pii_business_glossary_term' = 'Created By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` SET TAGS ('pii_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` SET TAGS ('pii_subdomain' = 'field_verification');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` SET TAGS ('pii_ssot_view' = 'mvm_quality_audit_ssot');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` SET TAGS ('pii_mvm_ssot_owner' = 'quality');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `quality_audit_id` SET TAGS ('pii_business_glossary_term' = 'Quality Audit ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_business_glossary_term' = 'Lead Auditor Employee Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `hr_employee_id` SET TAGS ('pii_pii' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `quality_plan_id` SET TAGS ('pii_business_glossary_term' = 'Quality Plan Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `wbs_element_id` SET TAGS ('pii_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `areas_audited` SET TAGS ('pii_business_glossary_term' = 'Areas Audited');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `audit_date` SET TAGS ('pii_business_glossary_term' = 'Audit Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `audit_number` SET TAGS ('pii_business_glossary_term' = 'Audit Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `audit_scope` SET TAGS ('pii_business_glossary_term' = 'Audit Scope');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `audit_status` SET TAGS ('pii_business_glossary_term' = 'Audit Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `audit_status` SET TAGS ('pii_value_regex' = 'planned|in_progress|completed|closed|cancelled');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `audit_type` SET TAGS ('pii_business_glossary_term' = 'Audit Type');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `audit_type` SET TAGS ('pii_value_regex' = 'internal|external|third_party|surveillance|certification');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `auditee_department` SET TAGS ('pii_business_glossary_term' = 'Auditee Department');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `auditee_representative_name` SET TAGS ('pii_business_glossary_term' = 'Auditee Representative Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `auditor_organization` SET TAGS ('pii_business_glossary_term' = 'Auditor Organization');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `car_raised_count` SET TAGS ('pii_business_glossary_term' = 'Corrective Action Request (CAR) Raised Count');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `certification_body` SET TAGS ('pii_business_glossary_term' = 'Certification Body');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `certification_standard` SET TAGS ('pii_business_glossary_term' = 'Certification Standard');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `closed_by` SET TAGS ('pii_business_glossary_term' = 'Closed By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `closure_date` SET TAGS ('pii_business_glossary_term' = 'Audit Closure Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `conclusion` SET TAGS ('pii_business_glossary_term' = 'Audit Conclusion');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `conclusion` SET TAGS ('pii_value_regex' = 'satisfactory|satisfactory_with_observations|unsatisfactory|not_recommended_for_certification');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `corrective_action_due_date` SET TAGS ('pii_business_glossary_term' = 'Corrective Action Due Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `criteria` SET TAGS ('pii_business_glossary_term' = 'Audit Criteria');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `documents_reviewed` SET TAGS ('pii_business_glossary_term' = 'Documents Reviewed');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `duration_hours` SET TAGS ('pii_business_glossary_term' = 'Audit Duration Hours');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `end_date` SET TAGS ('pii_business_glossary_term' = 'Audit End Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `findings_summary` SET TAGS ('pii_business_glossary_term' = 'Audit Findings Summary');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `follow_up_audit_date` SET TAGS ('pii_business_glossary_term' = 'Follow-Up Audit Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `follow_up_audit_required` SET TAGS ('pii_business_glossary_term' = 'Follow-Up Audit Required');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `lead_auditor_name` SET TAGS ('pii_business_glossary_term' = 'Lead Auditor Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `major_nc_count` SET TAGS ('pii_business_glossary_term' = 'Major Non-Conformance (NC) Count');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `minor_nc_count` SET TAGS ('pii_business_glossary_term' = 'Minor Non-Conformance (NC) Count');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `modified_by` SET TAGS ('pii_business_glossary_term' = 'Modified By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `observations_count` SET TAGS ('pii_business_glossary_term' = 'Observations Count');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `personnel_interviewed` SET TAGS ('pii_business_glossary_term' = 'Personnel Interviewed');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `positive_findings` SET TAGS ('pii_business_glossary_term' = 'Positive Findings');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `remarks` SET TAGS ('pii_business_glossary_term' = 'Remarks');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `report_issued_date` SET TAGS ('pii_business_glossary_term' = 'Audit Report Issued Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `report_reference` SET TAGS ('pii_business_glossary_term' = 'Audit Report Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `start_date` SET TAGS ('pii_business_glossary_term' = 'Audit Start Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `team_members` SET TAGS ('pii_business_glossary_term' = 'Audit Team Members');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_audit` ALTER COLUMN `created_by` SET TAGS ('pii_business_glossary_term' = 'Created By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('pii_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('pii_subdomain' = 'field_verification');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('pii_ssot_view' = 'mvm_quality_submittal_ssot');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('pii_ssot_role' = 'non_canonical_view');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('pii_ssot_canonical' = 'design.design_submittal');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('pii_mvm_ssot_resolved' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('pii_ssot' = 'canonical');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('pii_ssot_master' = 'design.design_submittal');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('pii_ssot_distinct' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('pii_ssot_scope' = 'quality');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('pii_ssot_counterpart' = 'design.design_submittal');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` SET TAGS ('pii_mvm_ssot_owner' = 'quality');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `quality_submittal_id` SET TAGS ('pii_business_glossary_term' = 'Quality Submittal ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `agreement_id` SET TAGS ('pii_business_glossary_term' = 'Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `regulatory_permit_id` SET TAGS ('pii_business_glossary_term' = 'Permit Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `engineering_submittal_id` SET TAGS ('pii_business_glossary_term' = 'Design Submittal Id');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `engineering_submittal_id` SET TAGS ('pii_ssot_reference' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `engineering_submittal_id` SET TAGS ('pii_ssot' = 'design.design_submittal');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `drawing_id` SET TAGS ('pii_business_glossary_term' = 'Drawing Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `firm_profile_id` SET TAGS ('pii_business_glossary_term' = 'Subcontractor Sub Firm Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `quality_plan_id` SET TAGS ('pii_business_glossary_term' = 'Quality Plan Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `technical_specification_id` SET TAGS ('pii_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `wbs_element_id` SET TAGS ('pii_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `actual_review_days` SET TAGS ('pii_business_glossary_term' = 'Actual Review Days');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `approval_code` SET TAGS ('pii_business_glossary_term' = 'Approval Code');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `approval_code` SET TAGS ('pii_value_regex' = 'A|B|C|D|E|R');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `certification_required` SET TAGS ('pii_business_glossary_term' = 'Certification Required');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `compliance_standard` SET TAGS ('pii_business_glossary_term' = 'Compliance Standard');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `contractor_name` SET TAGS ('pii_business_glossary_term' = 'Contractor Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `contractor_name` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `contractor_name` SET TAGS ('pii_identifier' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `contractor_response` SET TAGS ('pii_business_glossary_term' = 'Contractor Response');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `contractual_review_days` SET TAGS ('pii_business_glossary_term' = 'Contractual Review Days');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `cost_impact` SET TAGS ('pii_business_glossary_term' = 'Cost Impact');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `cost_impact` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `document_reference` SET TAGS ('pii_business_glossary_term' = 'Document Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `final_approval_date` SET TAGS ('pii_business_glossary_term' = 'Final Approval Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `linked_change_order_number` SET TAGS ('pii_business_glossary_term' = 'Linked Change Order (CO) Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `linked_rfi_number` SET TAGS ('pii_business_glossary_term' = 'Linked Request for Information (RFI) Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `manufacturer_model_number` SET TAGS ('pii_business_glossary_term' = 'Manufacturer Model Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `manufacturer_name` SET TAGS ('pii_business_glossary_term' = 'Manufacturer Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `modified_by` SET TAGS ('pii_business_glossary_term' = 'Modified By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `remarks` SET TAGS ('pii_business_glossary_term' = 'Remarks');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `required_on_site_date` SET TAGS ('pii_business_glossary_term' = 'Required On-Site Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `resubmission_date` SET TAGS ('pii_business_glossary_term' = 'Resubmission Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `resubmission_required` SET TAGS ('pii_business_glossary_term' = 'Resubmission Required');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `review_completion_date` SET TAGS ('pii_business_glossary_term' = 'Review Completion Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `review_priority` SET TAGS ('pii_business_glossary_term' = 'Review Priority');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `review_priority` SET TAGS ('pii_value_regex' = 'critical|high|normal|low');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `review_start_date` SET TAGS ('pii_business_glossary_term' = 'Review Start Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `review_status` SET TAGS ('pii_business_glossary_term' = 'Review Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `reviewer_comments` SET TAGS ('pii_business_glossary_term' = 'Reviewer Comments');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `reviewer_name` SET TAGS ('pii_business_glossary_term' = 'Reviewer Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `reviewer_organization` SET TAGS ('pii_business_glossary_term' = 'Reviewer Organization');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `revision_number` SET TAGS ('pii_business_glossary_term' = 'Revision Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `schedule_impact_days` SET TAGS ('pii_business_glossary_term' = 'Schedule Impact Days');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `specification_section` SET TAGS ('pii_business_glossary_term' = 'Specification Section');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `submission_date` SET TAGS ('pii_business_glossary_term' = 'Submission Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `submittal_description` SET TAGS ('pii_business_glossary_term' = 'Submittal Description');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `submittal_number` SET TAGS ('pii_business_glossary_term' = 'Submittal Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `submittal_type` SET TAGS ('pii_business_glossary_term' = 'Submittal Type');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `title` SET TAGS ('pii_business_glossary_term' = 'Submittal Title');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `wbs_code` SET TAGS ('pii_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
+ALTER TABLE `vibe_construction_v1`.`quality`.`quality_submittal` ALTER COLUMN `created_by` SET TAGS ('pii_business_glossary_term' = 'Created By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` SET TAGS ('pii_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` SET TAGS ('pii_subdomain' = 'material_testing');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` SET TAGS ('pii_mvm_ssot_owner' = 'quality');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `ndt_record_id` SET TAGS ('pii_business_glossary_term' = 'Non-Destructive Testing (NDT) Record ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `asset_id` SET TAGS ('pii_business_glossary_term' = 'Asset Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `drawing_id` SET TAGS ('pii_business_glossary_term' = 'Drawing Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `itp_id` SET TAGS ('pii_business_glossary_term' = 'Inspection and Test Plan (ITP) ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `wbs_element_id` SET TAGS ('pii_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `acceptance_criteria` SET TAGS ('pii_business_glossary_term' = 'Acceptance Criteria');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `acceptance_status` SET TAGS ('pii_business_glossary_term' = 'Acceptance Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `acceptance_status` SET TAGS ('pii_value_regex' = 'accepted|rejected|conditional|pending_review');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `calibration_due_date` SET TAGS ('pii_business_glossary_term' = 'Calibration Due Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `calibration_reference` SET TAGS ('pii_business_glossary_term' = 'Equipment Calibration Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `component_description` SET TAGS ('pii_business_glossary_term' = 'Component Description');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `component_identifier` SET TAGS ('pii_business_glossary_term' = 'Component Identifier');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `contractor_name` SET TAGS ('pii_business_glossary_term' = 'Contractor Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `contractor_name` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `contractor_name` SET TAGS ('pii_identifier' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `equipment_serial_number` SET TAGS ('pii_business_glossary_term' = 'Equipment Serial Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `equipment_used` SET TAGS ('pii_business_glossary_term' = 'NDT Equipment Used');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `indication_count` SET TAGS ('pii_business_glossary_term' = 'Indication Count');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `indication_findings` SET TAGS ('pii_business_glossary_term' = 'Indication Findings');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `indication_severity` SET TAGS ('pii_business_glossary_term' = 'Indication Severity');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `indication_severity` SET TAGS ('pii_value_regex' = 'minor|major|critical');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `modified_by` SET TAGS ('pii_business_glossary_term' = 'Modified By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `ncr_number` SET TAGS ('pii_business_glossary_term' = 'Non-Conformance Report (NCR) Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `ncr_raised` SET TAGS ('pii_business_glossary_term' = 'Non-Conformance Report (NCR) Raised');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `ndt_method` SET TAGS ('pii_business_glossary_term' = 'Non-Destructive Testing (NDT) Method');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `remarks` SET TAGS ('pii_business_glossary_term' = 'Remarks');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `repair_required` SET TAGS ('pii_business_glossary_term' = 'Repair Required');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `retest_date` SET TAGS ('pii_business_glossary_term' = 'Retest Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `retest_required` SET TAGS ('pii_business_glossary_term' = 'Retest Required');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `specification_reference` SET TAGS ('pii_business_glossary_term' = 'Specification Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `technician_certification_expiry_date` SET TAGS ('pii_business_glossary_term' = 'Technician Certification Expiry Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `technician_certification_level` SET TAGS ('pii_business_glossary_term' = 'Technician Certification Level');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `technician_certification_level` SET TAGS ('pii_value_regex' = 'Level I|Level II|Level III');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `technician_certification_number` SET TAGS ('pii_business_glossary_term' = 'Technician Certification Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `technician_name` SET TAGS ('pii_business_glossary_term' = 'NDT Technician Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `test_date` SET TAGS ('pii_business_glossary_term' = 'NDT Test Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `test_location` SET TAGS ('pii_business_glossary_term' = 'NDT Test Location');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `test_number` SET TAGS ('pii_business_glossary_term' = 'NDT Test Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `test_procedure_reference` SET TAGS ('pii_business_glossary_term' = 'Test Procedure Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `test_procedure_version` SET TAGS ('pii_business_glossary_term' = 'Test Procedure Version');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `test_report_number` SET TAGS ('pii_business_glossary_term' = 'Test Report Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `test_report_reference` SET TAGS ('pii_business_glossary_term' = 'Test Report Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `test_result` SET TAGS ('pii_business_glossary_term' = 'NDT Test Result');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `test_result` SET TAGS ('pii_value_regex' = 'pass|fail|conditional');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `test_status` SET TAGS ('pii_business_glossary_term' = 'NDT Test Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `test_status` SET TAGS ('pii_value_regex' = 'scheduled|in_progress|completed|cancelled');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `weld_number` SET TAGS ('pii_business_glossary_term' = 'Weld Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `witness_name` SET TAGS ('pii_business_glossary_term' = 'Witness Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `witness_name` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `witness_name` SET TAGS ('pii_identifier' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `witness_party` SET TAGS ('pii_business_glossary_term' = 'Witness Party');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ndt_record` ALTER COLUMN `created_by` SET TAGS ('pii_business_glossary_term' = 'Created By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` SET TAGS ('pii_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` SET TAGS ('pii_subdomain' = 'material_testing');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` SET TAGS ('pii_mvm_ssot_owner' = 'quality');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `concrete_pour_record_id` SET TAGS ('pii_business_glossary_term' = 'Concrete Pour Record ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `asset_id` SET TAGS ('pii_business_glossary_term' = 'Asset Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `carbon_emission_id` SET TAGS ('pii_business_glossary_term' = 'Carbon Emission Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `regulatory_permit_id` SET TAGS ('pii_business_glossary_term' = 'Permit Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `drawing_id` SET TAGS ('pii_business_glossary_term' = 'Drawing Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `cost_code_id` SET TAGS ('pii_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `firm_profile_id` SET TAGS ('pii_business_glossary_term' = 'Contractor Sub Firm Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `inspection_id` SET TAGS ('pii_business_glossary_term' = 'Inspection Id');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `itp_id` SET TAGS ('pii_business_glossary_term' = 'Inspection and Test Plan (ITP) ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `ncr_id` SET TAGS ('pii_business_glossary_term' = 'Non-Conformance Report (NCR) ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `wbs_element_id` SET TAGS ('pii_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `acceptance_status` SET TAGS ('pii_business_glossary_term' = 'Acceptance Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `acceptance_status` SET TAGS ('pii_value_regex' = 'pending|accepted|conditionally_accepted|rejected');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `ambient_temperature_c` SET TAGS ('pii_business_glossary_term' = 'Ambient Temperature (Celsius)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `approved_submittal_number` SET TAGS ('pii_business_glossary_term' = 'Approved Submittal Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `batch_plant_name` SET TAGS ('pii_business_glossary_term' = 'Batch Plant Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `client_witness_name` SET TAGS ('pii_business_glossary_term' = 'Client Witness Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `client_witness_name` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `client_witness_name` SET TAGS ('pii_identifier' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `concrete_grade` SET TAGS ('pii_business_glossary_term' = 'Concrete Grade');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `concrete_temperature_c` SET TAGS ('pii_business_glossary_term' = 'Concrete Temperature (Celsius)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `consultant_witness_name` SET TAGS ('pii_business_glossary_term' = 'Consultant Witness Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `consultant_witness_name` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `consultant_witness_name` SET TAGS ('pii_identifier' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `cube_sample_ids` SET TAGS ('pii_business_glossary_term' = 'Cube Sample IDs');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `cube_samples_taken` SET TAGS ('pii_business_glossary_term' = 'Cube Samples Taken');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `curing_duration_days` SET TAGS ('pii_business_glossary_term' = 'Curing Duration (Days)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `curing_method` SET TAGS ('pii_business_glossary_term' = 'Curing Method');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `curing_method` SET TAGS ('pii_value_regex' = 'wet_covering|curing_compound|plastic_sheeting|water_ponding|steam_curing|membrane_curing');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `curing_start_date` SET TAGS ('pii_business_glossary_term' = 'Curing Start Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `cylinder_sample_ids` SET TAGS ('pii_business_glossary_term' = 'Cylinder Sample IDs');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `delivery_docket_numbers` SET TAGS ('pii_business_glossary_term' = 'Delivery Docket Numbers');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `element_location` SET TAGS ('pii_business_glossary_term' = 'Element Location');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `element_reference` SET TAGS ('pii_business_glossary_term' = 'Element Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `element_type` SET TAGS ('pii_business_glossary_term' = 'Element Type');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `grid_reference` SET TAGS ('pii_business_glossary_term' = 'Grid Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `inspector_name` SET TAGS ('pii_business_glossary_term' = 'Inspector Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `inspector_signature_date` SET TAGS ('pii_business_glossary_term' = 'Inspector Signature Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `concrete_pour_record_level` SET TAGS ('pii_business_glossary_term' = 'Level');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `location_description` SET TAGS ('pii_business_glossary_term' = 'Location Description');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `mix_design_reference` SET TAGS ('pii_business_glossary_term' = 'Mix Design Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `ncr_raised` SET TAGS ('pii_business_glossary_term' = 'Non-Conformance Report (NCR) Raised');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `number_of_samples_taken` SET TAGS ('pii_business_glossary_term' = 'Number of Samples Taken');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `number_of_trucks` SET TAGS ('pii_business_glossary_term' = 'Number of Trucks');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `pour_date` SET TAGS ('pii_business_glossary_term' = 'Pour Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `pour_end_time` SET TAGS ('pii_business_glossary_term' = 'Pour End Time');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `pour_number` SET TAGS ('pii_business_glossary_term' = 'Pour Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `pour_start_time` SET TAGS ('pii_business_glossary_term' = 'Pour Start Time');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `pour_status` SET TAGS ('pii_business_glossary_term' = 'Pour Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `pour_volume_m3` SET TAGS ('pii_business_glossary_term' = 'Pour Volume M3');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `remarks` SET TAGS ('pii_business_glossary_term' = 'Remarks');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `slump_mm` SET TAGS ('pii_business_glossary_term' = 'Slump Mm');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `slump_specification_mm` SET TAGS ('pii_business_glossary_term' = 'Slump Specification (Millimeters)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `slump_test_passed` SET TAGS ('pii_business_glossary_term' = 'Slump Test Passed');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `slump_test_result_mm` SET TAGS ('pii_business_glossary_term' = 'Slump Test Result (Millimeters)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `slump_value_mm` SET TAGS ('pii_business_glossary_term' = 'Slump Value Mm');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `supplier_name` SET TAGS ('pii_business_glossary_term' = 'Supplier Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `total_pour_volume_m3` SET TAGS ('pii_business_glossary_term' = 'Total Pour Volume (Cubic Meters)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `volume_poured_m3` SET TAGS ('pii_business_glossary_term' = 'Volume Poured M3');
+ALTER TABLE `vibe_construction_v1`.`quality`.`concrete_pour_record` ALTER COLUMN `weather_conditions` SET TAGS ('pii_business_glossary_term' = 'Weather Conditions');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` SET TAGS ('pii_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` SET TAGS ('pii_subdomain' = 'material_testing');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` SET TAGS ('pii_mvm_ssot_owner' = 'quality');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `lab_test_id` SET TAGS ('pii_business_glossary_term' = 'Laboratory Test ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `drawing_id` SET TAGS ('pii_business_glossary_term' = 'Drawing Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `cost_code_id` SET TAGS ('pii_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `itp_id` SET TAGS ('pii_business_glossary_term' = 'Itp Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `laboratory_id` SET TAGS ('pii_business_glossary_term' = 'Laboratory Id');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `ncr_id` SET TAGS ('pii_business_glossary_term' = 'Non-Conformance Report (NCR) ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `original_test_lab_test_id` SET TAGS ('pii_business_glossary_term' = 'Original Test ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `sample_id` SET TAGS ('pii_business_glossary_term' = 'Sample Identification Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `technical_specification_id` SET TAGS ('pii_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `wbs_element_id` SET TAGS ('pii_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `acceptance_criteria` SET TAGS ('pii_business_glossary_term' = 'Acceptance Criteria');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `accreditation_body` SET TAGS ('pii_business_glossary_term' = 'Accreditation Body');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `batch_number` SET TAGS ('pii_business_glossary_term' = 'Batch Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `cost_code` SET TAGS ('pii_business_glossary_term' = 'Cost Code');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `delivery_ticket_number` SET TAGS ('pii_business_glossary_term' = 'Delivery Ticket Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `lab_test_number` SET TAGS ('pii_business_glossary_term' = 'Lab Test Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `laboratory_accreditation_number` SET TAGS ('pii_business_glossary_term' = 'Laboratory Accreditation Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `material_description` SET TAGS ('pii_business_glossary_term' = 'Material Description');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `material_type` SET TAGS ('pii_business_glossary_term' = 'Material Type');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `measured_result` SET TAGS ('pii_business_glossary_term' = 'Measured Result');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `pass_fail_status` SET TAGS ('pii_business_glossary_term' = 'Pass Fail Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `remarks` SET TAGS ('pii_business_glossary_term' = 'Remarks');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `report_issue_date` SET TAGS ('pii_business_glossary_term' = 'Report Issue Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `report_number` SET TAGS ('pii_business_glossary_term' = 'Report Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `result_unit` SET TAGS ('pii_business_glossary_term' = 'Result Unit of Measure');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `result_value` SET TAGS ('pii_business_glossary_term' = 'Result Value');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `retest_flag` SET TAGS ('pii_business_glossary_term' = 'Retest Flag');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `reviewed_by` SET TAGS ('pii_business_glossary_term' = 'Reviewed By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `sampled_by` SET TAGS ('pii_business_glossary_term' = 'Sampled By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `sampling_date` SET TAGS ('pii_business_glossary_term' = 'Sampling Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `sampling_location` SET TAGS ('pii_business_glossary_term' = 'Sampling Location');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `specification_requirement` SET TAGS ('pii_business_glossary_term' = 'Specification Requirement');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `supplier_name` SET TAGS ('pii_business_glossary_term' = 'Supplier Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `technician_name` SET TAGS ('pii_business_glossary_term' = 'Technician Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `test_age_days` SET TAGS ('pii_business_glossary_term' = 'Test Age (Days)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `test_certificate_number` SET TAGS ('pii_business_glossary_term' = 'Test Certificate Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `test_date` SET TAGS ('pii_business_glossary_term' = 'Test Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `test_method` SET TAGS ('pii_business_glossary_term' = 'Test Method');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `test_number` SET TAGS ('pii_business_glossary_term' = 'Test Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `test_parameter` SET TAGS ('pii_business_glossary_term' = 'Test Parameter');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `test_parameters` SET TAGS ('pii_business_glossary_term' = 'Test Parameters');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `test_report_reference` SET TAGS ('pii_business_glossary_term' = 'Test Report Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `test_result_status` SET TAGS ('pii_business_glossary_term' = 'Test Result Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `test_result_status` SET TAGS ('pii_value_regex' = 'pass|fail|conditional|retest_required|pending');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `test_result_value` SET TAGS ('pii_business_glossary_term' = 'Test Result Value');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `test_standard` SET TAGS ('pii_business_glossary_term' = 'Test Standard');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `test_status` SET TAGS ('pii_business_glossary_term' = 'Test Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `test_type` SET TAGS ('pii_business_glossary_term' = 'Test Type');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `tested_by` SET TAGS ('pii_business_glossary_term' = 'Tested By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `tolerance_lower_limit` SET TAGS ('pii_business_glossary_term' = 'Tolerance Lower Limit');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `tolerance_upper_limit` SET TAGS ('pii_business_glossary_term' = 'Tolerance Upper Limit');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `unit_of_measure` SET TAGS ('pii_business_glossary_term' = 'Unit Of Measure');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `wbs_code` SET TAGS ('pii_business_glossary_term' = 'Work Breakdown Structure (WBS) Code');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `witness_name` SET TAGS ('pii_business_glossary_term' = 'Witness Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `witness_name` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `witness_name` SET TAGS ('pii_identifier' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `witness_party` SET TAGS ('pii_business_glossary_term' = 'Witness Party');
+ALTER TABLE `vibe_construction_v1`.`quality`.`lab_test` ALTER COLUMN `witness_required` SET TAGS ('pii_business_glossary_term' = 'Witness Required');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` SET TAGS ('pii_data_type' = 'master_data');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` SET TAGS ('pii_subdomain' = 'material_testing');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` SET TAGS ('pii_mvm_ssot_owner' = 'quality');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `sample_id` SET TAGS ('pii_business_glossary_term' = 'Sample Identifier');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `concrete_pour_record_id` SET TAGS ('pii_business_glossary_term' = 'Concrete Pour Record Id');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project Id');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `itp_id` SET TAGS ('pii_business_glossary_term' = 'Itp Id');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `laboratory_id` SET TAGS ('pii_business_glossary_term' = 'Lab Id');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `material_catalog_id` SET TAGS ('pii_business_glossary_term' = 'Material Catalog Id');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `parent_sample_id` SET TAGS ('pii_business_glossary_term' = 'Parent Sample Id');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `parent_sample_id` SET TAGS ('pii_self_ref_fk' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `sample_laboratory_id` SET TAGS ('pii_business_glossary_term' = 'Laboratory Id');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `site_location_id` SET TAGS ('pii_business_glossary_term' = 'Location Id');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `wbs_element_id` SET TAGS ('pii_business_glossary_term' = 'Wbs Element Id');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `approval_date` SET TAGS ('pii_business_glossary_term' = 'Approval Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `approved_by` SET TAGS ('pii_business_glossary_term' = 'Approved By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `batch_lot_number` SET TAGS ('pii_business_glossary_term' = 'Batch Lot Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `batch_number` SET TAGS ('pii_business_glossary_term' = 'Batch Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `chain_of_custody_reference` SET TAGS ('pii_business_glossary_term' = 'Chain Of Custody Reference');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `sample_code` SET TAGS ('pii_business_glossary_term' = 'Sample Code');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `collected_by` SET TAGS ('pii_business_glossary_term' = 'Collected By');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `collection_date` SET TAGS ('pii_business_glossary_term' = 'Collection Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `collection_location` SET TAGS ('pii_business_glossary_term' = 'Collection Location');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `compliance_standard` SET TAGS ('pii_business_glossary_term' = 'Compliance Standard');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `condition` SET TAGS ('pii_business_glossary_term' = 'Condition');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `disposal_date` SET TAGS ('pii_business_glossary_term' = 'Disposal Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `disposition` SET TAGS ('pii_business_glossary_term' = 'Disposition');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `expiration_date` SET TAGS ('pii_business_glossary_term' = 'Expiration Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `humidity_percent` SET TAGS ('pii_business_glossary_term' = 'Humidity Percent');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `is_critical` SET TAGS ('pii_business_glossary_term' = 'Is Critical');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `location` SET TAGS ('pii_business_glossary_term' = 'Location');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `material` SET TAGS ('pii_business_glossary_term' = 'Material');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `material_description` SET TAGS ('pii_business_glossary_term' = 'Material Description');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `sample_name` SET TAGS ('pii_business_glossary_term' = 'Sample Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `notes` SET TAGS ('pii_business_glossary_term' = 'Notes');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `quality_status` SET TAGS ('pii_business_glossary_term' = 'Quality Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `quantity` SET TAGS ('pii_business_glossary_term' = 'Quantity');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `remarks` SET TAGS ('pii_business_glossary_term' = 'Remarks');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `sample_number` SET TAGS ('pii_business_glossary_term' = 'Sample Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `sample_status` SET TAGS ('pii_business_glossary_term' = 'Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `sample_type` SET TAGS ('pii_business_glossary_term' = 'Sample Type');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `sampling_date` SET TAGS ('pii_business_glossary_term' = 'Sampling Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `sampling_location` SET TAGS ('pii_business_glossary_term' = 'Sampling Location');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `sampling_method` SET TAGS ('pii_business_glossary_term' = 'Sampling Method');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `storage_condition` SET TAGS ('pii_business_glossary_term' = 'Storage Condition');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `storage_location` SET TAGS ('pii_business_glossary_term' = 'Storage Location');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `temperature_c` SET TAGS ('pii_business_glossary_term' = 'Temperature C');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `test_date` SET TAGS ('pii_business_glossary_term' = 'Test Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `test_method` SET TAGS ('pii_business_glossary_term' = 'Test Method');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `test_result_unit` SET TAGS ('pii_business_glossary_term' = 'Test Result Unit');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `test_result_value` SET TAGS ('pii_business_glossary_term' = 'Test Result Value');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `unit_of_measure` SET TAGS ('pii_business_glossary_term' = 'Unit Of Measure');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `updated_timestamp` SET TAGS ('pii_business_glossary_term' = 'Updated Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `volume_l` SET TAGS ('pii_business_glossary_term' = 'Sample Volume L');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `weight_kg` SET TAGS ('pii_business_glossary_term' = 'Sample Weight Kg');
+ALTER TABLE `vibe_construction_v1`.`quality`.`sample` ALTER COLUMN `witness_party` SET TAGS ('pii_business_glossary_term' = 'Witness Party');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` SET TAGS ('pii_data_type' = 'master_data');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` SET TAGS ('pii_subdomain' = 'material_testing');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` SET TAGS ('pii_required_structure' = 'v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` SET TAGS ('pii_ecm_structure' = 'preserved_v2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` SET TAGS ('pii_structure_required' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` SET TAGS ('pii_mvm_ssot_owner' = 'quality');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `laboratory_id` SET TAGS ('pii_business_glossary_term' = 'Laboratory Identifier');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `construction_project_id` SET TAGS ('pii_business_glossary_term' = 'Construction Project Id');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `parent_laboratory_id` SET TAGS ('pii_business_glossary_term' = 'Parent Laboratory Id');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `parent_laboratory_id` SET TAGS ('pii_self_ref_fk' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `vendor_id` SET TAGS ('pii_business_glossary_term' = 'Vendor Id');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `accreditation_body` SET TAGS ('pii_business_glossary_term' = 'Accreditation Body');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `accreditation_expiry_date` SET TAGS ('pii_business_glossary_term' = 'Accreditation Expiry Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `accreditation_number` SET TAGS ('pii_business_glossary_term' = 'Accreditation Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `accreditation_standard` SET TAGS ('pii_business_glossary_term' = 'Accreditation Standard');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `accreditation_status` SET TAGS ('pii_business_glossary_term' = 'Accreditation Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `address` SET TAGS ('pii_business_glossary_term' = 'Address');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `address` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `address` SET TAGS ('pii_address' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `address_line` SET TAGS ('pii_business_glossary_term' = 'Address Line');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `address_line` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `address_line` SET TAGS ('pii_address' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `address_line1` SET TAGS ('pii_business_glossary_term' = 'Address Line1');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `address_line1` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `address_line1` SET TAGS ('pii_address' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `address_line2` SET TAGS ('pii_business_glossary_term' = 'Address Line2');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `address_line2` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `address_line2` SET TAGS ('pii_address' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `approval_date` SET TAGS ('pii_business_glossary_term' = 'Approval Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `capacity_tests_per_day` SET TAGS ('pii_business_glossary_term' = 'Capacity Tests Per Day');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `certification_details` SET TAGS ('pii_business_glossary_term' = 'Certification Details');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `city` SET TAGS ('pii_business_glossary_term' = 'City');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `city` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `city` SET TAGS ('pii_address' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `closing_date` SET TAGS ('pii_business_glossary_term' = 'Closing Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `laboratory_code` SET TAGS ('pii_business_glossary_term' = 'Code');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `contact_email` SET TAGS ('pii_business_glossary_term' = 'Contact Email');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `contact_email` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `contact_email` SET TAGS ('pii_email' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `contact_name` SET TAGS ('pii_business_glossary_term' = 'Contact Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `contact_name` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `contact_name` SET TAGS ('pii_identifier' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `contact_person` SET TAGS ('pii_business_glossary_term' = 'Contact Person');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `contact_phone` SET TAGS ('pii_business_glossary_term' = 'Contact Phone');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `contact_phone` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `contact_phone` SET TAGS ('pii_phone' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `country_code` SET TAGS ('pii_business_glossary_term' = 'Country Code');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `created_timestamp` SET TAGS ('pii_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `data_sharing_agreement` SET TAGS ('pii_business_glossary_term' = 'Data Sharing Agreement');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `laboratory_description` SET TAGS ('pii_business_glossary_term' = 'Description');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `email_address` SET TAGS ('pii_business_glossary_term' = 'Email Address');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `email_address` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `email_address` SET TAGS ('pii_email' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `equipment_summary` SET TAGS ('pii_business_glossary_term' = 'Equipment Summary');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `hazardous_materials_allowed` SET TAGS ('pii_business_glossary_term' = 'Hazardous Materials Allowed');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `is_approved` SET TAGS ('pii_business_glossary_term' = 'Is Approved');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `is_certified` SET TAGS ('pii_business_glossary_term' = 'Is Certified');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `is_external` SET TAGS ('pii_business_glossary_term' = 'Is External');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `is_internal` SET TAGS ('pii_business_glossary_term' = 'Is Internal');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `lab_area_sqm` SET TAGS ('pii_business_glossary_term' = 'Lab Area Sqm');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `laboratory_status` SET TAGS ('pii_business_glossary_term' = 'Status');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `laboratory_type` SET TAGS ('pii_business_glossary_term' = 'Type');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `last_inspection_date` SET TAGS ('pii_business_glossary_term' = 'Last Inspection Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `latitude` SET TAGS ('pii_business_glossary_term' = 'Latitude');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `latitude` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `latitude` SET TAGS ('pii_address' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `longitude` SET TAGS ('pii_business_glossary_term' = 'Longitude');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `longitude` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `longitude` SET TAGS ('pii_address' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `manager_name` SET TAGS ('pii_business_glossary_term' = 'Manager Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `manager_name` SET TAGS ('pii_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `manager_name` SET TAGS ('pii_name' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `max_sample_weight_kg` SET TAGS ('pii_business_glossary_term' = 'Max Sample Weight Kg');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `modified_timestamp` SET TAGS ('pii_business_glossary_term' = 'Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `laboratory_name` SET TAGS ('pii_business_glossary_term' = 'Name');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `next_inspection_due` SET TAGS ('pii_business_glossary_term' = 'Next Inspection Due');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `opening_date` SET TAGS ('pii_business_glossary_term' = 'Opening Date');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `operating_hours` SET TAGS ('pii_business_glossary_term' = 'Operating Hours');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `phone_number` SET TAGS ('pii_business_glossary_term' = 'Phone Number');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `phone_number` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `phone_number` SET TAGS ('pii_phone' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `postal_code` SET TAGS ('pii_business_glossary_term' = 'Postal Code');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `postal_code` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `postal_code` SET TAGS ('pii_address' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `quality_management_system` SET TAGS ('pii_business_glossary_term' = 'Quality Management System');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `region` SET TAGS ('pii_business_glossary_term' = 'Region');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `remarks` SET TAGS ('pii_business_glossary_term' = 'Remarks');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `safety_rating` SET TAGS ('pii_business_glossary_term' = 'Safety Rating');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `sample_storage_temperature_c` SET TAGS ('pii_business_glossary_term' = 'Sample Storage Temperature C');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `scope_of_testing` SET TAGS ('pii_business_glossary_term' = 'Scope Of Testing');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `state_province` SET TAGS ('pii_business_glossary_term' = 'State Province');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `state_province` SET TAGS ('pii_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `state_province` SET TAGS ('pii_address' = 'true');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `updated_timestamp` SET TAGS ('pii_business_glossary_term' = 'Updated Timestamp');
+ALTER TABLE `vibe_construction_v1`.`quality`.`laboratory` ALTER COLUMN `waste_disposal_method` SET TAGS ('pii_business_glossary_term' = 'Waste Disposal Method');

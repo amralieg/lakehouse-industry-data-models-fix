@@ -1,181 +1,74 @@
--- Metric views for domain: client | Business: Construction | Version: 2 | Generated on: 2026-06-22 15:07:26
+-- Metric views for domain: client | Business: Construction | Version: 2 | Generated on: 2026-06-28 00:14:33
 
 CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`client_account`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Strategic client account KPIs covering portfolio value, credit exposure, pipeline health, and relationship quality — used by BD and finance leadership to steer client investment and risk decisions."
+  comment: "Strategic account portfolio metrics covering client tier distribution, credit exposure, pipeline health, and relationship lifecycle. Used by BD leadership and finance to steer client investment and risk decisions."
   source: "`vibe_construction_v1`.`client`.`account`"
   dimensions:
-    - name: "account_type"
-      expr: account_type
-      comment: "Type of client account (e.g. Owner, Developer, Government) for portfolio segmentation."
     - name: "account_status"
       expr: account_status
-      comment: "Current lifecycle status of the account (Active, Inactive, Prospect) for pipeline health analysis."
+      comment: "Current lifecycle status of the account (e.g. Active, Inactive, Prospect) — primary filter for portfolio health views."
+    - name: "account_type"
+      expr: account_type
+      comment: "Classification of the account (e.g. Owner, Developer, Government) — drives segmentation of revenue and pipeline."
     - name: "client_tier"
       expr: client_tier
-      comment: "Strategic tier classification (Tier 1, 2, 3) used to prioritise BD investment and executive engagement."
+      comment: "Strategic tier assigned to the client (e.g. Tier 1, Tier 2) — used to prioritise BD resource allocation."
     - name: "industry_sector"
       expr: industry_sector
-      comment: "Industry sector of the client for market segment analysis."
+      comment: "Industry sector of the client — enables sector-level pipeline and revenue analysis."
     - name: "country_code"
       expr: country_code
-      comment: "Country of the client account for geographic revenue and risk analysis."
-    - name: "credit_rating"
-      expr: credit_rating
-      comment: "Internal credit rating of the account for financial risk segmentation."
+      comment: "Country of the account — supports geographic portfolio analysis."
     - name: "prequalification_status"
       expr: prequalification_status
-      comment: "Current prequalification status indicating whether the client is eligible for new awards."
+      comment: "Current prequalification standing of the account — determines eligibility for new bid opportunities."
     - name: "preferred_contract_type"
       expr: preferred_contract_type
-      comment: "Client's preferred contract delivery model (Lump Sum, GMP, Cost-Plus) for commercial strategy."
-    - name: "hse_compliance_required"
-      expr: hse_compliance_required
-      comment: "Flag indicating whether HSE compliance is mandated for this account, used in risk profiling."
-    - name: "leed_certification_required"
-      expr: leed_certification_required
-      comment: "Flag indicating whether LEED certification is required, used for sustainability pipeline analysis."
+      comment: "Client's preferred contract delivery model — informs commercial strategy and bid structuring."
+    - name: "is_jv_entity"
+      expr: is_jv_entity
+      comment: "Flags accounts that are joint-venture entities — used to isolate JV-specific portfolio analysis."
+    - name: "credit_rating"
+      expr: credit_rating
+      comment: "Credit rating band of the account — used to stratify financial risk exposure."
     - name: "relationship_start_year"
       expr: YEAR(relationship_start_date)
-      comment: "Year the client relationship commenced, used for cohort and tenure analysis."
-    - name: "last_project_award_year"
-      expr: YEAR(last_project_award_date)
-      comment: "Year of the most recent project award, used to identify dormant accounts."
+      comment: "Year the client relationship commenced — supports cohort and tenure analysis."
   measures:
     - name: "total_accounts"
       expr: COUNT(1)
-      comment: "Total number of client accounts in the portfolio — baseline measure for portfolio size tracking."
+      comment: "Total number of client accounts in the portfolio. Baseline measure for portfolio size tracking."
     - name: "active_accounts"
       expr: COUNT(CASE WHEN account_status = 'Active' THEN 1 END)
-      comment: "Number of currently active client accounts — key indicator of live relationship portfolio health."
+      comment: "Number of currently active client accounts. Executives use this to gauge the live client base size."
     - name: "total_annual_revenue"
       expr: SUM(CAST(annual_revenue AS DOUBLE))
-      comment: "Sum of annual revenue across all client accounts — proxy for total addressable client value in the portfolio."
+      comment: "Sum of declared annual revenue across all client accounts. Proxy for total addressable market within the portfolio."
     - name: "avg_annual_revenue_per_account"
       expr: AVG(CAST(annual_revenue AS DOUBLE))
-      comment: "Average annual revenue per client account — used to benchmark account value and identify under-performing relationships."
-    - name: "total_credit_limit_exposure"
+      comment: "Average annual revenue per client account. Indicates the typical scale of clients in the portfolio."
+    - name: "total_credit_limit"
       expr: SUM(CAST(credit_limit AS DOUBLE))
-      comment: "Total credit limit extended across all accounts — critical for treasury and credit risk management."
-    - name: "avg_credit_limit"
+      comment: "Aggregate credit limit extended across all accounts. Used by finance to monitor total credit exposure ceiling."
+    - name: "avg_credit_limit_per_account"
       expr: AVG(CAST(credit_limit AS DOUBLE))
-      comment: "Average credit limit per account — used to assess credit policy consistency across the portfolio."
-    - name: "accounts_with_hse_requirement"
-      expr: COUNT(CASE WHEN hse_compliance_required = TRUE THEN 1 END)
-      comment: "Number of accounts requiring HSE compliance — informs HSE resource planning and risk exposure."
-    - name: "accounts_requiring_leed"
-      expr: COUNT(CASE WHEN leed_certification_required = TRUE THEN 1 END)
-      comment: "Number of accounts requiring LEED certification — drives sustainability capability investment decisions."
-    - name: "accounts_prequalified"
+      comment: "Average credit limit per account. Benchmarks credit generosity relative to client tier or sector."
+    - name: "prequalified_accounts"
       expr: COUNT(CASE WHEN prequalification_status = 'Approved' THEN 1 END)
-      comment: "Number of accounts with approved prequalification status — indicates the immediately awardable client base."
-    - name: "prequalification_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN prequalification_status = 'Approved' THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of accounts with approved prequalification — measures BD pipeline readiness."
-    - name: "jv_entity_count"
+      comment: "Number of accounts with an approved prequalification status. Determines the pool eligible for new bid invitations."
+    - name: "prequalification_expiry_within_90_days"
+      expr: COUNT(CASE WHEN prequalification_expiry_date BETWEEN CURRENT_DATE AND DATE_ADD(CURRENT_DATE, 90) THEN 1 END)
+      comment: "Accounts whose prequalification expires within 90 days. Triggers renewal actions to maintain bid-eligible client pool."
+    - name: "jv_entity_accounts"
       expr: COUNT(CASE WHEN is_jv_entity = TRUE THEN 1 END)
-      comment: "Number of accounts flagged as JV entities — used to track joint-venture partnership exposure and governance obligations."
-    - name: "do_not_contact_count"
-      expr: COUNT(CASE WHEN do_not_contact = TRUE THEN 1 END)
-      comment: "Number of accounts marked do-not-contact — used to ensure BD outreach compliance and avoid regulatory breaches."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`client_opportunity`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Business development pipeline KPIs covering opportunity value, win rates, bid conversion, and weighted pipeline — used by BD leadership and executives to steer pursuit strategy and resource allocation."
-  source: "`vibe_construction_v1`.`client`.`client_opportunity`"
-  dimensions:
-    - name: "opportunity_status"
-      expr: opportunity_status
-      comment: "Current stage of the opportunity (Prospect, Qualified, Bid, Won, Lost) for pipeline funnel analysis."
-    - name: "pipeline_stage"
-      expr: pipeline_stage
-      comment: "Detailed pipeline stage for granular funnel tracking and conversion analysis."
-    - name: "project_type"
-      expr: project_type
-      comment: "Type of construction project (Civil, Building, Infrastructure) for sector-level pipeline analysis."
-    - name: "sector"
-      expr: sector
-      comment: "Industry sector of the opportunity for market segment performance tracking."
-    - name: "project_location_country"
-      expr: project_location_country
-      comment: "Country where the project will be executed — used for geographic pipeline and risk analysis."
-    - name: "project_location_region"
-      expr: project_location_region
-      comment: "Region of the project for sub-national pipeline distribution analysis."
-    - name: "delivery_model"
-      expr: delivery_model
-      comment: "Contract delivery model (EPC, D&B, CM) for commercial strategy analysis."
-    - name: "bid_no_bid_decision"
-      expr: bid_no_bid_decision
-      comment: "Bid/No-Bid decision outcome for pursuit efficiency and resource utilisation analysis."
-    - name: "win_loss_outcome"
-      expr: win_loss_outcome
-      comment: "Final win/loss outcome for win-rate and competitive performance tracking."
-    - name: "is_jv_bid"
-      expr: is_jv_bid
-      comment: "Flag indicating whether the bid is a joint venture — used to track JV pursuit strategy."
-    - name: "strategic_priority"
-      expr: strategic_priority
-      comment: "Strategic priority classification of the opportunity for executive portfolio steering."
-    - name: "expected_award_year"
-      expr: YEAR(expected_award_date)
-      comment: "Year the award is expected — used for pipeline timing and revenue forecasting."
-    - name: "bid_submission_year"
-      expr: YEAR(bid_submission_date)
-      comment: "Year of bid submission for cohort-based win-rate analysis."
-    - name: "currency_code"
-      expr: currency_code
-      comment: "Currency of the opportunity value for multi-currency portfolio analysis."
-  measures:
-    - name: "total_opportunities"
-      expr: COUNT(1)
-      comment: "Total number of opportunities in the BD pipeline — baseline measure for pipeline volume."
-    - name: "total_estimated_contract_value"
-      expr: SUM(CAST(estimated_contract_value AS DOUBLE))
-      comment: "Total estimated contract value across all opportunities — primary measure of pipeline size for executive reporting."
-    - name: "total_weighted_pipeline_value"
-      expr: SUM(CAST(weighted_pipeline_value AS DOUBLE))
-      comment: "Sum of probability-weighted pipeline values — the most decision-relevant pipeline measure for revenue forecasting."
-    - name: "avg_estimated_contract_value"
-      expr: AVG(CAST(estimated_contract_value AS DOUBLE))
-      comment: "Average estimated contract value per opportunity — used to assess deal size trends and target market positioning."
-    - name: "avg_probability_of_win_pct"
-      expr: AVG(CAST(probability_of_win_pct AS DOUBLE))
-      comment: "Average win probability across the pipeline — indicates overall pipeline quality and BD confidence."
-    - name: "total_bid_cost_estimate"
-      expr: SUM(CAST(bid_cost_estimate AS DOUBLE))
-      comment: "Total estimated cost of bidding across all opportunities — used to manage BD spend and bid/no-bid ROI."
-    - name: "avg_bid_cost_estimate"
-      expr: AVG(CAST(bid_cost_estimate AS DOUBLE))
-      comment: "Average bid cost per opportunity — benchmarks pursuit efficiency and cost-to-win ratios."
-    - name: "won_opportunities"
-      expr: COUNT(CASE WHEN win_loss_outcome = 'Won' THEN 1 END)
-      comment: "Number of opportunities won — key BD performance indicator for executive scorecards."
-    - name: "lost_opportunities"
-      expr: COUNT(CASE WHEN win_loss_outcome = 'Lost' THEN 1 END)
-      comment: "Number of opportunities lost — used to analyse competitive performance and loss reasons."
-    - name: "win_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN win_loss_outcome = 'Won' THEN 1 END) / NULLIF(COUNT(CASE WHEN win_loss_outcome IN ('Won','Lost') THEN 1 END), 0), 2)
-      comment: "Win rate as a percentage of decided opportunities — the primary BD effectiveness KPI for executive review."
-    - name: "won_contract_value"
-      expr: SUM(CASE WHEN win_loss_outcome = 'Won' THEN estimated_contract_value ELSE 0 END)
-      comment: "Total contract value of won opportunities — measures revenue secured from BD activity."
-    - name: "avg_project_duration_months"
-      expr: AVG(CAST(project_duration_months AS DOUBLE))
-      comment: "Average project duration in months across opportunities — used for resource planning and backlog forecasting."
-    - name: "jv_bid_count"
-      expr: COUNT(CASE WHEN is_jv_bid = TRUE THEN 1 END)
-      comment: "Number of JV bid opportunities — tracks JV pursuit strategy execution against corporate targets."
-    - name: "jv_bid_value"
-      expr: SUM(CASE WHEN is_jv_bid = TRUE THEN estimated_contract_value ELSE 0 END)
-      comment: "Total estimated value of JV bid opportunities — measures JV partnership pipeline contribution."
+      comment: "Number of accounts flagged as JV entities. Supports JV partnership portfolio management."
+    - name: "hse_compliant_accounts"
+      expr: COUNT(CASE WHEN hse_compliance_required = TRUE THEN 1 END)
+      comment: "Accounts requiring HSE compliance verification. Used by HSE and contract teams to manage compliance obligations."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`client_account_credit_profile`
@@ -183,340 +76,150 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Credit risk and financial exposure KPIs for the client portfolio — used by finance, treasury, and credit risk teams to manage credit limits, overdue balances, and sovereign risk."
+  comment: "Client credit risk and exposure metrics for finance and credit management. Tracks credit utilisation, overdue balances, DSO, and sovereign risk concentration to support credit committee decisions."
   source: "`vibe_construction_v1`.`client`.`account_credit_profile`"
   dimensions:
     - name: "profile_status"
       expr: profile_status
-      comment: "Current status of the credit profile (Active, Under Review, Suspended) for risk monitoring."
-    - name: "credit_rating"
-      expr: credit_rating
-      comment: "Internal credit rating for risk-tier segmentation of the client portfolio."
-    - name: "external_credit_rating"
-      expr: external_credit_rating
-      comment: "External agency credit rating for cross-validation of internal risk assessments."
-    - name: "external_rating_agency"
-      expr: external_rating_agency
-      comment: "Name of the external rating agency for source credibility analysis."
+      comment: "Current status of the credit profile (e.g. Active, Under Review, Suspended) — primary filter for credit risk dashboards."
     - name: "client_segment"
       expr: client_segment
-      comment: "Client segment classification for portfolio-level credit risk analysis."
+      comment: "Client segment associated with the credit profile — enables segment-level credit risk analysis."
+    - name: "external_credit_rating"
+      expr: external_credit_rating
+      comment: "External credit rating (e.g. AAA, BB) — used to stratify portfolio by credit quality."
+    - name: "external_rating_agency"
+      expr: external_rating_agency
+      comment: "Agency that issued the external credit rating — supports rating source analysis."
+    - name: "payment_history_rating"
+      expr: payment_history_rating
+      comment: "Historical payment behaviour rating — leading indicator of future default risk."
     - name: "credit_hold_flag"
       expr: credit_hold_flag
-      comment: "Flag indicating whether the account is on credit hold — critical for accounts receivable and project award decisions."
+      comment: "Flags accounts currently on credit hold — critical operational dimension for AR and project teams."
     - name: "sovereign_risk_flag"
       expr: sovereign_risk_flag
-      comment: "Flag indicating sovereign risk exposure — used for country-level credit risk management."
-    - name: "credit_insurance_flag"
-      expr: credit_insurance_flag
-      comment: "Flag indicating whether credit insurance is in place — used to assess net risk exposure."
+      comment: "Flags accounts with sovereign risk exposure — used by finance to monitor country-level credit concentration."
     - name: "currency_code"
       expr: currency_code
-      comment: "Currency of the credit profile for multi-currency risk aggregation."
+      comment: "Currency of the credit profile — supports multi-currency credit exposure analysis."
     - name: "credit_review_frequency"
       expr: credit_review_frequency
-      comment: "Frequency of credit reviews (Monthly, Quarterly, Annual) for governance compliance tracking."
-    - name: "effective_from_year"
-      expr: YEAR(effective_from_date)
-      comment: "Year the credit profile became effective — used for vintage analysis of credit decisions."
+      comment: "How often the credit profile is reviewed — used to ensure high-risk accounts are reviewed more frequently."
   measures:
-    - name: "total_credit_profiles"
-      expr: COUNT(1)
-      comment: "Total number of active credit profiles — baseline measure for credit portfolio size."
-    - name: "accounts_on_credit_hold"
-      expr: COUNT(CASE WHEN credit_hold_flag = TRUE THEN 1 END)
-      comment: "Number of accounts currently on credit hold — critical risk indicator for revenue and project award decisions."
-    - name: "credit_hold_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN credit_hold_flag = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of credit profiles on hold — measures portfolio-level credit stress for treasury reporting."
     - name: "total_credit_limit_amount"
       expr: SUM(CAST(credit_limit_amount AS DOUBLE))
-      comment: "Total credit limit extended across all client profiles — primary measure of credit exposure for treasury management."
+      comment: "Total credit limit extended across all client credit profiles. Represents the maximum financial exposure the business has approved."
     - name: "total_current_exposure"
       expr: SUM(CAST(current_exposure_amount AS DOUBLE))
-      comment: "Total current financial exposure across all client profiles — key risk metric for credit committee reporting."
+      comment: "Total current outstanding exposure across all clients. Compared against credit limits to assess utilisation."
     - name: "total_overdue_balance"
       expr: SUM(CAST(overdue_balance_amount AS DOUBLE))
-      comment: "Total overdue balance across all client profiles — critical collections and cash flow risk indicator."
-    - name: "avg_dso_days"
-      expr: AVG(CAST(dso_days AS DOUBLE))
-      comment: "Average Days Sales Outstanding across the client portfolio — measures collections efficiency and working capital impact."
+      comment: "Total overdue receivables across all client credit profiles. Key AR health metric for finance leadership."
     - name: "total_ld_exposure"
       expr: SUM(CAST(liquidated_damages_exposure_amount AS DOUBLE))
-      comment: "Total liquidated damages exposure across all client profiles — measures contractual penalty risk for executive risk reporting."
+      comment: "Total liquidated damages exposure across all client profiles. Quantifies contractual penalty risk on the receivables book."
+    - name: "avg_dso_days"
+      expr: AVG(CAST(dso_days AS DOUBLE))
+      comment: "Average Days Sales Outstanding across all client credit profiles. Core cash-flow efficiency KPI for the CFO."
+    - name: "accounts_on_credit_hold"
+      expr: COUNT(CASE WHEN credit_hold_flag = TRUE THEN 1 END)
+      comment: "Number of client accounts currently on credit hold. Triggers review by credit committee and project delivery teams."
     - name: "total_credit_insurance_limit"
       expr: SUM(CAST(credit_insurance_limit_amount AS DOUBLE))
-      comment: "Total credit insurance coverage in place — measures the insured portion of credit risk for net exposure calculation."
+      comment: "Total credit insurance coverage in place. Measures the portion of credit exposure that is insured."
     - name: "avg_retention_percentage"
       expr: AVG(CAST(retention_percentage AS DOUBLE))
-      comment: "Average retention percentage across client profiles — used to assess cash flow timing and retention release obligations."
-    - name: "sovereign_risk_exposure_count"
+      comment: "Average retention percentage held across client credit profiles. Informs cash-flow forecasting and contract negotiation benchmarks."
+    - name: "sovereign_risk_accounts"
       expr: COUNT(CASE WHEN sovereign_risk_flag = TRUE THEN 1 END)
-      comment: "Number of client profiles with sovereign risk — used for country-level risk concentration analysis."
-    - name: "avg_payment_history_rating"
-      expr: AVG(CAST(payment_history_rating AS DOUBLE))
-      comment: "Average payment history rating across the portfolio — leading indicator of future collections performance."
+      comment: "Number of client profiles with sovereign risk exposure. Used by finance to monitor country-level concentration risk."
+    - name: "special_payment_arrangement_accounts"
+      expr: COUNT(CASE WHEN special_payment_arrangement_flag = TRUE THEN 1 END)
+      comment: "Number of clients on special payment arrangements. Indicates stressed receivables requiring active management."
 $$;
 
-CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`client_project_engagement`
+CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`client_opportunity`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Client project engagement KPIs covering contract value, retention, satisfaction, and relationship health — used by project directors and client relationship managers to steer delivery performance and repeat business."
-  source: "`vibe_construction_v1`.`client`.`project_engagement`"
+  comment: "Business development pipeline metrics covering opportunity conversion, weighted pipeline value, bid economics, and win/loss performance. Core dashboard for BD directors and C-suite pipeline reviews."
+  source: "`vibe_construction_v1`.`client`.`client_opportunity`"
   dimensions:
-    - name: "engagement_status"
-      expr: engagement_status
-      comment: "Current status of the project engagement (Active, Completed, Suspended) for portfolio health monitoring."
-    - name: "engagement_type"
-      expr: engagement_type
-      comment: "Type of engagement (Design, Construction, EPC, Advisory) for service line analysis."
-    - name: "client_role"
-      expr: client_role
-      comment: "Role of the client in the engagement (Owner, Developer, Funder) for relationship type analysis."
+    - name: "opportunity_status"
+      expr: opportunity_status
+      comment: "Current stage of the opportunity (e.g. Identified, Qualified, Bid Submitted, Won, Lost) — primary pipeline funnel dimension."
+    - name: "pipeline_stage"
+      expr: pipeline_stage
+      comment: "Granular pipeline stage within the BD funnel — used for stage-gate conversion analysis."
+    - name: "project_type"
+      expr: project_type
+      comment: "Type of construction project (e.g. Infrastructure, Commercial, Energy) — enables sector-level pipeline analysis."
     - name: "sector"
       expr: sector
-      comment: "Industry sector of the engagement for market performance analysis."
-    - name: "procurement_method"
-      expr: procurement_method
-      comment: "Procurement method used (Tender, Negotiated, Framework) for commercial strategy analysis."
-    - name: "relationship_tier"
-      expr: relationship_tier
-      comment: "Relationship tier classification for strategic account management prioritisation."
-    - name: "repeat_client"
-      expr: repeat_client
-      comment: "Flag indicating whether this is a repeat client — key metric for client retention strategy."
-    - name: "dispute_status"
-      expr: dispute_status
-      comment: "Current dispute status for risk and legal exposure monitoring."
-    - name: "funding_source"
-      expr: funding_source
-      comment: "Source of project funding (Private, Government, PPP) for revenue quality analysis."
-    - name: "engagement_start_year"
-      expr: YEAR(engagement_start_date)
-      comment: "Year the engagement commenced — used for cohort analysis of client relationships."
-    - name: "contract_currency"
-      expr: contract_currency
-      comment: "Currency of the contract for multi-currency revenue analysis."
-    - name: "leed_certification_required"
-      expr: leed_certification_required
-      comment: "Flag indicating LEED certification requirement — used for sustainability delivery tracking."
-  measures:
-    - name: "total_engagements"
-      expr: COUNT(1)
-      comment: "Total number of client project engagements — baseline measure for active client relationship portfolio."
-    - name: "active_engagements"
-      expr: COUNT(CASE WHEN engagement_status = 'Active' THEN 1 END)
-      comment: "Number of currently active project engagements — primary measure of live delivery portfolio size."
-    - name: "total_contract_value"
-      expr: SUM(CAST(contract_value AS DOUBLE))
-      comment: "Total contracted value across all client engagements — primary revenue backlog measure for executive reporting."
-    - name: "avg_contract_value"
-      expr: AVG(CAST(contract_value AS DOUBLE))
-      comment: "Average contract value per engagement — used to benchmark deal size and assess portfolio mix."
-    - name: "total_approved_variation_value"
-      expr: SUM(CAST(approved_variation_value AS DOUBLE))
-      comment: "Total approved variation value across engagements — measures scope growth and commercial management effectiveness."
-    - name: "variation_to_contract_ratio_pct"
-      expr: ROUND(100.0 * SUM(CAST(approved_variation_value AS DOUBLE)) / NULLIF(SUM(CAST(contract_value AS DOUBLE)), 0), 2)
-      comment: "Approved variations as a percentage of original contract value — key commercial risk and scope management KPI."
-    - name: "total_advance_payment"
-      expr: SUM(CAST(advance_payment_amount AS DOUBLE))
-      comment: "Total advance payments received across engagements — used for cash flow and working capital management."
-    - name: "avg_satisfaction_score"
-      expr: AVG(CAST(satisfaction_score AS DOUBLE))
-      comment: "Average client satisfaction score across engagements — primary client relationship health KPI for executive scorecards."
-    - name: "avg_retention_percentage"
-      expr: AVG(CAST(retention_percentage AS DOUBLE))
-      comment: "Average retention percentage across engagements — measures cash flow timing risk from retention obligations."
-    - name: "repeat_client_count"
-      expr: COUNT(CASE WHEN repeat_client = TRUE THEN 1 END)
-      comment: "Number of engagements with repeat clients — measures client loyalty and relationship stickiness."
-    - name: "repeat_client_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN repeat_client = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of engagements from repeat clients — the primary client retention KPI for BD and executive review."
-    - name: "avg_liquidated_damages_rate"
-      expr: AVG(CAST(liquidated_damages_rate AS DOUBLE))
-      comment: "Average liquidated damages rate across engagements — used to assess contractual penalty risk exposure in the portfolio."
-    - name: "engagements_with_disputes"
-      expr: COUNT(CASE WHEN dispute_status IS NOT NULL AND dispute_status != 'None' THEN 1 END)
-      comment: "Number of engagements with active disputes — critical legal and commercial risk indicator for executive oversight."
-    - name: "avg_jv_participation_pct"
-      expr: AVG(CAST(jv_participation_percentage AS DOUBLE))
-      comment: "Average JV participation percentage across JV engagements — used to assess revenue share and risk allocation in JV projects."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`client_survey`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Client satisfaction and relationship health KPIs derived from post-project surveys — used by client relationship managers and executives to track NPS trends, satisfaction drivers, and escalation risk."
-  source: "`vibe_construction_v1`.`client`.`survey`"
-  dimensions:
-    - name: "survey_type"
-      expr: survey_type
-      comment: "Type of survey (Post-Project, Mid-Project, Annual Relationship) for benchmarking by survey category."
-    - name: "survey_status"
-      expr: survey_status
-      comment: "Current status of the survey (Sent, Completed, Overdue) for response rate tracking."
-    - name: "nps_category"
-      expr: nps_category
-      comment: "NPS category (Promoter, Passive, Detractor) for loyalty segmentation and advocacy analysis."
-    - name: "client_sector"
-      expr: client_sector
-      comment: "Client sector for satisfaction benchmarking across industry verticals."
-    - name: "contract_type"
-      expr: contract_type
-      comment: "Contract type for satisfaction analysis by delivery model."
-    - name: "relationship_risk_level"
-      expr: relationship_risk_level
-      comment: "Relationship risk level (Low, Medium, High, Critical) for proactive account management prioritisation."
-    - name: "escalation_required_flag"
-      expr: escalation_required_flag
-      comment: "Flag indicating whether escalation is required — used to trigger executive intervention for at-risk relationships."
-    - name: "repeat_client_flag"
-      expr: repeat_client_flag
-      comment: "Flag indicating repeat client — used to compare satisfaction between new and returning clients."
-    - name: "channel"
-      expr: channel
-      comment: "Survey delivery channel (Email, Phone, In-Person) for response quality analysis."
-    - name: "response_year"
-      expr: YEAR(response_date)
-      comment: "Year of survey response — used for year-over-year satisfaction trend analysis."
-    - name: "project_milestone"
-      expr: project_milestone
-      comment: "Project milestone at which the survey was administered — used to track satisfaction at key delivery gates."
-  measures:
-    - name: "total_surveys"
-      expr: COUNT(1)
-      comment: "Total number of surveys issued — baseline measure for client feedback programme coverage."
-    - name: "completed_surveys"
-      expr: COUNT(CASE WHEN survey_status = 'Completed' THEN 1 END)
-      comment: "Number of completed surveys — measures client engagement with the feedback programme."
-    - name: "survey_response_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN survey_status = 'Completed' THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Survey response rate as a percentage — measures effectiveness of the client feedback programme."
-    - name: "avg_overall_satisfaction_score"
-      expr: AVG(CAST(overall_satisfaction_score AS DOUBLE))
-      comment: "Average overall client satisfaction score — the primary client experience KPI for executive and board reporting."
-    - name: "avg_quality_score"
-      expr: AVG(CAST(quality_score AS DOUBLE))
-      comment: "Average quality satisfaction score — measures client perception of construction quality delivery."
-    - name: "avg_schedule_score"
-      expr: AVG(CAST(schedule_score AS DOUBLE))
-      comment: "Average schedule satisfaction score — measures client perception of on-time delivery performance."
-    - name: "avg_safety_score"
-      expr: AVG(CAST(safety_score AS DOUBLE))
-      comment: "Average safety satisfaction score — measures client perception of HSE performance on their projects."
-    - name: "avg_cost_management_score"
-      expr: AVG(CAST(cost_management_score AS DOUBLE))
-      comment: "Average cost management satisfaction score — measures client perception of commercial management effectiveness."
-    - name: "avg_communication_score"
-      expr: AVG(CAST(communication_score AS DOUBLE))
-      comment: "Average communication satisfaction score — measures client perception of project communication quality."
-    - name: "avg_relationship_health_score"
-      expr: AVG(CAST(relationship_health_score AS DOUBLE))
-      comment: "Average relationship health score — composite indicator of overall client relationship strength for account management."
-    - name: "avg_innovation_score"
-      expr: AVG(CAST(innovation_score AS DOUBLE))
-      comment: "Average innovation satisfaction score — measures client perception of value-add and innovation delivery."
-    - name: "escalation_required_count"
-      expr: COUNT(CASE WHEN escalation_required_flag = TRUE THEN 1 END)
-      comment: "Number of surveys requiring escalation — critical early-warning indicator for at-risk client relationships."
-    - name: "escalation_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN escalation_required_flag = TRUE THEN 1 END) / NULLIF(COUNT(CASE WHEN survey_status = 'Completed' THEN 1 END), 0), 2)
-      comment: "Percentage of completed surveys requiring escalation — measures the proportion of dissatisfied clients needing executive intervention."
-    - name: "promoter_count"
-      expr: COUNT(CASE WHEN nps_category = 'Promoter' THEN 1 END)
-      comment: "Number of NPS Promoters — measures the base of highly satisfied clients likely to provide referrals and repeat business."
-    - name: "detractor_count"
-      expr: COUNT(CASE WHEN nps_category = 'Detractor' THEN 1 END)
-      comment: "Number of NPS Detractors — measures the base of dissatisfied clients at risk of churn and negative advocacy."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`client_rfp_issuance`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "RFP pipeline and bid opportunity KPIs — used by BD and tendering leadership to track pipeline value, bid requirements, and submission timelines for pursuit prioritisation."
-  source: "`vibe_construction_v1`.`client`.`rfp_issuance`"
-  dimensions:
-    - name: "rfp_status"
-      expr: rfp_status
-      comment: "Current status of the RFP (Issued, Closed, Awarded, Cancelled) for pipeline stage analysis."
-    - name: "solicitation_type"
-      expr: solicitation_type
-      comment: "Type of solicitation (Open Tender, Selective Tender, Negotiated) for procurement route analysis."
-    - name: "project_sector"
-      expr: project_sector
-      comment: "Sector of the project for market segment pipeline analysis."
-    - name: "contract_type"
-      expr: contract_type
-      comment: "Contract type (Lump Sum, GMP, Cost-Plus) for commercial strategy analysis."
+      comment: "Industry sector of the opportunity — drives strategic sector investment decisions."
+    - name: "project_location_country"
+      expr: project_location_country
+      comment: "Country where the project will be delivered — supports geographic pipeline distribution analysis."
     - name: "delivery_model"
       expr: delivery_model
-      comment: "Delivery model (EPC, D&B, CM) for capability and resource planning."
-    - name: "country_code"
-      expr: country_code
-      comment: "Country of the RFP for geographic pipeline analysis."
-    - name: "bim_required"
-      expr: bim_required
-      comment: "Flag indicating BIM requirement — used to assess digital delivery capability demand."
-    - name: "leed_certification_required"
-      expr: leed_certification_required
-      comment: "Flag indicating LEED certification requirement — used for sustainability pipeline tracking."
-    - name: "performance_bond_required"
-      expr: performance_bond_required
-      comment: "Flag indicating performance bond requirement — used for bonding capacity planning."
-    - name: "bid_bond_required"
-      expr: bid_bond_required
-      comment: "Flag indicating bid bond requirement — used for bonding capacity and cash flow planning."
-    - name: "issue_year"
-      expr: YEAR(issue_date)
-      comment: "Year the RFP was issued — used for year-over-year pipeline volume analysis."
-    - name: "leed_certification_level"
-      expr: leed_certification_level
-      comment: "Required LEED certification level for sustainability capability demand analysis."
+      comment: "Contract delivery model (e.g. EPC, D&B, PPP) — informs commercial strategy and resource planning."
+    - name: "bid_no_bid_decision"
+      expr: bid_no_bid_decision
+      comment: "Outcome of the bid/no-bid gate decision — used to analyse bid selectivity and resource efficiency."
+    - name: "win_loss_outcome"
+      expr: win_loss_outcome
+      comment: "Final win or loss outcome of the opportunity — primary dimension for win-rate analysis."
+    - name: "is_jv_bid"
+      expr: is_jv_bid
+      comment: "Flags opportunities pursued as a joint venture — enables JV vs. solo bid performance comparison."
+    - name: "strategic_priority"
+      expr: strategic_priority
+      comment: "Strategic priority classification of the opportunity — ensures high-priority pursuits receive adequate resource."
+    - name: "expected_award_year"
+      expr: YEAR(expected_award_date)
+      comment: "Year the contract award is expected — supports annual pipeline forecasting."
+    - name: "bid_submission_year"
+      expr: YEAR(bid_submission_date)
+      comment: "Year the bid was submitted — enables year-over-year bid volume trending."
   measures:
-    - name: "total_rfps"
+    - name: "total_opportunities"
       expr: COUNT(1)
-      comment: "Total number of RFPs issued — baseline measure for market opportunity volume."
-    - name: "total_estimated_rfp_value"
+      comment: "Total number of opportunities in the pipeline. Baseline measure for BD activity volume."
+    - name: "total_estimated_contract_value"
       expr: SUM(CAST(estimated_contract_value AS DOUBLE))
-      comment: "Total estimated contract value across all RFPs — primary measure of addressable market pipeline for BD strategy."
-    - name: "avg_estimated_rfp_value"
+      comment: "Sum of estimated contract values across all opportunities. Represents the gross pipeline value before probability weighting."
+    - name: "total_weighted_pipeline_value"
+      expr: SUM(CAST(weighted_pipeline_value AS DOUBLE))
+      comment: "Sum of probability-weighted pipeline values. The primary BD KPI for forecasting expected revenue from the pipeline."
+    - name: "avg_estimated_contract_value"
       expr: AVG(CAST(estimated_contract_value AS DOUBLE))
-      comment: "Average estimated contract value per RFP — used to assess deal size trends and target market positioning."
-    - name: "rfps_requiring_bim"
-      expr: COUNT(CASE WHEN bim_required = TRUE THEN 1 END)
-      comment: "Number of RFPs requiring BIM — measures digital delivery capability demand in the market."
-    - name: "bim_requirement_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN bim_required = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of RFPs requiring BIM — tracks market adoption of digital delivery requirements."
-    - name: "rfps_requiring_leed"
-      expr: COUNT(CASE WHEN leed_certification_required = TRUE THEN 1 END)
-      comment: "Number of RFPs requiring LEED certification — measures sustainability delivery demand in the market."
-    - name: "avg_technical_score_weight"
-      expr: AVG(CAST(technical_score_weight AS DOUBLE))
-      comment: "Average technical score weighting across RFPs — indicates market preference for technical vs commercial evaluation."
-    - name: "avg_commercial_score_weight"
-      expr: AVG(CAST(commercial_score_weight AS DOUBLE))
-      comment: "Average commercial score weighting across RFPs — used to calibrate bid pricing strategy."
-    - name: "avg_local_content_requirement_pct"
-      expr: AVG(CAST(local_content_requirement_pct AS DOUBLE))
-      comment: "Average local content requirement percentage — used to assess local subcontracting and workforce obligations."
-    - name: "avg_liquidated_damages_rate"
-      expr: AVG(CAST(liquidated_damages_rate AS DOUBLE))
-      comment: "Average liquidated damages rate across RFPs — used to assess contractual risk levels in the pipeline."
-    - name: "rfps_with_performance_bond"
-      expr: COUNT(CASE WHEN performance_bond_required = TRUE THEN 1 END)
-      comment: "Number of RFPs requiring a performance bond — used for bonding capacity and surety planning."
-    - name: "rfps_with_bid_bond"
-      expr: COUNT(CASE WHEN bid_bond_required = TRUE THEN 1 END)
-      comment: "Number of RFPs requiring a bid bond — used for bid cost and bonding capacity planning."
+      comment: "Average estimated contract value per opportunity. Indicates the typical deal size being pursued."
+    - name: "total_bid_cost"
+      expr: SUM(CAST(bid_cost_estimate AS DOUBLE))
+      comment: "Total estimated cost of pursuing all opportunities in the pipeline. Used to manage BD spend efficiency."
+    - name: "avg_probability_of_win_pct"
+      expr: AVG(CAST(probability_of_win_pct AS DOUBLE))
+      comment: "Average win probability across all active opportunities. Signals overall pipeline quality and BD confidence."
+    - name: "won_opportunities"
+      expr: COUNT(CASE WHEN win_loss_outcome = 'Won' THEN 1 END)
+      comment: "Number of opportunities converted to contract awards. Numerator for win-rate calculation."
+    - name: "lost_opportunities"
+      expr: COUNT(CASE WHEN win_loss_outcome = 'Lost' THEN 1 END)
+      comment: "Number of opportunities lost to competitors. Used to analyse loss patterns and improve bid strategy."
+    - name: "won_contract_value"
+      expr: SUM(CASE WHEN win_loss_outcome = 'Won' THEN CAST(estimated_contract_value AS DOUBLE) ELSE 0 END)
+      comment: "Total estimated contract value of won opportunities. Measures BD revenue conversion performance."
+    - name: "lost_contract_value"
+      expr: SUM(CASE WHEN win_loss_outcome = 'Lost' THEN CAST(estimated_contract_value AS DOUBLE) ELSE 0 END)
+      comment: "Total estimated contract value of lost opportunities. Quantifies missed revenue and informs competitive analysis."
+    - name: "jv_opportunities"
+      expr: COUNT(CASE WHEN is_jv_bid = TRUE THEN 1 END)
+      comment: "Number of opportunities pursued as a joint venture. Tracks JV strategy execution."
+    - name: "bid_submitted_opportunities"
+      expr: COUNT(CASE WHEN opportunity_status = 'Bid Submitted' THEN 1 END)
+      comment: "Number of opportunities at bid-submitted stage. Indicates near-term award pipeline volume."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`client_prequalification`
@@ -524,204 +227,440 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Client prequalification pipeline KPIs — used by BD and procurement leadership to track prequalification approval rates, scoring, and eligibility for new project awards."
+  comment: "Client prequalification pipeline metrics tracking approval rates, scoring performance, TRIR compliance, and expiry risk. Used by procurement and BD teams to manage the eligible bidder pool."
   source: "`vibe_construction_v1`.`client`.`client_prequalification`"
   dimensions:
     - name: "prequalification_status"
       expr: prequalification_status
-      comment: "Current prequalification status (Approved, Pending, Rejected, Expired) for pipeline eligibility analysis."
+      comment: "Current status of the prequalification (e.g. Approved, Rejected, Pending, Expired) — primary funnel dimension."
     - name: "work_category"
       expr: work_category
-      comment: "Category of work for which prequalification applies — used for capability and capacity planning."
+      comment: "Category of work the prequalification covers — enables category-level eligible bidder pool analysis."
     - name: "procurement_category"
       expr: procurement_category
-      comment: "Procurement category for prequalification scope analysis."
+      comment: "Procurement category associated with the prequalification — aligns with sourcing strategy."
     - name: "country_code"
       expr: country_code
-      comment: "Country of the prequalification for geographic eligibility analysis."
+      comment: "Country of the prequalification — supports geographic eligible bidder pool management."
     - name: "hse_certification_required"
       expr: hse_certification_required
-      comment: "Flag indicating HSE certification requirement — used to track compliance obligations."
-    - name: "quality_certification_required"
-      expr: quality_certification_required
-      comment: "Flag indicating quality certification requirement — used to track ISO/quality compliance obligations."
-    - name: "leed_certification_required"
-      expr: leed_certification_required
-      comment: "Flag indicating LEED certification requirement — used for sustainability capability tracking."
+      comment: "Flags prequalifications requiring HSE certification — used to track HSE compliance gate performance."
     - name: "rfp_eligibility_flag"
       expr: rfp_eligibility_flag
-      comment: "Flag indicating RFP eligibility — measures the proportion of clients eligible for new tender invitations."
-    - name: "renewal_required"
-      expr: renewal_required
-      comment: "Flag indicating renewal is required — used to manage prequalification expiry and pipeline continuity."
+      comment: "Flags clients eligible to receive RFPs — directly controls bid invitation lists."
     - name: "submission_year"
       expr: YEAR(submission_date)
-      comment: "Year of prequalification submission — used for cohort analysis of approval rates."
-    - name: "expiry_year"
-      expr: YEAR(expiry_date)
-      comment: "Year of prequalification expiry — used for renewal pipeline management."
+      comment: "Year the prequalification was submitted — enables year-over-year volume trending."
+    - name: "renewal_required"
+      expr: renewal_required
+      comment: "Flags prequalifications requiring renewal — drives renewal workflow prioritisation."
   measures:
     - name: "total_prequalifications"
       expr: COUNT(1)
-      comment: "Total number of client prequalifications — baseline measure for prequalification programme volume."
+      comment: "Total number of client prequalification records. Baseline measure for prequalification programme volume."
     - name: "approved_prequalifications"
       expr: COUNT(CASE WHEN prequalification_status = 'Approved' THEN 1 END)
-      comment: "Number of approved prequalifications — measures the size of the immediately awardable client base."
-    - name: "approval_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN prequalification_status = 'Approved' THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Prequalification approval rate — measures the quality of the client pipeline entering the BD process."
+      comment: "Number of approved prequalifications. Defines the current eligible bidder pool size."
+    - name: "rejected_prequalifications"
+      expr: COUNT(CASE WHEN prequalification_status = 'Rejected' THEN 1 END)
+      comment: "Number of rejected prequalifications. Used to analyse rejection rates and identify systemic barriers."
     - name: "avg_prequalification_score"
       expr: AVG(CAST(score AS DOUBLE))
-      comment: "Average prequalification score — used to benchmark client capability levels and set minimum thresholds."
-    - name: "avg_minimum_passing_score"
-      expr: AVG(CAST(minimum_passing_score AS DOUBLE))
-      comment: "Average minimum passing score threshold — used to assess the rigour of prequalification standards."
-    - name: "avg_max_project_value"
-      expr: AVG(CAST(max_project_value AS DOUBLE))
-      comment: "Average maximum project value clients are prequalified for — measures the capacity ceiling of the approved client base."
+      comment: "Average prequalification score across all submissions. Benchmarks the quality of the client pool."
     - name: "avg_submitted_trir"
       expr: AVG(CAST(submitted_trir AS DOUBLE))
-      comment: "Average Total Recordable Incident Rate submitted by clients — measures HSE performance of the prequalified client base."
-    - name: "rfp_eligible_count"
+      comment: "Average Total Recordable Incident Rate submitted by clients. Key HSE gate metric for contractor safety performance."
+    - name: "trir_non_compliant_count"
+      expr: COUNT(CASE WHEN submitted_trir > trir_threshold THEN 1 END)
+      comment: "Number of prequalifications where submitted TRIR exceeds the threshold. Identifies HSE-non-compliant clients in the pool."
+    - name: "expiring_within_90_days"
+      expr: COUNT(CASE WHEN expiry_date BETWEEN CURRENT_DATE AND DATE_ADD(CURRENT_DATE, 90) THEN 1 END)
+      comment: "Prequalifications expiring within 90 days. Triggers renewal actions to prevent eligible bidder pool shrinkage."
+    - name: "rfp_eligible_clients"
       expr: COUNT(CASE WHEN rfp_eligibility_flag = TRUE THEN 1 END)
-      comment: "Number of prequalifications with RFP eligibility — measures the immediately tender-ready client pipeline."
-    - name: "rfp_eligibility_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN rfp_eligibility_flag = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of prequalifications with RFP eligibility — key BD pipeline readiness indicator."
-    - name: "renewals_required_count"
-      expr: COUNT(CASE WHEN renewal_required = TRUE THEN 1 END)
-      comment: "Number of prequalifications requiring renewal — used to manage pipeline continuity and avoid eligibility gaps."
+      comment: "Number of clients currently eligible to receive RFPs. Directly governs the competitive bidding pool."
+    - name: "avg_max_project_value"
+      expr: AVG(CAST(max_project_value AS DOUBLE))
+      comment: "Average maximum project value clients are prequalified for. Indicates the scale of work the eligible pool can deliver."
 $$;
 
-CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`client_account_hierarchy`
+CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`client_interaction`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Client account hierarchy and ownership structure KPIs — used by BD, legal, and finance leadership to understand group-level exposure, JV structures, and consolidation obligations."
-  source: "`vibe_construction_v1`.`client`.`account_hierarchy`"
+  comment: "Client engagement activity metrics tracking interaction volume, executive engagement frequency, entertainment spend, and follow-up compliance. Used by BD and account management to measure relationship investment and quality."
+  source: "`vibe_construction_v1`.`client`.`interaction`"
   dimensions:
-    - name: "hierarchy_status"
-      expr: hierarchy_status
-      comment: "Current status of the hierarchy relationship (Active, Dissolved, Restructured) for portfolio governance."
-    - name: "arrangement_type"
-      expr: arrangement_type
-      comment: "Type of ownership arrangement (Subsidiary, JV, Associate) for legal and financial consolidation analysis."
-    - name: "relationship_type"
-      expr: relationship_type
-      comment: "Nature of the relationship (Parent-Child, JV Partner, Affiliate) for group structure analysis."
-    - name: "consolidation_method"
-      expr: consolidation_method
-      comment: "Consolidation method (Full, Proportional, Equity) for financial reporting compliance."
-    - name: "hierarchy_level"
-      expr: hierarchy_level
-      comment: "Level in the corporate hierarchy — used to identify ultimate parent vs subsidiary relationships."
-    - name: "geographic_region"
-      expr: geographic_region
-      comment: "Geographic region of the hierarchy relationship for regional exposure analysis."
-    - name: "country_code"
-      expr: country_code
-      comment: "Country of the hierarchy relationship for cross-border ownership and regulatory analysis."
-    - name: "is_primary_hierarchy"
-      expr: is_primary_hierarchy
-      comment: "Flag indicating the primary hierarchy path — used to avoid double-counting in group consolidation."
-    - name: "lead_partner_flag"
-      expr: lead_partner_flag
-      comment: "Flag indicating the lead partner in a JV structure — used for governance and accountability tracking."
-    - name: "effective_from_year"
-      expr: YEAR(effective_from_date)
-      comment: "Year the hierarchy relationship became effective — used for structural change analysis."
+    - name: "interaction_type"
+      expr: interaction_type
+      comment: "Type of client interaction (e.g. Meeting, Call, Site Visit, Entertainment) — primary activity classification dimension."
+    - name: "interaction_status"
+      expr: interaction_status
+      comment: "Status of the interaction (e.g. Completed, Planned, Cancelled) — used to filter active vs. planned engagement."
+    - name: "channel"
+      expr: channel
+      comment: "Communication channel used (e.g. In-Person, Video, Phone) — informs channel effectiveness analysis."
+    - name: "client_seniority_level"
+      expr: client_seniority_level
+      comment: "Seniority level of the client attendees — used to measure executive engagement depth."
+    - name: "is_executive_engagement"
+      expr: is_executive_engagement
+      comment: "Flags interactions involving executive-level participants — key dimension for strategic relationship tracking."
+    - name: "outcome"
+      expr: outcome
+      comment: "Outcome of the interaction (e.g. Positive, Neutral, Negative) — used to assess relationship sentiment trends."
+    - name: "sentiment_indicator"
+      expr: sentiment_indicator
+      comment: "Sentiment signal from the interaction — leading indicator of relationship health changes."
+    - name: "interaction_year"
+      expr: YEAR(interaction_date)
+      comment: "Year of the interaction — supports year-over-year engagement activity trending."
+    - name: "interaction_month"
+      expr: DATE_TRUNC('MONTH', interaction_date)
+      comment: "Month of the interaction — enables monthly engagement cadence analysis."
   measures:
-    - name: "total_hierarchy_relationships"
+    - name: "total_interactions"
       expr: COUNT(1)
-      comment: "Total number of account hierarchy relationships — baseline measure for corporate structure complexity."
-    - name: "active_relationships"
-      expr: COUNT(CASE WHEN hierarchy_status = 'Active' THEN 1 END)
-      comment: "Number of currently active hierarchy relationships — measures live corporate structure complexity."
-    - name: "avg_ownership_percentage"
-      expr: AVG(CAST(ownership_percentage AS DOUBLE))
-      comment: "Average ownership percentage across hierarchy relationships — used to assess consolidation thresholds and control analysis."
-    - name: "avg_voting_rights_percentage"
-      expr: AVG(CAST(voting_rights_percentage AS DOUBLE))
-      comment: "Average voting rights percentage — used to assess governance control and board representation obligations."
-    - name: "jv_relationships_count"
-      expr: COUNT(CASE WHEN arrangement_type = 'JV' THEN 1 END)
-      comment: "Number of JV hierarchy relationships — measures JV partnership complexity and governance obligations."
-    - name: "lead_partner_count"
-      expr: COUNT(CASE WHEN lead_partner_flag = TRUE THEN 1 END)
-      comment: "Number of relationships where the firm is lead partner — measures leadership position in JV structures."
-    - name: "dissolved_relationships"
-      expr: COUNT(CASE WHEN hierarchy_status = 'Dissolved' THEN 1 END)
-      comment: "Number of dissolved hierarchy relationships — used to track corporate restructuring activity and historical exposure."
+      comment: "Total number of client interactions logged. Baseline measure for BD and account management activity volume."
+    - name: "executive_interactions"
+      expr: COUNT(CASE WHEN is_executive_engagement = TRUE THEN 1 END)
+      comment: "Number of interactions involving executive-level client participants. Measures strategic relationship investment."
+    - name: "total_entertainment_cost"
+      expr: SUM(CAST(entertainment_cost AS DOUBLE))
+      comment: "Total entertainment and hospitality spend on client interactions. Monitored for compliance with gifts and hospitality policies."
+    - name: "avg_entertainment_cost_per_interaction"
+      expr: AVG(CAST(entertainment_cost AS DOUBLE))
+      comment: "Average entertainment cost per interaction. Benchmarks hospitality spend efficiency and policy compliance."
+    - name: "interactions_with_open_followup"
+      expr: COUNT(CASE WHEN followup_completed = FALSE AND followup_due_date < CURRENT_DATE THEN 1 END)
+      comment: "Interactions with overdue follow-up actions. Measures BD team responsiveness and action closure discipline."
+    - name: "unique_accounts_engaged"
+      expr: COUNT(DISTINCT account_id)
+      comment: "Number of distinct client accounts engaged. Measures breadth of active client relationship coverage."
+    - name: "unique_contacts_engaged"
+      expr: COUNT(DISTINCT contact_id)
+      comment: "Number of distinct client contacts engaged. Measures depth of relationship penetration within client organisations."
+    - name: "hospitality_declared_interactions"
+      expr: COUNT(CASE WHEN gifts_hospitality_declared = TRUE THEN 1 END)
+      comment: "Number of interactions where gifts or hospitality were declared. Supports anti-bribery compliance monitoring."
 $$;
 
-CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`client_framework_agreement`
+CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`client_jv_structure`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Client framework agreement KPIs covering committed value, ceiling utilisation, and commercial terms — used by BD and commercial leadership to manage long-term client relationships and framework performance."
-  source: "`vibe_construction_v1`.`client`.`client_framework_agreement`"
+  comment: "Joint venture portfolio metrics tracking capital commitments, equity distribution, and JV lifecycle status. Used by corporate development and finance to manage JV risk and governance."
+  source: "`vibe_construction_v1`.`client`.`jv_structure`"
   dimensions:
-    - name: "client_framework_agreement_status"
-      expr: client_framework_agreement_status
-      comment: "Current status of the framework agreement (Active, Expired, Terminated) for portfolio management."
-    - name: "agreement_type"
-      expr: agreement_type
-      comment: "Type of framework agreement (Master Services, Call-Off, Panel) for commercial strategy analysis."
+    - name: "jv_status"
+      expr: jv_status
+      comment: "Current status of the JV (e.g. Active, Dissolved, In Formation) — primary JV lifecycle dimension."
+    - name: "jv_type"
+      expr: jv_type
+      comment: "Type of JV structure (e.g. Incorporated, Unincorporated, Consortium) — informs governance and liability analysis."
+    - name: "project_sector"
+      expr: project_sector
+      comment: "Sector of the JV project — enables sector-level JV portfolio analysis."
+    - name: "country_of_operation"
+      expr: country_of_operation
+      comment: "Country where the JV operates — supports geographic JV risk concentration analysis."
+    - name: "is_lead_sponsor_internal"
+      expr: is_lead_sponsor_internal
+      comment: "Flags JVs where the internal entity is the lead sponsor — distinguishes lead vs. minority JV positions."
+    - name: "liability_structure"
+      expr: liability_structure
+      comment: "Liability structure of the JV (e.g. Joint and Several, Several Only) — critical for risk quantification."
+    - name: "formation_year"
+      expr: YEAR(formation_date)
+      comment: "Year the JV was formed — supports vintage analysis of the JV portfolio."
+    - name: "is_active"
+      expr: is_active
+      comment: "Flags currently active JV structures — primary filter for live JV portfolio views."
+  measures:
+    - name: "total_jv_structures"
+      expr: COUNT(1)
+      comment: "Total number of JV structures in the portfolio. Baseline measure for JV programme scale."
+    - name: "active_jv_structures"
+      expr: COUNT(CASE WHEN is_active = TRUE THEN 1 END)
+      comment: "Number of currently active JV structures. Measures the live JV portfolio requiring active governance."
+    - name: "total_committed_capital"
+      expr: SUM(CAST(total_committed_capital AS DOUBLE))
+      comment: "Total capital committed across all JV structures. Measures the aggregate financial exposure in the JV portfolio."
+    - name: "avg_total_equity_pct"
+      expr: AVG(CAST(total_equity_pct AS DOUBLE))
+      comment: "Average total equity percentage held across JV structures. Benchmarks the typical ownership position in JV arrangements."
+    - name: "lead_sponsor_jvs"
+      expr: COUNT(CASE WHEN is_lead_sponsor_internal = TRUE THEN 1 END)
+      comment: "Number of JVs where the internal entity is the lead sponsor. Measures leadership position in the JV portfolio."
+    - name: "unique_jv_partners"
+      expr: COUNT(DISTINCT primary_jv_account_id)
+      comment: "Number of distinct JV partner accounts. Measures the breadth of the JV partnership network."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`client_project_engagement`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Client project engagement metrics covering contract value, satisfaction, retention, and relationship health across active project deliveries. Used by account managers and project directors to manage client relationships."
+  source: "`vibe_construction_v1`.`client`.`project_engagement`"
+  dimensions:
+    - name: "engagement_status"
+      expr: engagement_status
+      comment: "Current status of the project engagement (e.g. Active, Completed, Terminated) — primary lifecycle dimension."
+    - name: "engagement_type"
+      expr: engagement_type
+      comment: "Type of engagement (e.g. EPC, PMC, Advisory) — enables delivery model performance comparison."
     - name: "sector"
       expr: sector
-      comment: "Industry sector of the framework for market segment performance analysis."
-    - name: "geographic_region"
-      expr: geographic_region
-      comment: "Geographic region of the framework for regional revenue analysis."
-    - name: "delivery_model"
-      expr: delivery_model
-      comment: "Delivery model under the framework for capability planning."
-    - name: "procurement_route"
-      expr: procurement_route
-      comment: "Procurement route used to establish the framework for commercial benchmarking."
-    - name: "insurance_required"
-      expr: insurance_required
-      comment: "Flag indicating insurance requirement — used for compliance and risk management."
-    - name: "performance_bond_required"
-      expr: performance_bond_required
-      comment: "Flag indicating performance bond requirement — used for bonding capacity planning."
-    - name: "effective_year"
-      expr: YEAR(effective_date)
-      comment: "Year the framework became effective — used for vintage analysis of framework agreements."
-    - name: "currency_code"
-      expr: currency_code
-      comment: "Currency of the framework agreement for multi-currency revenue analysis."
+      comment: "Industry sector of the engagement — supports sector-level client satisfaction and revenue analysis."
+    - name: "client_role"
+      expr: client_role
+      comment: "Role of the client in the engagement (e.g. Owner, Developer, Funder) — informs relationship management strategy."
+    - name: "relationship_tier"
+      expr: relationship_tier
+      comment: "Tier of the client relationship — used to prioritise account management resources."
+    - name: "repeat_client"
+      expr: repeat_client
+      comment: "Flags engagements with repeat clients — key indicator of client loyalty and relationship strength."
+    - name: "dispute_status"
+      expr: dispute_status
+      comment: "Current dispute status on the engagement — used to identify at-risk relationships requiring intervention."
+    - name: "funding_source"
+      expr: funding_source
+      comment: "Source of project funding (e.g. Government, Private, Multilateral) — informs payment risk and commercial strategy."
+    - name: "engagement_start_year"
+      expr: YEAR(engagement_start_date)
+      comment: "Year the engagement commenced — supports cohort and vintage analysis of the project portfolio."
+    - name: "procurement_method"
+      expr: procurement_method
+      comment: "Procurement method used (e.g. Competitive Tender, Negotiated) — enables procurement route performance analysis."
   measures:
-    - name: "total_framework_agreements"
+    - name: "total_engagements"
       expr: COUNT(1)
-      comment: "Total number of client framework agreements — baseline measure for long-term relationship portfolio size."
-    - name: "active_framework_agreements"
-      expr: COUNT(CASE WHEN client_framework_agreement_status = 'Active' THEN 1 END)
-      comment: "Number of active framework agreements — measures the live long-term client relationship portfolio."
-    - name: "total_ceiling_value"
-      expr: SUM(CAST(ceiling_value AS DOUBLE))
-      comment: "Total ceiling value across all framework agreements — measures the maximum addressable revenue from framework relationships."
-    - name: "total_committed_value"
-      expr: SUM(CAST(committed_value AS DOUBLE))
-      comment: "Total committed value across all framework agreements — measures revenue already secured under frameworks."
-    - name: "framework_utilisation_pct"
-      expr: ROUND(100.0 * SUM(CAST(committed_value AS DOUBLE)) / NULLIF(SUM(CAST(ceiling_value AS DOUBLE)), 0), 2)
-      comment: "Framework utilisation rate — measures how much of the available framework ceiling has been committed, a key commercial performance KPI."
+      comment: "Total number of client project engagements. Baseline measure for portfolio breadth."
+    - name: "total_contract_value"
+      expr: SUM(CAST(contract_value AS DOUBLE))
+      comment: "Total contracted value across all client project engagements. Primary revenue backlog measure for executive reporting."
+    - name: "total_approved_variation_value"
+      expr: SUM(CAST(approved_variation_value AS DOUBLE))
+      comment: "Total value of approved contract variations. Measures scope growth and commercial management effectiveness."
+    - name: "avg_satisfaction_score"
+      expr: AVG(CAST(satisfaction_score AS DOUBLE))
+      comment: "Average client satisfaction score across all engagements. Core client relationship health KPI for account management."
     - name: "avg_retention_percentage"
       expr: AVG(CAST(retention_percentage AS DOUBLE))
-      comment: "Average retention percentage across framework agreements — used to assess cash flow timing obligations."
+      comment: "Average retention percentage held across engagements. Impacts cash-flow forecasting and working capital management."
+    - name: "total_advance_payment"
+      expr: SUM(CAST(advance_payment_amount AS DOUBLE))
+      comment: "Total advance payments received across all engagements. Tracks mobilisation funding and advance recovery obligations."
+    - name: "repeat_client_engagements"
+      expr: COUNT(CASE WHEN repeat_client = TRUE THEN 1 END)
+      comment: "Number of engagements with repeat clients. Measures client loyalty and the effectiveness of relationship management."
+    - name: "engagements_in_dispute"
+      expr: COUNT(CASE WHEN dispute_status IS NOT NULL AND dispute_status != 'None' THEN 1 END)
+      comment: "Number of engagements with an active dispute. Flags relationship risk and potential revenue at risk."
+    - name: "avg_jv_participation_pct"
+      expr: AVG(CAST(jv_participation_percentage AS DOUBLE))
+      comment: "Average JV participation percentage across JV engagements. Informs JV equity and profit-sharing analysis."
     - name: "avg_liquidated_damages_rate"
       expr: AVG(CAST(liquidated_damages_rate AS DOUBLE))
-      comment: "Average liquidated damages rate across frameworks — used to assess contractual risk exposure in long-term relationships."
-    - name: "avg_duration_months"
-      expr: AVG(CAST(duration_months AS DOUBLE))
-      comment: "Average framework duration in months — used for relationship longevity analysis and renewal planning."
-    - name: "avg_max_calloff_value"
-      expr: AVG(CAST(max_calloff_value AS DOUBLE))
-      comment: "Average maximum call-off value per framework — used to assess individual project size limits under frameworks."
-    - name: "frameworks_expiring_within_year"
-      expr: COUNT(CASE WHEN expiry_date BETWEEN CURRENT_DATE AND DATE_ADD(CURRENT_DATE, 365) THEN 1 END)
-      comment: "Number of framework agreements expiring within the next 12 months — critical renewal pipeline indicator for BD planning."
+      comment: "Average liquidated damages rate across engagements. Benchmarks contractual penalty exposure in the portfolio."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`client_rfp_issuance`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "RFP pipeline metrics tracking issuance volume, estimated contract values, bid bond requirements, and evaluation weighting. Used by BD and procurement leadership to manage the competitive tender pipeline."
+  source: "`vibe_construction_v1`.`client`.`rfp_issuance`"
+  dimensions:
+    - name: "rfp_status"
+      expr: rfp_status
+      comment: "Current status of the RFP (e.g. Issued, Closed, Awarded, Cancelled) — primary pipeline stage dimension."
+    - name: "solicitation_type"
+      expr: solicitation_type
+      comment: "Type of solicitation (e.g. Open Tender, Selective Tender, Negotiated) — informs procurement route analysis."
+    - name: "project_sector"
+      expr: project_sector
+      comment: "Sector of the project being tendered — enables sector-level tender pipeline analysis."
+    - name: "contract_type"
+      expr: contract_type
+      comment: "Contract type for the RFP (e.g. Lump Sum, Reimbursable, GMP) — informs commercial risk analysis."
+    - name: "delivery_model"
+      expr: delivery_model
+      comment: "Delivery model for the tendered project — supports delivery model performance benchmarking."
+    - name: "country_code"
+      expr: country_code
+      comment: "Country where the RFP was issued — supports geographic tender pipeline analysis."
+    - name: "leed_certification_required"
+      expr: leed_certification_required
+      comment: "Flags RFPs requiring LEED certification — tracks sustainability requirements in the tender pipeline."
+    - name: "performance_bond_required"
+      expr: performance_bond_required
+      comment: "Flags RFPs requiring a performance bond — informs bonding capacity planning."
+    - name: "issue_year"
+      expr: YEAR(issue_date)
+      comment: "Year the RFP was issued — supports year-over-year tender volume trending."
+  measures:
+    - name: "total_rfps_issued"
+      expr: COUNT(1)
+      comment: "Total number of RFPs issued. Baseline measure for tender pipeline activity volume."
+    - name: "total_estimated_contract_value"
+      expr: SUM(CAST(estimated_contract_value AS DOUBLE))
+      comment: "Total estimated contract value across all issued RFPs. Represents the gross tender pipeline value."
+    - name: "avg_estimated_contract_value"
+      expr: AVG(CAST(estimated_contract_value AS DOUBLE))
+      comment: "Average estimated contract value per RFP. Benchmarks typical deal size in the tender pipeline."
+    - name: "rfps_requiring_bid_bond"
+      expr: COUNT(CASE WHEN bid_bond_required = TRUE THEN 1 END)
+      comment: "Number of RFPs requiring a bid bond. Informs bonding capacity and cash management planning."
+    - name: "rfps_requiring_performance_bond"
+      expr: COUNT(CASE WHEN performance_bond_required = TRUE THEN 1 END)
+      comment: "Number of RFPs requiring a performance bond. Tracks bonding obligations in the tender pipeline."
+    - name: "avg_technical_score_weight"
+      expr: AVG(CAST(technical_score_weight AS DOUBLE))
+      comment: "Average technical evaluation weighting across RFPs. Indicates how technically demanding the tender pipeline is."
+    - name: "avg_commercial_score_weight"
+      expr: AVG(CAST(commercial_score_weight AS DOUBLE))
+      comment: "Average commercial evaluation weighting across RFPs. Benchmarks price competitiveness requirements in the pipeline."
+    - name: "avg_local_content_requirement_pct"
+      expr: AVG(CAST(local_content_requirement_pct AS DOUBLE))
+      comment: "Average local content requirement percentage across RFPs. Informs local subcontracting and workforce planning."
+    - name: "rfps_with_ld_applicable"
+      expr: COUNT(CASE WHEN liquidated_damages_applicable = TRUE THEN 1 END)
+      comment: "Number of RFPs with liquidated damages clauses. Quantifies contractual penalty risk in the tender pipeline."
+    - name: "total_ld_rate_exposure"
+      expr: SUM(CAST(liquidated_damages_rate AS DOUBLE))
+      comment: "Sum of liquidated damages rates across all RFPs. Aggregated proxy for contractual penalty exposure in the pipeline."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`client_segment`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Client segment strategy metrics tracking pipeline targets, win rate targets, and revenue band configuration. Used by BD strategy and marketing leadership to evaluate segment investment and performance."
+  source: "`vibe_construction_v1`.`client`.`segment`"
+  dimensions:
+    - name: "segment_status"
+      expr: segment_status
+      comment: "Current status of the segment definition (e.g. Active, Archived) — primary filter for live segment analysis."
+    - name: "sector"
+      expr: sector
+      comment: "Industry sector of the segment — enables sector-level strategic portfolio analysis."
+    - name: "geographic_region"
+      expr: geographic_region
+      comment: "Geographic region of the segment — supports regional BD strategy analysis."
+    - name: "strategic_tier"
+      expr: strategic_tier
+      comment: "Strategic tier of the segment (e.g. Priority, Core, Opportunistic) — drives resource allocation decisions."
+    - name: "is_global_segment"
+      expr: is_global_segment
+      comment: "Flags globally managed segments — distinguishes global vs. regional segment strategies."
+    - name: "esg_focus"
+      expr: esg_focus
+      comment: "Flags segments with an ESG focus — tracks sustainability-driven market strategy."
+    - name: "delivery_model"
+      expr: delivery_model
+      comment: "Typical delivery model for the segment — informs commercial capability requirements."
+  measures:
+    - name: "total_segments"
+      expr: COUNT(1)
+      comment: "Total number of defined client segments. Baseline measure for market segmentation coverage."
+    - name: "total_target_pipeline_value"
+      expr: SUM(CAST(target_pipeline_value_usd AS DOUBLE))
+      comment: "Total target pipeline value across all segments. Represents the aggregate BD pipeline ambition for the business."
+    - name: "avg_target_win_rate_pct"
+      expr: AVG(CAST(target_win_rate_pct AS DOUBLE))
+      comment: "Average target win rate across all segments. Benchmarks the expected conversion performance for BD planning."
+    - name: "total_revenue_band_max"
+      expr: SUM(CAST(revenue_band_max_usd AS DOUBLE))
+      comment: "Sum of maximum revenue band thresholds across segments. Represents the upper bound of the total addressable market across all segments."
+    - name: "avg_typical_project_value_max"
+      expr: AVG(CAST(typical_project_value_max_usd AS DOUBLE))
+      comment: "Average maximum typical project value across segments. Informs deal-size expectations for BD resource planning."
+    - name: "priority_segments"
+      expr: COUNT(CASE WHEN strategic_tier = 'Priority' THEN 1 END)
+      comment: "Number of segments classified as strategic priority. Ensures BD investment is concentrated on highest-value markets."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`client_survey`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Client satisfaction and relationship health metrics derived from project surveys. Used by account management and executive leadership to monitor NPS trends, satisfaction drivers, and escalation risk."
+  source: "`vibe_construction_v1`.`client`.`survey`"
+  dimensions:
+    - name: "survey_type"
+      expr: survey_type
+      comment: "Type of survey (e.g. Project Completion, Mid-Project, Annual Relationship) — primary survey classification dimension."
+    - name: "survey_status"
+      expr: survey_status
+      comment: "Current status of the survey (e.g. Sent, Completed, Overdue) — used to track response completion."
+    - name: "nps_category"
+      expr: nps_category
+      comment: "NPS category (Promoter, Passive, Detractor) — primary dimension for loyalty segmentation analysis."
+    - name: "relationship_risk_level"
+      expr: relationship_risk_level
+      comment: "Risk level of the client relationship based on survey responses — triggers account management interventions."
+    - name: "client_sector"
+      expr: client_sector
+      comment: "Sector of the client — enables sector-level satisfaction benchmarking."
+    - name: "respondent_role"
+      expr: respondent_role
+      comment: "Role of the survey respondent — used to weight feedback by decision-maker seniority."
+    - name: "repeat_client_flag"
+      expr: repeat_client_flag
+      comment: "Flags surveys from repeat clients — enables loyalty cohort satisfaction comparison."
+    - name: "escalation_required_flag"
+      expr: escalation_required_flag
+      comment: "Flags surveys requiring escalation — drives urgent account management actions."
+    - name: "administration_year"
+      expr: YEAR(administration_date)
+      comment: "Year the survey was administered — supports year-over-year satisfaction trending."
+    - name: "project_milestone"
+      expr: project_milestone
+      comment: "Project milestone at which the survey was administered — enables milestone-specific satisfaction analysis."
+  measures:
+    - name: "total_surveys"
+      expr: COUNT(1)
+      comment: "Total number of surveys administered. Baseline measure for client feedback programme coverage."
+    - name: "completed_surveys"
+      expr: COUNT(CASE WHEN survey_status = 'Completed' THEN 1 END)
+      comment: "Number of completed surveys. Numerator for response rate calculation."
+    - name: "avg_overall_satisfaction_score"
+      expr: AVG(CAST(overall_satisfaction_score AS DOUBLE))
+      comment: "Average overall client satisfaction score. Primary client experience KPI for executive reporting and QBRs."
+    - name: "avg_relationship_health_score"
+      expr: AVG(CAST(relationship_health_score AS DOUBLE))
+      comment: "Average relationship health score. Leading indicator of client retention and repeat business probability."
+    - name: "avg_quality_score"
+      expr: AVG(CAST(quality_score AS DOUBLE))
+      comment: "Average quality score from client surveys. Measures client perception of construction quality delivery."
+    - name: "avg_schedule_score"
+      expr: AVG(CAST(schedule_score AS DOUBLE))
+      comment: "Average schedule performance score from client surveys. Measures client perception of on-time delivery."
+    - name: "avg_safety_score"
+      expr: AVG(CAST(safety_score AS DOUBLE))
+      comment: "Average safety score from client surveys. Measures client perception of HSE performance on their projects."
+    - name: "avg_cost_management_score"
+      expr: AVG(CAST(cost_management_score AS DOUBLE))
+      comment: "Average cost management score from client surveys. Measures client perception of budget control and commercial management."
+    - name: "avg_communication_score"
+      expr: AVG(CAST(communication_score AS DOUBLE))
+      comment: "Average communication score from client surveys. Measures client satisfaction with reporting and stakeholder engagement."
+    - name: "surveys_requiring_escalation"
+      expr: COUNT(CASE WHEN escalation_required_flag = TRUE THEN 1 END)
+      comment: "Number of surveys flagged for escalation. Identifies at-risk client relationships requiring immediate executive intervention."
+    - name: "promoter_surveys"
+      expr: COUNT(CASE WHEN nps_category = 'Promoter' THEN 1 END)
+      comment: "Number of surveys from NPS Promoters. Numerator for net promoter score calculation and loyalty analysis."
+    - name: "detractor_surveys"
+      expr: COUNT(CASE WHEN nps_category = 'Detractor' THEN 1 END)
+      comment: "Number of surveys from NPS Detractors. Identifies clients at highest risk of churn or reputational damage."
 $$;

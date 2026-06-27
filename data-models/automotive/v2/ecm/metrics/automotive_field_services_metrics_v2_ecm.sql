@@ -1,2 +1,0 @@
--- Metric views for domain: field_services | Business: Automotive | Version: 2 | Generated on: 2026-06-23 04:49:37
--- All metric views in this domain failed validation and were removed.

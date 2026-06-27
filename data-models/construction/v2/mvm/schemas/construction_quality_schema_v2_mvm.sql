@@ -1,5 +1,5 @@
 -- Schema for Domain: quality | Business: Construction | Version: v2_mvm
--- Generated on: 2026-06-22 17:24:53
+-- Generated on: 2026-06-27 01:56:04
 
 -- ========= DATABASE =========
 CREATE DATABASE IF NOT EXISTS `vibe_construction_v1`.`quality` COMMENT 'QA/QC (Quality Assurance/Quality Control) domain managing ITP (Inspection and Test Plans), NCR (Non-Conformance Reports), inspection checklists, material test certificates, weld records, FAT (Factory Acceptance Test), SAT (Site Acceptance Test), and defect tracking through DLP. Ensures construction deliverables meet specifications and ISO 9001 standards.';
@@ -7,13 +7,10 @@ CREATE DATABASE IF NOT EXISTS `vibe_construction_v1`.`quality` COMMENT 'QA/QC (Q
 -- ========= TABLES =========
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`itp` (
     `itp_id` BIGINT COMMENT 'Unique identifier for the Inspection and Test Plan record. Primary key for the ITP entity.',
-    `account_id` BIGINT COMMENT 'Foreign key linking to client.account. Business justification: ITPs are contractually submitted to the client for approval; client hold-point witness obligations are defined per ITP. Linking itp directly to client.account enables client-specific ITP register repo',
-    `contact_id` BIGINT COMMENT 'Foreign key linking to client.contact. Business justification: itp.client_inspector_responsible_party is a denormalized plain-text field. The client inspector is a specific contact who must be notified for hold-point witness events. Normalizing to a FK enables au',
-    `construction_project_id` BIGINT COMMENT 'Reference to the construction project to which this ITP applies. Links the quality control framework to the parent project.',
-    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: ITPs define inspection scope against specific drawings. QA managers navigate from an ITP to the drawings it governs for hold/witness point management. Standard construction QMS practice — a QA auditor',
-    `plan_id` BIGINT COMMENT 'Foreign key linking to quality.quality_plan. Business justification: An Inspection and Test Plan (ITP) is created as a deliverable under a Project Quality Plan (PQP). The quality_plan.itp_register_reference (STRING) is a denormalized reference confirming this relations',
-    `subcontract_id` BIGINT COMMENT 'Foreign key linking to contract.subcontract. Business justification: Subcontractor ITP: Subcontractors submit ITPs under a specific subcontract; FK ties ITP to the subcontract for responsibility and schedule management.',
-    `technical_specification_id` BIGINT COMMENT 'Foreign key linking to design.technical_specification. Business justification: ITPs are created from specific technical specifications; FK ensures correct acceptance criteria.',
+    `account_id` BIGINT COMMENT 'Foreign key linking to client.account. Business justification: ITPs require client-specific approval and define client inspector responsibilities. Linking ITP to client.account enables client-specific ITP approval workflows, client inspector assignment reporting,',
+    `package_id` BIGINT COMMENT 'Foreign key linking to design.package. Business justification: ITPs are scoped to design packages in construction — the ITP register is prepared in response to a design package issue. QA managers track which ITP governs each package scope. A QA engineer would exp',
+    `phase_id` BIGINT COMMENT 'Foreign key linking to project.phase. Business justification: ITPs are scoped to project phases (civil, MEP, commissioning). Phase-level ITP register reporting is a standard construction QMS requirement — quality managers assign and track ITPs per phase gate. No',
+    `plan_id` BIGINT COMMENT 'Foreign key linking to quality.quality_plan. Business justification: An Inspection and Test Plan (ITP) is a child document governed by the Project Quality Plan (PQP). The quality_plan is the master QA/QC strategy document, and ITPs are the operational execution plans u',
     `acceptance_criteria` STRING COMMENT 'Detailed acceptance criteria and tolerances that must be met for the work to pass inspection. Defines the pass/fail thresholds for quality verification.',
     `applicable_standards` STRING COMMENT 'Comma-separated list of applicable quality, design, and construction standards governing this ITP (e.g., ISO 9001, ACI 318, ASME B31.3, IBC 2018). Defines the regulatory and technical framework.',
     `approval_date` DATE COMMENT 'Date on which the ITP was formally approved by the client or authorized party. Marks the effective date for use in quality control.',
@@ -51,11 +48,12 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`itp` (
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`itp_line` (
     `itp_line_id` BIGINT COMMENT 'Unique identifier for the ITP line item. Primary key for the ITP line entity.',
-    `checklist_id` BIGINT COMMENT 'Foreign key linking to quality.checklist. Business justification: Each ITP line item specifies a particular inspection or test activity that is executed using a defined checklist template. The itp_line defines WHAT to inspect and the checklist defines HOW to inspect',
-    `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: ITP line execution is assigned to a specific worker; required for execution accountability.',
-    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: ITP lines define specific inspection activities against drawings — each line item references the drawing showing the work to be inspected. reference_document is a denormalized text column. Direct FK e',
+    `asset_category_id` BIGINT COMMENT 'Foreign key linking to equipment.asset_category. Business justification: Individual ITP lines specify inspection activities for particular equipment categories (e.g., ITP line for crane load testing, ITP line for pressure vessel hydrostatic test). Category-level ITP line s',
+    `checklist_id` BIGINT COMMENT 'Foreign key linking to quality.checklist. Business justification: An ITP line item (hold point, witness point, review point) specifies which checklist template should be used when the inspection is conducted. This is a direct business relationship: the ITP line pres',
+    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Each ITP line represents a discrete inspection activity with estimated duration and associated QA cost. Construction project controls require ITP line activities to be coded for QA cost tracking, earn',
     `itp_id` BIGINT COMMENT 'Reference to the parent ITP document that contains this line item. Links the line to its header ITP.',
     `crew_id` BIGINT COMMENT 'Foreign key linking to workforce.crew. Business justification: ITP line often executed by a crew; linking crew provides crew‑level accountability.',
+    `risk_assessment_id` BIGINT COMMENT 'Foreign key linking to safety.risk_assessment. Business justification: Individual ITP line activities are risk-rated; the risk assessment drives hold point type (H/W/R) and inspection frequency per line. Risk-based inspection planning at activity level is a core construc',
     `acceptance_criteria` STRING COMMENT 'The specific criteria, tolerances, or standards that must be met for the inspection or test to pass. Defines what constitutes acceptable quality.',
     `activity_description` STRING COMMENT 'Detailed description of the specific inspection or test activity to be performed at this hold point, witness point, or review point.',
     `applicable_standard` STRING COMMENT 'The industry standard, code, or specification that governs this inspection activity (e.g., ASTM, ASME, ACI, AISC, BS, EN, ISO standard reference).',
@@ -80,6 +78,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`itp_line` (
     `modified_timestamp` TIMESTAMP COMMENT 'The date and time when this ITP line item record was last modified or updated.',
     `ncr_trigger_criteria` STRING COMMENT 'The specific conditions or findings that would trigger the issuance of a Non-Conformance Report (NCR) if this inspection fails.',
     `notification_lead_time_hours` STRING COMMENT 'The minimum advance notice in hours that must be given to client, consultant, or third-party witnesses before performing this inspection.',
+    `reference_document` STRING COMMENT 'The specification, drawing, standard, or procedure document that governs this inspection activity (e.g., drawing number, specification code, industry standard reference).',
     `remarks` STRING COMMENT 'Additional notes, clarifications, or special instructions related to this inspection line item that do not fit in other structured fields.',
     `required_documentation` STRING COMMENT 'List of documents, certificates, or records that must be produced as evidence of inspection completion (e.g., test certificates, inspection reports, material certificates, calibration records).',
     `responsible_discipline` STRING COMMENT 'The engineering or construction discipline responsible for performing or coordinating this inspection (e.g., Civil, Mechanical, Electrical, Piping, QA/QC, MEP).',
@@ -95,30 +94,18 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`itp_line` (
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`inspection` (
     `inspection_id` BIGINT COMMENT 'Unique identifier for the inspection record. Primary key.',
-    `batch_lot_id` BIGINT COMMENT 'Foreign key linking to material.batch_lot. Business justification: Incoming material inspections in construction are performed against specific batch/lot receipts. Linking inspection to batch_lot enables QA traceability from inspection outcome to physical material ba',
     `checklist_id` BIGINT COMMENT 'Reference to the standardized inspection checklist template used for this inspection. Defines the verification criteria and check items.',
-    `contact_id` BIGINT COMMENT 'Foreign key linking to client.contact. Business justification: Client contact may attend or request the inspection; needed for audit of client participation.',
-    `concrete_pour_id` BIGINT COMMENT 'Foreign key linking to site.concrete_pour. Business justification: Every concrete pour requires mandatory pre-pour, during-pour, and post-pour inspections per ITP hold/witness points. Regulatory and contractual QC requirements mandate direct traceability between insp',
-    `construction_project_id` BIGINT COMMENT 'Reference to the construction project under which this inspection is performed.',
-    `contract_milestone_id` BIGINT COMMENT 'Foreign key linking to contract.contract_milestone. Business justification: Milestone-triggered inspections are a standard construction contract requirement — hold-point inspections must be passed before milestone payment certificates are issued. Contract administrators and Q',
-    `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: Inspection logs which craft worker performed the inspection; required for QC audit reports.',
-    `crew_assignment_id` BIGINT COMMENT 'Foreign key linking to workforce.crew_assignment. Business justification: Inspections are triggered by specific crew assignments executing work; linking inspection to the active crew_assignment enables labor-quality correlation reporting and traceability of which assignment',
+    `concrete_pour_id` BIGINT COMMENT 'Foreign key linking to site.concrete_pour. Business justification: Concrete pours require mandatory pre-pour, during-pour, and post-pour inspections under ITP hold points. Linking inspection to concrete_pour enables pour inspection traceability and supports the QC ho',
     `crew_id` BIGINT COMMENT 'Foreign key linking to workforce.crew. Business justification: Inspections are scheduled for specific crews; needed for crew‑based inspection planning.',
-    `daily_log_id` BIGINT COMMENT 'Foreign key linking to site.daily_log. Business justification: Inspections conducted on a given day are recorded in the daily log. Site engineers and superintendents use the daily log as the primary site record; linking inspections to their daily log enables the ',
-    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Inspection reports must reference the exact drawing inspected for traceability and compliance.',
     `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Required for Cost Allocation Report: each inspection activity is charged to a cost code for budgeting and client billing.',
-    `goods_issue_id` BIGINT COMMENT 'Foreign key linking to material.goods_issue. Business justification: Material issued to critical work fronts (structural pours, pressure systems) requires point-of-use quality inspection in construction. Linking inspection to goods_issue enables traceability from mater',
     `goods_receipt_id` BIGINT COMMENT 'Foreign key linking to procurement.goods_receipt. Business justification: Needed to link inspection results to the goods receipt that triggered the inspection, supporting receipt‑inspection traceability.',
-    `incident_id` BIGINT COMMENT 'Foreign key linking to safety.incident. Business justification: When a quality inspection uncovers a safety hazard, an incident is logged; linking inspection to incident supports immediate corrective action and compliance documentation.',
     `itp_line_id` BIGINT COMMENT 'Foreign key linking to quality.itp_line. Business justification: Link inspection to its ITP line for proper hierarchy; inspection may occur multiple times per line.',
-    `maintenance_order_id` BIGINT COMMENT 'Foreign key linking to equipment.maintenance_order. Business justification: Post-maintenance quality verification: QC inspections are performed to verify work completed under a maintenance order meets specification. This link enables closed-loop maintenance quality reporting ',
-    `material_delivery_id` BIGINT COMMENT 'Foreign key linking to site.material_delivery. Business justification: Incoming material inspections are ITP hold points triggered by material deliveries. The inspection record must reference the specific delivery it covers for material acceptance/rejection decisions, go',
-    `permit_to_work_id` BIGINT COMMENT 'Foreign key linking to safety.permit_to_work. Business justification: Inspections are conducted as part of PTW closure verification — the inspector confirms work performed under a PTW meets quality requirements before the permit is closed. PTW closure checklists in cons',
-    `progress_billing_id` BIGINT COMMENT 'Foreign key linking to finance.progress_billing. Business justification: Payment certification based on inspection: engineers payment certification requires inspection sign-off on completed work. This FK links the specific inspection record that substantiates a progress b',
-    `purchase_order_id` BIGINT COMMENT 'Foreign key linking to procurement.purchase_order. Business justification: Required for Inspection Report linking each inspection to its purchase order, enabling PO‑based compliance tracking.',
-    `site_id` BIGINT COMMENT 'Foreign key linking to site.site. Business justification: Inspections occur at a specific site. Site-level QC reporting, regulatory compliance submissions, and client reporting require all inspections to be aggregated by site. inspection has location_descri',
-    `swms_id` BIGINT COMMENT 'Foreign key linking to safety.swms. Business justification: Inspections verify SWMS compliance on site — a primary inspection objective in construction is confirming workers follow the documented safe work method. Regulatory audits require traceability from in',
-    `warehouse_id` BIGINT COMMENT 'Foreign key linking to material.warehouse. Business justification: Periodic warehouse storage condition inspections are mandatory in construction for hazardous materials, temperature-sensitive materials, and certified storage facilities. Linking inspection to warehou',
+    `milestone_id` BIGINT COMMENT 'Foreign key linking to project.project_milestone. Business justification: Milestone hold-point inspections are contractually required in construction — inspections gate milestone sign-off (e.g., pre-handover, pre-NTP). Linking inspection to project_milestone enables milesto',
+    `permit_to_work_id` BIGINT COMMENT 'Foreign key linking to safety.permit_to_work. Business justification: Quality inspections of PTW-controlled work (confined space, hot work, pressure testing) require the inspector to verify an active PTW exists. Inspection records must reference the authorizing PTW for ',
+    `phase_id` BIGINT COMMENT 'Foreign key linking to project.phase. Business justification: Inspections are conducted within specific project phases. Phase-level inspection KPI reports (pass rate per phase, defects per phase) are standard construction QA dashboards. No phase_id exists on ins',
+    `swms_id` BIGINT COMMENT 'Foreign key linking to safety.swms. Business justification: Quality inspectors verify SWMS compliance during inspection of high-risk construction activities. The inspection record references the applicable SWMS to confirm control measures are implemented — a n',
+    `warehouse_id` BIGINT COMMENT 'Foreign key linking to material.warehouse. Business justification: Warehouse/storage facility inspection process: warehouses storing construction materials undergo periodic QA audits (storage condition checks, hazmat certification inspections, temperature-controlled ',
+    `work_front_id` BIGINT COMMENT 'Foreign key linking to site.work_front. Business justification: Inspections are conducted at specific work fronts. Linking inspection to work_front enables the inspection register to be filtered by work front location — essential for ITP hold-point management and ',
     `attachment_count` STRING COMMENT 'Number of supporting documents, photos, measurements, or other digital attachments linked to this inspection record. Provides evidence trail for QA/QC compliance.',
     `checklist_template_name` STRING COMMENT 'Name of the checklist template used (e.g., Concrete Pour Inspection Checklist, Structural Steel Welding Inspection, MEP Rough-in Checklist). Provides human-readable context.',
     `checklist_version` STRING COMMENT 'Version number of the checklist template used at the time of inspection. Ensures audit trail of which criteria were applied.',
@@ -140,7 +127,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`inspection` (
     `location_description` STRING COMMENT 'Detailed description of the specific location where inspection was performed (e.g., Building A Level 3 Column Grid C5, Fabrication Shop Bay 2, Concrete Lab). Provides spatial context for traceability.',
     `location_type` STRING COMMENT 'Classification of where the inspection was physically conducted. Site indicates construction site; factory indicates manufacturer facility for FAT; workshop indicates fabrication shop; laboratory indicates testing facility; warehouse indicates storage location; offsite indicates other external location.. Valid values are `site|factory|workshop|laboratory|warehouse|offsite`',
     `ncr_raised` BOOLEAN COMMENT 'Boolean flag indicating whether a Non-Conformance Report (NCR) was raised as a result of this inspection. True indicates NCR created; false indicates no NCR required.',
-    `ncr_reference` STRING COMMENT 'Reference number of the NCR (Non-Conformance Report) raised as a result of this inspection, if applicable. Links inspection to corrective action workflow.',
     `observations` STRING COMMENT 'General observations, notes, and comments recorded by the inspector during the inspection. Captures qualitative findings, context, and professional judgment.',
     `overall_outcome` STRING COMMENT 'Final verdict of the inspection based on aggregated check item results. Pass indicates all critical items met; fail indicates non-conformance requiring corrective action; conditional pass indicates minor issues with conditions for acceptance.. Valid values are `pass|fail|conditional_pass`',
     `photo_count` STRING COMMENT 'Number of photographs captured during the inspection as visual evidence of conditions, defects, or compliance.',
@@ -158,27 +144,22 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`inspection` (
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`ncr` (
     `ncr_id` BIGINT COMMENT 'Unique identifier for the non-conformance report. Primary key for the NCR entity.',
-    `batch_lot_id` BIGINT COMMENT 'Foreign key linking to material.batch_lot. Business justification: NCRs raised for non-conforming materials must reference the specific batch/lot for quarantine, disposal, and supplier claims. In construction QA, batch-level NCR traceability is mandatory for regulato',
+    `activity_id` BIGINT COMMENT 'Foreign key linking to schedule.activity. Business justification: NCR impact analysis requires knowing which activity triggered the non‑conformance; activity_id records that relationship.',
+    `invoice_id` BIGINT COMMENT 'Foreign key linking to finance.invoice. Business justification: When a subcontractor NCR results in a financial back-charge, the back-charge invoice must be traceable to the originating NCR for contract administration, dispute resolution, and audit. Construction c',
+    `change_order_id` BIGINT COMMENT 'Foreign key linking to project.project_change_order. Business justification: NCR dispositions in construction frequently generate change orders for rework scope and cost recovery. Linking NCR to the resulting change order enables cost-of-quality tracking and contractual rework',
     `account_id` BIGINT COMMENT 'Foreign key linking to client.account. Business justification: NCRs are tracked against the client account for contract compliance and client‑specific reporting.',
-    `concrete_pour_id` BIGINT COMMENT 'Foreign key linking to site.concrete_pour. Business justification: NCRs raised for failed slump tests, incorrect mix design, or placement defects must reference the specific concrete pour. Concrete NCR management is a critical construction QC process; traceability to',
-    `construction_project_id` BIGINT COMMENT 'Reference to the construction project where the non-conformance was identified.',
-    `contract_milestone_id` BIGINT COMMENT 'Foreign key linking to contract.contract_milestone. Business justification: Open NCRs against milestone work block payment certificate issuance and DLP commencement. Contract administrators reviewing milestone readiness must identify all outstanding NCRs linked to that milest',
-    `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: NCR assigns a specific worker to resolve the issue; needed for corrective‑action tracking.',
-    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: NCRs are raised against a specific drawing; linking enables automated impact analysis.',
+    `engineering_submittal_id` BIGINT COMMENT 'Foreign key linking to design.engineering_submittal. Business justification: NCRs are raised when submitted materials or shop drawings fail review during the submittal process. Submittal disposition tracking and NCR root cause analysis require traceability back to the engineer',
     `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Needed for Cost Impact Tracking: NCR corrective cost is allocated to a cost code to reflect financial impact in cost reports.',
-    `goods_issue_id` BIGINT COMMENT 'Foreign key linking to material.goods_issue. Business justification: NCRs raised at point of installation when issued material is found non-conforming (damaged, wrong grade) must reference the goods issue document for cost recovery, material return processing, and supp',
+    `goods_issue_id` BIGINT COMMENT 'Foreign key linking to material.goods_issue. Business justification: Material non-conformance at point of use: NCRs are raised when materials issued to site are found non-conforming during installation (wrong spec, damaged, expired). Linking NCR to goods_issue enables ',
+    `goods_receipt_id` BIGINT COMMENT 'Foreign key linking to procurement.goods_receipt. Business justification: Material rejection workflow: NCRs are raised at goods receipt when delivered materials fail incoming inspection. Linking NCR to goods receipt enables return-to-vendor processing, goods receipt reversa',
     `incident_id` BIGINT COMMENT 'Foreign key linking to safety.incident. Business justification: Required for traceability: NCR investigations often trigger safety incident investigations; linking enables root‑cause analysis and regulatory reporting.',
-    `inspection_id` BIGINT COMMENT 'Foreign key linking to quality.inspection. Business justification: An NCR is formally raised as a result of a failed or non-conforming inspection event. The NCR is the child record (many NCRs can be raised from one inspection), so ncr.inspection_id -> inspection is t',
-    `material_delivery_id` BIGINT COMMENT 'Foreign key linking to site.material_delivery. Business justification: NCRs raised for non-conforming delivered materials (wrong grade, damaged, failed test) must reference the specific delivery. This supports material rejection workflows, supplier NCR reporting, and pro',
-    `master_id` BIGINT COMMENT 'Foreign key linking to material.master. Business justification: NCRs for material non-conformance (wrong specification grade, substandard material) must reference the material master to drive corrective actions, supplier notifications, and material substitution ap',
-    `permit_to_work_id` BIGINT COMMENT 'Foreign key linking to safety.permit_to_work. Business justification: NCRs are raised against work performed under a PTW when the work scope was not followed — the NCR must reference the PTW to establish the authorization context of the non-conforming work. Standard con',
-    `plan_id` BIGINT COMMENT 'Foreign key linking to quality.quality_plan. Business justification: NCRs are managed under the NCR procedure defined in the Project Quality Plan (quality_plan.ncr_procedure_reference). Linking ncr to quality_plan enables reporting of non-conformances against the quali',
-    `purchase_order_id` BIGINT COMMENT 'Foreign key linking to procurement.purchase_order. Business justification: NCRs raised against delivered materials or PO-governed work must reference the specific PO for vendor accountability, cost recovery, and invoice deduction processes. Construction QA teams routinely re',
-    `site_id` BIGINT COMMENT 'Foreign key linking to site.site. Business justification: NCRs are raised at a specific site. Site-level NCR registers are a standard construction QA deliverable required by clients and regulators. ncr has location_description as text but no site FK, preve',
-    `submittal_id` BIGINT COMMENT 'Foreign key linking to design.design_submittal. Business justification: NCRs are raised when installed work or materials do not conform to an approved design submittal. Linking NCR to the specific submittal enables QA traceability from non-conformance back to the approved',
-    `swms_id` BIGINT COMMENT 'Foreign key linking to safety.swms. Business justification: NCRs are raised when work deviates from the SWMS — the NCR must reference the SWMS that was violated to enable root cause analysis and SWMS revision. Regulatory requirement in high-risk construction w',
-    `technical_specification_id` BIGINT COMMENT 'Foreign key linking to design.technical_specification. Business justification: Regulatory NCRs often cite the violated technical specification; direct FK supports compliance reporting.',
+    `itp_line_id` BIGINT COMMENT 'Foreign key linking to quality.itp_line. Business justification: An NCR is triggered when a specific ITP line item (hold point, witness point, or review point) fails its acceptance criteria. itp_line has ncr_trigger_criteria attribute, confirming this business rela',
+    `master_id` BIGINT COMMENT 'Foreign key linking to material.master. Business justification: Material NCR reporting: NCRs in construction frequently reference the specific material type that failed (e.g., Grade 500N rebar does not meet specification). FK to material.master enables NCR freq',
+    `phase_id` BIGINT COMMENT 'Foreign key linking to project.phase. Business justification: NCRs are raised during specific project phases. Phase-level NCR KPI reporting (NCR count per phase, phase quality score) is a standard construction QMS metric used in phase gate reviews and client rep',
+    `rfi_id` BIGINT COMMENT 'Foreign key linking to design.rfi. Business justification: NCR disposition frequently requires design clarification via RFI — the NCR cannot be closed until the RFI response resolves the non-conformance. NCR-to-RFI traceability is a standard QA audit requirem',
+    `risk_assessment_id` BIGINT COMMENT 'Foreign key linking to safety.risk_assessment. Business justification: NCRs affecting safety-critical systems require a risk assessment before disposition is approved. Construction QMS procedures mandate risk assessment linkage for NCRs on structural, pressure, or electr',
     `vendor_id` BIGINT COMMENT 'Foreign key linking to procurement.vendor. Business justification: Assigns each NCR to the responsible vendor, essential for vendor performance evaluation and corrective action.',
+    `work_front_id` BIGINT COMMENT 'Foreign key linking to site.work_front. Business justification: NCRs are raised against specific work fronts where non-conformances occur. This link enables the NCR register to be filtered by work front for defect density analysis and corrective action tracking — ',
     `ncr_category` STRING COMMENT 'High-level classification of the type of non-conformance to support trend analysis and root cause categorization.. Valid values are `material|workmanship|design|documentation|dimensional|procedural`',
     `client_notification_date` DATE COMMENT 'Date when the client was formally notified of the non-conformance. Null if client notification was not required.',
     `client_notification_required` BOOLEAN COMMENT 'Indicates whether the client must be formally notified of this non-conformance per contract requirements. Typically true for major or critical NCRs.',
@@ -224,14 +205,11 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`ncr` (
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`corrective_action` (
     `corrective_action_id` BIGINT COMMENT 'Primary key for corrective_action',
     `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: Corrective action records the worker responsible for implementing the action; needed for audit trails.',
-    `crew_assignment_id` BIGINT COMMENT 'Foreign key linking to workforce.crew_assignment. Business justification: Physical corrective actions require a crew assignment to execute the rework; linking corrective_action to crew_assignment enables CA closure tracking, rework labor cost attribution, and verification t',
-    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: corrective_action has requires_design_change flag — when true, the corrective action must reference the specific drawing requiring revision. This design-quality interface is a real workflow: QA raises',
     `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Allows budgeting of corrective actions: each corrective_action record must be linked to the cost code under which its expense is recorded.',
-    `hazard_register_id` BIGINT COMMENT 'Foreign key linking to safety.hazard_register. Business justification: Corrective actions address hazards identified in the hazard register — when a hazard requires a quality-related corrective action, the CA record must reference the hazard register entry to close out t',
-    `job_cost_transaction_id` BIGINT COMMENT 'Foreign key linking to finance.job_cost_transaction. Business justification: Corrective action cost tracking: actual remediation costs (already stored as actual_cost on corrective_action) are posted as job cost transactions. This FK supports the corrective action cost reconci',
-    `maintenance_order_id` BIGINT COMMENT 'Foreign key linking to equipment.maintenance_order. Business justification: Corrective action execution via maintenance work order: Equipment NCR corrective actions are physically executed as maintenance orders. This link enables closed-loop quality management — tracking whet',
+    `incident_id` BIGINT COMMENT 'Foreign key linking to safety.incident. Business justification: In construction HSE management (Intelex), corrective actions are raised directly against safety incidents as a regulatory requirement (OSHA, WHS Act). Direct link supports incident corrective action t',
     `ncr_id` BIGINT COMMENT 'Reference to the parent Non-Conformance Report that triggered this corrective or preventive action.',
-    `risk_assessment_id` BIGINT COMMENT 'Foreign key linking to safety.risk_assessment. Business justification: Corrective actions require a risk re-assessment to verify the corrective measure adequately reduces risk. Construction QA procedures mandate that CA effectiveness reviews reference the updated RA to c',
+    `rfi_id` BIGINT COMMENT 'Foreign key linking to design.rfi. Business justification: corrective_action has attribute requires_design_change — when true, an RFI is raised to the design team. Corrective action closure tracking requires the linked RFI response. This is a named step in ',
+    `wbs_element_id` BIGINT COMMENT 'Foreign key linking to project.wbs_element. Business justification: Corrective actions are executed against specific WBS work packages in construction. WBS-level corrective action tracking enables cost-of-quality reporting, rework cost allocation to WBS, and earned va',
     `action_description` STRING COMMENT 'Detailed narrative of the specific remediation steps to be taken, including scope, method, materials, and acceptance criteria.',
     `action_number` STRING COMMENT 'Business-readable identifier for the corrective or preventive action, typically formatted as NCR-XXXX-CA-YY for traceability.',
     `action_status` STRING COMMENT 'Current lifecycle state of the corrective action: open (assigned but not started), in_progress (work underway), pending_verification (awaiting QA/QC review), verified (effectiveness confirmed), closed (completed and accepted), cancelled (no longer required).. Valid values are `open|in_progress|pending_verification|verified|closed|cancelled`',
@@ -265,14 +243,11 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`corrective_action` (
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`checklist` (
     `checklist_id` BIGINT COMMENT 'Unique identifier for the quality inspection checklist template. Primary key.',
-    `asset_category_id` BIGINT COMMENT 'Foreign key linking to equipment.asset_category. Business justification: Category-specific inspection checklists: Pre-use and commissioning checklists in construction are defined per equipment category (excavator pre-start checklist, generator commissioning checklist). Thi',
-    `construction_project_id` BIGINT COMMENT 'Reference to the construction project for which this checklist template was created or customized, if project-specific.',
-    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: QC checklists are created to verify work shown on specific drawings. A QC inspector uses the checklist while referencing the drawing on-site. Linking checklist to drawing enables drawing-based quality',
-    `plan_id` BIGINT COMMENT 'Foreign key linking to quality.quality_plan. Business justification: Checklist templates are defined and approved as part of the Project Quality Plans inspection regime. The quality_plan.inspection_regime_summary references the inspection approach that checklists impl',
-    `swms_id` BIGINT COMMENT 'Foreign key linking to safety.swms. Business justification: Checklists verify SWMS compliance — construction inspection checklists include SWMS verification steps to confirm the safe work method is being followed. Regulatory audits require traceability from ch',
+    `asset_category_id` BIGINT COMMENT 'Foreign key linking to equipment.asset_category. Business justification: Quality checklists are defined per equipment category (e.g., crane pre-use checklist, excavator daily inspection checklist). Linking checklist to asset_category enables automatic checklist assignment ',
+    `phase_id` BIGINT COMMENT 'Foreign key linking to project.phase. Business justification: Inspection checklists in construction are phase-specific (foundation phase, structural phase, commissioning phase). Phase-level checklist management enables QA planning per phase gate and supports pha',
+    `risk_assessment_id` BIGINT COMMENT 'Foreign key linking to safety.risk_assessment. Business justification: Quality checklists for high-risk activities are developed from risk assessments — the safety_requirements and acceptance_criteria fields on checklist are derived from the risk assessment control measu',
     `acceptance_criteria` STRING COMMENT 'Overall acceptance criteria for the checklist (e.g., All critical items must pass, 95% of items must pass with no critical failures).',
     `activity_type` STRING COMMENT 'Classification of the construction activity type that this checklist applies to, aligned with WBS (Work Breakdown Structure) and ITP (Inspection and Test Plan) categories. [ENUM-REF-CANDIDATE: concrete_pour|rebar_placement|formwork_erection|waterproofing|structural_steel_erection|welding|mechanical_installation|electrical_installation|piping_installation|excavation|backfill|piling|painting|insulation|commissioning|other — 16 candidates stripped; promote to reference product]',
-    `applicable_standard` STRING COMMENT 'Reference to the governing technical standard, code, or specification that this checklist enforces (e.g., ACI 318, AISC 360, ASME B31.3, IBC 2018, ASTM C39).',
     `approval_status` STRING COMMENT 'Current lifecycle status of the checklist template in the document control workflow, indicating whether it is ready for use in field inspections.. Valid values are `draft|under_review|approved|superseded|obsolete`',
     `approved_by` STRING COMMENT 'Name or identifier of the QA/QC (Quality Assurance/Quality Control) manager or authorized person who approved this checklist template for use.',
     `approved_date` DATE COMMENT 'Date when the checklist template was formally approved for use in quality inspections.',
@@ -310,22 +285,16 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`checklist` (
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`test_certificate` (
     `test_certificate_id` BIGINT COMMENT 'Primary key for test_certificate',
-    `agreement_id` BIGINT COMMENT 'Foreign key linking to contract.agreement. Business justification: Material test certificates are contract‑required evidence of compliance; contract link supports audit and payment certification.',
-    `asset_id` BIGINT COMMENT 'Foreign key linking to equipment.asset. Business justification: Asset test certificate registry: Test certificates (pressure tests, load tests, calibration certificates) are issued for specific equipment assets. Direct FK enables asset-level certificate tracking f',
-    `batch_lot_id` BIGINT COMMENT 'Foreign key linking to material.batch_lot. Business justification: Material batch/lot traceability is a core construction QA requirement. Test certificates must be linked to the specific physical batch they certify (rebar heat, concrete batch, etc.) for regulatory co',
-    `concrete_pour_id` BIGINT COMMENT 'Foreign key linking to site.concrete_pour. Business justification: Concrete cylinder test certificates (28-day compressive strength results) must be traceable to the specific pour they were sampled from. This is a mandatory regulatory and contractual requirement; str',
-    `construction_project_id` BIGINT COMMENT 'Identifier of the construction project for which the material was tested. Links the certificate to the project quality records.',
-    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Test certificates (weld tests, material tests) reference the drawing showing the tested component location and specification. Handover documentation packages require test certificates linked to their ',
-    `goods_receipt_id` BIGINT COMMENT 'Foreign key linking to procurement.goods_receipt. Business justification: Material traceability: test certificates must be traceable to the specific goods receipt batch to confirm tested material matches what was physically delivered. Core construction QA/QC requirement for',
-    `inspection_id` BIGINT COMMENT 'Foreign key linking to quality.inspection. Business justification: A material test certificate is often generated as part of or in conjunction with a physical inspection event (e.g., material receiving inspection, in-process material testing). Linking test_certificat',
+    `concrete_pour_id` BIGINT COMMENT 'Foreign key linking to site.concrete_pour. Business justification: Concrete cylinder test certificates are issued per pour. Linking test_certificate to concrete_pour enables strength result traceability back to the specific pour event — a mandatory requirement for st',
+    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Material testing costs (lab fees, third-party certification) are tracked against project cost codes in construction QA cost reporting. A QA manager and project controller both need test certificate co',
+    `goods_receipt_id` BIGINT COMMENT 'Foreign key linking to procurement.goods_receipt. Business justification: Material receiving QA process: test certificates are generated at goods receipt to certify delivered materials meet spec before storage/use. Construction QA managers require traceability from test cer',
+    `inspection_id` BIGINT COMMENT 'Foreign key linking to quality.inspection. Business justification: A material test certificate is often generated as a result of a physical inspection or testing event. Linking test_certificate to the inspection that triggered or verified the test provides full QA/QC',
     `itp_id` BIGINT COMMENT 'Foreign key linking to quality.itp. Business justification: Test certificates are often issued for ITP items and may be associated with NCRs; linking enables direct lookup.',
-    `material_catalog_id` BIGINT COMMENT 'Foreign key linking to procurement.material_catalog. Business justification: Links material test certificates to the material master record, enabling traceability of test results to specific catalog items.',
-    `material_delivery_id` BIGINT COMMENT 'Foreign key linking to site.material_delivery. Business justification: Test certificates (mill certs, material compliance certs) must be traceable to the specific delivery they cover. material_delivery has test_certificate_number as a denormalized text field; replacing',
-    `master_id` BIGINT COMMENT 'Foreign key linking to material.master. Business justification: Test certificates certify that a material meets its specification grade and standard. Linking test_certificate to material.master enables material conformance reporting, supports approved-material lis',
-    `mto_line_id` BIGINT COMMENT 'Foreign key linking to material.mto_line. Business justification: MTO lines specify material requirements with compliance_certification requirements. Test certificates must be matched against MTO lines to confirm procured materials meet specification before release ',
+    `itp_line_id` BIGINT COMMENT 'Foreign key linking to quality.itp_line. Business justification: A test certificate is the documented evidence for a specific ITP line item test activity. test_certificate already has itp_id (linking to the ITP master), but adding itp_line_id provides granular trac',
+    `master_id` BIGINT COMMENT 'Foreign key linking to material.master. Business justification: Material certification management: test certificates are issued for specific material types/grades (e.g., Grade 500N rebar, C40 concrete). FK to material.master enables all valid certificates for thi',
     `ncr_id` BIGINT COMMENT 'Foreign key linking to quality.ncr. Business justification: Test certificates may also be linked to NCRs for traceability.',
-    `technical_specification_id` BIGINT COMMENT 'Foreign key linking to design.technical_specification. Business justification: Test certificates verify compliance with technical specifications. specification_requirement is a denormalized plain-text column that should be replaced by a proper FK. QA handover packages require te',
-    `wbs_element_id` BIGINT COMMENT 'Foreign key linking to project.wbs_element. Business justification: Material test certificates are linked to the WBS element using the material, supporting compliance reporting.',
+    `phase_id` BIGINT COMMENT 'Foreign key linking to project.phase. Business justification: Test certificates are issued during specific project phases. Phase-level material certification registers are required for handover documentation packages and regulatory compliance — a standard constr',
+    `vendor_id` BIGINT COMMENT 'Foreign key linking to procurement.vendor. Business justification: Vendor material traceability: construction QA requires test certificates linked to the supplying vendor for vendor performance scoring, material traceability reports, and regulatory compliance. Vendor',
     `accreditation_body` STRING COMMENT 'Name of the accreditation authority that certified the laboratory (e.g., UKAS, A2LA, NABL, NATA).',
     `approval_date` DATE COMMENT 'Date when the test certificate was formally approved and released for use in construction quality records.',
     `approved_by` STRING COMMENT 'Name of the quality manager, engineer, or authorized signatory who reviewed and approved the test certificate.',
@@ -337,48 +306,36 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`test_certificate` (
     `certificate_type` STRING COMMENT 'Classification of the test certificate indicating the source and nature of testing. MTC (Material Test Certificate) from supplier, laboratory test from independent lab, factory test (FAT - Factory Acceptance Test), site test (SAT - Site Acceptance Test), third-party test from accredited body, or supplier certificate.. Valid values are `MTC|laboratory_test|factory_test|site_test|third_party_test|supplier_certificate`',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this test certificate record was first created in the quality management system.',
     `delivery_lot_number` STRING COMMENT 'Delivery or shipment lot number identifying the specific material consignment from which the sample was taken. Links certificate to goods receipt.',
-    `test_certificate_description` STRING COMMENT '',
     `document_url` STRING COMMENT 'URL or file path to the digital copy of the test certificate document stored in the document management system (e.g., Aconex, BIM 360, Procore).',
     `heat_number` STRING COMMENT 'Steel mill heat number for steel and rebar materials, identifying the specific furnace melt. Essential for metallurgical traceability.',
     `issuing_laboratory` STRING COMMENT 'Name of the testing laboratory or organization that performed the tests and issued the certificate.',
     `laboratory_accreditation_number` STRING COMMENT 'Accreditation certificate number issued by the national or international accreditation body (e.g., ISO/IEC 17025 accreditation number). Validates the laboratorys competence.',
     `last_modified_timestamp` TIMESTAMP COMMENT 'Timestamp when this test certificate record was last updated in the quality management system.',
-    `material_description` STRING COMMENT 'Detailed textual description of the material being tested, including grade, specification, and any relevant characteristics (e.g., Grade 60 Rebar, M30 Concrete, AC-20 Bitumen).',
-    `material_type` STRING COMMENT 'Category of construction material being tested. Covers primary materials used in infrastructure and building construction projects. [ENUM-REF-CANDIDATE: concrete|steel|aggregate|bitumen|soil|asphalt|geotextile|cement|rebar|structural_steel|weld|paint|coating — 13 candidates stripped; promote to reference product]',
     `pass_fail_status` STRING COMMENT 'Overall determination of whether the tested material meets the specification requirements. Conditional pass indicates minor deviations requiring engineering review.. Valid values are `pass|fail|conditional_pass|pending_review`',
     `remarks` STRING COMMENT 'Additional notes, observations, or comments from the testing laboratory or quality engineer regarding the test results, sample condition, or special circumstances.',
     `sampling_date` DATE COMMENT 'Date when the material sample was collected from the batch, delivery, or construction site for testing.',
     `sampling_location` STRING COMMENT 'Physical location where the material sample was collected (e.g., site name, warehouse, delivery truck, production line, grid reference).',
+    `specification_requirement` STRING COMMENT 'Required values or acceptance criteria per project specification, contract, or standard (e.g., minimum compressive strength 30 MPa, yield strength 420 MPa min).',
     `technician_name` STRING COMMENT 'Name of the laboratory technician or engineer who performed the testing and signed the certificate.',
-    `test_certificate_status` STRING COMMENT '',
     `test_date` DATE COMMENT 'Date when the laboratory or field testing was performed on the sample.',
     `test_method` STRING COMMENT 'Specific testing procedure or method applied (e.g., compression test, tensile test, slump test, sieve analysis, chemical analysis).',
     `test_parameters` STRING COMMENT 'List of specific properties or characteristics measured during testing (e.g., compressive strength, yield strength, elongation, gradation, moisture content). Stored as structured text or JSON.',
     `test_results` STRING COMMENT 'Measured values and outcomes for each test parameter. Stored as structured text or JSON containing parameter-value pairs with units.',
     `test_standard` STRING COMMENT 'Industry or regulatory test standard followed during testing (e.g., ASTM C39, BS EN 12390, AASHTO T22, ISO 6892). Defines the test methodology and acceptance criteria.',
-    `updated_timestamp` TIMESTAMP COMMENT '',
     `work_package_code` STRING COMMENT 'Work Breakdown Structure (WBS) code or work package identifier indicating where the tested material will be used in the project.',
-    `created_by` STRING COMMENT '',
     CONSTRAINT pk_test_certificate PRIMARY KEY(`test_certificate_id`)
 ) COMMENT 'Material test certificate and laboratory test result record capturing certified testing outcomes for construction materials (concrete, steel, aggregates, bitumen, soil, asphalt, geotextiles). Stores certificate number, sample ID, material type, batch/heat number, sampling date and location, test standard (ASTM, BS, EN, AASHTO), test parameters and measured values, pass/fail determination, issuing laboratory, laboratory accreditation number, and traceability to purchase order and delivery lot. Covers both third-party MTC documents received from suppliers and in-house/independent lab test results for site-sampled materials.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`punch_list` (
     `punch_list_id` BIGINT COMMENT 'Unique identifier for the punch list record. Primary key for the punch list entity.',
     `account_id` BIGINT COMMENT 'Foreign key linking to client.account. Business justification: Client oversees punch‑list during project handover; required for client‑focused punch‑list status reports.',
-    `contact_id` BIGINT COMMENT 'Foreign key linking to client.contact. Business justification: Punch list closeout requires a named client representative contact who formally signs off on completion. This FK normalizes the denormalized client_representative text field and enables handover man',
-    `construction_project_id` BIGINT COMMENT 'Reference to the construction project to which this punch list belongs.',
-    `contract_milestone_id` BIGINT COMMENT 'Foreign key linking to contract.contract_milestone. Business justification: Punch lists gate contract milestone closeout (Practical Completion, Handover). Contract administrators and QA managers use punch list status to approve milestone payment certificates. punch_list.contr',
-    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Punch list headers reference the drawing set for the area being walked down. While punch_item has drawing_id, the punch_list header needs a primary drawing reference for area-based commissioning walkd',
-    `hse_plan_id` BIGINT COMMENT 'Foreign key linking to safety.hse_plan. Business justification: Punch lists at project handover must confirm all HSE Plan requirements are met — the HSE Plan defines handover quality and safety requirements that the punch list must close out before practical compl',
-    `plan_id` BIGINT COMMENT 'Foreign key linking to quality.quality_plan. Business justification: A punch list is created and managed under the governance of a Project Quality Plan (PQP). The quality plan defines the handover quality requirements and DLP commencement gates that punch lists enforce',
-    `site_id` BIGINT COMMENT 'Foreign key linking to site.site. Business justification: Punch lists are compiled per site at practical completion and handover. Construction handover management requires punch lists to be directly associated with the site being handed over, enabling site-l',
-    `work_front_id` BIGINT COMMENT 'Foreign key linking to site.work_front. Business justification: Punch lists are compiled per work front/area at practical completion and handover. Construction handover process requires all outstanding defects to be tracked against the specific work front where th',
+    `phase_id` BIGINT COMMENT 'Foreign key linking to project.phase. Business justification: Punch lists are phase-specific in construction (commissioning phase punch list, handover phase punch list). Phase-level punch list closeout tracking is a standard construction handover management repo',
     `actual_closeout_date` DATE COMMENT 'The actual date on which the punch list was fully closed, indicating all items have been resolved and accepted. Nullable until closure is achieved.',
     `closed_items_count` STRING COMMENT 'The current count of punch list items that have been resolved and closed. Indicates progress toward full punch list closure.',
     `completion_percentage` DECIMAL(18,2) COMMENT 'The percentage of punch list items that have been closed, calculated as (closed_items_count / total_items_count) * 100. Provides a quick progress indicator.',
+    `contract_reference` STRING COMMENT 'Reference to the contract or contract package under which this punch list is being managed. Links the punch list to contractual obligations and terms.',
     `created_timestamp` TIMESTAMP COMMENT 'The timestamp when this punch list record was first created in the system. Part of the audit trail for record lifecycle tracking.',
     `critical_items_count` STRING COMMENT 'The count of items classified as critical or high-priority, typically those that block handover or pose safety/operational risks.',
-    `punch_list_description` STRING COMMENT '',
     `discipline` STRING COMMENT 'The engineering or construction discipline that this punch list primarily covers. Used to route items to the appropriate trade or subcontractor for resolution. [ENUM-REF-CANDIDATE: civil|structural|architectural|mechanical|electrical|plumbing|hvac|instrumentation|piping|general — 10 candidates stripped; promote to reference product]',
     `dlp_commencement_gate` BOOLEAN COMMENT 'Boolean flag indicating whether closure of this punch list triggers the start of the Defects Liability Period (DLP). True means DLP clock starts upon punch list closure.',
     `document_reference` STRING COMMENT 'Reference to the formal punch list document, report, or file stored in the document management system (e.g., Aconex, BIM 360). Enables traceability to the source document.',
@@ -400,7 +357,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`punch_list` (
     `specification_reference` STRING COMMENT 'Reference to the technical specification, design document, or quality standard against which the punch list items are being evaluated.',
     `target_closeout_date` DATE COMMENT 'The planned or contractually required date by which all items on the punch list must be resolved and the list closed. Critical for handover and DLP (Defects Liability Period) commencement.',
     `total_items_count` STRING COMMENT 'The total number of punch list items (defects, incomplete works, commissioning tasks) recorded on this punch list.',
-    `updated_timestamp` TIMESTAMP COMMENT '',
     `created_by` STRING COMMENT 'The username or identifier of the user who created this punch list record in the system. Part of the audit trail for accountability.',
     `creation_date` DATE COMMENT 'The date on which the punch list was initially created or issued. Marks the start of the close-out tracking process for the associated milestone.',
     CONSTRAINT pk_punch_list PRIMARY KEY(`punch_list_id`)
@@ -408,30 +364,23 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`punch_list` (
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`punch_item` (
     `punch_item_id` BIGINT COMMENT 'Unique identifier for the punch list item. Primary key.',
-    `activity_id` BIGINT COMMENT 'Foreign key linking to schedule.activity. Business justification: Punch list generation ties each punch item to its originating activity for close‑out verification and handover.',
-    `agreement_id` BIGINT COMMENT 'Foreign key linking to contract.agreement. Business justification: Each punch item must be traced to the governing contract for liability and final acceptance.',
-    `asset_id` BIGINT COMMENT 'Foreign key linking to equipment.asset. Business justification: Asset-level commissioning punch list tracking: Punch items during construction handover/commissioning are raised against specific equipment assets (e.g., Pump P-101 fails to achieve rated flow). Dir',
-    `contact_id` BIGINT COMMENT 'Foreign key linking to client.contact. Business justification: punch_item.client_representative_name is a denormalized plain-text field. Each punch item is identified or verified by a specific client representative contact. Normalizing this FK enables handover cl',
-    `construction_project_id` BIGINT COMMENT 'Reference to the construction project where this punch item was identified. Enables project-level defect tracking and close-out reporting.',
-    `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: Punch item assignment to a worker enables tracking of who will close the item.',
-    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Punch items track deficiencies on particular drawings; FK enables linkage to BIM models.',
-    `drawing_revision_id` BIGINT COMMENT 'Foreign key linking to design.drawing_revision. Business justification: Punch items must record the exact drawing revision used during the pre-handover walkdown. Existing drawing_id is insufficient — handover documentation requires revision-level traceability to confirm p',
     `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Punch items often generate change order costs; linking each punch_item to a cost code enables precise cost tracking for close‑out.',
-    `inspection_id` BIGINT COMMENT 'Foreign key linking to quality.inspection. Business justification: Punch items are typically identified during a physical inspection event (e.g., pre-commissioning walkdown, handover inspection). Linking punch_item to the inspection that identified it provides full t',
-    `ncr_id` BIGINT COMMENT 'Foreign key linking to quality.ncr. Business justification: A punch item (snagging/defect item) may be formally escalated to or linked with an NCR when the defect constitutes a non-conformance requiring formal disposition. This FK enables traceability between ',
+    `inspection_id` BIGINT COMMENT 'Foreign key linking to quality.inspection. Business justification: A punch item is typically identified during an inspection event. Linking punch_item to the originating inspection provides full traceability: which inspection identified this defect/incomplete work. i',
+    `ncr_id` BIGINT COMMENT 'Foreign key linking to quality.ncr. Business justification: A punch item can be directly linked to a Non-Conformance Report when the defect or incomplete work has been formally documented as an NCR. This is a standard construction QA/QC practice where punch it',
+    `permit_to_work_id` BIGINT COMMENT 'Foreign key linking to safety.permit_to_work. Business justification: Punch item rectification during commissioning frequently requires a PTW (confined space, hot work, energized systems). Construction commissioning procedures mandate PTW reference before executing Cate',
     `punch_list_id` BIGINT COMMENT 'Reference to the parent punch list record that contains this item. Links the item to the overall punch list inspection event.',
     `crew_id` BIGINT COMMENT 'Foreign key linking to workforce.crew. Business justification: Punch items can be assigned to a crew for coordinated resolution; supports crew workload tracking.',
-    `technical_specification_id` BIGINT COMMENT 'Foreign key linking to design.technical_specification. Business justification: Punch items may reference a spec clause; FK supports audit of spec compliance.',
-    `wbs_element_id` BIGINT COMMENT 'Foreign key linking to project.wbs_element. Business justification: Each punch item must be tied to its originating WBS element for traceability and cost tracking.',
+    `risk_assessment_id` BIGINT COMMENT 'Foreign key linking to safety.risk_assessment. Business justification: Safety-critical punch items (Category A — affecting personnel safety or system integrity) reference risk assessments to determine priority, required controls, and PTW requirements for rectification. S',
+    `work_front_id` BIGINT COMMENT 'Foreign key linking to site.work_front. Business justification: Punch items are identified at specific work fronts during pre-handover inspections. A direct FK enables punch item closeout tracking by work front, which is a standard handover management process in c',
     `actual_completion_date` DATE COMMENT 'Actual date when the punch item was completed and ready for verification. Used to track schedule performance and close-out progress.',
     `punch_item_category` STRING COMMENT 'Classification of the punch item by discipline or trade. Structural covers concrete, steel, and load-bearing elements; MEP (Mechanical Electrical and Plumbing) covers HVAC, electrical, plumbing, and fire protection; Architectural covers doors, windows, ceilings, and interior finishes; Civil covers site work, paving, and drainage; Finishes covers painting, flooring, and decorative elements; Landscaping covers external plantings and hardscapes.. Valid values are `structural|mep|architectural|civil|finishes|landscaping`',
+    `client_representative_name` STRING COMMENT 'Name of the client representative or consultant who witnessed or approved the punch item closure. Provides client acceptance traceability.',
     `closure_status` STRING COMMENT 'Final disposition status of the punch item at project close-out. Accepted indicates satisfactory completion; rejected indicates non-conformance; deferred indicates item moved to DLP (Defects Liability Period) or post-handover.. Valid values are `pending|accepted|rejected|deferred`',
     `corrective_action` STRING COMMENT 'Description of the corrective action taken or required to resolve the punch item. Provides remediation guidance and audit trail.',
     `cost_currency_code` STRING COMMENT 'Three-letter ISO 4217 currency code for the cost impact amount. Enables multi-currency project tracking.. Valid values are `^[A-Z]{3}$`',
     `cost_impact` DECIMAL(18,2) COMMENT 'Estimated or actual cost incurred to rectify the punch item. Used for financial tracking and back-charge to responsible parties.',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the punch item record was first created in the system. Provides audit trail for data lineage.',
     `deferred_to_dlp` BOOLEAN COMMENT 'Flag indicating whether the punch item was deferred to the DLP (Defects Liability Period) for post-handover rectification. True if deferred; false otherwise.',
-    `punch_item_description` STRING COMMENT '',
     `dlp_end_date` DATE COMMENT 'End date of the DLP (Defects Liability Period) applicable to this punch item if deferred. Defines the contractual deadline for rectification.',
     `identified_by` STRING COMMENT 'Name of the inspector, quality engineer, or project manager who identified the punch item during the inspection walkthrough.',
     `identified_date` DATE COMMENT 'Date when the punch item was identified during the inspection. Marks the start of the remediation lifecycle.',
@@ -445,21 +394,16 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`punch_item` (
     `rejection_reason` STRING COMMENT 'Reason provided by the verification inspector if the punch item was rejected after attempted completion. Drives rework and quality improvement.',
     `remarks` STRING COMMENT 'Additional notes, comments, or observations related to the punch item. Captures context, special conditions, or coordination issues.',
     `target_completion_date` DATE COMMENT 'Target date by which the punch item must be rectified. Drives scheduling and resource allocation for close-out activities.',
-    `updated_timestamp` TIMESTAMP COMMENT '',
     `verification_date` DATE COMMENT 'Date when the completed punch item was inspected and verified as satisfactory. Marks the closure of the remediation cycle.',
     `verification_inspector` STRING COMMENT 'Name of the inspector or quality engineer who verified that the punch item was satisfactorily completed. Provides accountability for quality sign-off.',
-    `created_by` STRING COMMENT '',
     CONSTRAINT pk_punch_item PRIMARY KEY(`punch_item_id`)
 ) COMMENT 'Individual punch list item within a punch list record. Captures item number, description, location, category (structural, MEP, architectural, civil), responsible subcontractor, priority, target completion date, actual completion date, verification inspector, and closure status. Drives the close-out workflow for practical completion.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`plan` (
     `plan_id` BIGINT COMMENT 'Unique identifier for the Project Quality Plan (PQP). Primary key.',
-    `account_id` BIGINT COMMENT 'Foreign key linking to client.account. Business justification: Quality Plans in construction are contractually submitted to and approved by the client. quality_plan already carries client_approval_required and client_approval_date fields, confirming client owners',
-    `contact_id` BIGINT COMMENT 'Foreign key linking to client.contact. Business justification: quality_plan.client_approved_by_name is a denormalized plain-text field. The client approver of a Quality Plan is a specific named contact — normalizing this to a FK supports audit trail requirements,',
-    `construction_project_id` BIGINT COMMENT 'Reference to the construction project this quality plan governs.',
-    `hse_plan_id` BIGINT COMMENT 'Foreign key linking to safety.hse_plan. Business justification: Quality Plans and HSE Plans are sibling project governance documents — in construction, the Quality Plan explicitly references and aligns with the HSE Plan. Client and regulatory submissions require b',
-    `site_id` BIGINT COMMENT 'Foreign key linking to site.site. Business justification: Quality plans are scoped to specific sites in multi-site construction programs. A site-level quality plan governs all QC activities at that site independently of the project-level plan. Construction Q',
-    `technical_specification_id` BIGINT COMMENT 'Foreign key linking to design.technical_specification. Business justification: Quality plans are governed by technical specifications that define workmanship standards and acceptance criteria. Linking quality_plan to its primary governing technical_specification enables QA manag',
+    `account_id` BIGINT COMMENT 'Foreign key linking to client.account. Business justification: Quality plans require formal client approval as a contractual obligation (client_approval_required, client_approval_date already present). Linking quality_plan to client.account enables client-specifi',
+    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Construction QA/QC plans have dedicated budget allocations tracked against specific cost codes. Project controllers report QA cost performance (actual vs. budgeted) by cost code. A quality manager and',
+    `phase_id` BIGINT COMMENT 'Foreign key linking to project.phase. Business justification: Quality plans in construction are phase-specific — separate QPs govern civil, structural, MEP, and commissioning phases. Phase-level quality plan approval is a standard phase gate requirement in const',
     `applicable_standards` STRING COMMENT 'List of quality standards, codes, and specifications applicable to the project (e.g., ISO 9001, ASTM, ACI, AISC, project-specific specifications).',
     `approval_date` DATE COMMENT 'Date when the quality plan was formally approved by authorized personnel.',
     `approval_status` STRING COMMENT 'Approval state of the quality plan by client and internal stakeholders.. Valid values are `pending|approved|rejected|conditional`',
@@ -489,8 +433,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`plan` (
     `prepared_by_role` STRING COMMENT 'Organizational role or title of the person who prepared the quality plan (e.g., Quality Manager, QA/QC Engineer).',
     `quality_manager_name` STRING COMMENT 'Name of the designated Quality Manager responsible for implementing this plan.',
     `quality_objectives` STRING COMMENT 'Specific, measurable quality objectives defined for the project (e.g., zero NCRs in critical systems, 100% ITP compliance).',
-    `quality_plan_description` STRING COMMENT '',
-    `quality_plan_status` STRING COMMENT '',
     `quality_policy_reference` STRING COMMENT 'Reference to the organizational quality policy document that this plan implements.',
     `remarks` STRING COMMENT 'Additional notes, comments, or clarifications related to the quality plan.',
     `reviewed_by_name` STRING COMMENT 'Name of the individual who reviewed the quality plan for technical accuracy and completeness.',
@@ -499,7 +441,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`quality`.`plan` (
     `subcontractor_quality_management` STRING COMMENT 'Description of quality management requirements and oversight procedures for subcontractors and suppliers.',
     `title` STRING COMMENT 'Descriptive title of the Project Quality Plan document.',
     `training_requirements` STRING COMMENT 'Description of quality-related training requirements for project personnel, including induction, competency assessments, and certifications.',
-    `updated_timestamp` TIMESTAMP COMMENT '',
     `version` STRING COMMENT 'Version identifier for the quality plan document, incremented with each revision.',
     `created_by` STRING COMMENT 'User identifier of the person who created the quality plan record in the system.',
     CONSTRAINT pk_plan PRIMARY KEY(`plan_id`)
@@ -511,14 +452,12 @@ ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ADD CONSTRAINT `fk_quali
 ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ADD CONSTRAINT `fk_quality_itp_line_itp_id` FOREIGN KEY (`itp_id`) REFERENCES `vibe_construction_v1`.`quality`.`itp`(`itp_id`);
 ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ADD CONSTRAINT `fk_quality_inspection_checklist_id` FOREIGN KEY (`checklist_id`) REFERENCES `vibe_construction_v1`.`quality`.`checklist`(`checklist_id`);
 ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ADD CONSTRAINT `fk_quality_inspection_itp_line_id` FOREIGN KEY (`itp_line_id`) REFERENCES `vibe_construction_v1`.`quality`.`itp_line`(`itp_line_id`);
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ADD CONSTRAINT `fk_quality_ncr_inspection_id` FOREIGN KEY (`inspection_id`) REFERENCES `vibe_construction_v1`.`quality`.`inspection`(`inspection_id`);
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ADD CONSTRAINT `fk_quality_ncr_plan_id` FOREIGN KEY (`plan_id`) REFERENCES `vibe_construction_v1`.`quality`.`plan`(`plan_id`);
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ADD CONSTRAINT `fk_quality_ncr_itp_line_id` FOREIGN KEY (`itp_line_id`) REFERENCES `vibe_construction_v1`.`quality`.`itp_line`(`itp_line_id`);
 ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ADD CONSTRAINT `fk_quality_corrective_action_ncr_id` FOREIGN KEY (`ncr_id`) REFERENCES `vibe_construction_v1`.`quality`.`ncr`(`ncr_id`);
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ADD CONSTRAINT `fk_quality_checklist_plan_id` FOREIGN KEY (`plan_id`) REFERENCES `vibe_construction_v1`.`quality`.`plan`(`plan_id`);
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ADD CONSTRAINT `fk_quality_test_certificate_inspection_id` FOREIGN KEY (`inspection_id`) REFERENCES `vibe_construction_v1`.`quality`.`inspection`(`inspection_id`);
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ADD CONSTRAINT `fk_quality_test_certificate_itp_id` FOREIGN KEY (`itp_id`) REFERENCES `vibe_construction_v1`.`quality`.`itp`(`itp_id`);
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ADD CONSTRAINT `fk_quality_test_certificate_itp_line_id` FOREIGN KEY (`itp_line_id`) REFERENCES `vibe_construction_v1`.`quality`.`itp_line`(`itp_line_id`);
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ADD CONSTRAINT `fk_quality_test_certificate_ncr_id` FOREIGN KEY (`ncr_id`) REFERENCES `vibe_construction_v1`.`quality`.`ncr`(`ncr_id`);
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ADD CONSTRAINT `fk_quality_punch_list_plan_id` FOREIGN KEY (`plan_id`) REFERENCES `vibe_construction_v1`.`quality`.`plan`(`plan_id`);
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ADD CONSTRAINT `fk_quality_punch_item_inspection_id` FOREIGN KEY (`inspection_id`) REFERENCES `vibe_construction_v1`.`quality`.`inspection`(`inspection_id`);
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ADD CONSTRAINT `fk_quality_punch_item_ncr_id` FOREIGN KEY (`ncr_id`) REFERENCES `vibe_construction_v1`.`quality`.`ncr`(`ncr_id`);
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ADD CONSTRAINT `fk_quality_punch_item_punch_list_id` FOREIGN KEY (`punch_list_id`) REFERENCES `vibe_construction_v1`.`quality`.`punch_list`(`punch_list_id`);
@@ -530,12 +469,9 @@ ALTER TABLE `vibe_construction_v1`.`quality`.`itp` SET TAGS ('dbx_data_type' = '
 ALTER TABLE `vibe_construction_v1`.`quality`.`itp` SET TAGS ('dbx_subdomain' = 'inspection_planning');
 ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `itp_id` SET TAGS ('dbx_business_glossary_term' = 'Inspection and Test Plan (ITP) ID');
 ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Client Account Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `contact_id` SET TAGS ('dbx_business_glossary_term' = 'Client Inspector Contact Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `package_id` SET TAGS ('dbx_business_glossary_term' = 'Package Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `phase_id` SET TAGS ('dbx_business_glossary_term' = 'Phase Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `plan_id` SET TAGS ('dbx_business_glossary_term' = 'Quality Plan Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `subcontract_id` SET TAGS ('dbx_business_glossary_term' = 'Subcontract Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `technical_specification_id` SET TAGS ('dbx_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `acceptance_criteria` SET TAGS ('dbx_business_glossary_term' = 'Acceptance Criteria');
 ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `applicable_standards` SET TAGS ('dbx_business_glossary_term' = 'Applicable Quality Standards');
 ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'ITP Approval Date');
@@ -574,11 +510,12 @@ ALTER TABLE `vibe_construction_v1`.`quality`.`itp` ALTER COLUMN `work_package_de
 ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` SET TAGS ('dbx_data_type' = 'master_data');
 ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` SET TAGS ('dbx_subdomain' = 'inspection_planning');
 ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `itp_line_id` SET TAGS ('dbx_business_glossary_term' = 'Inspection and Test Plan (ITP) Line ID');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `asset_category_id` SET TAGS ('dbx_business_glossary_term' = 'Asset Category Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `checklist_id` SET TAGS ('dbx_business_glossary_term' = 'Checklist Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `craft_worker_id` SET TAGS ('dbx_business_glossary_term' = 'Responsible Worker Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `itp_id` SET TAGS ('dbx_business_glossary_term' = 'Inspection and Test Plan (ITP) ID');
 ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `crew_id` SET TAGS ('dbx_business_glossary_term' = 'Responsible Crew Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `risk_assessment_id` SET TAGS ('dbx_business_glossary_term' = 'Risk Assessment Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `acceptance_criteria` SET TAGS ('dbx_business_glossary_term' = 'Acceptance Criteria');
 ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `activity_description` SET TAGS ('dbx_business_glossary_term' = 'Activity Description');
 ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `applicable_standard` SET TAGS ('dbx_business_glossary_term' = 'Applicable Standard');
@@ -605,6 +542,7 @@ ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `mandatory_
 ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
 ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `ncr_trigger_criteria` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Report (NCR) Trigger Criteria');
 ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `notification_lead_time_hours` SET TAGS ('dbx_business_glossary_term' = 'Notification Lead Time Hours');
+ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `reference_document` SET TAGS ('dbx_business_glossary_term' = 'Reference Document');
 ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `remarks` SET TAGS ('dbx_business_glossary_term' = 'Remarks');
 ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `required_documentation` SET TAGS ('dbx_business_glossary_term' = 'Required Documentation');
 ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `responsible_discipline` SET TAGS ('dbx_business_glossary_term' = 'Responsible Discipline');
@@ -618,33 +556,20 @@ ALTER TABLE `vibe_construction_v1`.`quality`.`itp_line` ALTER COLUMN `third_part
 ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` SET TAGS ('dbx_data_type' = 'transactional_data');
 ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` SET TAGS ('dbx_subdomain' = 'inspection_planning');
 ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `inspection_id` SET TAGS ('dbx_business_glossary_term' = 'Inspection ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `batch_lot_id` SET TAGS ('dbx_business_glossary_term' = 'Batch Lot Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `checklist_id` SET TAGS ('dbx_business_glossary_term' = 'Checklist Template ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `contact_id` SET TAGS ('dbx_business_glossary_term' = 'Client Contact Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `concrete_pour_id` SET TAGS ('dbx_business_glossary_term' = 'Concrete Pour Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `contract_milestone_id` SET TAGS ('dbx_business_glossary_term' = 'Contract Milestone Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `craft_worker_id` SET TAGS ('dbx_business_glossary_term' = 'Inspector Worker Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `crew_assignment_id` SET TAGS ('dbx_business_glossary_term' = 'Crew Assignment Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `crew_id` SET TAGS ('dbx_business_glossary_term' = 'Crew Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `daily_log_id` SET TAGS ('dbx_business_glossary_term' = 'Daily Log Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `goods_issue_id` SET TAGS ('dbx_business_glossary_term' = 'Goods Issue Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `goods_receipt_id` SET TAGS ('dbx_business_glossary_term' = 'Goods Receipt Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `incident_id` SET TAGS ('dbx_business_glossary_term' = 'Incident Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `itp_line_id` SET TAGS ('dbx_business_glossary_term' = 'Itp Line Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `maintenance_order_id` SET TAGS ('dbx_business_glossary_term' = 'Maintenance Order Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `material_delivery_id` SET TAGS ('dbx_business_glossary_term' = 'Material Delivery Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `milestone_id` SET TAGS ('dbx_business_glossary_term' = 'Project Milestone Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `permit_to_work_id` SET TAGS ('dbx_business_glossary_term' = 'Permit To Work Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `progress_billing_id` SET TAGS ('dbx_business_glossary_term' = 'Progress Billing Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `purchase_order_id` SET TAGS ('dbx_business_glossary_term' = 'Purchase Order Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `site_id` SET TAGS ('dbx_business_glossary_term' = 'Site Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `phase_id` SET TAGS ('dbx_business_glossary_term' = 'Phase Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `swms_id` SET TAGS ('dbx_business_glossary_term' = 'Swms Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `warehouse_id` SET TAGS ('dbx_business_glossary_term' = 'Warehouse Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `work_front_id` SET TAGS ('dbx_business_glossary_term' = 'Work Front Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `attachment_count` SET TAGS ('dbx_business_glossary_term' = 'Attachment Count');
 ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `checklist_template_name` SET TAGS ('dbx_business_glossary_term' = 'Checklist Template Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `checklist_template_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `checklist_version` SET TAGS ('dbx_business_glossary_term' = 'Checklist Version');
 ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `corrective_action_required` SET TAGS ('dbx_business_glossary_term' = 'Corrective Action Required Flag');
 ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
@@ -665,7 +590,6 @@ ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `location
 ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `location_type` SET TAGS ('dbx_business_glossary_term' = 'Inspection Location Type');
 ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `location_type` SET TAGS ('dbx_value_regex' = 'site|factory|workshop|laboratory|warehouse|offsite');
 ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `ncr_raised` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Report (NCR) Raised Flag');
-ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `ncr_reference` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Report (NCR) Reference');
 ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `observations` SET TAGS ('dbx_business_glossary_term' = 'Inspection Observations');
 ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `overall_outcome` SET TAGS ('dbx_business_glossary_term' = 'Overall Inspection Outcome');
 ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `overall_outcome` SET TAGS ('dbx_value_regex' = 'pass|fail|conditional_pass');
@@ -682,27 +606,22 @@ ALTER TABLE `vibe_construction_v1`.`quality`.`inspection` ALTER COLUMN `work_pac
 ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` SET TAGS ('dbx_data_type' = 'transactional_data');
 ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` SET TAGS ('dbx_subdomain' = 'defect_control');
 ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `ncr_id` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Report (NCR) ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `batch_lot_id` SET TAGS ('dbx_business_glossary_term' = 'Batch Lot Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `activity_id` SET TAGS ('dbx_business_glossary_term' = 'Activity Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `invoice_id` SET TAGS ('dbx_business_glossary_term' = 'Backcharge Invoice Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `change_order_id` SET TAGS ('dbx_business_glossary_term' = 'Project Change Order Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Client Account Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `concrete_pour_id` SET TAGS ('dbx_business_glossary_term' = 'Concrete Pour Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `contract_milestone_id` SET TAGS ('dbx_business_glossary_term' = 'Contract Milestone Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `craft_worker_id` SET TAGS ('dbx_business_glossary_term' = 'Responsible Worker Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `engineering_submittal_id` SET TAGS ('dbx_business_glossary_term' = 'Engineering Submittal Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `goods_issue_id` SET TAGS ('dbx_business_glossary_term' = 'Goods Issue Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `goods_receipt_id` SET TAGS ('dbx_business_glossary_term' = 'Goods Receipt Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `incident_id` SET TAGS ('dbx_business_glossary_term' = 'Incident Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `inspection_id` SET TAGS ('dbx_business_glossary_term' = 'Inspection Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `material_delivery_id` SET TAGS ('dbx_business_glossary_term' = 'Material Delivery Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `itp_line_id` SET TAGS ('dbx_business_glossary_term' = 'Itp Line Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Material Master Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `permit_to_work_id` SET TAGS ('dbx_business_glossary_term' = 'Permit To Work Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `plan_id` SET TAGS ('dbx_business_glossary_term' = 'Quality Plan Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `purchase_order_id` SET TAGS ('dbx_business_glossary_term' = 'Purchase Order Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `site_id` SET TAGS ('dbx_business_glossary_term' = 'Site Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `submittal_id` SET TAGS ('dbx_business_glossary_term' = 'Design Submittal Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `swms_id` SET TAGS ('dbx_business_glossary_term' = 'Swms Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `technical_specification_id` SET TAGS ('dbx_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `phase_id` SET TAGS ('dbx_business_glossary_term' = 'Phase Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `rfi_id` SET TAGS ('dbx_business_glossary_term' = 'Rfi Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `risk_assessment_id` SET TAGS ('dbx_business_glossary_term' = 'Risk Assessment Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Vendor Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `work_front_id` SET TAGS ('dbx_business_glossary_term' = 'Work Front Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `ncr_category` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Report (NCR) Category');
 ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `ncr_category` SET TAGS ('dbx_value_regex' = 'material|workmanship|design|documentation|dimensional|procedural');
 ALTER TABLE `vibe_construction_v1`.`quality`.`ncr` ALTER COLUMN `client_notification_date` SET TAGS ('dbx_business_glossary_term' = 'Client Notification Date');
@@ -753,14 +672,11 @@ ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` SET TAGS ('dbx_
 ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` SET TAGS ('dbx_subdomain' = 'defect_control');
 ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `corrective_action_id` SET TAGS ('dbx_business_glossary_term' = 'Corrective Action Identifier');
 ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `craft_worker_id` SET TAGS ('dbx_business_glossary_term' = 'Responsible Worker Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `crew_assignment_id` SET TAGS ('dbx_business_glossary_term' = 'Crew Assignment Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `hazard_register_id` SET TAGS ('dbx_business_glossary_term' = 'Hazard Register Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `job_cost_transaction_id` SET TAGS ('dbx_business_glossary_term' = 'Job Cost Transaction Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `maintenance_order_id` SET TAGS ('dbx_business_glossary_term' = 'Maintenance Order Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `incident_id` SET TAGS ('dbx_business_glossary_term' = 'Incident Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `ncr_id` SET TAGS ('dbx_business_glossary_term' = 'Non-Conformance Report (NCR) ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `risk_assessment_id` SET TAGS ('dbx_business_glossary_term' = 'Risk Assessment Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `rfi_id` SET TAGS ('dbx_business_glossary_term' = 'Rfi Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `action_description` SET TAGS ('dbx_business_glossary_term' = 'Corrective Action Description');
 ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `action_number` SET TAGS ('dbx_business_glossary_term' = 'Corrective Action Number');
 ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `action_status` SET TAGS ('dbx_business_glossary_term' = 'Corrective Action Status');
@@ -795,18 +711,14 @@ ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `v
 ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `verification_method` SET TAGS ('dbx_business_glossary_term' = 'Verification Method');
 ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `verification_method` SET TAGS ('dbx_value_regex' = 'inspection|testing|document_review|audit|site_observation|measurement');
 ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `verified_by_name` SET TAGS ('dbx_business_glossary_term' = 'Verified By Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`corrective_action` ALTER COLUMN `verified_by_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` SET TAGS ('dbx_data_type' = 'master_data');
 ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` SET TAGS ('dbx_subdomain' = 'inspection_planning');
 ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `checklist_id` SET TAGS ('dbx_business_glossary_term' = 'Checklist ID');
 ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `asset_category_id` SET TAGS ('dbx_business_glossary_term' = 'Asset Category Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `plan_id` SET TAGS ('dbx_business_glossary_term' = 'Quality Plan Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `swms_id` SET TAGS ('dbx_business_glossary_term' = 'Swms Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `phase_id` SET TAGS ('dbx_business_glossary_term' = 'Phase Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `risk_assessment_id` SET TAGS ('dbx_business_glossary_term' = 'Risk Assessment Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `acceptance_criteria` SET TAGS ('dbx_business_glossary_term' = 'Acceptance Criteria');
 ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `activity_type` SET TAGS ('dbx_business_glossary_term' = 'Activity Type');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `applicable_standard` SET TAGS ('dbx_business_glossary_term' = 'Applicable Standard');
 ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `approval_status` SET TAGS ('dbx_business_glossary_term' = 'Approval Status');
 ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `approval_status` SET TAGS ('dbx_value_regex' = 'draft|under_review|approved|superseded|obsolete');
 ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Approved By');
@@ -830,7 +742,6 @@ ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `mandatory
 ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `modified_by` SET TAGS ('dbx_business_glossary_term' = 'Modified By');
 ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
 ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `checklist_name` SET TAGS ('dbx_business_glossary_term' = 'Checklist Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `checklist_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `ncr_trigger_threshold` SET TAGS ('dbx_business_glossary_term' = 'NCR (Non-Conformance Report) Trigger Threshold');
 ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Notes');
 ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `reference_documents` SET TAGS ('dbx_business_glossary_term' = 'Reference Documents');
@@ -847,22 +758,16 @@ ALTER TABLE `vibe_construction_v1`.`quality`.`checklist` ALTER COLUMN `created_b
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` SET TAGS ('dbx_data_type' = 'transactional_data');
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` SET TAGS ('dbx_subdomain' = 'inspection_planning');
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `test_certificate_id` SET TAGS ('dbx_business_glossary_term' = 'Test Certificate Identifier');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Asset Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `batch_lot_id` SET TAGS ('dbx_business_glossary_term' = 'Batch Lot Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `concrete_pour_id` SET TAGS ('dbx_business_glossary_term' = 'Concrete Pour Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `goods_receipt_id` SET TAGS ('dbx_business_glossary_term' = 'Goods Receipt Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `inspection_id` SET TAGS ('dbx_business_glossary_term' = 'Inspection Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `itp_id` SET TAGS ('dbx_business_glossary_term' = 'Itp Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `material_catalog_id` SET TAGS ('dbx_business_glossary_term' = 'Procurement Material Master Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `material_delivery_id` SET TAGS ('dbx_business_glossary_term' = 'Material Delivery Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `itp_line_id` SET TAGS ('dbx_business_glossary_term' = 'Itp Line Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Material Master Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `mto_line_id` SET TAGS ('dbx_business_glossary_term' = 'Mto Line Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `ncr_id` SET TAGS ('dbx_business_glossary_term' = 'Ncr Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `technical_specification_id` SET TAGS ('dbx_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `phase_id` SET TAGS ('dbx_business_glossary_term' = 'Phase Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Vendor Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `accreditation_body` SET TAGS ('dbx_business_glossary_term' = 'Accreditation Body');
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Approved By');
@@ -881,16 +786,14 @@ ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `he
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `issuing_laboratory` SET TAGS ('dbx_business_glossary_term' = 'Issuing Laboratory');
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `laboratory_accreditation_number` SET TAGS ('dbx_business_glossary_term' = 'Laboratory Accreditation Number');
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `material_description` SET TAGS ('dbx_business_glossary_term' = 'Material Description');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `material_type` SET TAGS ('dbx_business_glossary_term' = 'Material Type');
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `pass_fail_status` SET TAGS ('dbx_business_glossary_term' = 'Pass/Fail Status');
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `pass_fail_status` SET TAGS ('dbx_value_regex' = 'pass|fail|conditional_pass|pending_review');
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `remarks` SET TAGS ('dbx_business_glossary_term' = 'Remarks');
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `sampling_date` SET TAGS ('dbx_business_glossary_term' = 'Sampling Date');
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `sampling_location` SET TAGS ('dbx_business_glossary_term' = 'Sampling Location');
+ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `specification_requirement` SET TAGS ('dbx_business_glossary_term' = 'Specification Requirement');
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `technician_name` SET TAGS ('dbx_business_glossary_term' = 'Technician Name');
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `technician_name` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `technician_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `test_date` SET TAGS ('dbx_business_glossary_term' = 'Test Date');
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `test_method` SET TAGS ('dbx_business_glossary_term' = 'Test Method');
 ALTER TABLE `vibe_construction_v1`.`quality`.`test_certificate` ALTER COLUMN `test_parameters` SET TAGS ('dbx_business_glossary_term' = 'Test Parameters');
@@ -901,17 +804,11 @@ ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` SET TAGS ('dbx_data_ty
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` SET TAGS ('dbx_subdomain' = 'defect_control');
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `punch_list_id` SET TAGS ('dbx_business_glossary_term' = 'Punch List ID');
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Client Account Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `contact_id` SET TAGS ('dbx_business_glossary_term' = 'Client Contact Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `contract_milestone_id` SET TAGS ('dbx_business_glossary_term' = 'Contract Milestone Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `hse_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Hse Plan Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `plan_id` SET TAGS ('dbx_business_glossary_term' = 'Quality Plan Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `site_id` SET TAGS ('dbx_business_glossary_term' = 'Site Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `work_front_id` SET TAGS ('dbx_business_glossary_term' = 'Work Front Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `phase_id` SET TAGS ('dbx_business_glossary_term' = 'Phase Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `actual_closeout_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Close-Out Date');
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `closed_items_count` SET TAGS ('dbx_business_glossary_term' = 'Closed Items Count');
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `completion_percentage` SET TAGS ('dbx_business_glossary_term' = 'Completion Percentage');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `contract_reference` SET TAGS ('dbx_business_glossary_term' = 'Contract Reference');
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `critical_items_count` SET TAGS ('dbx_business_glossary_term' = 'Critical Items Count');
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `discipline` SET TAGS ('dbx_business_glossary_term' = 'Discipline');
@@ -923,7 +820,6 @@ ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `mileston
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `modified_by` SET TAGS ('dbx_business_glossary_term' = 'Modified By');
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `punch_list_name` SET TAGS ('dbx_business_glossary_term' = 'Punch List Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `punch_list_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `open_items_count` SET TAGS ('dbx_business_glossary_term' = 'Open Items Count');
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `prepared_by` SET TAGS ('dbx_business_glossary_term' = 'Prepared By');
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `priority` SET TAGS ('dbx_business_glossary_term' = 'Punch List Priority');
@@ -944,24 +840,18 @@ ALTER TABLE `vibe_construction_v1`.`quality`.`punch_list` ALTER COLUMN `creation
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` SET TAGS ('dbx_data_type' = 'transactional_data');
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` SET TAGS ('dbx_subdomain' = 'defect_control');
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `punch_item_id` SET TAGS ('dbx_business_glossary_term' = 'Punch Item ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `activity_id` SET TAGS ('dbx_business_glossary_term' = 'Activity Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Asset Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `contact_id` SET TAGS ('dbx_business_glossary_term' = 'Client Representative Contact Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `craft_worker_id` SET TAGS ('dbx_business_glossary_term' = 'Responsible Worker Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `drawing_revision_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Revision Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `inspection_id` SET TAGS ('dbx_business_glossary_term' = 'Inspection Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `ncr_id` SET TAGS ('dbx_business_glossary_term' = 'Ncr Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `permit_to_work_id` SET TAGS ('dbx_business_glossary_term' = 'Permit To Work Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `punch_list_id` SET TAGS ('dbx_business_glossary_term' = 'Punch List ID');
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `crew_id` SET TAGS ('dbx_business_glossary_term' = 'Responsible Crew Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `technical_specification_id` SET TAGS ('dbx_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Wbs Element Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `risk_assessment_id` SET TAGS ('dbx_business_glossary_term' = 'Risk Assessment Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `work_front_id` SET TAGS ('dbx_business_glossary_term' = 'Work Front Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `actual_completion_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Completion Date');
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `punch_item_category` SET TAGS ('dbx_business_glossary_term' = 'Punch Item Category');
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `punch_item_category` SET TAGS ('dbx_value_regex' = 'structural|mep|architectural|civil|finishes|landscaping');
+ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `client_representative_name` SET TAGS ('dbx_business_glossary_term' = 'Client Representative Name');
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `closure_status` SET TAGS ('dbx_business_glossary_term' = 'Closure Status');
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `closure_status` SET TAGS ('dbx_value_regex' = 'pending|accepted|rejected|deferred');
 ALTER TABLE `vibe_construction_v1`.`quality`.`punch_item` ALTER COLUMN `corrective_action` SET TAGS ('dbx_business_glossary_term' = 'Corrective Action');
@@ -992,18 +882,13 @@ ALTER TABLE `vibe_construction_v1`.`quality`.`plan` SET TAGS ('dbx_data_type' = 
 ALTER TABLE `vibe_construction_v1`.`quality`.`plan` SET TAGS ('dbx_subdomain' = 'inspection_planning');
 ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `plan_id` SET TAGS ('dbx_business_glossary_term' = 'Quality Plan ID');
 ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Client Account Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `contact_id` SET TAGS ('dbx_business_glossary_term' = 'Client Approver Contact Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Construction Project ID');
-ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `hse_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Hse Plan Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `site_id` SET TAGS ('dbx_business_glossary_term' = 'Site Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `technical_specification_id` SET TAGS ('dbx_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `phase_id` SET TAGS ('dbx_business_glossary_term' = 'Phase Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `applicable_standards` SET TAGS ('dbx_business_glossary_term' = 'Applicable Standards');
 ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
 ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `approval_status` SET TAGS ('dbx_business_glossary_term' = 'Approval Status');
 ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `approval_status` SET TAGS ('dbx_value_regex' = 'pending|approved|rejected|conditional');
 ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `approved_by_name` SET TAGS ('dbx_business_glossary_term' = 'Approved By Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `approved_by_name` SET TAGS ('dbx_sensitivity' = 'pii');
-ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `approved_by_name` SET TAGS ('dbx_mask_in_nonprod' = 'true');
 ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `approved_by_role` SET TAGS ('dbx_business_glossary_term' = 'Approved By Role');
 ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `audit_schedule_reference` SET TAGS ('dbx_business_glossary_term' = 'Audit Schedule Reference');
 ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `calibration_procedure_reference` SET TAGS ('dbx_business_glossary_term' = 'Calibration Procedure Reference');
@@ -1027,15 +912,12 @@ ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `plan_number` S
 ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `plan_status` SET TAGS ('dbx_business_glossary_term' = 'Plan Status');
 ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `plan_status` SET TAGS ('dbx_value_regex' = 'draft|under_review|approved|active|superseded|archived');
 ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `prepared_by_name` SET TAGS ('dbx_business_glossary_term' = 'Prepared By Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `prepared_by_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `prepared_by_role` SET TAGS ('dbx_business_glossary_term' = 'Prepared By Role');
 ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `quality_manager_name` SET TAGS ('dbx_business_glossary_term' = 'Quality Manager Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `quality_manager_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `quality_objectives` SET TAGS ('dbx_business_glossary_term' = 'Quality Objectives');
 ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `quality_policy_reference` SET TAGS ('dbx_business_glossary_term' = 'Quality Policy Reference');
 ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `remarks` SET TAGS ('dbx_business_glossary_term' = 'Remarks');
 ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `reviewed_by_name` SET TAGS ('dbx_business_glossary_term' = 'Reviewed By Name');
-ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `reviewed_by_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `reviewed_by_role` SET TAGS ('dbx_business_glossary_term' = 'Reviewed By Role');
 ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `scope_of_work` SET TAGS ('dbx_business_glossary_term' = 'Scope of Work');
 ALTER TABLE `vibe_construction_v1`.`quality`.`plan` ALTER COLUMN `subcontractor_quality_management` SET TAGS ('dbx_business_glossary_term' = 'Subcontractor Quality Management');

@@ -1,5 +1,5 @@
 -- Schema for Domain: equipment | Business: Construction | Version: v2_mvm
--- Generated on: 2026-06-22 17:24:51
+-- Generated on: 2026-06-27 01:56:03
 
 -- ========= DATABASE =========
 CREATE DATABASE IF NOT EXISTS `vibe_construction_v1`.`equipment` COMMENT 'Construction equipment and fleet management domain tracking heavy machinery (cranes, excavators, concrete pumps), tools, generators, and fleet vehicles. Owns asset master data, utilization tracking, maintenance schedules, equipment hours, mobilization/demobilization records, rental vs. owned classification, and asset lifecycle management via SAP PM and HCSS HeavyJob.';
@@ -8,11 +8,11 @@ CREATE DATABASE IF NOT EXISTS `vibe_construction_v1`.`equipment` COMMENT 'Constr
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`equipment`.`asset` (
     `asset_id` BIGINT COMMENT 'Unique identifier for the construction equipment or fleet asset. Primary key for the asset master record.',
     `asset_category_id` BIGINT COMMENT 'Foreign key linking to equipment.asset_category. Business justification: Asset belongs to an asset category; replace free‑text category with FK to asset_category for proper hierarchy and eliminate redundancy.',
-    `construction_project_id` BIGINT COMMENT 'Identifier of the construction project to which the asset is currently assigned. Null when asset is idle or in yard storage.',
-    `asset_current_location_site_construction_project_id` BIGINT COMMENT 'Identifier of the construction site or yard where the asset is currently located. Updated during mobilization and demobilization events.',
+    `account_id` BIGINT COMMENT 'Foreign key linking to client.account. Business justification: Client-Furnished Equipment (CFE/GFE) tracking: construction contracts regularly involve client-supplied assets. Linking asset to the client account establishes liability, insurance responsibility, and',
+    `company_code_id` BIGINT COMMENT 'Foreign key linking to finance.company_code. Business justification: Assets belong to a legal entity (company code) for fixed asset register, depreciation calculation, and financial reporting purposes. SAP PM requires company code assignment on every asset master recor',
+    `construction_project_id` BIGINT COMMENT 'Identifier of the construction site or yard where the asset is currently located. Updated during mobilization and demobilization events.',
     `master_id` BIGINT COMMENT 'Foreign key linking to material.material_master. Business justification: Associates each asset with its primary fuel material, enabling accurate fuel consumption tracking and environmental compliance.',
-    `jv_structure_id` BIGINT COMMENT 'Foreign key linking to client.jv_structure. Business justification: JV entities in construction maintain dedicated asset registers for JV-owned or JV-committed plant. This link enables JV asset valuation, depreciation allocation, and partner reporting — all mandatory ',
-    `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: Required for Daily Equipment Operator Assignment report, linking each asset to the assigned craft worker for safety compliance and productivity tracking.',
+    `functional_location_id` BIGINT COMMENT 'Foreign key linking to equipment.functional_location. Business justification: In SAP PM, every asset is installed at or assigned to a functional location. The asset table currently stores home_yard_location as a free-text STRING, which is a denormalized location description. Ad',
     `acquisition_cost` DECIMAL(18,2) COMMENT 'Total cost to acquire the asset including purchase price, delivery, installation, and initial setup. Basis for depreciation calculations and capital asset reporting.',
     `acquisition_currency_code` STRING COMMENT 'ISO 4217 three-letter currency code for the acquisition cost (e.g., USD, EUR, GBP). Required for multi-currency fleet management.. Valid values are `^[A-Z]{3}$`',
     `acquisition_date` DATE COMMENT 'Date the asset was acquired by the company through purchase, lease commencement, or rental agreement start. Used for depreciation start date and asset age calculations.',
@@ -49,12 +49,14 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`equipment`.`asset` (
     `total_operating_hours` DECIMAL(18,2) COMMENT 'Cumulative operating hours recorded on the equipment meter. Used for maintenance scheduling, utilization analysis, and residual value estimation.',
     `year_of_manufacture` STRING COMMENT 'Calendar year the equipment was manufactured. Used for depreciation calculations, regulatory compliance age limits, and resale value estimation.',
     CONSTRAINT pk_asset PRIMARY KEY(`asset_id`)
-) COMMENT 'Core master record for every piece of construction equipment and fleet vehicle owned, long-term leased, or rented by the company. Captures asset identity, classification (crane, excavator, concrete pump, generator, fleet vehicle, small tool), make, model, serial number, year of manufacture, acquisition date, acquisition cost, ownership type (owned/rented/leased), current status (active, idle, under maintenance, disposed), SAP PM equipment number, HCSS HeavyJob asset ID, regulatory compliance class, and asset lifecycle stage. For disposed assets: captures disposal method (sale, auction, scrap, write-off, trade-in), disposal date, disposal proceeds, buyer details, reason for disposal, and authorizing approver. This is the SSOT for all equipment identity and lifecycle data across the enterprise, from commissioning through disposal. Canonical equipment.asset entity (v2 curated).';
+) COMMENT 'Core master record for every piece of construction equipment and fleet vehicle owned, long-term leased, or rented by the company. Captures asset identity, classification (crane, excavator, concrete pump, generator, fleet vehicle, small tool), make, model, serial number, year of manufacture, acquisition date, acquisition cost, ownership type (owned/rented/leased), current status (active, idle, under maintenance, disposed), SAP PM equipment number, HCSS HeavyJob asset ID, regulatory compliance class, and asset lifecycle stage. For disposed assets: captures disposal method (sale, auction, scrap, write-off, trade-in), disposal date, disposal proceeds, buyer details, reason for disposal, and authorizing approver. This is the SSOT for all equipment identity and lifecycle data across the enterprise, from commissioning through disposal.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`equipment`.`asset_category` (
     `asset_category_id` BIGINT COMMENT 'Unique identifier for the asset category. Primary key for the asset category reference hierarchy.',
     `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Asset category default cost center ensures new assets inherit correct cost center for accounting.',
+    `gl_account_id` BIGINT COMMENT 'Foreign key linking to finance.gl_account. Business justification: asset_category.gl_account_code is a denormalized plain-text GL account reference. Asset categories drive GL account determination for capitalization, depreciation, and disposal postings — a mandatory ',
     `parent_category_asset_category_id` BIGINT COMMENT 'Reference to the parent category in the asset classification hierarchy. Enables multi-level taxonomy (e.g., Heavy Equipment > Earthmoving > Excavators). Null for top-level categories.',
+    `skill_trade_id` BIGINT COMMENT 'Foreign key linking to workforce.skill_trade. Business justification: asset_category has operator_certification_required flag but no FK to the specific skill_trade required. Linking enables automated operator qualification checks — when assigning a worker to an asset, t',
     `asset_category_status` STRING COMMENT 'Current lifecycle status of the asset category in the master taxonomy: active (in use for classification), inactive (no longer used but retained for historical data), deprecated (being phased out), pending (awaiting approval for activation).. Valid values are `active|inactive|deprecated|pending`',
     `asset_class_sap` STRING COMMENT 'SAP S/4HANA Asset Accounting asset class code for assets in this category. Determines account determination, depreciation keys, and asset master data screen layout in SAP FI-AA module.. Valid values are `^[0-9]{4,8}$`',
     `benchmark_utilization_rate` DECIMAL(18,2) COMMENT 'Target utilization rate percentage for assets in this category, used for fleet optimization and equipment productivity benchmarking. Represents industry-standard or company target for equipment hours versus available hours.',
@@ -69,7 +71,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`equipment`.`asset_category` (
     `effective_end_date` DATE COMMENT 'Date when this asset category was retired or deprecated. Null for currently active categories. Supports historical reporting and taxonomy evolution tracking.',
     `effective_start_date` DATE COMMENT 'Date when this asset category became active and available for asset classification. Supports temporal validity and historical taxonomy tracking.',
     `environmental_compliance_flag` BOOLEAN COMMENT 'Indicates whether assets in this category are subject to environmental compliance tracking (emissions monitoring, fuel consumption reporting, EPA regulations). True for generators, diesel equipment, and vehicles; False for non-powered tools.',
-    `gl_account_code` STRING COMMENT 'Default General Ledger account code for asset capitalization and depreciation expense posting in SAP S/4HANA Finance. Aligns with chart of accounts structure for fixed asset accounting.. Valid values are `^[0-9]{4,10}$`',
     `hcss_equipment_type` STRING COMMENT 'HCSS HeavyJob equipment type classification for field operations time tracking and production reporting. Maps asset category to HeavyJob cost coding and equipment hour tracking structure.',
     `inspection_frequency_days` STRING COMMENT 'Standard inspection interval in days for assets in this category, aligned with manufacturer recommendations and regulatory requirements. Used to generate preventive maintenance schedules in SAP PM. Null for categories not requiring periodic inspection.',
     `insurance_required` BOOLEAN COMMENT 'Indicates whether assets in this category require dedicated insurance coverage beyond general liability. True for high-value equipment (cranes, excavators, specialized machinery); False for low-value consumable tools.',
@@ -83,28 +84,15 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`equipment`.`asset_category` (
     `useful_life_years` STRING COMMENT 'Standard useful life in years for assets in this category, used for depreciation calculation and lifecycle planning. Null for rental/leased assets or categories with variable lifespans.',
     `utilization_tracking_required` BOOLEAN COMMENT 'Indicates whether assets in this category require detailed utilization tracking (equipment hours, production tracking) via HCSS HeavyJob or SAP PM. True for high-value equipment requiring cost recovery and productivity analysis; False for low-value consumable tools.',
     CONSTRAINT pk_asset_category PRIMARY KEY(`asset_category_id`)
-) COMMENT 'Reference classification hierarchy for construction equipment and fleet assets. Defines the taxonomy of equipment types used across the enterprise: major categories (heavy earthmoving, lifting, concrete, MEP, fleet, small tools, generators), sub-categories, and equipment class codes aligned with HCSS HeavyJob cost coding and SAP PM functional location structures. Drives cost coding, depreciation rules, maintenance strategy assignment, and utilization benchmarking. Canonical equipment.asset_category entity (v2 curated).';
+) COMMENT 'Reference classification hierarchy for construction equipment and fleet assets. Defines the taxonomy of equipment types used across the enterprise: major categories (heavy earthmoving, lifting, concrete, MEP, fleet, small tools, generators), sub-categories, and equipment class codes aligned with HCSS HeavyJob cost coding and SAP PM functional location structures. Drives cost coding, depreciation rules, maintenance strategy assignment, and utilization benchmarking.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` (
     `fleet_assignment_id` BIGINT COMMENT 'Unique identifier for the fleet assignment record. Primary key.',
-    `activity_id` BIGINT COMMENT 'Foreign key linking to schedule.activity. Business justification: Equipment deployment planning: fleet assignments are made to support specific schedule activities (e.g., crane assigned to structural steel erection activity). Construction equipment managers and sche',
-    `agreement_id` BIGINT COMMENT 'Foreign key linking to contract.agreement. Business justification: Equipment lease/assignment to a project is governed by a contract; linking records the contract that authorizes each assignment.',
-    `asset_id` BIGINT COMMENT 'Reference to the specific equipment or fleet vehicle being assigned. Links to the equipment master data.',
-    `construction_project_id` BIGINT COMMENT 'Reference to the construction project to which the equipment is assigned.',
-    `cost_account_id` BIGINT COMMENT 'Foreign key linking to project.cost_account. Business justification: Equipment fleet assignments generate costs that must be allocated to project cost accounts for EVM and financial control. Cost account is the primary financial control point in construction — fleet as',
-    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Fleet assignments drive equipment hire charges to specific cost codes on projects. fleet_assignment.cost_allocation_code is a denormalized plain-text field; a proper FK to finance.cost_code enables au',
-    `crew_id` BIGINT COMMENT 'Foreign key linking to workforce.crew. Business justification: Equipment is assigned to a specific crew for a project phase. Linking fleet_assignment to crew enables crew-level equipment allocation reporting, productivity analysis (equipment hours per crew), and ',
-    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Crane and heavy equipment fleet assignments are governed by approved lift plan drawings. Regulatory lift planning (ASME B30, local regulations) requires the fleet assignment to reference the approved ',
-    `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: Fleet assignments designate a specific operator (craft_worker) to operate assigned equipment on a project. Supports operator scheduling, equipment-operator pairing for safety compliance, and operator ',
-    `permit_to_work_id` BIGINT COMMENT 'Foreign key linking to safety.permit_to_work. Business justification: Equipment mobilization into live construction zones (crane erection, plant entry into exclusion zones) requires a PTW. Construction HSE managers track PTW-to-fleet-assignment linkage for mobilization ',
-    `phase_id` BIGINT COMMENT 'Foreign key linking to project.phase. Business justification: Equipment assignments are planned and tracked by project phase (earthworks, structural, MEP, finishing). Phase-level fleet planning is standard construction scheduling practice — enables phase budget ',
-    `project_milestone_id` BIGINT COMMENT 'Foreign key linking to project.project_milestone. Business justification: Equipment mobilization and demobilization are milestone-driven in construction (crane arrival triggers structural milestone; equipment demob tied to handover milestone). Milestone-linked fleet assignm',
-    `rental_agreement_id` BIGINT COMMENT 'Foreign key linking to equipment.rental_agreement. Business justification: When rented equipment is deployed to a project, the fleet_assignment record should reference the governing rental_agreement. This enables direct traceability from deployment to the hire contract — cri',
+    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: fleet_assignment.cost_allocation_code is a denormalized cost code reference. Equipment cost allocation to cost codes at the assignment level is required for job costing, budget vs actual reporting, an',
+    `functional_location_id` BIGINT COMMENT 'Foreign key linking to equipment.functional_location. Business justification: fleet_assignment records the assignment of equipment to a project and site. Within a site, equipment is deployed to specific functional locations (e.g., a crane pad, a concrete batching area, a fuel d',
+    `phase_id` BIGINT COMMENT 'Foreign key linking to project.phase. Business justification: Fleet assignments span defined project phases; phase-level equipment utilization and cost reporting is a standard construction KPI for phase gate reviews and earned value reporting. fleet_assignment h',
+    `rental_agreement_id` BIGINT COMMENT 'Foreign key linking to equipment.rental_agreement. Business justification: fleet_assignment currently stores rental_contract_number as a free-text STRING reference to a rental agreement. rental_agreement is the master record governing equipment hire from external vendors. Wh',
     `vendor_id` BIGINT COMMENT 'Reference to the rental company or vendor supplying the equipment, if applicable. Null for owned equipment.',
-    `risk_assessment_id` BIGINT COMMENT 'Foreign key linking to safety.risk_assessment. Business justification: Deploying equipment to a specific work front requires a risk assessment for that deployment context (e.g., crane in live traffic zone). Construction HSE process Equipment Deployment Risk Assessment ',
-    `site_id` BIGINT COMMENT 'Reference to the specific site or work location where the equipment is deployed.',
-    `swms_id` BIGINT COMMENT 'Foreign key linking to safety.swms. Business justification: Equipment deployment to a work front requires the applicable SWMS governing that equipments operation at that location. Construction site managers track which SWMS covers each fleet assignment for WH',
-    `wbs_element_id` BIGINT COMMENT 'Reference to the WBS element for cost allocation and project accounting. Used for internal charge-back to projects.',
     `work_front_id` BIGINT COMMENT 'Reference to the specific work front or activity area within the site where the equipment is operating.',
     `actual_utilization_hours` DECIMAL(18,2) COMMENT 'Actual cumulative equipment operating hours recorded during this assignment. Updated from daily logs and equipment hour meters.',
     `assignment_end_date` DATE COMMENT 'The date when the equipment assignment ends or is planned to end. Nullable for open-ended assignments. Marks the end of cost allocation for this assignment.',
@@ -130,13 +118,13 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` (
     `ownership_rate_per_hour` DECIMAL(18,2) COMMENT 'Internal hourly ownership cost rate for owned equipment. Used for project cost allocation and internal charge-back calculations.',
     `permit_number` STRING COMMENT 'Regulatory permit or authorization number required for operating this equipment on the site. Applicable for cranes, heavy lifts, and specialized machinery.',
     `planned_utilization_hours` DECIMAL(18,2) COMMENT 'Planned or estimated total equipment operating hours for this assignment. Used for capacity planning and utilization forecasting.',
-    `rate_currency_code` DECIMAL(18,2) COMMENT 'Three-letter ISO 4217 currency code for all rate amounts in this assignment record.',
+    `rate_currency_code` STRING COMMENT 'Three-letter ISO 4217 currency code for all rate amounts in this assignment record.. Valid values are `^[A-Z]{3}$`',
     `source_system_code` STRING COMMENT 'Unique identifier of this assignment record in the source system. Used for data lineage, reconciliation, and incremental updates.',
     `standby_rate_per_hour` DECIMAL(18,2) COMMENT 'Internal hourly standby cost rate when equipment is on site but not actively operating. Lower rate than operating rate, used for idle time cost allocation.',
     `weekly_rate` DECIMAL(18,2) COMMENT 'Internal weekly cost rate for equipment assignment. Alternative to hourly or daily rates for equipment charged on a weekly basis.',
     `created_by` STRING COMMENT 'Username or identifier of the user who created this assignment record in the source system.',
     CONSTRAINT pk_fleet_assignment PRIMARY KEY(`fleet_assignment_id`)
-) COMMENT 'Transactional record capturing the assignment of a specific piece of equipment or fleet vehicle to a project, site, or work front for a defined period. Tracks assignment start and end dates, assigned project, site location, responsible operator or driver, mobilization status, cost allocation code (WBS element), and applicable internal hire rate (ownership rate, operating rate, standby rate per hour/day/week). Supports equipment utilization tracking, inter-project cost allocation, internal charge-back to projects, and site logistics planning. Sourced from HCSS HeavyJob and SAP PS project systems. Canonical equipment.fleet_assignment entity (v2 curated).';
+) COMMENT 'Transactional record capturing the assignment of a specific piece of equipment or fleet vehicle to a project, site, or work front for a defined period. Tracks assignment start and end dates, assigned project, site location, responsible operator or driver, mobilization status, cost allocation code (WBS element), and applicable internal hire rate (ownership rate, operating rate, standby rate per hour/day/week). Supports equipment utilization tracking, inter-project cost allocation, internal charge-back to projects, and site logistics planning. Sourced from HCSS HeavyJob and SAP PS project systems.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`equipment`.`hours` (
     `hours_id` BIGINT COMMENT 'Unique identifier for the equipment hours transaction record. Primary key for daily or shift-level equipment operating time entries.',
@@ -144,9 +132,11 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`equipment`.`hours` (
     `asset_id` BIGINT COMMENT 'Reference to the specific equipment unit (crane, excavator, concrete pump, generator, vehicle) for which hours are being recorded.',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project where the equipment was deployed and operated during this time period.',
     `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Equipment operating hour costs are posted to cost codes for labor and equipment cost tracking.',
-    `fleet_assignment_id` BIGINT COMMENT 'Foreign key linking to equipment.fleet_assignment. Business justification: An hours record captures shift-level operating hours for a piece of equipment. That equipment is deployed to a project/site via a fleet_assignment. Linking hours to fleet_assignment enables assignment',
-    `invoice_id` BIGINT COMMENT 'Foreign key linking to finance.invoice. Business justification: hours.rental_invoice_reference is a denormalized plain-text field referencing the rental invoice for billable equipment hours. Replacing it with a proper FK to finance.invoice enables automated rental',
-    `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: Equipment hours records capture shift-level utilization. Linking to the operating craft_worker enables operator productivity reporting, payroll cross-validation against timesheet hours, and operator-l',
+    `fleet_assignment_id` BIGINT COMMENT 'Foreign key linking to equipment.fleet_assignment. Business justification: hours is a daily/shift-level transactional record of equipment operating hours. fleet_assignment is the period-level assignment of an asset to a project or work front. Hours logged should be traceable',
+    `functional_location_id` BIGINT COMMENT 'Foreign key linking to equipment.functional_location. Business justification: hours records daily/shift-level equipment operating data including location_description as a free-text STRING. Equipment hours are logged at specific functional locations within a site (e.g., a specif',
+    `maintenance_order_id` BIGINT COMMENT 'Foreign key linking to equipment.maintenance_order. Business justification: hours records downtime_hours with downtime_category, downtime_root_cause_code, downtime_start_timestamp, and downtime_end_timestamp. When equipment is down for maintenance, the downtime hours should b',
+    `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: Equipment hours records capture shift-level utilization and production. Linking to the operating craft_worker enables operator productivity analysis, equipment utilization by operator benchmarking, an',
+    `phase_id` BIGINT COMMENT 'Foreign key linking to project.phase. Business justification: Equipment hours and utilization costs must roll up to project phases for phase-level EVM, equipment cost-to-complete forecasting, and phase gate reviews. hours already carries wbs_element_id but phase',
     `wbs_element_id` BIGINT COMMENT 'Reference to the specific WBS element or work package where equipment hours were charged for granular cost tracking and EVM reporting.',
     `approval_status` STRING COMMENT 'Current approval workflow status of the equipment hours record. Tracks progression from field entry through supervisor approval to final posting for cost allocation.. Valid values are `draft|submitted|approved|rejected|disputed`',
     `approved_timestamp` TIMESTAMP COMMENT 'Date and time when the equipment hours record was approved by the authorized supervisor. Used for audit trail and approval cycle time analysis.',
@@ -164,7 +154,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`equipment`.`hours` (
     `idle_hours` DECIMAL(18,2) COMMENT 'Hours the equipment was powered on but not performing productive work (waiting for materials, operator break, minor delays). Excludes scheduled downtime.',
     `is_billable` BOOLEAN COMMENT 'Flag indicating whether these equipment hours are billable to the client under the contract terms. Used for revenue recognition and client invoicing.',
     `is_overtime` BOOLEAN COMMENT 'Flag indicating whether these equipment hours were logged during overtime shift periods, affecting cost rates and operator compensation.',
-    `location_description` STRING COMMENT 'Free-text description of the specific work location or area within the project site where equipment was deployed (e.g., North Excavation Zone, Building A Foundation, Access Road KM 12).',
     `meter_reading_end` DECIMAL(18,2) COMMENT 'Equipment hour meter or odometer reading at the end of the shift. Used to validate reported hours and track cumulative equipment usage for maintenance scheduling.',
     `meter_reading_start` DECIMAL(18,2) COMMENT 'Equipment hour meter or odometer reading at the start of the shift. Used to validate reported hours and track cumulative equipment usage for maintenance scheduling.',
     `notes` STRING COMMENT 'Free-text field for additional comments, observations, or context about the equipment hours entry. May include operational notes, safety observations, or special conditions.',
@@ -181,18 +170,18 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`equipment`.`hours` (
     `total_equipment_cost` DECIMAL(18,2) COMMENT 'Total cost charged to the project for this equipment hours record. Calculated as operating_hours * cost_per_hour plus any additional charges. Used for project cost control and EVM.',
     `weather_condition` STRING COMMENT 'Prevailing weather condition during the shift that may have affected equipment operation and productivity. Used for weather impact analysis and EOT claims. [ENUM-REF-CANDIDATE: clear|rain|snow|wind|extreme_heat|extreme_cold|fog — 7 candidates stripped; promote to reference product]',
     CONSTRAINT pk_hours PRIMARY KEY(`hours_id`)
-) COMMENT 'Daily or shift-level transactional record of equipment operating hours, idle hours, standby hours, and downtime events captured from HCSS HeavyJob field time tracking. Includes cost code, operator ID, project and WBS reference, fuel consumption, meter reading (odometer or hour meter), shift date, production quantity achieved. For non-productive time: captures downtime start/end timestamps, duration, downtime category (breakdown, awaiting parts, awaiting operator, weather hold, scheduled maintenance), root cause code, resolution action, and impact assessment. Foundational for equipment utilization rate calculation, cost-per-hour analysis, MTTR (Mean Time To Repair), MTBF (Mean Time Between Failures), availability rate reporting, and CPI/SPI reporting under EVM. SSOT for all equipment time and downtime recording. Primary source: HCSS HeavyJob daily time entry. Canonical equipment.hours entity (v2 curated).';
+) COMMENT 'Daily or shift-level transactional record of equipment operating hours, idle hours, standby hours, and downtime events captured from HCSS HeavyJob field time tracking. Includes cost code, operator ID, project and WBS reference, fuel consumption, meter reading (odometer or hour meter), shift date, production quantity achieved. For non-productive time: captures downtime start/end timestamps, duration, downtime category (breakdown, awaiting parts, awaiting operator, weather hold, scheduled maintenance), root cause code, resolution action, and impact assessment. Foundational for equipment utilization rate calculation, cost-per-hour analysis, MTTR (Mean Time To Repair), MTBF (Mean Time Between Failures), availability rate reporting, and CPI/SPI reporting under EVM. SSOT for all equipment time and downtime recording. Primary source: HCSS HeavyJob daily time entry.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` (
     `maintenance_plan_id` BIGINT COMMENT 'Unique identifier for the maintenance plan record. Primary key.',
-    `asset_category_id` BIGINT COMMENT 'Foreign key linking to equipment.asset_category. Business justification: In SAP PM and construction equipment management, preventive maintenance plans are frequently defined at the equipment category level (e.g., all excavators follow a 250-hour PM plan, all cranes require',
-    `asset_id` BIGINT COMMENT 'Reference to the equipment asset or equipment class covered by this maintenance plan.',
-    `construction_project_id` BIGINT COMMENT 'Reference to the construction project to which this equipment and its maintenance plan are assigned.',
+    `asset_category_id` BIGINT COMMENT 'Foreign key linking to equipment.asset_category. Business justification: maintenance_plan is described as a Master record defining the preventive maintenance strategy and schedule for a CLASS of equipment — this directly implies a relationship to asset_category, which de',
+    `checklist_id` BIGINT COMMENT 'Foreign key linking to quality.checklist. Business justification: Maintenance plans specify recurring quality checklists for scheduled inspections (e.g., monthly crane inspection checklist). Linking maintenance_plan to checklist ensures consistent quality standards ',
     `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Maintenance plan budgeting is tracked against a cost center to align planned expenses with financial budgets.',
-    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Maintenance plans carry estimated_labor_cost and estimated_material_cost that must be pre-coded to cost codes for maintenance budget planning and forecast vs actual analysis. Construction cost enginee',
+    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Maintenance plans carry estimated_labor_cost and estimated_material_cost that must be coded to cost codes for maintenance budget planning and cost control. Construction finance teams use planned maint',
     `crew_id` BIGINT COMMENT 'Reference to the maintenance crew or team responsible for executing this maintenance plan.',
-    `swms_id` BIGINT COMMENT 'Foreign key linking to safety.swms. Business justification: Planned maintenance on construction plant is high-risk work requiring a SWMS under WHS legislation. The maintenance_plan references the governing SWMS for all scheduled maintenance activities. Constru',
-    `technical_specification_id` BIGINT COMMENT 'Foreign key linking to design.technical_specification. Business justification: Maintenance plans are derived from and governed by technical specifications (manufacturer requirements, regulatory standards, project specs). Asset management and compliance reporting require traceabi',
+    `phase_id` BIGINT COMMENT 'Foreign key linking to project.phase. Business justification: Maintenance plans in construction are scoped to project phases (mobilization, construction, commissioning, handover). Phase-level PM scheduling and maintenance cost reporting against project phase bud',
+    `risk_assessment_id` BIGINT COMMENT 'Foreign key linking to safety.risk_assessment. Business justification: Maintenance strategy for safety-critical equipment (cranes, pressure vessels) is driven by risk assessments. The risk assessment determines maintenance intervals and control measures embedded in the p',
+    `vendor_id` BIGINT COMMENT 'Foreign key linking to procurement.vendor. Business justification: Scheduled maintenance plans in construction designate preferred external service vendors (e.g., OEM-authorized service providers). A FK to vendor supports vendor scheduling, SLA compliance tracking, m',
     `certification_required_flag` BOOLEAN COMMENT 'Indicates whether completion of this maintenance plan requires formal certification or inspection sign-off by a qualified authority.',
     `compliance_requirement_code` STRING COMMENT 'Code identifying the regulatory or compliance requirement driving this maintenance plan (e.g., OSHA crane certification, EPA emissions inspection, manufacturer warranty requirement).',
     `created_timestamp` TIMESTAMP COMMENT 'Date and time when this maintenance plan record was first created in the system.',
@@ -233,20 +222,18 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` (
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` (
     `maintenance_order_id` BIGINT COMMENT 'Unique identifier for the maintenance order record. Primary key for this entity.',
     `asset_id` BIGINT COMMENT 'Reference to the equipment asset on which this maintenance activity was performed. Links to the equipment master data.',
-    `construction_project_id` BIGINT COMMENT 'Reference to the construction project to which this equipment and maintenance activity are assigned. Enables project-level cost tracking.',
+    `checklist_id` BIGINT COMMENT 'Foreign key linking to quality.checklist. Business justification: Maintenance orders reference quality checklists to define the quality verification steps required during or after maintenance execution. Linking enables QA/maintenance integration: technicians complet',
     `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Maintenance order costs must be charged to the responsible cost center for accurate project cost reporting.',
-    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Maintenance orders must be coded to project cost codes (labor, parts, external services) for job cost reporting and budget vs actual analysis. Construction ERP systems (SAP PM) require cost element as',
-    `crew_id` BIGINT COMMENT 'Foreign key linking to workforce.crew. Business justification: Maintenance orders are executed by a specific crew (e.g., mechanical crew). Linking the executing crew enables crew-level maintenance labor cost rollup, productivity reporting, and crew utilization an',
-    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Maintenance orders reference specific drawings (as-built drawings, equipment assembly drawings, maintenance procedure drawings) that technicians use during execution. Work order management and mainten',
-    `hazard_register_id` BIGINT COMMENT 'Foreign key linking to safety.hazard_register. Business justification: Corrective maintenance orders are raised to address identified hazards in the hazard register. Linking maintenance_order to hazard_register enables hazard closure tracking — a named HSE compliance pro',
-    `invoice_id` BIGINT COMMENT 'Foreign key linking to finance.invoice. Business justification: Maintenance orders for external services and parts generate vendor invoices. Linking maintenance_order to the settling invoice enables AP three-way match (work order / PO / invoice) and total maintena',
+    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Maintenance orders track labor_cost, parts_cost, and external_services_cost requiring cost code assignment for job costing and maintenance cost reporting. Only cost_center exists currently; cost_code ',
+    `crew_id` BIGINT COMMENT 'Foreign key linking to workforce.crew. Business justification: Maintenance orders are executed by a maintenance crew (work center). SAP PM work order execution requires crew/work-center assignment for labor scheduling and cost capture. work_center_code is a denor',
     `maintenance_plan_id` BIGINT COMMENT 'Reference to the preventive maintenance plan that generated this order, if applicable. Null for corrective or breakdown orders.',
     `master_id` BIGINT COMMENT 'Foreign key linking to material.material_master. Business justification: Needed to record which material (spare part) is consumed in a maintenance order, supporting inventory control and maintenance cost analysis.',
-    `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: Maintenance execution tracking requires knowing which certified mechanic/technician performed the work. Supports labor cost allocation to maintenance orders, warranty claim validation (technician cred',
-    `permit_to_work_id` BIGINT COMMENT 'Foreign key linking to safety.permit_to_work. Business justification: Maintenance work on safety-critical plant (confined space, electrical isolation) requires a Permit to Work before execution. Construction HSE regulations mandate PTW-to-maintenance-order traceability.',
-    `swms_id` BIGINT COMMENT 'Foreign key linking to safety.swms. Business justification: Individual maintenance work orders require a SWMS for execution under WHS regulations. The order-level SWMS may differ from the plan-level SWMS (e.g., emergency repairs). Construction HSE compliance r',
-    `incident_id` BIGINT COMMENT 'Foreign key linking to safety.incident. Business justification: Corrective maintenance orders are routinely raised in response to safety incidents in construction. Linking maintenance_order to the triggering incident enables incident-to-corrective-action closure t',
-    `inspection_record_id` BIGINT COMMENT 'Foreign key linking to equipment.inspection_record. Business justification: In construction equipment management, inspections frequently identify defects that trigger corrective maintenance work orders. A maintenance_order raised as a result of an inspection finding should re',
+    `permit_to_work_id` BIGINT COMMENT 'Foreign key linking to safety.permit_to_work. Business justification: Construction maintenance on equipment (confined space, hot work, electrical isolation) legally requires a PTW before work commences. Maintenance crews cannot start without a valid PTW. Regulatory comp',
+    `phase_id` BIGINT COMMENT 'Foreign key linking to project.phase. Business justification: Maintenance orders executed during commissioning or handover phases carry distinct cost and compliance implications. Phase-level maintenance cost reporting and gate-review readiness checks require mai',
+    `risk_assessment_id` BIGINT COMMENT 'Foreign key linking to safety.risk_assessment. Business justification: Pre-work risk assessments are mandatory for safety-critical equipment maintenance in construction. The risk assessment identifies hazards and controls before the maintenance order is executed. HSE com',
+    `swms_id` BIGINT COMMENT 'Foreign key linking to safety.swms. Business justification: High-risk maintenance work on construction equipment requires a SWMS under WHS regulations. The SWMS governs the safe work procedure for the maintenance activity. Maintenance planners and HSE teams mu',
+    `vendor_id` BIGINT COMMENT 'Foreign key linking to procurement.vendor. Business justification: Construction maintenance orders frequently engage external service vendors (OEM technicians, specialist repair firms). A direct FK to vendor supports vendor performance tracking for maintenance servic',
+    `warehouse_id` BIGINT COMMENT 'Foreign key linking to material.warehouse. Business justification: Maintenance orders require spare parts sourced from a specific warehouse. Linking maintenance_order to warehouse enables inventory planners to reserve stock, plan warehouse picking operations, and rep',
     `actual_end_timestamp` TIMESTAMP COMMENT 'Actual date and time when the maintenance work was completed. Used to calculate actual downtime and compare against planned duration.',
     `actual_start_timestamp` TIMESTAMP COMMENT 'Actual date and time when the maintenance work commenced. Captured from field logs or technician time entry systems.',
     `closed_timestamp` TIMESTAMP COMMENT 'Date and time when this maintenance order was formally closed in the system, indicating all work and cost postings are complete. Null if order is not yet closed.',
@@ -271,12 +258,10 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` (
     `planned_end_date` DATE COMMENT 'Scheduled date when the maintenance activity is planned to be completed. Used for equipment downtime planning and project scheduling.',
     `planned_start_date` DATE COMMENT 'Scheduled date when the maintenance activity is planned to begin. Used for resource planning and equipment availability forecasting.',
     `priority` STRING COMMENT 'Urgency level of the maintenance order. Critical and high priority orders require immediate attention to prevent safety hazards or project delays.. Valid values are `critical|high|medium|low`',
-    `purchase_order_number` STRING COMMENT 'Purchase order number for external services or parts procured for this maintenance order, if applicable. Links to procurement records.',
     `site_location_code` STRING COMMENT 'Code identifying the construction site or yard location where the maintenance was performed. Supports geographic cost analysis and logistics planning.',
     `total_maintenance_cost` DECIMAL(18,2) COMMENT 'Total cost of the maintenance order, summing labor, parts, and external services. Used for asset lifecycle costing and budget tracking.',
     `warranty_claim_flag` BOOLEAN COMMENT 'Indicates whether this maintenance order is associated with a warranty claim against the equipment manufacturer or supplier. True if warranty claim was filed.',
     `warranty_claim_number` STRING COMMENT 'External warranty claim reference number provided by the equipment manufacturer or supplier, if applicable. Null if no warranty claim.',
-    `work_center_code` STRING COMMENT 'Code identifying the maintenance work center or shop responsible for executing this order (e.g., heavy equipment shop, electrical shop, hydraulics shop).',
     `work_performed_description` STRING COMMENT 'Detailed narrative of the maintenance work actually performed, including repairs, replacements, adjustments, and inspections. Serves as technical record and warranty evidence.',
     CONSTRAINT pk_maintenance_order PRIMARY KEY(`maintenance_order_id`)
 ) COMMENT 'Transactional work order record for a specific maintenance activity executed on an asset, generated from a maintenance plan (preventive) or raised as a corrective/breakdown order from a notification. Captures order type (preventive, corrective, breakdown, statutory inspection), priority, planned and actual start/end dates, assigned technician, labor hours, parts consumed (part number, quantity, unit cost per line item), total maintenance cost (labor + parts + external services), order status (created, released, in-progress, completed, technically complete, closed), and SAP PM order number. Supports maintenance cost tracking at labor and parts level, asset downtime analysis, warranty claim evidence, and compliance audit trails. Parts consumption data here serves as the equipment domains record of materials used — material domain owns stock levels and replenishment.';
@@ -285,14 +270,20 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`equipment`.`inspection_record` (
     `inspection_record_id` BIGINT COMMENT 'Unique identifier for the equipment inspection record. Primary key for the inspection_record product.',
     `asset_id` BIGINT COMMENT 'Reference to the equipment asset that was inspected. Links to the equipment master data product.',
     `construction_project_id` BIGINT COMMENT 'Reference to the construction project to which this equipment is currently assigned at the time of inspection. Null if equipment is in yard or not assigned to a project.',
-    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Inspection costs (inspection_cost field) must be allocated to project cost codes for job cost tracking and regulatory compliance cost reporting. Construction projects track inspection expenditure by c',
-    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Inspection records reference the as-built or equipment drawings used during the inspection (e.g., structural inspection against approved drawings, equipment installation inspection). Regulatory compli',
-    `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: Regulatory compliance requires recording which certified craft_worker (e.g., certified rigger, licensed inspector) conducted each equipment inspection. Supports certificate issuance, OSHA compliance a',
-    `invoice_id` BIGINT COMMENT 'Foreign key linking to finance.invoice. Business justification: Third-party inspection services generate vendor invoices that must be matched to the inspection record for AP processing. Linking inspection_record to finance.invoice enables cost reconciliation of in',
-    `maintenance_plan_id` BIGINT COMMENT 'Foreign key linking to equipment.maintenance_plan. Business justification: Inspections in construction equipment are typically scheduled as part of a preventive maintenance plan (e.g., 250-hour inspection, annual statutory inspection). The inspection_record should reference ',
-    `permit_to_work_id` BIGINT COMMENT 'Foreign key linking to safety.permit_to_work. Business justification: Statutory equipment inspections (crane, pressure vessel, confined space) require a PTW in construction. WHS regulations mandate PTW-to-inspection traceability. HSE auditors verify this link during com',
-    `rental_agreement_id` BIGINT COMMENT 'Foreign key linking to equipment.rental_agreement. Business justification: Rented equipment requires mandatory pre-mobilization and post-demobilization inspections to document condition, record defects, and establish liability. The inspection_record for rented equipment shou',
-    `swms_id` BIGINT COMMENT 'Foreign key linking to safety.swms. Business justification: Equipment inspection is a high-risk work activity in construction requiring a SWMS under WHS legislation. The SWMS governs how the inspection is safely conducted. Construction HSE managers expect insp',
+    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Inspection activities incur costs charged to departmental cost centers for overhead allocation and P&L reporting. Construction finance requires cost center assignment on all cost-bearing transactions ',
+    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Inspection costs (inspection_cost field) must be coded to cost codes for job costing and budget control reporting. Construction finance teams require inspection expenditure to be allocated by cost cod',
+    `functional_location_id` BIGINT COMMENT 'Foreign key linking to equipment.functional_location. Business justification: inspection_record stores inspection_location as a free-text STRING, which is a denormalized location description. Inspections are performed at specific functional locations (e.g., a crane bay, a maint',
+    `hse_plan_id` BIGINT COMMENT 'Foreign key linking to safety.hse_plan. Business justification: Equipment inspection schedules and regulatory requirements are governed by the project HSE plan. HSE audits and compliance reporting require traceability from inspection records to the governing HSE p',
+    `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: OSHA and DOT regulations require recording which qualified, certified individual performed each equipment inspection. Role-prefix inspector distinguishes from asset.operator_craft_worker_id. Enables',
+    `itp_id` BIGINT COMMENT 'Foreign key linking to quality.itp. Business justification: Equipment inspection records must reference the governing ITP to confirm inspections were performed per the approved quality plan. Regulatory audits and client sign-off require proof that each equipme',
+    `maintenance_order_id` BIGINT COMMENT 'Foreign key linking to equipment.maintenance_order. Business justification: A failed or defect-identifying inspection typically triggers a corrective maintenance work order in construction equipment management. inspection_record has corrective_actions_required and corrective_',
+    `maintenance_plan_id` BIGINT COMMENT 'Foreign key linking to equipment.maintenance_plan. Business justification: In SAP PM, inspections are typically scheduled and governed by a maintenance plan (preventive maintenance strategy). inspection_record has inspection_frequency_days as a denormalized field that duplic',
+    `ncr_id` BIGINT COMMENT 'Foreign key linking to quality.ncr. Business justification: Equipment inspections that identify defects trigger NCR creation. Linking inspection_record to the resulting NCR provides end-to-end traceability: from defect identification during equipment inspectio',
+    `permit_to_work_id` BIGINT COMMENT 'Foreign key linking to safety.permit_to_work. Business justification: Statutory equipment inspections (confined space, electrical, elevated) require a PTW before the inspector can access the equipment. Regulatory compliance and site access control depend on linking insp',
+    `phase_id` BIGINT COMMENT 'Foreign key linking to project.phase. Business justification: Regulatory equipment inspections (crane certificates, lifting gear) are mandated at specific project phases (pre-commissioning, handover). Phase-level inspection compliance reporting is a standard HSE',
+    `risk_assessment_id` BIGINT COMMENT 'Foreign key linking to safety.risk_assessment. Business justification: Equipment inspections are conducted against a risk assessment identifying hazards and controls for the inspection activity itself. Pre-inspection risk assessment is a standard construction HSE require',
+    `technical_specification_id` BIGINT COMMENT 'Foreign key linking to design.technical_specification. Business justification: Inspections verify equipment compliance against the governing technical specification (regulatory requirement reference). QA/QC teams run inspection results by specification reports to demonstrate c',
+    `vendor_id` BIGINT COMMENT 'Foreign key linking to procurement.vendor. Business justification: Third-party inspections (NDT, regulatory, insurance) in construction are performed by external vendors. Linking inspection_record to vendor enables vendor qualification tracking for inspection service',
     `certificate_document_reference` STRING COMMENT 'File path, document management system reference, or URL pointing to the stored digital copy of the compliance certificate. Used for audit retrieval and regulatory verification. Null if no certificate was issued.',
     `certificate_expiry_date` DATE COMMENT 'Date on which the compliance certificate expires and the equipment must be re-inspected to maintain certification. Critical for compliance tracking and pre-mobilization checks. Null if no certificate was issued or certificate has no expiry.',
     `certificate_issue_date` DATE COMMENT 'Date on which the compliance certificate was formally issued by the issuing authority. Null if no certificate was issued.',
@@ -308,11 +299,9 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`equipment`.`inspection_record` (
     `equipment_hours_at_inspection` DECIMAL(18,2) COMMENT 'Total accumulated operating hours recorded on the equipment hour meter at the time of inspection. Used for usage-based maintenance scheduling and lifecycle tracking.',
     `inspection_checklist_reference` STRING COMMENT 'Reference to the standard inspection checklist, Inspection and Test Plan (ITP), or procedure document used to conduct this inspection. Links to document management system.',
     `inspection_cost` DECIMAL(18,2) COMMENT 'Total cost incurred for this inspection event, including inspector fees, third-party inspection charges, testing costs, and administrative overhead. Null if cost not tracked.',
-    `inspection_cost_currency` DECIMAL(18,2) COMMENT 'Three-letter ISO 4217 currency code for the inspection cost. Examples: USD, EUR, GBP. Null if cost not tracked.',
+    `inspection_cost_currency` STRING COMMENT 'Three-letter ISO 4217 currency code for the inspection cost. Examples: USD, EUR, GBP. Null if cost not tracked.. Valid values are `^[A-Z]{3}$`',
     `inspection_date` DATE COMMENT 'The calendar date on which the inspection was performed. This is the principal business event date for the inspection record.',
     `inspection_end_timestamp` TIMESTAMP COMMENT 'Precise date and time when the inspection activity was completed and findings were recorded.',
-    `inspection_frequency_days` STRING COMMENT 'Standard interval in days between required inspections for this equipment and inspection type. Used to calculate next inspection due date. Examples: 1 day for pre-start checks, 30 days for monthly inspections, 365 days for annual statutory inspections.',
-    `inspection_location` STRING COMMENT 'Physical location where the inspection was performed. May be a construction site name, yard location, workshop, factory, or field location identifier.',
     `inspection_notes` STRING COMMENT 'Free-form text field for additional observations, comments, recommendations, or contextual information recorded by the inspector that does not fit into structured fields.',
     `inspection_number` STRING COMMENT 'Externally-known unique business identifier for the inspection event, typically generated by the maintenance management system or HSE system.',
     `inspection_outcome` STRING COMMENT 'Final pass/fail determination of the inspection. Pass: equipment meets all requirements and is fit for use. Fail: equipment does not meet requirements and must not be used until corrective action is completed. Conditional pass: equipment passed with minor observations or time-limited approval. Not applicable: inspection was not completed or outcome not yet determined.. Valid values are `pass|fail|conditional_pass|not_applicable`',
@@ -325,19 +314,18 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`equipment`.`inspection_record` (
     `regulatory_requirement_reference` STRING COMMENT 'Citation of the specific regulatory requirement, standard, or code that mandates this inspection. Examples: OSHA 1926.550 for cranes, ASME Section VIII for pressure vessels, manufacturer maintenance manual reference.',
     `weather_conditions` STRING COMMENT 'Description of weather conditions at the time of inspection, relevant for outdoor equipment inspections where environmental factors may affect inspection validity or equipment condition assessment.',
     CONSTRAINT pk_inspection_record PRIMARY KEY(`inspection_record_id`)
-) COMMENT 'Transactional record of a statutory, regulatory, or internal safety inspection performed on a piece of equipment, and the master register of all resulting compliance certificates issued. Captures inspection type (pre-start check, periodic statutory inspection, OSHA compliance check, crane load test, lifting gear inspection, pressure vessel test, FAT/SAT), inspection date, inspector name and certification, pass/fail outcome, defects identified, corrective actions required, next inspection due date. For certificates: captures certificate type (crane load test certificate, pressure vessel certificate, lifting gear certificate, OSHA compliance certificate, insurance certificate), certificate number, issuing authority, issue date, expiry date, and document storage reference. SSOT for all equipment inspection events AND asset-level compliance certificates. Supports OSHA compliance, insurance requirements, equipment fitness-for-use certification, pre-mobilization compliance checks, and regulatory audit trails. Distinct from quality ITP inspections (owned by quality domain) and operator certifications (which track people, not assets). Canonical equipment.inspection_record entity (v2 curated).';
+) COMMENT 'Transactional record of a statutory, regulatory, or internal safety inspection performed on a piece of equipment, and the master register of all resulting compliance certificates issued. Captures inspection type (pre-start check, periodic statutory inspection, OSHA compliance check, crane load test, lifting gear inspection, pressure vessel test, FAT/SAT), inspection date, inspector name and certification, pass/fail outcome, defects identified, corrective actions required, next inspection due date. For certificates: captures certificate type (crane load test certificate, pressure vessel certificate, lifting gear certificate, OSHA compliance certificate, insurance certificate), certificate number, issuing authority, issue date, expiry date, and document storage reference. SSOT for all equipment inspection events AND asset-level compliance certificates. Supports OSHA compliance, insurance requirements, equipment fitness-for-use certification, pre-mobilization compliance checks, and regulatory audit trails. Distinct from quality ITP inspections (owned by quality domain) and operator certifications (which track people, not assets).';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` (
     `rental_agreement_id` BIGINT COMMENT 'Unique identifier for the equipment rental agreement. Primary key for the rental agreement record.',
     `asset_id` BIGINT COMMENT 'Reference to the specific equipment unit being rented. Links to the equipment master record in the equipment domain.',
-    `construction_project_id` BIGINT COMMENT 'Reference to the construction project to which this rental equipment is assigned. Links to the project master record.',
     `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Rental agreement expenses are allocated to a cost center for cost tracking and billing.',
-    `jv_structure_id` BIGINT COMMENT 'Foreign key linking to client.jv_structure. Business justification: JV entities frequently execute their own equipment rental agreements, separate from parent company procurement. Linking rental_agreement to jv_structure enables JV-level rental cost tracking, partner ',
+    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Rental agreement costs must be coded to cost codes for equipment hire budget vs actual reporting and job costing. rental_agreement has cost_center_id already but lacks cost_code FK needed for detailed',
     `vendor_id` BIGINT COMMENT 'Reference to the plant hire company or equipment supplier providing the rental equipment. Links to the supplier master record.',
     `actual_demobilization_date` DATE COMMENT 'Actual date when the equipment was demobilized and removed from the project site. Used for final billing and cost reconciliation.',
     `actual_mobilization_date` DATE COMMENT 'Actual date when the equipment was delivered and mobilized to the project site. May differ from planned rental start date.',
     `approval_date` DATE COMMENT 'Date when the rental agreement was formally approved and authorized for execution.',
-    `billing_frequency` DECIMAL(18,2) COMMENT 'Frequency at which rental charges are invoiced by the supplier (daily, weekly, monthly, or milestone-based).',
+    `billing_frequency` STRING COMMENT 'Frequency at which rental charges are invoiced by the supplier (daily, weekly, monthly, or milestone-based).. Valid values are `daily|weekly|monthly|milestone`',
     `contract_document_reference` STRING COMMENT 'Reference to the physical or digital contract document stored in the document management system (e.g., Aconex document ID).',
     `created_timestamp` TIMESTAMP COMMENT 'Timestamp when this rental agreement record was first created in the system. Used for audit trail and data lineage.',
     `currency_code` STRING COMMENT 'Three-letter ISO 4217 currency code for all monetary amounts in this rental agreement (e.g., USD, EUR, GBP).. Valid values are `^[A-Z]{3}$`',
@@ -357,10 +345,9 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` (
     `monthly_hire_rate` DECIMAL(18,2) COMMENT 'Agreed monthly rental rate for the equipment in the contract currency. Used when billing is on a monthly basis.',
     `notes` STRING COMMENT 'Free-text field for additional notes, special conditions, or remarks related to the rental agreement.',
     `operator_supplied_flag` BOOLEAN COMMENT 'Indicates whether the rental supplier provides a qualified operator with the equipment (True) or if the contractor provides their own operator (False).',
-    `payment_terms` DECIMAL(18,2) COMMENT 'Payment terms agreed with the supplier (e.g., Net 30 days, Net 45 days, 2/10 Net 30). Governs invoice payment schedule.',
+    `payment_terms` STRING COMMENT 'Payment terms agreed with the supplier (e.g., Net 30 days, Net 45 days, 2/10 Net 30). Governs invoice payment schedule.',
     `rental_agreement_number` STRING COMMENT 'Business-facing unique identifier for the rental agreement, typically used in contracts and invoices. Format: RA-NNNNNN.. Valid values are `^RA-[0-9]{6,10}$`',
     `rental_end_date` DATE COMMENT 'Planned or actual date when the rental period ends and equipment is demobilized. Nullable for open-ended rentals.',
-    `rental_po_number` STRING COMMENT 'Purchase order number issued to the supplier for this rental agreement. Links the rental agreement to the procurement transaction.. Valid values are `^PO-[0-9]{8,12}$`',
     `rental_start_date` DATE COMMENT 'Date when the rental period begins and hire charges commence. Typically aligned with equipment mobilization date.',
     `rental_status` STRING COMMENT 'Current lifecycle status of the rental agreement. Tracks the agreement from draft through completion or cancellation. [ENUM-REF-CANDIDATE: draft|approved|active|on_hire|demobilized|completed|cancelled|disputed — 8 candidates stripped; promote to reference product]',
     `security_deposit_amount` DECIMAL(18,2) COMMENT 'Refundable security deposit held by the supplier to cover potential damage or late return penalties.',
@@ -376,13 +363,14 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` (
     `asset_id` BIGINT COMMENT 'Identifier of the equipment or fleet vehicle that received fuel. Links to the equipment master data.',
     `construction_project_id` BIGINT COMMENT 'Identifier of the construction project to which this fuel transaction is allocated for cost tracking.',
     `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Fuel consumption is charged to a cost code for cost allocation and EVM reporting.',
-    `fleet_assignment_id` BIGINT COMMENT 'Foreign key linking to equipment.fleet_assignment. Business justification: Fuel is issued to equipment that is actively deployed on a fleet assignment. Linking fuel_transaction to fleet_assignment enables assignment-level fuel cost and consumption reporting — critical for pr',
-    `invoice_id` BIGINT COMMENT 'Foreign key linking to finance.invoice. Business justification: Fuel purchases from vendors generate AP invoices. fuel_transaction.invoice_number is a denormalized plain-text reference; replacing it with a proper FK to finance.invoice enables automated three-way m',
+    `fleet_assignment_id` BIGINT COMMENT 'Foreign key linking to equipment.fleet_assignment. Business justification: fuel_transaction records fuel issued to a piece of equipment. When that equipment is under a fleet assignment, the fuel cost should be attributable to the specific assignment for project cost control ',
+    `invoice_id` BIGINT COMMENT 'Foreign key linking to finance.invoice. Business justification: fuel_transaction.invoice_number is a denormalized plain-text reference to a finance.invoice record. Fuel purchases generate vendor invoices requiring AP reconciliation and audit trails. Replacing the ',
     `master_id` BIGINT COMMENT 'Foreign key linking to material.material_master. Business justification: Links fuel transactions to the material master for standardized fuel type, pricing, and regulatory reporting.',
-    `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: Fuel is issued to specific equipment operators (craft_workers). Replacing denormalized operator_name with a proper FK enables operator-level fuel consumption reporting, cost allocation to labor record',
+    `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: Fuel transactions record the operator who received/issued fuel. operator_name is a denormalized text field. Linking to craft_worker enables fuel cost allocation by operator, supports theft investigati',
+    `phase_id` BIGINT COMMENT 'Foreign key linking to project.phase. Business justification: Fuel cost by project phase is a standard construction cost control and carbon emissions reporting requirement. fuel_transaction has construction_project_id and wbs_element_id but no phase linkage; pha',
+    `purchase_order_id` BIGINT COMMENT 'Foreign key linking to procurement.purchase_order. Business justification: Bulk fuel purchases on construction sites are made via PO against a fuel supplier. The denormalized purchase_order_number on fuel_transaction should be a proper FK to support fuel cost reconciliation ',
     `site_id` BIGINT COMMENT 'Identifier of the construction site or location where the equipment was operating at the time of fueling.',
     `vendor_id` BIGINT COMMENT 'Identifier of the external fuel vendor or supplier if fuel was purchased from a third-party station. Null for internal fuel depots.',
-    `warehouse_id` BIGINT COMMENT 'Foreign key linking to material.warehouse. Business justification: Fuel transactions must reference the source fuel depot/warehouse for inventory reconciliation and stock depletion. Construction fuel management requires knowing which storage facility dispensed fuel t',
     `wbs_element_id` BIGINT COMMENT 'Identifier of the WBS element for detailed project cost allocation and tracking.',
     `approval_status` STRING COMMENT 'Approval status of the fuel transaction. Indicates whether the transaction has been reviewed and approved by a supervisor or cost controller.. Valid values are `approved|pending_approval|rejected|auto_approved`',
     `approval_timestamp` TIMESTAMP COMMENT 'Date and time when the fuel transaction was approved. Null if not yet approved.',
@@ -396,7 +384,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` (
     `is_theft_suspected` BOOLEAN COMMENT 'Flag indicating whether fuel theft or wastage is suspected based on consumption patterns or anomaly detection. True indicates suspected theft; False indicates normal transaction.',
     `modified_timestamp` TIMESTAMP COMMENT 'Date and time when the fuel transaction record was last modified. Used for audit trail and change tracking.',
     `odometer_reading` DECIMAL(18,2) COMMENT 'Odometer reading of the fleet vehicle at the time of fueling. Used for mileage-based fuel consumption analysis. Applicable to vehicles with odometers.',
-    `purchase_order_number` STRING COMMENT 'Purchase order number if the fuel transaction was part of a formal procurement process. Used for contract compliance and spend tracking.',
     `quantity_issued` DECIMAL(18,2) COMMENT 'Quantity of fuel issued to the equipment in the specified unit of measure. Typically measured in litres or gallons.',
     `source_system_code` STRING COMMENT 'Unique identifier of the fuel transaction in the source system. Used for traceability and reconciliation.',
     `tank_capacity_percentage` DECIMAL(18,2) COMMENT 'Percentage of the equipment fuel tank capacity filled during this transaction. Used to detect partial fills and optimize refueling schedules.',
@@ -408,26 +395,67 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` (
     `unit_cost` DECIMAL(18,2) COMMENT 'Cost per unit of fuel at the time of transaction. Expressed in the transaction currency.',
     `unit_of_measure` STRING COMMENT 'Unit of measure for the fuel quantity issued. Common units include litres, gallons, or kWh for electric charging.. Valid values are `litres|gallons|kwh`',
     CONSTRAINT pk_fuel_transaction PRIMARY KEY(`fuel_transaction_id`)
-) COMMENT 'Transactional record of fuel issued to a piece of equipment or fleet vehicle. Captures fuel type (diesel, petrol, LPG), quantity issued (litres), unit cost, total cost, issuing fuel point or bowser, date and time of issue, hour meter or odometer reading at fueling, project and cost code allocation, and operator confirmation. Enables fuel consumption tracking, cost-per-hour analysis, carbon emissions reporting (ISO 14001), and detection of fuel wastage or theft. Canonical equipment.fuel_transaction entity (v2 curated).';
+) COMMENT 'Transactional record of fuel issued to a piece of equipment or fleet vehicle. Captures fuel type (diesel, petrol, LPG), quantity issued (litres), unit cost, total cost, issuing fuel point or bowser, date and time of issue, hour meter or odometer reading at fueling, project and cost code allocation, and operator confirmation. Enables fuel consumption tracking, cost-per-hour analysis, carbon emissions reporting (ISO 14001), and detection of fuel wastage or theft.';
+
+CREATE OR REPLACE TABLE `vibe_construction_v1`.`equipment`.`functional_location` (
+    `functional_location_id` BIGINT COMMENT 'Primary key for functional_location',
+    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Functional locations (plant areas, equipment yards, depots) are managed by cost centers for facility overhead allocation and departmental cost reporting. SAP PM standard practice assigns a cost center',
+    `parent_functional_location_id` BIGINT COMMENT 'Self-referencing FK on functional_location (parent_functional_location_id)',
+    `parent_location_functional_location_id` BIGINT COMMENT 'Identifier of the immediate parent location in the hierarchy, if any.',
+    `address_line1` STRING COMMENT 'Primary street address of the location.',
+    `address_line2` STRING COMMENT 'Secondary address information (suite, unit, etc.).',
+    `area_sq_m` DECIMAL(18,2) COMMENT 'Physical footprint of the location in square meters.',
+    `asset_count` STRING COMMENT 'Number of equipment assets assigned to this location.',
+    `capacity_tons` DECIMAL(18,2) COMMENT 'Maximum load capacity the location can support, expressed in metric tons.',
+    `city` STRING COMMENT 'City where the location is situated.',
+    `functional_location_code` STRING COMMENT 'Enterprise‑wide unique alphanumeric code used to reference the location in SAP PM and HCSS HeavyJob.',
+    `commissioning_date` DATE COMMENT 'Date the location was officially commissioned for use.',
+    `country_code` STRING COMMENT 'Three‑letter ISO country code where the location resides.',
+    `created_timestamp` TIMESTAMP COMMENT 'Timestamp when the functional location record was first created in the lakehouse.',
+    `decommission_date` DATE COMMENT 'Date the location was retired or taken out of service, if applicable.',
+    `functional_location_description` STRING COMMENT 'Free‑form description providing additional context about the location.',
+    `environmental_zone` STRING COMMENT 'Designation of the environmental zone (e.g., hazardous, clean, temperature‑controlled).',
+    `functional_location_status` STRING COMMENT 'Current operational status of the location.',
+    `functional_location_type` STRING COMMENT 'Category of the location within the equipment hierarchy.',
+    `gps_accuracy_m` DOUBLE COMMENT 'Estimated accuracy of the GPS coordinates in meters.',
+    `inspection_status` STRING COMMENT 'Result of the latest inspection.',
+    `installation_date` DATE COMMENT 'Date the location was first installed or made operational.',
+    `is_owned` BOOLEAN COMMENT 'Indicates whether the location is owned by the enterprise (true) or not (false).',
+    `is_rental` BOOLEAN COMMENT 'Indicates whether the location is leased/rented (true) or owned (false).',
+    `last_inspection_date` DATE COMMENT 'Date of the most recent safety or compliance inspection.',
+    `latitude` DOUBLE COMMENT 'Geographic latitude of the location in decimal degrees.',
+    `longitude` DOUBLE COMMENT 'Geographic longitude of the location in decimal degrees.',
+    `functional_location_name` STRING COMMENT 'Human‑readable name of the location (e.g., Main Plant, Building A).',
+    `postal_code` STRING COMMENT 'Postal/ZIP code for the location.',
+    `responsible_department` STRING COMMENT 'Organizational department accountable for the locations operation and maintenance.',
+    `safety_rating` STRING COMMENT 'Safety classification of the location based on internal risk assessments.',
+    `state` STRING COMMENT 'State or province of the location.',
+    `updated_timestamp` TIMESTAMP COMMENT 'Timestamp of the most recent update to the functional location record.',
+    CONSTRAINT pk_functional_location PRIMARY KEY(`functional_location_id`)
+) COMMENT 'Master reference table for functional_location. Referenced by functional_location_id.';
 
 -- ========= FOREIGN KEYS =========
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` ADD CONSTRAINT `fk_equipment_asset_asset_category_id` FOREIGN KEY (`asset_category_id`) REFERENCES `vibe_construction_v1`.`equipment`.`asset_category`(`asset_category_id`);
+ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` ADD CONSTRAINT `fk_equipment_asset_functional_location_id` FOREIGN KEY (`functional_location_id`) REFERENCES `vibe_construction_v1`.`equipment`.`functional_location`(`functional_location_id`);
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ADD CONSTRAINT `fk_equipment_asset_category_parent_category_asset_category_id` FOREIGN KEY (`parent_category_asset_category_id`) REFERENCES `vibe_construction_v1`.`equipment`.`asset_category`(`asset_category_id`);
-ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ADD CONSTRAINT `fk_equipment_fleet_assignment_asset_id` FOREIGN KEY (`asset_id`) REFERENCES `vibe_construction_v1`.`equipment`.`asset`(`asset_id`);
+ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ADD CONSTRAINT `fk_equipment_fleet_assignment_functional_location_id` FOREIGN KEY (`functional_location_id`) REFERENCES `vibe_construction_v1`.`equipment`.`functional_location`(`functional_location_id`);
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ADD CONSTRAINT `fk_equipment_fleet_assignment_rental_agreement_id` FOREIGN KEY (`rental_agreement_id`) REFERENCES `vibe_construction_v1`.`equipment`.`rental_agreement`(`rental_agreement_id`);
 ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ADD CONSTRAINT `fk_equipment_hours_asset_id` FOREIGN KEY (`asset_id`) REFERENCES `vibe_construction_v1`.`equipment`.`asset`(`asset_id`);
 ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ADD CONSTRAINT `fk_equipment_hours_fleet_assignment_id` FOREIGN KEY (`fleet_assignment_id`) REFERENCES `vibe_construction_v1`.`equipment`.`fleet_assignment`(`fleet_assignment_id`);
+ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ADD CONSTRAINT `fk_equipment_hours_functional_location_id` FOREIGN KEY (`functional_location_id`) REFERENCES `vibe_construction_v1`.`equipment`.`functional_location`(`functional_location_id`);
+ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ADD CONSTRAINT `fk_equipment_hours_maintenance_order_id` FOREIGN KEY (`maintenance_order_id`) REFERENCES `vibe_construction_v1`.`equipment`.`maintenance_order`(`maintenance_order_id`);
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ADD CONSTRAINT `fk_equipment_maintenance_plan_asset_category_id` FOREIGN KEY (`asset_category_id`) REFERENCES `vibe_construction_v1`.`equipment`.`asset_category`(`asset_category_id`);
-ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ADD CONSTRAINT `fk_equipment_maintenance_plan_asset_id` FOREIGN KEY (`asset_id`) REFERENCES `vibe_construction_v1`.`equipment`.`asset`(`asset_id`);
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ADD CONSTRAINT `fk_equipment_maintenance_order_asset_id` FOREIGN KEY (`asset_id`) REFERENCES `vibe_construction_v1`.`equipment`.`asset`(`asset_id`);
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ADD CONSTRAINT `fk_equipment_maintenance_order_maintenance_plan_id` FOREIGN KEY (`maintenance_plan_id`) REFERENCES `vibe_construction_v1`.`equipment`.`maintenance_plan`(`maintenance_plan_id`);
-ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ADD CONSTRAINT `fk_equipment_maintenance_order_inspection_record_id` FOREIGN KEY (`inspection_record_id`) REFERENCES `vibe_construction_v1`.`equipment`.`inspection_record`(`inspection_record_id`);
 ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ADD CONSTRAINT `fk_equipment_inspection_record_asset_id` FOREIGN KEY (`asset_id`) REFERENCES `vibe_construction_v1`.`equipment`.`asset`(`asset_id`);
+ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ADD CONSTRAINT `fk_equipment_inspection_record_functional_location_id` FOREIGN KEY (`functional_location_id`) REFERENCES `vibe_construction_v1`.`equipment`.`functional_location`(`functional_location_id`);
+ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ADD CONSTRAINT `fk_equipment_inspection_record_maintenance_order_id` FOREIGN KEY (`maintenance_order_id`) REFERENCES `vibe_construction_v1`.`equipment`.`maintenance_order`(`maintenance_order_id`);
 ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ADD CONSTRAINT `fk_equipment_inspection_record_maintenance_plan_id` FOREIGN KEY (`maintenance_plan_id`) REFERENCES `vibe_construction_v1`.`equipment`.`maintenance_plan`(`maintenance_plan_id`);
-ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ADD CONSTRAINT `fk_equipment_inspection_record_rental_agreement_id` FOREIGN KEY (`rental_agreement_id`) REFERENCES `vibe_construction_v1`.`equipment`.`rental_agreement`(`rental_agreement_id`);
 ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ADD CONSTRAINT `fk_equipment_rental_agreement_asset_id` FOREIGN KEY (`asset_id`) REFERENCES `vibe_construction_v1`.`equipment`.`asset`(`asset_id`);
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ADD CONSTRAINT `fk_equipment_fuel_transaction_asset_id` FOREIGN KEY (`asset_id`) REFERENCES `vibe_construction_v1`.`equipment`.`asset`(`asset_id`);
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ADD CONSTRAINT `fk_equipment_fuel_transaction_fleet_assignment_id` FOREIGN KEY (`fleet_assignment_id`) REFERENCES `vibe_construction_v1`.`equipment`.`fleet_assignment`(`fleet_assignment_id`);
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ADD CONSTRAINT `fk_equipment_functional_location_parent_functional_location_id` FOREIGN KEY (`parent_functional_location_id`) REFERENCES `vibe_construction_v1`.`equipment`.`functional_location`(`functional_location_id`);
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ADD CONSTRAINT `fk_equipment_functional_location_parent_location_functional_location_id` FOREIGN KEY (`parent_location_functional_location_id`) REFERENCES `vibe_construction_v1`.`equipment`.`functional_location`(`functional_location_id`);
 
 -- ========= TAGS =========
 ALTER SCHEMA `vibe_construction_v1`.`equipment` SET TAGS ('dbx_division' = 'operations');
@@ -436,11 +464,11 @@ ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` SET TAGS ('dbx_data_type'
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` SET TAGS ('dbx_subdomain' = 'asset_registry');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Asset ID');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` ALTER COLUMN `asset_category_id` SET TAGS ('dbx_business_glossary_term' = 'Asset Category Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Assigned Project ID');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` ALTER COLUMN `asset_current_location_site_construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Current Location Site ID');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Client Account Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` ALTER COLUMN `company_code_id` SET TAGS ('dbx_business_glossary_term' = 'Company Code Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Current Location Site ID');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Fuel Material Material Master Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` ALTER COLUMN `jv_structure_id` SET TAGS ('dbx_business_glossary_term' = 'Jv Structure Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` ALTER COLUMN `craft_worker_id` SET TAGS ('dbx_business_glossary_term' = 'Operator Craft Worker Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` ALTER COLUMN `functional_location_id` SET TAGS ('dbx_business_glossary_term' = 'Functional Location Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` ALTER COLUMN `acquisition_cost` SET TAGS ('dbx_business_glossary_term' = 'Acquisition Cost');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` ALTER COLUMN `acquisition_cost` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` ALTER COLUMN `acquisition_currency_code` SET TAGS ('dbx_business_glossary_term' = 'Acquisition Currency Code');
@@ -455,10 +483,8 @@ ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` ALTER COLUMN `created_tim
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` ALTER COLUMN `current_book_value` SET TAGS ('dbx_business_glossary_term' = 'Current Book Value');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` ALTER COLUMN `current_book_value` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` ALTER COLUMN `disposal_approver_name` SET TAGS ('dbx_business_glossary_term' = 'Disposal Approver Name');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` ALTER COLUMN `disposal_approver_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` ALTER COLUMN `disposal_buyer_name` SET TAGS ('dbx_business_glossary_term' = 'Disposal Buyer Name');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` ALTER COLUMN `disposal_buyer_name` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` ALTER COLUMN `disposal_buyer_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` ALTER COLUMN `disposal_date` SET TAGS ('dbx_business_glossary_term' = 'Disposal Date');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` ALTER COLUMN `disposal_method` SET TAGS ('dbx_business_glossary_term' = 'Disposal Method');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset` ALTER COLUMN `disposal_method` SET TAGS ('dbx_value_regex' = 'sale|auction|scrap|write_off|trade_in|donation');
@@ -494,7 +520,9 @@ ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` SET TAGS ('dbx_d
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` SET TAGS ('dbx_subdomain' = 'asset_registry');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `asset_category_id` SET TAGS ('dbx_business_glossary_term' = 'Asset Category ID');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `gl_account_id` SET TAGS ('dbx_business_glossary_term' = 'Gl Account Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `parent_category_asset_category_id` SET TAGS ('dbx_business_glossary_term' = 'Parent Asset Category ID');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `skill_trade_id` SET TAGS ('dbx_business_glossary_term' = 'Required Skill Trade Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `asset_category_status` SET TAGS ('dbx_business_glossary_term' = 'Asset Category Status');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `asset_category_status` SET TAGS ('dbx_value_regex' = 'active|inactive|deprecated|pending');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `asset_class_sap` SET TAGS ('dbx_business_glossary_term' = 'SAP Asset Class');
@@ -506,7 +534,6 @@ ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `ca
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `category_description` SET TAGS ('dbx_business_glossary_term' = 'Asset Category Description');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `category_level` SET TAGS ('dbx_business_glossary_term' = 'Category Hierarchy Level');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `category_name` SET TAGS ('dbx_business_glossary_term' = 'Asset Category Name');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `category_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `category_type` SET TAGS ('dbx_business_glossary_term' = 'Asset Category Type');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `category_type` SET TAGS ('dbx_value_regex' = 'major|sub|class|specialty');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
@@ -515,8 +542,6 @@ ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `de
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `effective_end_date` SET TAGS ('dbx_business_glossary_term' = 'Effective End Date');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `effective_start_date` SET TAGS ('dbx_business_glossary_term' = 'Effective Start Date');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `environmental_compliance_flag` SET TAGS ('dbx_business_glossary_term' = 'Environmental Compliance Flag');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `gl_account_code` SET TAGS ('dbx_business_glossary_term' = 'General Ledger (GL) Account Code');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `gl_account_code` SET TAGS ('dbx_value_regex' = '^[0-9]{4,10}$');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `hcss_equipment_type` SET TAGS ('dbx_business_glossary_term' = 'HCSS HeavyJob Equipment Type');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `inspection_frequency_days` SET TAGS ('dbx_business_glossary_term' = 'Inspection Frequency Days');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `insurance_required` SET TAGS ('dbx_business_glossary_term' = 'Insurance Required Flag');
@@ -532,26 +557,13 @@ ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `so
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `useful_life_years` SET TAGS ('dbx_business_glossary_term' = 'Useful Life Years');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`asset_category` ALTER COLUMN `utilization_tracking_required` SET TAGS ('dbx_business_glossary_term' = 'Utilization Tracking Required Flag');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` SET TAGS ('dbx_subdomain' = 'asset_registry');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` SET TAGS ('dbx_subdomain' = 'fleet_operations');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `fleet_assignment_id` SET TAGS ('dbx_business_glossary_term' = 'Fleet Assignment ID');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `activity_id` SET TAGS ('dbx_business_glossary_term' = 'Activity Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Equipment ID');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `cost_account_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Account Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Code Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `crew_id` SET TAGS ('dbx_business_glossary_term' = 'Crew Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Lift Plan Drawing Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `craft_worker_id` SET TAGS ('dbx_business_glossary_term' = 'Operator Craft Worker Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `permit_to_work_id` SET TAGS ('dbx_business_glossary_term' = 'Permit To Work Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `functional_location_id` SET TAGS ('dbx_business_glossary_term' = 'Functional Location Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `phase_id` SET TAGS ('dbx_business_glossary_term' = 'Phase Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `project_milestone_id` SET TAGS ('dbx_business_glossary_term' = 'Project Milestone Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `rental_agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Rental Agreement Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Rental Vendor ID');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `risk_assessment_id` SET TAGS ('dbx_business_glossary_term' = 'Risk Assessment Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `site_id` SET TAGS ('dbx_business_glossary_term' = 'Site ID');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `swms_id` SET TAGS ('dbx_business_glossary_term' = 'Swms Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Element ID');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `work_front_id` SET TAGS ('dbx_business_glossary_term' = 'Work Front ID');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `actual_utilization_hours` SET TAGS ('dbx_business_glossary_term' = 'Actual Utilization Hours');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `assignment_end_date` SET TAGS ('dbx_business_glossary_term' = 'Assignment End Date');
@@ -588,6 +600,7 @@ ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `permit_number` SET TAGS ('dbx_business_glossary_term' = 'Permit Number');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `planned_utilization_hours` SET TAGS ('dbx_business_glossary_term' = 'Planned Utilization Hours');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `rate_currency_code` SET TAGS ('dbx_business_glossary_term' = 'Rate Currency Code');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `rate_currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `source_system_code` SET TAGS ('dbx_business_glossary_term' = 'Source System ID');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `standby_rate_per_hour` SET TAGS ('dbx_business_glossary_term' = 'Standby Rate Per Hour');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `standby_rate_per_hour` SET TAGS ('dbx_confidential' = 'true');
@@ -595,15 +608,17 @@ ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `weekly_rate` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fleet_assignment` ALTER COLUMN `created_by` SET TAGS ('dbx_business_glossary_term' = 'Created By User');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` SET TAGS ('dbx_subdomain' = 'maintenance_operations');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` SET TAGS ('dbx_subdomain' = 'fleet_operations');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ALTER COLUMN `hours_id` SET TAGS ('dbx_business_glossary_term' = 'Equipment Hours ID');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Equipment ID');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ALTER COLUMN `fleet_assignment_id` SET TAGS ('dbx_business_glossary_term' = 'Fleet Assignment Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ALTER COLUMN `invoice_id` SET TAGS ('dbx_business_glossary_term' = 'Invoice Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ALTER COLUMN `functional_location_id` SET TAGS ('dbx_business_glossary_term' = 'Functional Location Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ALTER COLUMN `maintenance_order_id` SET TAGS ('dbx_business_glossary_term' = 'Maintenance Order Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ALTER COLUMN `craft_worker_id` SET TAGS ('dbx_business_glossary_term' = 'Operator Craft Worker Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ALTER COLUMN `phase_id` SET TAGS ('dbx_business_glossary_term' = 'Phase Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Element ID');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ALTER COLUMN `approval_status` SET TAGS ('dbx_business_glossary_term' = 'Approval Status');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ALTER COLUMN `approval_status` SET TAGS ('dbx_value_regex' = 'draft|submitted|approved|rejected|disputed');
@@ -626,7 +641,6 @@ ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ALTER COLUMN `fuel_consum
 ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ALTER COLUMN `idle_hours` SET TAGS ('dbx_business_glossary_term' = 'Idle Hours');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ALTER COLUMN `is_billable` SET TAGS ('dbx_business_glossary_term' = 'Is Billable');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ALTER COLUMN `is_overtime` SET TAGS ('dbx_business_glossary_term' = 'Is Overtime');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ALTER COLUMN `location_description` SET TAGS ('dbx_business_glossary_term' = 'Location Description');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ALTER COLUMN `meter_reading_end` SET TAGS ('dbx_business_glossary_term' = 'Meter Reading End');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ALTER COLUMN `meter_reading_start` SET TAGS ('dbx_business_glossary_term' = 'Meter Reading Start');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Notes');
@@ -647,16 +661,16 @@ ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ALTER COLUMN `total_equip
 ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ALTER COLUMN `total_equipment_cost` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`hours` ALTER COLUMN `weather_condition` SET TAGS ('dbx_business_glossary_term' = 'Weather Condition');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` SET TAGS ('dbx_data_type' = 'master_data');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` SET TAGS ('dbx_subdomain' = 'maintenance_operations');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` SET TAGS ('dbx_subdomain' = 'maintenance_control');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ALTER COLUMN `maintenance_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Maintenance Plan ID');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ALTER COLUMN `asset_category_id` SET TAGS ('dbx_business_glossary_term' = 'Asset Category Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Equipment ID');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ALTER COLUMN `checklist_id` SET TAGS ('dbx_business_glossary_term' = 'Checklist Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Code Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ALTER COLUMN `crew_id` SET TAGS ('dbx_business_glossary_term' = 'Maintenance Team ID');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ALTER COLUMN `swms_id` SET TAGS ('dbx_business_glossary_term' = 'Swms Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ALTER COLUMN `technical_specification_id` SET TAGS ('dbx_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ALTER COLUMN `phase_id` SET TAGS ('dbx_business_glossary_term' = 'Phase Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ALTER COLUMN `risk_assessment_id` SET TAGS ('dbx_business_glossary_term' = 'Risk Assessment Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Vendor Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ALTER COLUMN `certification_required_flag` SET TAGS ('dbx_business_glossary_term' = 'Certification Required Flag');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ALTER COLUMN `compliance_requirement_code` SET TAGS ('dbx_business_glossary_term' = 'Compliance Requirement Code');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
@@ -679,7 +693,6 @@ ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ALTER COLUMN `
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ALTER COLUMN `notes` SET TAGS ('dbx_business_glossary_term' = 'Maintenance Plan Notes');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ALTER COLUMN `parts_list_reference` SET TAGS ('dbx_business_glossary_term' = 'Parts List Reference');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ALTER COLUMN `plan_name` SET TAGS ('dbx_business_glossary_term' = 'Maintenance Plan Name');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ALTER COLUMN `plan_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ALTER COLUMN `plan_number` SET TAGS ('dbx_business_glossary_term' = 'Maintenance Plan Number');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ALTER COLUMN `plan_number` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{8,12}$');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ALTER COLUMN `plan_status` SET TAGS ('dbx_business_glossary_term' = 'Maintenance Plan Status');
@@ -701,23 +714,21 @@ ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ALTER COLUMN `
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ALTER COLUMN `work_order_type` SET TAGS ('dbx_business_glossary_term' = 'Work Order Type');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_plan` ALTER COLUMN `work_order_type` SET TAGS ('dbx_value_regex' = 'preventive|inspection|calibration|overhaul|statutory');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` SET TAGS ('dbx_subdomain' = 'maintenance_operations');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` SET TAGS ('dbx_subdomain' = 'maintenance_control');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `maintenance_order_id` SET TAGS ('dbx_business_glossary_term' = 'Maintenance Order ID');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Equipment ID');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `checklist_id` SET TAGS ('dbx_business_glossary_term' = 'Checklist Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Code Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `crew_id` SET TAGS ('dbx_business_glossary_term' = 'Crew Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `hazard_register_id` SET TAGS ('dbx_business_glossary_term' = 'Hazard Register Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `invoice_id` SET TAGS ('dbx_business_glossary_term' = 'Invoice Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `maintenance_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Maintenance Plan ID');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Material Material Master Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `craft_worker_id` SET TAGS ('dbx_business_glossary_term' = 'Performing Craft Worker Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `permit_to_work_id` SET TAGS ('dbx_business_glossary_term' = 'Permit To Work Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `phase_id` SET TAGS ('dbx_business_glossary_term' = 'Phase Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `risk_assessment_id` SET TAGS ('dbx_business_glossary_term' = 'Risk Assessment Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `swms_id` SET TAGS ('dbx_business_glossary_term' = 'Swms Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `incident_id` SET TAGS ('dbx_business_glossary_term' = 'Triggering Incident Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `inspection_record_id` SET TAGS ('dbx_business_glossary_term' = 'Triggering Inspection Record Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Vendor Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `warehouse_id` SET TAGS ('dbx_business_glossary_term' = 'Warehouse Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `actual_end_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Actual End Timestamp');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `actual_start_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Actual Start Timestamp');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `closed_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Closed Timestamp');
@@ -748,27 +759,31 @@ ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN 
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `planned_start_date` SET TAGS ('dbx_business_glossary_term' = 'Planned Start Date');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `priority` SET TAGS ('dbx_business_glossary_term' = 'Maintenance Priority');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `priority` SET TAGS ('dbx_value_regex' = 'critical|high|medium|low');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `purchase_order_number` SET TAGS ('dbx_business_glossary_term' = 'Purchase Order (PO) Number');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `site_location_code` SET TAGS ('dbx_business_glossary_term' = 'Site Location Code');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `total_maintenance_cost` SET TAGS ('dbx_business_glossary_term' = 'Total Maintenance Cost');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `total_maintenance_cost` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `warranty_claim_flag` SET TAGS ('dbx_business_glossary_term' = 'Warranty Claim Flag');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `warranty_claim_number` SET TAGS ('dbx_business_glossary_term' = 'Warranty Claim Number');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `work_center_code` SET TAGS ('dbx_business_glossary_term' = 'Work Center Code');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`maintenance_order` ALTER COLUMN `work_performed_description` SET TAGS ('dbx_business_glossary_term' = 'Work Performed Description');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` SET TAGS ('dbx_subdomain' = 'maintenance_operations');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` SET TAGS ('dbx_subdomain' = 'maintenance_control');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `inspection_record_id` SET TAGS ('dbx_business_glossary_term' = 'Inspection Record ID');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Equipment ID');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Code Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `functional_location_id` SET TAGS ('dbx_business_glossary_term' = 'Functional Location Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `hse_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Hse Plan Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `craft_worker_id` SET TAGS ('dbx_business_glossary_term' = 'Inspector Craft Worker Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `invoice_id` SET TAGS ('dbx_business_glossary_term' = 'Invoice Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `itp_id` SET TAGS ('dbx_business_glossary_term' = 'Itp Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `maintenance_order_id` SET TAGS ('dbx_business_glossary_term' = 'Maintenance Order Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `maintenance_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Maintenance Plan Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `ncr_id` SET TAGS ('dbx_business_glossary_term' = 'Ncr Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `permit_to_work_id` SET TAGS ('dbx_business_glossary_term' = 'Permit To Work Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `rental_agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Rental Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `swms_id` SET TAGS ('dbx_business_glossary_term' = 'Swms Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `phase_id` SET TAGS ('dbx_business_glossary_term' = 'Phase Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `risk_assessment_id` SET TAGS ('dbx_business_glossary_term' = 'Risk Assessment Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `technical_specification_id` SET TAGS ('dbx_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Vendor Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `certificate_document_reference` SET TAGS ('dbx_business_glossary_term' = 'Certificate Document Reference');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `certificate_expiry_date` SET TAGS ('dbx_business_glossary_term' = 'Certificate Expiry Date');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `certificate_issue_date` SET TAGS ('dbx_business_glossary_term' = 'Certificate Issue Date');
@@ -786,10 +801,9 @@ ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN 
 ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `inspection_cost` SET TAGS ('dbx_business_glossary_term' = 'Inspection Cost');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `inspection_cost` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `inspection_cost_currency` SET TAGS ('dbx_business_glossary_term' = 'Inspection Cost Currency');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `inspection_cost_currency` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `inspection_date` SET TAGS ('dbx_business_glossary_term' = 'Inspection Date');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `inspection_end_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Inspection End Timestamp');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `inspection_frequency_days` SET TAGS ('dbx_business_glossary_term' = 'Inspection Frequency Days');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `inspection_location` SET TAGS ('dbx_business_glossary_term' = 'Inspection Location');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `inspection_notes` SET TAGS ('dbx_business_glossary_term' = 'Inspection Notes');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `inspection_number` SET TAGS ('dbx_business_glossary_term' = 'Inspection Number');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`inspection_record` ALTER COLUMN `inspection_outcome` SET TAGS ('dbx_business_glossary_term' = 'Inspection Outcome');
@@ -806,14 +820,14 @@ ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` SET TAGS ('dbx
 ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` SET TAGS ('dbx_subdomain' = 'asset_registry');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ALTER COLUMN `rental_agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Rental Agreement ID');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Equipment ID');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ALTER COLUMN `jv_structure_id` SET TAGS ('dbx_business_glossary_term' = 'Jv Structure Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Code Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Supplier ID');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ALTER COLUMN `actual_demobilization_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Demobilization Date');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ALTER COLUMN `actual_mobilization_date` SET TAGS ('dbx_business_glossary_term' = 'Actual Mobilization Date');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ALTER COLUMN `billing_frequency` SET TAGS ('dbx_business_glossary_term' = 'Billing Frequency');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ALTER COLUMN `billing_frequency` SET TAGS ('dbx_value_regex' = 'daily|weekly|monthly|milestone');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ALTER COLUMN `contract_document_reference` SET TAGS ('dbx_business_glossary_term' = 'Contract Document Reference');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Created Timestamp');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code');
@@ -839,8 +853,6 @@ ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ALTER COLUMN `
 ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ALTER COLUMN `rental_agreement_number` SET TAGS ('dbx_business_glossary_term' = 'Rental Agreement Number');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ALTER COLUMN `rental_agreement_number` SET TAGS ('dbx_value_regex' = '^RA-[0-9]{6,10}$');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ALTER COLUMN `rental_end_date` SET TAGS ('dbx_business_glossary_term' = 'Rental End Date');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ALTER COLUMN `rental_po_number` SET TAGS ('dbx_business_glossary_term' = 'Rental Purchase Order (PO) Number');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ALTER COLUMN `rental_po_number` SET TAGS ('dbx_value_regex' = '^PO-[0-9]{8,12}$');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ALTER COLUMN `rental_start_date` SET TAGS ('dbx_business_glossary_term' = 'Rental Start Date');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ALTER COLUMN `rental_status` SET TAGS ('dbx_business_glossary_term' = 'Rental Agreement Status');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ALTER COLUMN `security_deposit_amount` SET TAGS ('dbx_business_glossary_term' = 'Security Deposit Amount');
@@ -848,7 +860,7 @@ ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ALTER COLUMN `
 ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ALTER COLUMN `total_committed_cost` SET TAGS ('dbx_business_glossary_term' = 'Total Committed Rental Cost');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`rental_agreement` ALTER COLUMN `weekly_hire_rate` SET TAGS ('dbx_business_glossary_term' = 'Weekly Hire Rate');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` SET TAGS ('dbx_subdomain' = 'maintenance_operations');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` SET TAGS ('dbx_subdomain' = 'fleet_operations');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `fuel_transaction_id` SET TAGS ('dbx_business_glossary_term' = 'Fuel Transaction ID');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Equipment ID');
@@ -858,9 +870,10 @@ ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `invoice_id` SET TAGS ('dbx_business_glossary_term' = 'Invoice Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Material Material Master Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `craft_worker_id` SET TAGS ('dbx_business_glossary_term' = 'Operator Craft Worker Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `phase_id` SET TAGS ('dbx_business_glossary_term' = 'Phase Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `purchase_order_id` SET TAGS ('dbx_business_glossary_term' = 'Purchase Order Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `site_id` SET TAGS ('dbx_business_glossary_term' = 'Site ID');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Vendor ID');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `warehouse_id` SET TAGS ('dbx_business_glossary_term' = 'Warehouse Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `wbs_element_id` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Element ID');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `approval_status` SET TAGS ('dbx_business_glossary_term' = 'Approval Status');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `approval_status` SET TAGS ('dbx_value_regex' = 'approved|pending_approval|rejected|auto_approved');
@@ -872,13 +885,11 @@ ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `fuel_card_number` SET TAGS ('dbx_business_glossary_term' = 'Fuel Card Number');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `fuel_card_number` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `fuel_card_number` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `hour_meter_reading` SET TAGS ('dbx_business_glossary_term' = 'Hour Meter Reading');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `is_emergency_refuel` SET TAGS ('dbx_business_glossary_term' = 'Is Emergency Refuel');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `is_theft_suspected` SET TAGS ('dbx_business_glossary_term' = 'Is Theft Suspected');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Modified Timestamp');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `odometer_reading` SET TAGS ('dbx_business_glossary_term' = 'Odometer Reading');
-ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `purchase_order_number` SET TAGS ('dbx_business_glossary_term' = 'Purchase Order (PO) Number');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `quantity_issued` SET TAGS ('dbx_business_glossary_term' = 'Quantity Issued');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `source_system_code` SET TAGS ('dbx_business_glossary_term' = 'Source System ID');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `tank_capacity_percentage` SET TAGS ('dbx_business_glossary_term' = 'Tank Capacity Percentage');
@@ -891,3 +902,55 @@ ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `unit_cost` SET TAGS ('dbx_business_glossary_term' = 'Unit Cost');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `unit_of_measure` SET TAGS ('dbx_business_glossary_term' = 'Unit of Measure');
 ALTER TABLE `vibe_construction_v1`.`equipment`.`fuel_transaction` ALTER COLUMN `unit_of_measure` SET TAGS ('dbx_value_regex' = 'litres|gallons|kwh');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` SET TAGS ('dbx_data_type' = 'master_data');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` SET TAGS ('dbx_subdomain' = 'asset_registry');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `functional_location_id` SET TAGS ('dbx_business_glossary_term' = 'Functional Location Identifier');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `parent_functional_location_id` SET TAGS ('dbx_business_glossary_term' = 'Parent Functional Location Id');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `parent_functional_location_id` SET TAGS ('dbx_self_ref_fk' = 'true');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `parent_location_functional_location_id` SET TAGS ('dbx_business_glossary_term' = 'Parent Location Id');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `address_line1` SET TAGS ('dbx_business_glossary_term' = 'Address Line1');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `address_line1` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `address_line1` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `address_line2` SET TAGS ('dbx_business_glossary_term' = 'Address Line2');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `address_line2` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `address_line2` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `area_sq_m` SET TAGS ('dbx_business_glossary_term' = 'Area Sq M');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `asset_count` SET TAGS ('dbx_business_glossary_term' = 'Asset Count');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `capacity_tons` SET TAGS ('dbx_business_glossary_term' = 'Capacity Tons');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `city` SET TAGS ('dbx_business_glossary_term' = 'City');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `city` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `city` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `functional_location_code` SET TAGS ('dbx_business_glossary_term' = 'Code');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `commissioning_date` SET TAGS ('dbx_business_glossary_term' = 'Commissioning Date');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `country_code` SET TAGS ('dbx_business_glossary_term' = 'Country Code');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `country_code` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `country_code` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `decommission_date` SET TAGS ('dbx_business_glossary_term' = 'Decommission Date');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `functional_location_description` SET TAGS ('dbx_business_glossary_term' = 'Description');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `environmental_zone` SET TAGS ('dbx_business_glossary_term' = 'Environmental Zone');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `functional_location_status` SET TAGS ('dbx_business_glossary_term' = 'Status');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `functional_location_type` SET TAGS ('dbx_business_glossary_term' = 'Type');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `gps_accuracy_m` SET TAGS ('dbx_business_glossary_term' = 'Gps Accuracy M');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `inspection_status` SET TAGS ('dbx_business_glossary_term' = 'Inspection Status');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `installation_date` SET TAGS ('dbx_business_glossary_term' = 'Installation Date');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `is_owned` SET TAGS ('dbx_business_glossary_term' = 'Is Owned');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `is_rental` SET TAGS ('dbx_business_glossary_term' = 'Is Rental');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `last_inspection_date` SET TAGS ('dbx_business_glossary_term' = 'Last Inspection Date');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `latitude` SET TAGS ('dbx_business_glossary_term' = 'Latitude');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `latitude` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `latitude` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `longitude` SET TAGS ('dbx_business_glossary_term' = 'Longitude');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `longitude` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `longitude` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `functional_location_name` SET TAGS ('dbx_business_glossary_term' = 'Name');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `postal_code` SET TAGS ('dbx_business_glossary_term' = 'Postal Code');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `postal_code` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `postal_code` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `responsible_department` SET TAGS ('dbx_business_glossary_term' = 'Responsible Department');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `safety_rating` SET TAGS ('dbx_business_glossary_term' = 'Safety Rating');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `state` SET TAGS ('dbx_business_glossary_term' = 'State');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `state` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `state` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `vibe_construction_v1`.`equipment`.`functional_location` ALTER COLUMN `updated_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Updated Timestamp');

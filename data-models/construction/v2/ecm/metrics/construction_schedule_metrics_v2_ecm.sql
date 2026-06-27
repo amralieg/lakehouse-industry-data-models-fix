@@ -1,466 +1,96 @@
--- Metric views for domain: schedule | Business: Construction | Version: 2 | Generated on: 2026-06-22 15:07:26
+-- Metric views for domain: schedule | Business: Construction | Version: 2 | Generated on: 2026-06-28 00:14:33
 
 CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`schedule_activity`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Core schedule activity KPIs tracking completion, critical path exposure, and schedule performance across the construction project portfolio. Used by project controls and PMO to steer schedule health."
+  comment: "Core schedule activity performance metrics tracking critical path exposure, schedule progress, and float consumption across construction project activities."
   source: "`vibe_construction_v1`.`schedule`.`activity`"
   dimensions:
-    - name: "construction_project_id"
-      expr: construction_project_id
-      comment: "Construction project identifier — primary grouping for all schedule KPIs."
     - name: "activity_status"
       expr: activity_status
-      comment: "Current lifecycle status of the activity (Not Started, In Progress, Complete, etc.)."
+      comment: "Current lifecycle status of the activity (e.g. Not Started, In Progress, Complete) used to segment performance metrics."
     - name: "activity_type"
       expr: activity_type
-      comment: "Classification of the activity (Task, Milestone, Summary, etc.) for portfolio filtering."
+      comment: "Classification of the activity (e.g. Construction, Procurement, Engineering) enabling type-level schedule analysis."
     - name: "critical_path_flag"
       expr: critical_path_flag
-      comment: "Boolean flag indicating whether the activity lies on the critical path — key filter for schedule risk analysis."
-    - name: "planned_start_month"
-      expr: DATE_TRUNC('MONTH', planned_start_date)
-      comment: "Month bucket of planned start date for time-series trending of scheduled work."
-    - name: "actual_start_month"
-      expr: DATE_TRUNC('MONTH', actual_start_date)
-      comment: "Month bucket of actual start date for comparing planned vs actual start distribution."
+      comment: "Indicates whether the activity lies on the critical path, enabling focused monitoring of schedule-driving work."
     - name: "constraint_type"
       expr: constraint_type
-      comment: "Type of scheduling constraint applied to the activity (ASAP, ALAP, MFO, etc.)."
-    - name: "wbs_node_id"
-      expr: wbs_node_id
-      comment: "WBS node identifier for hierarchical schedule analysis."
+      comment: "Type of scheduling constraint applied to the activity, useful for identifying constrained activities that may drive delays."
+    - name: "planned_start_month"
+      expr: DATE_TRUNC('MONTH', planned_start_date)
+      comment: "Month bucket of the planned start date for trend analysis of activity starts over time."
+    - name: "planned_finish_month"
+      expr: DATE_TRUNC('MONTH', planned_finish_date)
+      comment: "Month bucket of the planned finish date for workload and completion forecasting."
+    - name: "actual_start_month"
+      expr: DATE_TRUNC('MONTH', actual_start_date)
+      comment: "Month bucket of the actual start date for comparing planned vs actual start trends."
   measures:
     - name: "total_activities"
       expr: COUNT(1)
-      comment: "Total number of schedule activities. Baseline denominator for all schedule performance ratios."
+      comment: "Total number of schedule activities. Baseline denominator for all activity-level rate calculations."
     - name: "critical_path_activity_count"
       expr: COUNT(CASE WHEN critical_path_flag = TRUE THEN 1 END)
-      comment: "Number of activities on the critical path. Executives use this to gauge schedule risk concentration."
+      comment: "Number of activities on the critical path. Executives use this to gauge schedule risk concentration and resource prioritisation needs."
     - name: "completed_activity_count"
       expr: COUNT(CASE WHEN activity_status = 'Complete' THEN 1 END)
-      comment: "Count of fully completed activities. Drives completion rate KPI and progress reporting."
-    - name: "in_progress_activity_count"
-      expr: COUNT(CASE WHEN activity_status = 'In Progress' THEN 1 END)
-      comment: "Count of activities currently in progress. Indicates active workload and resource demand."
-    - name: "not_started_activity_count"
-      expr: COUNT(CASE WHEN activity_status = 'Not Started' THEN 1 END)
-      comment: "Count of activities not yet started. Highlights backlog and upcoming mobilization needs."
+      comment: "Number of activities with a completed status. Tracks overall schedule execution progress."
     - name: "activity_completion_rate_pct"
       expr: ROUND(100.0 * COUNT(CASE WHEN activity_status = 'Complete' THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of activities completed out of total. Core schedule progress KPI for steering meetings and board decks."
+      comment: "Percentage of activities completed. A primary schedule health KPI used in steering meetings to assess delivery pace against plan."
     - name: "critical_path_completion_rate_pct"
       expr: ROUND(100.0 * COUNT(CASE WHEN critical_path_flag = TRUE AND activity_status = 'Complete' THEN 1 END) / NULLIF(COUNT(CASE WHEN critical_path_flag = TRUE THEN 1 END), 0), 2)
-      comment: "Percentage of critical path activities completed. Directly predicts project delivery date risk."
+      comment: "Percentage of critical path activities completed. Directly indicates whether the project end date is at risk."
     - name: "avg_percent_complete"
       expr: ROUND(AVG(CAST(percent_complete AS DOUBLE)), 2)
-      comment: "Average percent complete across all activities. Weighted progress indicator for portfolio-level schedule health."
-    - name: "avg_original_duration_days"
-      expr: ROUND(AVG(CAST(original_duration_days AS DOUBLE)), 2)
-      comment: "Average planned duration of activities in days. Baseline for duration variance analysis."
-    - name: "avg_remaining_duration_days"
-      expr: ROUND(AVG(CAST(remaining_duration_days AS DOUBLE)), 2)
-      comment: "Average remaining duration across active activities. Drives forecast-to-complete calculations."
-    - name: "total_remaining_duration_days"
-      expr: SUM(CAST(remaining_duration_days AS DOUBLE))
-      comment: "Total remaining work in activity-days across the schedule. Used to assess overall schedule exposure."
-    - name: "overdue_activity_count"
-      expr: COUNT(CASE WHEN activity_status != 'Complete' AND planned_finish_date < CURRENT_DATE() THEN 1 END)
-      comment: "Number of incomplete activities past their planned finish date. Critical schedule health indicator triggering recovery plan actions."
-    - name: "overdue_critical_path_activity_count"
-      expr: COUNT(CASE WHEN critical_path_flag = TRUE AND activity_status != 'Complete' AND planned_finish_date < CURRENT_DATE() THEN 1 END)
-      comment: "Overdue activities specifically on the critical path. Highest-priority schedule risk metric for executive escalation."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`schedule_progress_update`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Period-by-period schedule performance metrics including Earned Value indicators (SPI, SV), forecast accuracy, and critical path drift. Primary source for schedule performance index reporting to PMO and executives."
-  source: "`vibe_construction_v1`.`schedule`.`progress_update`"
-  dimensions:
-    - name: "construction_project_id"
-      expr: construction_project_id
-      comment: "Construction project identifier for project-level schedule performance grouping."
-    - name: "reporting_date_month"
-      expr: DATE_TRUNC('MONTH', reporting_date)
-      comment: "Month bucket of the reporting date for time-series schedule performance trending."
-    - name: "reporting_frequency"
-      expr: reporting_frequency
-      comment: "Frequency of progress updates (Weekly, Bi-Weekly, Monthly) for cadence analysis."
-    - name: "progress_update_status"
-      expr: progress_update_status
-      comment: "Status of the progress update record (Draft, Submitted, Approved) for data quality filtering."
-    - name: "is_critical_path_changed"
-      expr: is_critical_path_changed
-      comment: "Flag indicating whether the critical path changed in this update period — key risk signal."
-    - name: "activity_id"
-      expr: activity_id
-      comment: "Activity identifier for activity-level progress drill-down."
-  measures:
-    - name: "total_progress_updates"
-      expr: COUNT(1)
-      comment: "Total number of progress update records. Baseline for update cadence and coverage analysis."
-    - name: "avg_spi"
-      expr: ROUND(AVG(CAST(spi AS DOUBLE)), 4)
-      comment: "Average Schedule Performance Index (BCWP/BCWS). SPI < 1.0 signals schedule slippage; used in every project controls steering meeting."
-    - name: "avg_sv"
-      expr: ROUND(AVG(CAST(sv AS DOUBLE)), 2)
-      comment: "Average Schedule Variance (BCWP - BCWS) in currency units. Negative SV indicates behind-schedule condition requiring executive intervention."
-    - name: "avg_sv_percent"
-      expr: ROUND(AVG(CAST(sv_percent AS DOUBLE)), 2)
-      comment: "Average Schedule Variance as a percentage. Normalizes SV across projects of different sizes for portfolio comparison."
-    - name: "total_bcwp"
-      expr: SUM(CAST(bcwp AS DOUBLE))
-      comment: "Total Budgeted Cost of Work Performed (Earned Value). Core EVM metric representing value of work actually accomplished."
-    - name: "total_bcws"
-      expr: SUM(CAST(bcws AS DOUBLE))
-      comment: "Total Budgeted Cost of Work Scheduled (Planned Value). Baseline against which earned value is measured."
-    - name: "avg_percent_complete_duration"
-      expr: ROUND(AVG(CAST(percent_complete_duration AS DOUBLE)), 2)
-      comment: "Average duration-based percent complete across updated activities. Tracks physical progress against schedule."
-    - name: "avg_percent_complete_units"
-      expr: ROUND(AVG(CAST(percent_complete_units AS DOUBLE)), 2)
-      comment: "Average units-based percent complete. Provides a resource-consumption view of schedule progress."
-    - name: "total_remaining_duration"
-      expr: SUM(CAST(remaining_duration AS DOUBLE))
-      comment: "Total remaining duration across all updated activities. Drives time-to-complete forecasting."
-    - name: "avg_total_float"
-      expr: ROUND(AVG(CAST(total_float AS DOUBLE)), 2)
-      comment: "Average total float across updated activities. Declining float signals increasing schedule risk and potential critical path expansion."
-    - name: "critical_path_change_event_count"
-      expr: COUNT(CASE WHEN is_critical_path_changed = TRUE THEN 1 END)
-      comment: "Number of update periods where the critical path changed. Frequent changes indicate schedule instability requiring PMO escalation."
-    - name: "behind_schedule_update_count"
-      expr: COUNT(CASE WHEN spi < 1.0 THEN 1 END)
-      comment: "Number of progress update records where SPI < 1.0 (behind schedule). Tracks frequency and persistence of schedule underperformance."
-    - name: "schedule_recovery_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN spi >= 1.0 THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of update periods where schedule was on or ahead of plan (SPI >= 1.0). Measures schedule recovery effectiveness over time."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`schedule_baseline`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Schedule baseline governance metrics tracking baseline versions, approval status, and duration commitments. Used by project controls to manage baseline integrity and change control."
-  source: "`vibe_construction_v1`.`schedule`.`schedule_baseline`"
-  dimensions:
-    - name: "construction_project_id"
-      expr: construction_project_id
-      comment: "Construction project identifier for project-level baseline governance."
-    - name: "baseline_type"
-      expr: baseline_type
-      comment: "Type of baseline (Original, Revised, Recovery) for change control analysis."
-    - name: "schedule_baseline_status"
-      expr: schedule_baseline_status
-      comment: "Approval status of the baseline (Draft, Approved, Superseded) for governance filtering."
-    - name: "is_current"
-      expr: is_current
-      comment: "Flag indicating the currently active baseline. Ensures KPIs reference the correct control baseline."
-    - name: "approval_date_month"
-      expr: DATE_TRUNC('MONTH', approval_date)
-      comment: "Month of baseline approval for change frequency trending."
-    - name: "currency_code"
-      expr: currency_code
-      comment: "Currency of the baseline budget for multi-currency portfolio analysis."
-  measures:
-    - name: "total_baselines"
-      expr: COUNT(1)
-      comment: "Total number of schedule baselines. High counts indicate frequent re-baselining, a schedule governance risk signal."
-    - name: "approved_baseline_count"
-      expr: COUNT(CASE WHEN schedule_baseline_status = 'Approved' THEN 1 END)
-      comment: "Number of approved baselines. Governance metric ensuring projects operate against formally approved schedules."
-    - name: "current_baseline_count"
-      expr: COUNT(CASE WHEN is_current = TRUE THEN 1 END)
-      comment: "Number of projects with a current active baseline. Projects without a current baseline lack schedule control."
-    - name: "avg_total_duration_days"
-      expr: ROUND(AVG(CAST(total_duration_days AS DOUBLE)), 2)
-      comment: "Average total project duration in days across baselines. Benchmark for project complexity and resource planning."
-    - name: "total_bcws_amount"
-      expr: SUM(CAST(bcws_amount AS DOUBLE))
-      comment: "Total Budgeted Cost of Work Scheduled across all baselines. Represents total planned schedule value committed."
-    - name: "avg_bcws_amount"
-      expr: ROUND(AVG(CAST(bcws_amount AS DOUBLE)), 2)
-      comment: "Average BCWS per baseline. Used to benchmark project scale and planned value commitments."
-    - name: "rebaseline_frequency"
-      expr: COUNT(CASE WHEN baseline_type != 'Original' THEN 1 END)
-      comment: "Count of non-original baselines (revisions, recoveries). High frequency signals chronic schedule instability requiring executive attention."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`schedule_milestone`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Schedule milestone performance metrics tracking on-time delivery, LD exposure, and forecast accuracy for contractual and project milestones. Critical for client reporting and contract compliance."
-  source: "`vibe_construction_v1`.`schedule`.`schedule_milestone`"
-  dimensions:
-    - name: "construction_project_id"
-      expr: construction_project_id
-      comment: "Construction project identifier for project-level milestone performance."
-    - name: "schedule_milestone_type"
-      expr: schedule_milestone_type
-      comment: "Type of milestone (Contractual, Internal, Payment, Handover) for category-specific performance analysis."
-    - name: "schedule_milestone_status"
-      expr: schedule_milestone_status
-      comment: "Current status of the milestone (Pending, Achieved, Overdue, Forecasted) for pipeline visibility."
-    - name: "critical_path_flag"
-      expr: critical_path_flag
-      comment: "Whether the milestone is on the critical path — highest-priority milestones for executive tracking."
-    - name: "ld_exposure_flag"
-      expr: ld_exposure_flag
-      comment: "Flag indicating the milestone carries Liquidated Damages exposure. Drives financial risk reporting."
-    - name: "risk_level"
-      expr: risk_level
-      comment: "Risk level assigned to the milestone (Low, Medium, High, Critical) for risk-weighted milestone reporting."
-    - name: "planned_date_month"
-      expr: DATE_TRUNC('MONTH', planned_date)
-      comment: "Month bucket of planned milestone date for delivery schedule trending."
-  measures:
-    - name: "total_milestones"
-      expr: COUNT(1)
-      comment: "Total number of schedule milestones. Baseline for milestone completion rate calculations."
-    - name: "achieved_milestone_count"
-      expr: COUNT(CASE WHEN schedule_milestone_status = 'Achieved' THEN 1 END)
-      comment: "Number of milestones successfully achieved. Core delivery performance indicator."
-    - name: "overdue_milestone_count"
-      expr: COUNT(CASE WHEN schedule_milestone_status != 'Achieved' AND planned_date < CURRENT_DATE() THEN 1 END)
-      comment: "Number of milestones past their planned date without achievement. Triggers contract risk and LD exposure review."
-    - name: "milestone_on_time_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN schedule_milestone_status = 'Achieved' AND actual_date <= planned_date THEN 1 END) / NULLIF(COUNT(CASE WHEN schedule_milestone_status = 'Achieved' THEN 1 END), 0), 2)
-      comment: "Percentage of achieved milestones delivered on or before planned date. Primary on-time delivery KPI for client and board reporting."
-    - name: "ld_exposed_milestone_count"
-      expr: COUNT(CASE WHEN ld_exposure_flag = TRUE AND schedule_milestone_status != 'Achieved' THEN 1 END)
-      comment: "Number of outstanding milestones with active LD exposure. Directly quantifies financial penalty risk from schedule delays."
-    - name: "total_ld_rate_exposure_per_day"
-      expr: SUM(CASE WHEN ld_exposure_flag = TRUE AND schedule_milestone_status != 'Achieved' THEN ld_rate_per_day ELSE 0 END)
-      comment: "Total daily LD rate exposure across all outstanding LD-bearing milestones. Quantifies maximum daily financial penalty accrual for CFO and legal review."
-    - name: "critical_path_milestone_overdue_count"
-      expr: COUNT(CASE WHEN critical_path_flag = TRUE AND schedule_milestone_status != 'Achieved' AND planned_date < CURRENT_DATE() THEN 1 END)
-      comment: "Overdue milestones on the critical path. Highest-severity schedule risk metric requiring immediate executive escalation."
-    - name: "avg_ld_rate_per_day"
-      expr: ROUND(AVG(CASE WHEN ld_exposure_flag = TRUE THEN ld_rate_per_day END), 2)
-      comment: "Average daily LD rate across LD-bearing milestones. Benchmarks contractual penalty severity."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`schedule_delay_event`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Delay event analytics quantifying schedule impact, EOT claim status, and cost exposure from delay events. Used by project controls, legal, and executives to manage schedule recovery and claim strategy."
-  source: "`vibe_construction_v1`.`schedule`.`delay_event`"
-  dimensions:
-    - name: "delay_category"
-      expr: delay_category
-      comment: "Category of delay (Weather, Design, Procurement, Client, Contractor) for root-cause analysis and claim attribution."
-    - name: "delay_event_status"
-      expr: delay_event_status
-      comment: "Current status of the delay event (Open, Under Review, Approved, Rejected) for pipeline management."
-    - name: "event_type"
-      expr: event_type
-      comment: "Type of delay event (Force Majeure, Excusable, Compensable, etc.) for contractual classification."
-    - name: "eot_claim_status"
-      expr: eot_claim_status
-      comment: "Status of the associated EOT claim for claim pipeline tracking."
-    - name: "impact_on_critical_path"
-      expr: impact_on_critical_path
-      comment: "Whether the delay event impacts the critical path — highest-priority delays for schedule recovery."
-    - name: "severity_level"
-      expr: severity_level
-      comment: "Severity classification of the delay (Minor, Moderate, Major, Critical) for risk-weighted reporting."
-    - name: "event_start_month"
-      expr: DATE_TRUNC('MONTH', event_start_timestamp)
-      comment: "Month bucket of delay event start for time-series delay trending."
-  measures:
-    - name: "total_delay_events"
-      expr: COUNT(1)
-      comment: "Total number of delay events. Baseline for delay frequency and trend analysis."
-    - name: "critical_path_delay_count"
-      expr: COUNT(CASE WHEN impact_on_critical_path = TRUE THEN 1 END)
-      comment: "Number of delay events impacting the critical path. Directly correlates with project completion date risk."
-    - name: "total_delay_calendar_days"
-      expr: SUM(CAST(delay_duration_calendar_days AS DOUBLE))
-      comment: "Total calendar days of delay across all events. Aggregate schedule impact measure for EOT claim quantification."
-    - name: "total_delay_working_days"
-      expr: SUM(CAST(delay_duration_working_days AS DOUBLE))
-      comment: "Total working days of delay. Used in contractual EOT calculations and schedule recovery planning."
-    - name: "avg_delay_calendar_days"
-      expr: ROUND(AVG(CAST(delay_duration_calendar_days AS DOUBLE)), 2)
-      comment: "Average calendar days per delay event. Benchmarks typical delay magnitude for risk modeling."
-    - name: "total_cost_impact"
-      expr: SUM(CAST(impact_on_cost_amount AS DOUBLE))
-      comment: "Total financial impact of delay events. Quantifies the cost consequence of schedule delays for CFO and contract management."
-    - name: "avg_cost_impact_per_event"
-      expr: ROUND(AVG(CAST(impact_on_cost_amount AS DOUBLE)), 2)
-      comment: "Average cost impact per delay event. Used to prioritize delay mitigation investments."
-    - name: "approved_delay_count"
-      expr: COUNT(CASE WHEN delay_event_status = 'Approved' THEN 1 END)
-      comment: "Number of approved delay events. Represents formally recognized schedule impacts with contractual implications."
-    - name: "critical_path_delay_duration_days"
-      expr: SUM(CASE WHEN impact_on_critical_path = TRUE THEN delay_duration_working_days ELSE 0 END)
-      comment: "Total working days of delay on the critical path. Directly quantifies project completion date slippage from delay events."
-    - name: "delay_approval_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN delay_event_status = 'Approved' THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of delay events approved. Low approval rates may indicate weak documentation or disputed claims."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`schedule_eot_claim`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Extension of Time (EOT) claim performance metrics tracking claim volumes, approval rates, and extension days granted. Critical for contract administration, legal strategy, and project completion date management."
-  source: "`vibe_construction_v1`.`schedule`.`schedule_eot_claim`"
-  dimensions:
-    - name: "construction_project_id"
-      expr: construction_project_id
-      comment: "Construction project identifier for project-level EOT claim analysis."
-    - name: "claim_status"
-      expr: claim_status
-      comment: "Current status of the EOT claim (Submitted, Under Review, Approved, Rejected, Withdrawn) for pipeline management."
-    - name: "claim_type"
-      expr: claim_type
-      comment: "Type of EOT claim (Excusable, Compensable, Force Majeure) for contractual classification."
-    - name: "is_critical_path"
-      expr: is_critical_path
-      comment: "Whether the claimed delay is on the critical path — determines entitlement to time extension."
-    - name: "claim_submission_month"
-      expr: DATE_TRUNC('MONTH', claim_submission_date)
-      comment: "Month of claim submission for claim volume trending."
-  measures:
-    - name: "total_eot_claims"
-      expr: COUNT(1)
-      comment: "Total number of EOT claims submitted. High volumes signal schedule instability and contract risk."
-    - name: "approved_eot_claim_count"
-      expr: COUNT(CASE WHEN claim_status = 'Approved' THEN 1 END)
-      comment: "Number of approved EOT claims. Represents formally granted time extensions with project completion date impact."
-    - name: "rejected_eot_claim_count"
-      expr: COUNT(CASE WHEN claim_status = 'Rejected' THEN 1 END)
-      comment: "Number of rejected EOT claims. High rejection rates may indicate disputes requiring legal escalation."
-    - name: "eot_approval_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN claim_status = 'Approved' THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of EOT claims approved. Key contract performance indicator for claim management effectiveness."
-    - name: "critical_path_eot_claim_count"
-      expr: COUNT(CASE WHEN is_critical_path = TRUE THEN 1 END)
-      comment: "Number of EOT claims on the critical path. These directly affect the project completion date and LD exposure."
-    - name: "pending_eot_claim_count"
-      expr: COUNT(CASE WHEN claim_status NOT IN ('Approved', 'Rejected', 'Withdrawn') THEN 1 END)
-      comment: "Number of EOT claims pending resolution. Unresolved claims represent contingent schedule and financial risk."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`schedule_risk`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Schedule risk register metrics quantifying risk exposure, Monte Carlo probability outcomes, and mitigation coverage. Used by risk managers and PMO to prioritize schedule risk responses."
-  source: "`vibe_construction_v1`.`schedule`.`schedule_risk`"
-  dimensions:
-    - name: "risk_category"
-      expr: risk_category
-      comment: "Category of schedule risk (Design, Procurement, Weather, Regulatory, etc.) for root-cause risk analysis."
-    - name: "risk_status"
-      expr: risk_status
-      comment: "Current status of the risk (Open, Mitigated, Closed, Realized) for risk pipeline management."
-    - name: "priority"
-      expr: priority
-      comment: "Priority level of the risk (Critical, High, Medium, Low) for risk-weighted reporting."
-    - name: "response_type"
-      expr: response_type
-      comment: "Risk response strategy (Mitigate, Accept, Transfer, Avoid) for response effectiveness analysis."
-    - name: "owner_department"
-      expr: owner_department
-      comment: "Department responsible for the risk. Enables accountability tracking and departmental risk exposure reporting."
-    - name: "assessment_date_month"
-      expr: DATE_TRUNC('MONTH', assessment_date)
-      comment: "Month of risk assessment for risk register evolution trending."
-  measures:
-    - name: "total_schedule_risks"
-      expr: COUNT(1)
-      comment: "Total number of schedule risks in the register. Baseline for risk density and coverage analysis."
-    - name: "open_risk_count"
-      expr: COUNT(CASE WHEN risk_status = 'Open' THEN 1 END)
-      comment: "Number of open schedule risks. Unmitigated open risks represent active schedule threats requiring management attention."
-    - name: "critical_high_risk_count"
-      expr: COUNT(CASE WHEN priority IN ('Critical', 'High') THEN 1 END)
-      comment: "Number of critical or high priority schedule risks. Executives focus on this subset for schedule protection decisions."
-    - name: "avg_risk_score"
-      expr: ROUND(AVG(CAST(score AS DOUBLE)), 4)
-      comment: "Average risk score across all schedule risks. Tracks overall schedule risk exposure level over time."
-    - name: "mitigated_risk_count"
-      expr: COUNT(CASE WHEN risk_status = 'Mitigated' THEN 1 END)
-      comment: "Number of risks with active mitigation in place. Measures risk management effectiveness."
-    - name: "risk_mitigation_coverage_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN risk_status = 'Mitigated' THEN 1 END) / NULLIF(COUNT(CASE WHEN risk_status IN ('Open', 'Mitigated') THEN 1 END), 0), 2)
-      comment: "Percentage of active risks with mitigation plans in place. Low coverage signals inadequate risk response and schedule vulnerability."
-    - name: "risks_with_mitigation_plan_count"
-      expr: COUNT(CASE WHEN mitigation_plan IS NOT NULL AND mitigation_plan != '' THEN 1 END)
-      comment: "Number of risks with documented mitigation plans. Governance metric ensuring all significant risks have response strategies."
-$$;
-
-CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`schedule_lookahead_plan`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Lookahead planning performance metrics tracking Percent Plan Complete (PPC), readiness rates, and constraint management. Core Last Planner System (LPS) KPIs for weekly work planning effectiveness."
-  source: "`vibe_construction_v1`.`schedule`.`lookahead_plan`"
-  dimensions:
-    - name: "construction_project_id"
-      expr: construction_project_id
-      comment: "Construction project identifier for project-level lookahead performance."
-    - name: "plan_status"
-      expr: plan_status
-      comment: "Status of the lookahead plan (Draft, Active, Closed) for plan lifecycle management."
-    - name: "constraint_type"
-      expr: constraint_type
-      comment: "Type of constraint blocking planned activities (Material, Equipment, Labor, Design, Permit) for constraint resolution prioritization."
-    - name: "plan_date_month"
-      expr: DATE_TRUNC('MONTH', plan_date)
-      comment: "Month bucket of plan date for PPC trending over time."
-    - name: "is_lps_enabled"
-      expr: is_lps_enabled
-      comment: "Whether Last Planner System is enabled for this plan. Enables LPS adoption rate tracking."
-    - name: "risk_level"
-      expr: risk_level
-      comment: "Risk level of the lookahead plan for risk-weighted planning analysis."
-  measures:
-    - name: "total_lookahead_plans"
-      expr: COUNT(1)
-      comment: "Total number of lookahead plans. Baseline for planning cadence and coverage analysis."
-    - name: "avg_ppc_actual_percent"
-      expr: ROUND(AVG(CAST(ppc_actual_percent AS DOUBLE)), 2)
-      comment: "Average Percent Plan Complete (PPC) — the primary Last Planner System KPI. PPC < 80% triggers root cause analysis and planning process improvement."
-    - name: "avg_ppc_target_percent"
-      expr: ROUND(AVG(CAST(ppc_target_percent AS DOUBLE)), 2)
-      comment: "Average PPC target percentage. Benchmarks actual PPC against planned targets for performance gap analysis."
-    - name: "ppc_achievement_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN ppc_actual_percent >= ppc_target_percent THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of lookahead plans meeting or exceeding their PPC target. Measures planning reliability and commitment culture."
-    - name: "total_planned_cost"
-      expr: SUM(CAST(planned_cost AS DOUBLE))
-      comment: "Total planned cost across lookahead plans. Tracks near-term cost commitment and cash flow requirements."
-    - name: "avg_percent_plan_complete"
-      expr: ROUND(AVG(CAST(percent_plan_complete AS DOUBLE)), 2)
-      comment: "Average overall plan completion percentage. Tracks lookahead plan execution effectiveness."
-    - name: "constrained_plan_count"
+      comment: "Average percent complete across all activities. Provides a weighted view of overall schedule progress for executive dashboards."
+    - name: "late_activity_count"
+      expr: COUNT(CASE WHEN actual_finish_date > planned_finish_date AND activity_status != 'Complete' THEN 1 END)
+      comment: "Number of activities running past their planned finish date. A leading indicator of schedule slippage requiring management intervention."
+    - name: "late_activity_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN actual_finish_date > planned_finish_date AND activity_status != 'Complete' THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of activities that are late. Used in project reviews to benchmark schedule discipline and identify systemic delay patterns."
+    - name: "not_started_activity_count"
+      expr: COUNT(CASE WHEN activity_status = 'Not Started' THEN 1 END)
+      comment: "Number of activities not yet started. Helps leadership identify mobilisation gaps and resource readiness issues."
+    - name: "constrained_activity_count"
       expr: COUNT(CASE WHEN constraint_type IS NOT NULL AND constraint_type != '' THEN 1 END)
-      comment: "Number of lookahead plans with active constraints. High constraint counts indicate readiness failures blocking planned work."
-    - name: "fully_ready_plan_count"
-      expr: COUNT(CASE WHEN crew_ready_flag = TRUE AND material_ready_flag = TRUE AND equipment_ready_flag = TRUE THEN 1 END)
-      comment: "Number of plans where crew, material, and equipment are all confirmed ready. Measures true work readiness before commitment."
-    - name: "readiness_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN crew_ready_flag = TRUE AND material_ready_flag = TRUE AND equipment_ready_flag = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
-      comment: "Percentage of lookahead plans with full resource readiness confirmed. Low readiness rates predict low PPC and schedule slippage."
-    - name: "weather_impacted_plan_count"
-      expr: COUNT(CASE WHEN weather_impact_flag = TRUE THEN 1 END)
-      comment: "Number of lookahead plans impacted by weather. Quantifies weather-related planning disruption for risk and contingency analysis."
+      comment: "Number of activities with scheduling constraints applied. High constraint counts indicate schedule rigidity and potential delay risk."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`schedule_baseline_activity`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Schedule baseline vs actuals variance metrics enabling earned value analysis, baseline deviation tracking, and schedule performance benchmarking."
+  source: "`vibe_construction_v1`.`schedule`.`activity`"
+  dimensions:
+    - name: "All Records"
+      expr: "1"
+  measures:
+    - name: "Row Count"
+      expr: COUNT(1)
+$$;
+
+CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`schedule_lookahead_activity`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Short-interval activity execution metrics tracking planned vs actual duration, cost variance, and non-completion analysis for operational schedule control."
+  source: "`vibe_construction_v1`.`schedule`.`activity`"
+  dimensions:
+    - name: "All Records"
+      expr: "1"
+  measures:
+    - name: "total_lookahead_activities"
+      expr: COUNT(1)
+      comment: "Total number of lookahead activities planned. Baseline denominator for PPC and completion rate calculations."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`schedule_activity_resource_assignment`
@@ -468,64 +98,415 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Resource assignment cost and performance metrics tracking planned vs actual cost, quantity variances, and overtime exposure across schedule activities. Used by project controls and finance for cost-at-completion forecasting."
+  comment: "Resource cost and quantity performance metrics for schedule activities, enabling earned value, cost variance, and resource utilisation analysis."
   source: "`vibe_construction_v1`.`schedule`.`activity_resource_assignment`"
   dimensions:
     - name: "resource_type"
       expr: resource_type
-      comment: "Type of resource assigned (Labor, Equipment, Material, Subcontract) for resource category cost analysis."
+      comment: "Type of resource assigned (e.g. Labor, Equipment, Material) for cost and quantity analysis by resource category."
     - name: "labor_category"
       expr: labor_category
-      comment: "Labor category for workforce cost breakdown and productivity analysis."
+      comment: "Labor classification (e.g. Skilled, Unskilled, Supervisory) enabling workforce cost breakdown."
     - name: "assignment_status"
       expr: assignment_status
-      comment: "Current status of the resource assignment (Active, Complete, Cancelled) for active resource tracking."
+      comment: "Current status of the resource assignment (e.g. Active, Closed, Pending) for filtering active vs historical records."
     - name: "approval_status"
       expr: approval_status
-      comment: "Approval status of the assignment for governance and cost commitment control."
+      comment: "Approval state of the resource assignment, used to segregate approved vs unapproved cost commitments."
+    - name: "wbs_code"
+      expr: wbs_code
+      comment: "WBS code associated with the assignment for cost roll-up and budget alignment analysis."
+    - name: "unit_of_measure"
+      expr: unit_of_measure
+      comment: "Unit of measure for resource quantities (e.g. Hours, m3, tonnes) enabling productivity rate calculations."
+    - name: "start_month"
+      expr: DATE_TRUNC('MONTH', start_date)
+      comment: "Month bucket of the assignment start date for time-phased cost and resource loading analysis."
     - name: "is_critical_path"
       expr: is_critical_path
-      comment: "Whether the assigned activity is on the critical path — prioritizes resource allocation decisions."
-    - name: "activity_id"
-      expr: activity_id
-      comment: "Activity identifier for activity-level resource cost drill-down."
-    - name: "start_date_month"
-      expr: DATE_TRUNC('MONTH', start_date)
-      comment: "Month bucket of assignment start date for resource cost time-series analysis."
+      comment: "Indicates whether the assigned activity is on the critical path, enabling cost-at-risk analysis for critical work."
   measures:
-    - name: "total_resource_assignments"
-      expr: COUNT(1)
-      comment: "Total number of resource assignments. Baseline for resource loading and assignment density analysis."
     - name: "total_planned_cost"
       expr: SUM(CAST(planned_cost AS DOUBLE))
-      comment: "Total planned cost across all resource assignments. Represents the full resource cost budget for schedule activities."
+      comment: "Total planned cost across all resource assignments. Baseline budget figure for cost performance measurement."
     - name: "total_actual_cost"
       expr: SUM(CAST(actual_cost AS DOUBLE))
-      comment: "Total actual cost incurred across resource assignments. Core cost performance metric for project controls."
+      comment: "Total actual cost incurred across resource assignments. Core cost tracking metric for project financial control."
     - name: "total_remaining_cost"
       expr: SUM(CAST(remaining_cost AS DOUBLE))
-      comment: "Total remaining cost to complete across all assignments. Drives Estimate-to-Complete (ETC) calculations."
-    - name: "total_planned_quantity"
-      expr: SUM(CAST(planned_quantity AS DOUBLE))
-      comment: "Total planned resource quantity across assignments. Baseline for productivity and quantity variance analysis."
-    - name: "total_actual_quantity"
-      expr: SUM(CAST(actual_quantity AS DOUBLE))
-      comment: "Total actual resource quantity consumed. Measures resource consumption against plan."
+      comment: "Total remaining cost to complete assigned resources. Used in EAC (Estimate at Completion) forecasting."
     - name: "cost_variance"
-      expr: ROUND(SUM(CAST(actual_cost AS DOUBLE)) - SUM(CAST(planned_cost AS DOUBLE)), 2)
-      comment: "Total cost variance (Actual - Planned) across resource assignments. Negative values indicate cost overrun requiring management intervention."
+      expr: ROUND(SUM(CAST(planned_cost AS DOUBLE)) - SUM(CAST(actual_cost AS DOUBLE)), 2)
+      comment: "Difference between planned and actual cost (positive = under budget). A primary cost performance KPI for executive reporting."
     - name: "cost_performance_index"
       expr: ROUND(SUM(CAST(planned_cost AS DOUBLE)) / NULLIF(SUM(CAST(actual_cost AS DOUBLE)), 0), 4)
-      comment: "Cost Performance Index (Planned/Actual). CPI < 1.0 signals cost overrun; used in EAC forecasting and executive cost reviews."
-    - name: "total_overtime_quantity"
-      expr: SUM(CAST(overtime_quantity AS DOUBLE))
-      comment: "Total overtime resource quantity across assignments. High overtime signals resource under-allocation or schedule compression risk."
+      comment: "Ratio of planned cost to actual cost (CPI). CPI < 1.0 signals cost overrun; used by project controls to trigger corrective action."
+    - name: "total_planned_quantity"
+      expr: SUM(CAST(planned_quantity AS DOUBLE))
+      comment: "Total planned resource quantity across assignments. Baseline for productivity and resource utilisation analysis."
+    - name: "total_actual_quantity"
+      expr: SUM(CAST(actual_quantity AS DOUBLE))
+      comment: "Total actual resource quantity consumed. Compared against planned quantity to assess resource efficiency."
+    - name: "quantity_utilisation_rate_pct"
+      expr: ROUND(100.0 * SUM(CAST(actual_quantity AS DOUBLE)) / NULLIF(SUM(CAST(planned_quantity AS DOUBLE)), 0), 2)
+      comment: "Percentage of planned resource quantity actually consumed. Rates above 100% indicate over-consumption and potential cost overrun."
+    - name: "total_remaining_quantity"
+      expr: SUM(CAST(remaining_quantity AS DOUBLE))
+      comment: "Total remaining resource quantity to be consumed. Feeds resource demand forecasting and procurement planning."
     - name: "total_overtime_cost"
-      expr: SUM(CAST(overtime_quantity AS DOUBLE) * CAST(overtime_rate AS DOUBLE))
-      comment: "Total estimated overtime cost (overtime quantity × overtime rate). Quantifies premium labor cost from schedule pressure."
-    - name: "quantity_variance"
-      expr: ROUND(SUM(CAST(actual_quantity AS DOUBLE)) - SUM(CAST(planned_quantity AS DOUBLE)), 2)
-      comment: "Total quantity variance (Actual - Planned). Positive variance indicates resource over-consumption, signaling productivity issues."
+      expr: ROUND(SUM(overtime_quantity * overtime_rate), 2)
+      comment: "Total overtime cost derived from overtime quantity and rate. Executives monitor this to control premium labour spend."
+    - name: "avg_cost_rate"
+      expr: ROUND(AVG(CAST(cost_rate AS DOUBLE)), 2)
+      comment: "Average cost rate per resource unit across assignments. Used to benchmark resource pricing and identify rate anomalies."
+    - name: "critical_path_planned_cost"
+      expr: SUM(CASE WHEN is_critical_path = TRUE THEN planned_cost ELSE 0 END)
+      comment: "Total planned cost for critical path resource assignments. Quantifies the financial exposure on schedule-driving activities."
+    - name: "critical_path_actual_cost"
+      expr: SUM(CASE WHEN is_critical_path = TRUE THEN actual_cost ELSE 0 END)
+      comment: "Total actual cost incurred on critical path activities. Enables focused cost control on schedule-critical work."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`schedule_delay_event`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Delay event impact metrics quantifying cost and schedule disruption from delay events, enabling root cause analysis and EOT claim substantiation."
+  source: "`vibe_construction_v1`.`schedule`.`delay_event`"
+  dimensions:
+    - name: "delay_category"
+      expr: delay_category
+      comment: "Category of the delay event (e.g. Weather, Design, Procurement, Labour) for root cause analysis and risk pattern identification."
+    - name: "event_type"
+      expr: event_type
+      comment: "Type of delay event enabling classification between excusable, compensable, and non-excusable delays."
+    - name: "delay_event_status"
+      expr: delay_event_status
+      comment: "Current status of the delay event record (e.g. Open, Closed, Under Review) for pipeline management."
+    - name: "eot_claim_status"
+      expr: eot_claim_status
+      comment: "Status of the associated EOT claim, linking delay events to their contractual resolution outcomes."
+    - name: "impact_on_critical_path"
+      expr: impact_on_critical_path
+      comment: "Indicates whether the delay event impacts the critical path, prioritising events with direct end-date consequences."
+    - name: "severity_level"
+      expr: severity_level
+      comment: "Severity rating of the delay event (e.g. High, Medium, Low) for risk-stratified delay management."
+    - name: "risk_rating"
+      expr: risk_rating
+      comment: "Risk rating assigned to the delay event for portfolio-level delay risk aggregation."
+    - name: "event_start_month"
+      expr: DATE_TRUNC('MONTH', event_start_timestamp)
+      comment: "Month bucket of the delay event start for trend analysis of delay frequency and seasonality."
+  measures:
+    - name: "total_delay_events"
+      expr: COUNT(1)
+      comment: "Total number of delay events recorded. Baseline metric for delay frequency analysis and trend monitoring."
+    - name: "critical_path_delay_event_count"
+      expr: COUNT(CASE WHEN impact_on_critical_path = TRUE THEN 1 END)
+      comment: "Number of delay events impacting the critical path. These events directly threaten the project completion date and require executive escalation."
+    - name: "total_cost_impact"
+      expr: SUM(CAST(impact_on_cost_amount AS DOUBLE))
+      comment: "Total financial impact of all delay events. Quantifies the monetary cost of schedule disruption for executive financial reporting."
+    - name: "avg_cost_impact_per_event"
+      expr: ROUND(AVG(CAST(impact_on_cost_amount AS DOUBLE)), 2)
+      comment: "Average cost impact per delay event. Benchmarks the typical financial consequence of a delay event for risk provisioning."
+    - name: "high_severity_delay_count"
+      expr: COUNT(CASE WHEN severity_level = 'High' THEN 1 END)
+      comment: "Number of high-severity delay events. A leading indicator of significant schedule and cost disruption requiring immediate management response."
+    - name: "open_delay_event_count"
+      expr: COUNT(CASE WHEN delay_event_status = 'Open' THEN 1 END)
+      comment: "Number of delay events still open and unresolved. Unresolved events represent ongoing schedule risk and potential claim exposure."
+    - name: "critical_path_cost_impact"
+      expr: SUM(CASE WHEN impact_on_critical_path = TRUE THEN impact_on_cost_amount ELSE 0 END)
+      comment: "Total cost impact of critical path delay events. Represents the financial exposure directly linked to end-date risk."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`schedule_lookahead_plan`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Short-interval schedule (lookahead) performance metrics tracking Percent Plan Complete (PPC), readiness, and constraint management for operational schedule control."
+  source: "`vibe_construction_v1`.`schedule`.`lookahead_plan`"
+  dimensions:
+    - name: "plan_status"
+      expr: plan_status
+      comment: "Status of the lookahead plan (e.g. Draft, Approved, Closed) for filtering active planning cycles."
+    - name: "readiness_status"
+      expr: readiness_status
+      comment: "Overall readiness status of the lookahead plan, indicating whether all constraints are resolved for planned work."
+    - name: "constraint_type"
+      expr: constraint_type
+      comment: "Type of constraint blocking planned activities (e.g. Material, Equipment, Permit) for constraint resolution prioritisation."
+    - name: "risk_level"
+      expr: risk_level
+      comment: "Risk level assigned to the lookahead plan for risk-stratified short-interval schedule management."
+    - name: "is_lps_enabled"
+      expr: is_lps_enabled
+      comment: "Indicates whether Last Planner System is enabled for this plan, enabling LPS vs traditional planning performance comparison."
+    - name: "weather_impact_flag"
+      expr: weather_impact_flag
+      comment: "Flags plans impacted by weather constraints for weather risk analysis and seasonal planning."
+    - name: "plan_date_month"
+      expr: DATE_TRUNC('MONTH', plan_date)
+      comment: "Month bucket of the plan date for trend analysis of PPC and readiness over time."
+    - name: "work_front"
+      expr: work_front
+      comment: "Work front or zone associated with the lookahead plan for location-based schedule performance analysis."
+  measures:
+    - name: "avg_ppc_actual_percent"
+      expr: ROUND(AVG(CAST(ppc_actual_percent AS DOUBLE)), 2)
+      comment: "Average Percent Plan Complete (PPC) across lookahead cycles. The primary Last Planner System KPI; PPC below 80% signals systemic planning reliability issues."
+    - name: "avg_ppc_target_percent"
+      expr: ROUND(AVG(CAST(ppc_target_percent AS DOUBLE)), 2)
+      comment: "Average PPC target across lookahead plans. Used to assess whether planning targets are realistic and consistently met."
+    - name: "ppc_achievement_gap"
+      expr: ROUND(AVG(CAST(ppc_target_percent AS DOUBLE)) - AVG(CAST(ppc_actual_percent AS DOUBLE)), 2)
+      comment: "Gap between target and actual PPC. A positive gap indicates planning reliability shortfall; used to drive continuous improvement in short-interval planning."
+    - name: "avg_percent_plan_complete"
+      expr: ROUND(AVG(CAST(percent_plan_complete AS DOUBLE)), 2)
+      comment: "Average overall plan completion percentage across lookahead plans. Tracks execution fidelity against the short-interval schedule."
+    - name: "total_planned_cost"
+      expr: SUM(CAST(planned_cost AS DOUBLE))
+      comment: "Total planned cost across all lookahead plans. Provides a short-interval cost commitment view for cash flow management."
+    - name: "crew_ready_plan_count"
+      expr: COUNT(CASE WHEN crew_ready_flag = TRUE THEN 1 END)
+      comment: "Number of lookahead plans where crew is confirmed ready. Low crew readiness rates indicate workforce mobilisation gaps."
+    - name: "material_ready_plan_count"
+      expr: COUNT(CASE WHEN material_ready_flag = TRUE THEN 1 END)
+      comment: "Number of lookahead plans where materials are confirmed ready. Material readiness is a leading indicator of production continuity."
+    - name: "equipment_ready_plan_count"
+      expr: COUNT(CASE WHEN equipment_ready_flag = TRUE THEN 1 END)
+      comment: "Number of lookahead plans where equipment is confirmed ready. Equipment readiness gaps are a common cause of short-interval schedule failures."
+    - name: "full_readiness_plan_count"
+      expr: COUNT(CASE WHEN crew_ready_flag = TRUE AND material_ready_flag = TRUE AND equipment_ready_flag = TRUE THEN 1 END)
+      comment: "Number of lookahead plans where crew, material, and equipment are all confirmed ready. Full readiness is the strongest predictor of PPC achievement."
+    - name: "full_readiness_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN crew_ready_flag = TRUE AND material_ready_flag = TRUE AND equipment_ready_flag = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of lookahead plans achieving full resource readiness. A leading KPI for short-interval schedule reliability used in weekly production meetings."
+    - name: "constrained_plan_count"
+      expr: COUNT(CASE WHEN constraint_type IS NOT NULL AND constraint_type != '' THEN 1 END)
+      comment: "Number of lookahead plans with active constraints. High constraint counts indicate systemic planning obstacles requiring management resolution."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`schedule_progress_update`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Earned value and schedule performance metrics derived from periodic progress updates, enabling SPI, SV, and forecast completion tracking."
+  source: "`vibe_construction_v1`.`schedule`.`progress_update`"
+  dimensions:
+    - name: "progress_update_status"
+      expr: progress_update_status
+      comment: "Status of the progress update record (e.g. Draft, Approved, Submitted) for filtering authoritative vs draft data."
+    - name: "reporting_frequency"
+      expr: reporting_frequency
+      comment: "Frequency of the reporting cycle (e.g. Weekly, Monthly) enabling trend analysis at the appropriate cadence."
+    - name: "reporting_status"
+      expr: reporting_status
+      comment: "Submission status of the reporting period update, used to identify overdue or incomplete reporting cycles."
+    - name: "is_critical_path_changed"
+      expr: is_critical_path_changed
+      comment: "Flags updates where the critical path changed, enabling rapid identification of schedule re-sequencing events."
+    - name: "reporting_period_start_month"
+      expr: DATE_TRUNC('MONTH', reporting_period_start_date)
+      comment: "Month bucket of the reporting period start for time-series trend analysis of schedule performance."
+    - name: "reporting_date_month"
+      expr: DATE_TRUNC('MONTH', reporting_date)
+      comment: "Month bucket of the reporting date for aligning progress updates to calendar periods."
+    - name: "update_source"
+      expr: update_source
+      comment: "Source system or method of the progress update (e.g. P6, Manual) for data quality and provenance analysis."
+  measures:
+    - name: "avg_spi"
+      expr: ROUND(AVG(CAST(spi AS DOUBLE)), 4)
+      comment: "Average Schedule Performance Index (BCWP/BCWS) across reporting periods. SPI < 1.0 indicates schedule underperformance; a primary EVM KPI for executive dashboards."
+    - name: "avg_sv"
+      expr: ROUND(AVG(CAST(sv AS DOUBLE)), 2)
+      comment: "Average Schedule Variance (BCWP - BCWS) across reporting periods. Negative SV signals work is behind plan; used to quantify schedule slippage in cost terms."
+    - name: "avg_sv_percent"
+      expr: ROUND(AVG(CAST(sv_percent AS DOUBLE)), 2)
+      comment: "Average Schedule Variance as a percentage of BCWS. Normalises SV across projects of different sizes for portfolio-level comparison."
+    - name: "total_bcwp"
+      expr: SUM(CAST(bcwp AS DOUBLE))
+      comment: "Total Budgeted Cost of Work Performed (Earned Value) across all reporting periods. Core EVM metric representing the value of work actually accomplished."
+    - name: "total_bcws"
+      expr: SUM(CAST(bcws AS DOUBLE))
+      comment: "Total Budgeted Cost of Work Scheduled across all reporting periods. Planned value baseline for EVM calculations."
+    - name: "avg_percent_complete_duration"
+      expr: ROUND(AVG(CAST(percent_complete_duration AS DOUBLE)), 2)
+      comment: "Average duration-based percent complete across reporting periods. Tracks overall schedule progress against the time baseline."
+    - name: "avg_percent_complete_units"
+      expr: ROUND(AVG(CAST(percent_complete_units AS DOUBLE)), 2)
+      comment: "Average units-based percent complete across reporting periods. Provides a physical progress measure independent of duration."
+    - name: "total_actual_units"
+      expr: SUM(CAST(actual_units AS DOUBLE))
+      comment: "Total actual units of work completed across all reporting periods. Feeds productivity rate and resource efficiency analysis."
+    - name: "avg_total_float"
+      expr: ROUND(AVG(CAST(total_float AS DOUBLE)), 2)
+      comment: "Average total float across progress updates. Declining float over time is a leading indicator of schedule compression and end-date risk."
+    - name: "critical_path_change_count"
+      expr: COUNT(CASE WHEN is_critical_path_changed = TRUE THEN 1 END)
+      comment: "Number of reporting periods where the critical path changed. Frequent changes signal schedule instability requiring executive attention."
+    - name: "total_remaining_units"
+      expr: SUM(CAST(remaining_units AS DOUBLE))
+      comment: "Total remaining units of work to be completed. Used in completion forecasting and resource demand planning."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`schedule_resource`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Schedule resource capacity and cost metrics tracking availability, utilisation rates, and billing rates to support resource planning and cost optimisation decisions."
+  source: "`vibe_construction_v1`.`schedule`.`resource`"
+  dimensions:
+    - name: "resource_type"
+      expr: resource_type
+      comment: "Type of resource (e.g. Labor, Equipment, Material, Subcontractor) for resource category analysis."
+    - name: "resource_status"
+      expr: resource_status
+      comment: "Current status of the resource (e.g. Active, Inactive, On Hold) for filtering available vs unavailable resources."
+    - name: "labor_category"
+      expr: labor_category
+      comment: "Labor classification of the resource for workforce cost and capacity analysis."
+    - name: "resource_role"
+      expr: resource_role
+      comment: "Role of the resource (e.g. Foreman, Engineer, Operator) for role-based capacity and cost analysis."
+    - name: "is_external"
+      expr: is_external
+      comment: "Indicates whether the resource is external (subcontractor/vendor) vs internal, enabling make-vs-buy cost analysis."
+    - name: "is_overtime_allowed"
+      expr: is_overtime_allowed
+      comment: "Flags resources where overtime is permitted, relevant for schedule acceleration cost modelling."
+    - name: "effective_start_month"
+      expr: DATE_TRUNC('MONTH', effective_start_date)
+      comment: "Month bucket of the resource effective start date for resource availability timeline analysis."
+  measures:
+    - name: "total_resources"
+      expr: COUNT(1)
+      comment: "Total number of schedule resources in the resource pool. Baseline for capacity planning and resource sufficiency analysis."
+    - name: "avg_availability_percentage"
+      expr: ROUND(AVG(CAST(availability_percentage AS DOUBLE)), 2)
+      comment: "Average resource availability percentage across the resource pool. Low availability signals capacity constraints that may impact schedule delivery."
+    - name: "avg_utilisation_rate"
+      expr: ROUND(AVG(CAST(utilization_rate AS DOUBLE)), 2)
+      comment: "Average resource utilisation rate. High utilisation (>90%) indicates over-allocation risk; low utilisation indicates inefficiency."
+    - name: "avg_billing_rate_per_hour"
+      expr: ROUND(AVG(CAST(billing_rate_per_hour AS DOUBLE)), 2)
+      comment: "Average billing rate per hour across resources. Used to benchmark resource cost levels and identify pricing anomalies."
+    - name: "total_max_units_per_period"
+      expr: SUM(CAST(max_units_per_period AS DOUBLE))
+      comment: "Total maximum resource units available per period across the resource pool. Represents the aggregate capacity ceiling for schedule loading."
+    - name: "external_resource_count"
+      expr: COUNT(CASE WHEN is_external = TRUE THEN 1 END)
+      comment: "Number of external resources in the schedule resource pool. High external resource dependency increases supply chain and cost risk."
+    - name: "external_resource_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN is_external = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of schedule resources that are external. Executives use this to assess subcontractor dependency and associated delivery risk."
+    - name: "avg_overtime_factor"
+      expr: ROUND(AVG(CAST(overtime_factor AS DOUBLE)), 4)
+      comment: "Average overtime cost multiplier across resources. Used in schedule acceleration cost modelling to estimate premium time costs."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`schedule_baseline`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Schedule baseline governance metrics tracking baseline versions, approval status, and BCWS values to support baseline integrity and change control analysis."
+  source: "`vibe_construction_v1`.`schedule`.`schedule_baseline`"
+  dimensions:
+    - name: "schedule_baseline_status"
+      expr: schedule_baseline_status
+      comment: "Status of the schedule baseline (e.g. Approved, Draft, Superseded) for filtering authoritative vs draft baselines."
+    - name: "baseline_type"
+      expr: baseline_type
+      comment: "Type of baseline (e.g. Original, Revised, Recovery) enabling analysis of baseline evolution and change history."
+    - name: "is_current"
+      expr: is_current
+      comment: "Indicates whether this is the current approved baseline, ensuring metrics are computed against the authoritative schedule."
+    - name: "currency_code"
+      expr: currency_code
+      comment: "Currency of the baseline cost values for multi-currency project portfolio analysis."
+    - name: "approval_date_month"
+      expr: DATE_TRUNC('MONTH', approval_date)
+      comment: "Month bucket of the baseline approval date for tracking baseline change frequency over the project lifecycle."
+    - name: "data_date_month"
+      expr: DATE_TRUNC('MONTH', data_date)
+      comment: "Month bucket of the baseline data date for time-series analysis of baseline snapshots."
+  measures:
+    - name: "total_baselines"
+      expr: COUNT(1)
+      comment: "Total number of schedule baselines. High counts indicate frequent re-baselining which may signal poor initial planning or scope instability."
+    - name: "current_baseline_count"
+      expr: COUNT(CASE WHEN is_current = TRUE THEN 1 END)
+      comment: "Number of baselines flagged as current. Should be 1 per project; multiple current baselines indicate a data governance issue."
+    - name: "approved_baseline_count"
+      expr: COUNT(CASE WHEN schedule_baseline_status = 'Approved' THEN 1 END)
+      comment: "Number of approved schedule baselines. Tracks the history of formally approved schedule versions for audit and governance purposes."
+    - name: "total_bcws_amount"
+      expr: SUM(CAST(bcws_amount AS DOUBLE))
+      comment: "Total Budgeted Cost of Work Scheduled across all baselines. Represents the total planned value committed in approved baselines."
+    - name: "avg_bcws_per_baseline"
+      expr: ROUND(AVG(CAST(bcws_amount AS DOUBLE)), 2)
+      comment: "Average BCWS per baseline version. Tracks how the planned value has evolved across baseline revisions, indicating scope growth or reduction."
+$$;
+
+CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`schedule_risk`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Schedule risk metrics tracking risk exposure, Monte Carlo probability dates, and mitigation status to support proactive schedule risk management."
+  source: "`vibe_construction_v1`.`schedule`.`schedule_risk`"
+  dimensions:
+    - name: "risk_category"
+      expr: risk_category
+      comment: "Category of the schedule risk (e.g. Design, Procurement, Weather, Regulatory) for root cause and category-level risk analysis."
+    - name: "risk_status"
+      expr: risk_status
+      comment: "Current status of the schedule risk (e.g. Open, Mitigated, Closed) for active risk portfolio management."
+    - name: "priority"
+      expr: priority
+      comment: "Priority rating of the schedule risk (e.g. High, Medium, Low) for risk-stratified management attention."
+    - name: "probability_rating"
+      expr: probability_rating
+      comment: "Probability rating of the risk occurring, enabling likelihood-weighted risk analysis."
+    - name: "response_type"
+      expr: response_type
+      comment: "Type of risk response strategy (e.g. Mitigate, Accept, Transfer) for response effectiveness analysis."
+    - name: "owner_department"
+      expr: owner_department
+      comment: "Department responsible for managing the schedule risk, enabling accountability and escalation tracking."
+    - name: "assessment_date_month"
+      expr: DATE_TRUNC('MONTH', assessment_date)
+      comment: "Month bucket of the risk assessment date for trend analysis of risk profile evolution over time."
+  measures:
+    - name: "total_schedule_risks"
+      expr: COUNT(1)
+      comment: "Total number of schedule risks identified. Baseline metric for risk register completeness and portfolio size."
+    - name: "open_risk_count"
+      expr: COUNT(CASE WHEN risk_status = 'Open' THEN 1 END)
+      comment: "Number of open schedule risks. Executives monitor this to assess the current risk exposure level of the project schedule."
+    - name: "high_priority_risk_count"
+      expr: COUNT(CASE WHEN priority = 'High' THEN 1 END)
+      comment: "Number of high-priority schedule risks. A key risk dashboard metric triggering executive review and mitigation investment decisions."
+    - name: "avg_risk_score"
+      expr: ROUND(AVG(CAST(score AS DOUBLE)), 2)
+      comment: "Average risk score across all schedule risks. Tracks the overall risk severity level of the schedule risk register over time."
+    - name: "total_risk_score"
+      expr: SUM(CAST(score AS DOUBLE))
+      comment: "Total aggregate risk score across all schedule risks. A portfolio-level risk exposure index used in project risk reporting."
+    - name: "mitigated_risk_count"
+      expr: COUNT(CASE WHEN risk_status = 'Mitigated' THEN 1 END)
+      comment: "Number of schedule risks successfully mitigated. Tracks the effectiveness of the risk response programme."
+    - name: "risk_mitigation_rate_pct"
+      expr: ROUND(100.0 * COUNT(CASE WHEN risk_status = 'Mitigated' THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      comment: "Percentage of schedule risks that have been mitigated. A measure of risk management programme effectiveness for executive reporting."
 $$;
 
 CREATE OR REPLACE VIEW `vibe_construction_v1`.`_metrics`.`schedule_wbs_node`
@@ -533,62 +514,62 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "WBS node cost and schedule performance metrics providing hierarchical project control visibility. Used by project managers and finance to track budget performance at each WBS level."
+  comment: "WBS node cost and schedule performance metrics enabling earned value analysis, budget variance tracking, and critical path monitoring at the work breakdown structure level."
   source: "`vibe_construction_v1`.`schedule`.`wbs_node`"
   dimensions:
-    - name: "construction_project_id"
-      expr: construction_project_id
-      comment: "Construction project identifier for project-level WBS performance analysis."
-    - name: "wbs_level"
-      expr: wbs_level
-      comment: "Hierarchical level of the WBS node for drill-down analysis from summary to detail."
-    - name: "wbs_type"
-      expr: wbs_type
-      comment: "Type of WBS node (Phase, Deliverable, Work Package, etc.) for structural analysis."
     - name: "wbs_node_status"
       expr: wbs_node_status
-      comment: "Current status of the WBS node (Active, Complete, On Hold) for portfolio health filtering."
+      comment: "Current status of the WBS node (e.g. Active, Complete, On Hold) for filtering active vs completed work packages."
+    - name: "wbs_type"
+      expr: wbs_type
+      comment: "Type of WBS node (e.g. Summary, Work Package, Control Account) enabling analysis at the appropriate WBS hierarchy level."
+    - name: "wbs_level"
+      expr: wbs_level
+      comment: "Hierarchical level of the WBS node for drill-down analysis from project summary to work package level."
     - name: "critical_path_flag"
       expr: critical_path_flag
-      comment: "Whether the WBS node is on the critical path for priority cost control."
+      comment: "Indicates whether the WBS node is on the critical path for focused cost and schedule monitoring of critical work."
     - name: "risk_level"
       expr: risk_level
-      comment: "Risk level of the WBS node for risk-weighted budget analysis."
+      comment: "Risk level assigned to the WBS node for risk-stratified work package management."
+    - name: "earned_value_method"
+      expr: earned_value_method
+      comment: "EVM measurement method applied to the WBS node (e.g. 0/100, Milestone, % Complete) for EVM methodology analysis."
+    - name: "change_order_indicator"
+      expr: change_order_indicator
+      comment: "Flags WBS nodes affected by change orders, enabling change-driven cost and schedule impact analysis."
     - name: "planned_start_month"
       expr: DATE_TRUNC('MONTH', planned_start_date)
-      comment: "Month bucket of planned start for WBS schedule distribution analysis."
+      comment: "Month bucket of the WBS node planned start date for time-phased work package analysis."
   measures:
-    - name: "total_wbs_nodes"
-      expr: COUNT(1)
-      comment: "Total number of WBS nodes. Baseline for WBS structure complexity analysis."
     - name: "total_budgeted_cost"
       expr: SUM(CAST(budgeted_cost AS DOUBLE))
-      comment: "Total budgeted cost across WBS nodes. Represents the full project cost budget broken down by WBS structure."
-    - name: "total_planned_cost"
-      expr: SUM(CAST(planned_cost AS DOUBLE))
-      comment: "Total planned cost across WBS nodes. Tracks cost commitment against budget."
+      comment: "Total budgeted cost across all WBS nodes. The authoritative project budget baseline for cost performance measurement."
     - name: "total_actual_cost"
       expr: SUM(CAST(actual_cost AS DOUBLE))
-      comment: "Total actual cost incurred across WBS nodes. Core cost performance metric for project controls."
-    - name: "total_cost_variance"
-      expr: ROUND(SUM(CAST(actual_cost AS DOUBLE)) - SUM(CAST(budgeted_cost AS DOUBLE)), 2)
-      comment: "Total cost variance (Actual - Budget) across WBS nodes. Negative values indicate budget overrun requiring corrective action."
-    - name: "budget_utilization_pct"
-      expr: ROUND(100.0 * SUM(CAST(actual_cost AS DOUBLE)) / NULLIF(SUM(CAST(budgeted_cost AS DOUBLE)), 0), 2)
-      comment: "Percentage of budget consumed across WBS nodes. Tracks cost burn rate against budget allocation."
+      comment: "Total actual cost incurred across WBS nodes. Core cost tracking metric for project financial control at the WBS level."
+    - name: "total_planned_cost"
+      expr: SUM(CAST(planned_cost AS DOUBLE))
+      comment: "Total planned cost across WBS nodes. Used as the BCWS baseline for earned value calculations."
+    - name: "cost_variance"
+      expr: ROUND(SUM(CAST(budgeted_cost AS DOUBLE)) - SUM(CAST(actual_cost AS DOUBLE)), 2)
+      comment: "Total cost variance (budget minus actual) across WBS nodes. Negative variance signals cost overrun requiring executive intervention."
+    - name: "cost_performance_index"
+      expr: ROUND(SUM(CAST(budgeted_cost AS DOUBLE)) / NULLIF(SUM(CAST(actual_cost AS DOUBLE)), 0), 4)
+      comment: "WBS-level Cost Performance Index (budget/actual). CPI < 1.0 indicates cost overrun; a primary EVM KPI for project controls."
     - name: "avg_percent_complete"
       expr: ROUND(AVG(CAST(percent_complete AS DOUBLE)), 2)
-      comment: "Average percent complete across WBS nodes. Provides a weighted view of overall project physical progress."
-    - name: "avg_actual_duration_days"
-      expr: ROUND(AVG(CAST(actual_duration_days AS DOUBLE)), 2)
-      comment: "Average actual duration of WBS nodes. Benchmarks execution speed against planned durations."
-    - name: "avg_planned_duration_days"
-      expr: ROUND(AVG(CAST(planned_duration_days AS DOUBLE)), 2)
-      comment: "Average planned duration of WBS nodes. Baseline for duration performance comparison."
-    - name: "change_order_impacted_node_count"
+      comment: "Average percent complete across WBS nodes. Provides a weighted view of overall project progress at the WBS level."
+    - name: "critical_path_budgeted_cost"
+      expr: SUM(CASE WHEN critical_path_flag = TRUE THEN budgeted_cost ELSE 0 END)
+      comment: "Total budgeted cost for critical path WBS nodes. Quantifies the financial value of schedule-critical work packages."
+    - name: "critical_path_actual_cost"
+      expr: SUM(CASE WHEN critical_path_flag = TRUE THEN actual_cost ELSE 0 END)
+      comment: "Total actual cost incurred on critical path WBS nodes. Enables focused cost control on schedule-driving work packages."
+    - name: "change_order_affected_node_count"
       expr: COUNT(CASE WHEN change_order_indicator = TRUE THEN 1 END)
-      comment: "Number of WBS nodes impacted by change orders. High counts indicate scope instability affecting budget and schedule."
-    - name: "overbudget_node_count"
-      expr: COUNT(CASE WHEN actual_cost > budgeted_cost THEN 1 END)
-      comment: "Number of WBS nodes where actual cost exceeds budget. Identifies cost overrun hotspots for targeted corrective action."
+      comment: "Number of WBS nodes affected by change orders. High counts indicate scope instability with cost and schedule implications."
+    - name: "high_risk_node_count"
+      expr: COUNT(CASE WHEN risk_level = 'High' THEN 1 END)
+      comment: "Number of WBS nodes rated as high risk. A leading indicator of work packages likely to experience cost or schedule overruns."
 $$;

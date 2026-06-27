@@ -1,151 +1,188 @@
--- Metric views for domain: fabrication | Business: Semiconductors | Version: 2 | Generated on: 2026-06-24 02:09:37
+-- Metric views for domain: fabrication | Business: Semiconductors | Version: 2 | Generated on: 2026-06-27 11:25:39
 
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`fabrication_fab_yield`
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`fabrication_fab_yield_record`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Core fabrication yield and quality metrics tracking die-level outcomes, defect rates, and yield performance across wafer lots and process steps"
+  comment: "Fab Yield Record business metrics"
   source: "`vibe_semiconductors_v1`.`fabrication`.`fab_yield_record`"
   dimensions:
-    - name: "checkpoint_code"
+    - name: "Bin 1 Die Count"
+      expr: bin_1_die_count
+    - name: "Bin 2 Die Count"
+      expr: bin_2_die_count
+    - name: "Bin 3 Die Count"
+      expr: bin_3_die_count
+    - name: "Checkpoint Code"
       expr: checkpoint_code
-      comment: "Process checkpoint where yield was measured"
-    - name: "disposition_status"
+    - name: "Comments"
+      expr: comments
+    - name: "Design Loss Die Count"
+      expr: design_loss_die_count
+    - name: "Disposition Status"
       expr: disposition_status
-      comment: "Final disposition status of the yield record (pass, fail, rework, scrap)"
-    - name: "excursion_severity_level"
+    - name: "Excursion Severity Level"
       expr: excursion_severity_level
-      comment: "Severity classification of yield excursions"
-    - name: "hold_reason_code"
+    - name: "Good Die Count"
+      expr: good_die_count
+    - name: "Gross Die Count"
+      expr: gross_die_count
+    - name: "Hold Reason Code"
       expr: hold_reason_code
-      comment: "Reason code if lot was placed on hold due to yield issues"
-    - name: "yield_excursion_flag"
-      expr: yield_excursion_flag
-      comment: "Boolean flag indicating whether a yield excursion occurred"
-    - name: "rework_flag"
-      expr: rework_flag
-      comment: "Boolean flag indicating whether rework was required"
-    - name: "scrap_flag"
-      expr: scrap_flag
-      comment: "Boolean flag indicating whether material was scrapped"
-    - name: "measurement_date"
-      expr: DATE_TRUNC('day', measurement_timestamp)
-      comment: "Date when yield measurement was taken"
-    - name: "measurement_month"
-      expr: DATE_TRUNC('month', measurement_timestamp)
-      comment: "Month when yield measurement was taken"
+    - name: "Measurement Timestamp"
+      expr: measurement_timestamp
+    - name: "Process Loss Die Count"
+      expr: process_loss_die_count
+    - name: "Random Defect Die Count"
+      expr: random_defect_die_count
+    - name: "Record Created Timestamp"
+      expr: record_created_timestamp
+    - name: "Record Updated Timestamp"
+      expr: record_updated_timestamp
   measures:
-    - name: "total_yield_records"
+    - name: "Row Count"
       expr: COUNT(1)
-      comment: "Total number of yield measurement records"
-    - name: "total_gross_die"
-      expr: SUM(CAST(gross_die_count AS BIGINT))
-      comment: "Total gross die count across all wafers before any screening"
-    - name: "total_good_die"
-      expr: SUM(CAST(good_die_count AS BIGINT))
-      comment: "Total count of good die that passed all quality criteria"
-    - name: "avg_yield_percentage"
-      expr: AVG(CAST(yield_percentage AS DOUBLE))
-      comment: "Average yield percentage across all yield records"
-    - name: "avg_defect_rate"
-      expr: AVG(CAST(defect_rate AS DOUBLE))
-      comment: "Average defect rate per wafer or lot"
-    - name: "total_random_defect_die"
-      expr: SUM(CAST(random_defect_die_count AS BIGINT))
-      comment: "Total die lost to random defects"
-    - name: "total_systematic_defect_die"
-      expr: SUM(CAST(systematic_defect_die_count AS BIGINT))
-      comment: "Total die lost to systematic defects"
-    - name: "total_process_loss_die"
-      expr: SUM(CAST(process_loss_die_count AS BIGINT))
-      comment: "Total die lost due to process-related issues"
-    - name: "total_design_loss_die"
-      expr: SUM(CAST(design_loss_die_count AS BIGINT))
-      comment: "Total die lost due to design-related issues"
-    - name: "yield_excursion_count"
-      expr: SUM(CASE WHEN yield_excursion_flag = true THEN 1 ELSE 0 END)
-      comment: "Count of yield records flagged as excursions"
-    - name: "rework_count"
-      expr: SUM(CASE WHEN rework_flag = true THEN 1 ELSE 0 END)
-      comment: "Count of yield records requiring rework"
-    - name: "scrap_count"
-      expr: SUM(CASE WHEN scrap_flag = true THEN 1 ELSE 0 END)
-      comment: "Count of yield records resulting in scrap"
+    - name: "Distinct Fab Yield Record"
+      expr: COUNT(DISTINCT fab_yield_record_id)
+    - name: "Total Yield For Lot"
+      expr: SUM(yield_for_lot)
+    - name: "Average Yield For Lot"
+      expr: AVG(yield_for_lot)
+    - name: "Total Yield Percentage"
+      expr: SUM(yield_percentage)
+    - name: "Average Yield Percentage"
+      expr: AVG(yield_percentage)
+    - name: "Total Yield Record For Lot"
+      expr: SUM(yield_record_for_lot)
+    - name: "Average Yield Record For Lot"
+      expr: AVG(yield_record_for_lot)
 $$;
 
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`fabrication_wafer_lot`
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`fabrication_fabrication_process_recipe`
 WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Wafer lot production metrics tracking cycle time, throughput, WIP status, and operational efficiency across fabrication facilities"
+  comment: "Fabrication Process Recipe business metrics"
+  source: "`vibe_semiconductors_v1`.`fabrication`.`fabrication_process_recipe`"
+  dimensions:
+    - name: "Approval Date"
+      expr: approval_date
+    - name: "Approval Status"
+      expr: approval_status
+    - name: "Approved By"
+      expr: approved_by
+    - name: "Chamber Configuration"
+      expr: chamber_configuration
+    - name: "Change Control Reference"
+      expr: change_control_reference
+    - name: "Created Timestamp"
+      expr: created_timestamp
+    - name: "Effective End Date"
+      expr: effective_end_date
+    - name: "Effective Start Date"
+      expr: effective_start_date
+    - name: "Environmental Compliance Flag"
+      expr: environmental_compliance_flag
+    - name: "Equipment Type"
+      expr: equipment_type
+    - name: "Fmea Reference"
+      expr: fmea_reference
+    - name: "Gas Flow Parameters"
+      expr: gas_flow_parameters
+    - name: "Itar Controlled Flag"
+      expr: itar_controlled_flag
+    - name: "Last Modified Timestamp"
+      expr: last_modified_timestamp
+    - name: "Process Duration Seconds"
+      expr: process_duration_seconds
+    - name: "Process Layer Type"
+      expr: process_layer_type
+  measures:
+    - name: "Row Count"
+      expr: COUNT(1)
+    - name: "Distinct Fabrication Process Recipe"
+      expr: COUNT(DISTINCT fabrication_process_recipe_id)
+    - name: "Total Power Settings Watts"
+      expr: SUM(power_settings_watts)
+    - name: "Average Power Settings Watts"
+      expr: AVG(power_settings_watts)
+    - name: "Total Process Pressure Torr"
+      expr: SUM(process_pressure_torr)
+    - name: "Average Process Pressure Torr"
+      expr: AVG(process_pressure_torr)
+    - name: "Total Process Temperature Celsius"
+      expr: SUM(process_temperature_celsius)
+    - name: "Average Process Temperature Celsius"
+      expr: AVG(process_temperature_celsius)
+    - name: "Total Target Thickness Nm"
+      expr: SUM(target_thickness_nm)
+    - name: "Average Target Thickness Nm"
+      expr: AVG(target_thickness_nm)
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`fabrication_fabrication_wafer_lot`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Fabrication Wafer Lot business metrics"
   source: "`vibe_semiconductors_v1`.`fabrication`.`fabrication_wafer_lot`"
   dimensions:
-    - name: "wip_status"
-      expr: wip_status
-      comment: "Work-in-process status of the wafer lot"
-    - name: "lot_disposition"
-      expr: lot_disposition
-      comment: "Final disposition of the lot (released, scrapped, on-hold, etc.)"
-    - name: "lot_type"
-      expr: lot_type
-      comment: "Type of lot (production, engineering, qualification, etc.)"
-    - name: "priority_class"
-      expr: priority_class
-      comment: "Priority classification for scheduling and expediting"
-    - name: "hold_flag"
-      expr: hold_flag
-      comment: "Boolean flag indicating whether lot is currently on hold"
-    - name: "is_hot_lot"
-      expr: is_hot_lot
-      comment: "Boolean flag indicating whether lot is expedited (hot lot)"
-    - name: "current_process_area"
+    - name: "Actual Completion Timestamp"
+      expr: actual_completion_timestamp
+    - name: "Current Operation Name"
+      expr: current_operation_name
+    - name: "Current Operation Number"
+      expr: current_operation_number
+    - name: "Current Process Area"
       expr: current_process_area
-      comment: "Current process area where lot is located"
-    - name: "process_node_nm"
-      expr: process_node_nm
-      comment: "Process technology node in nanometers"
-    - name: "lot_start_month"
-      expr: DATE_TRUNC('month', wafer_start_timestamp)
-      comment: "Month when wafer lot was started"
-    - name: "lot_completion_month"
-      expr: DATE_TRUNC('month', actual_completion_timestamp)
-      comment: "Month when wafer lot was completed"
+    - name: "Due Date"
+      expr: due_date
+    - name: "Fab Facility Code"
+      expr: fab_facility_code
+    - name: "Hold Flag"
+      expr: hold_flag
+    - name: "Hold Reason Code"
+      expr: hold_reason_code
+    - name: "Hold Timestamp"
+      expr: hold_timestamp
+    - name: "Initial Wafer Count"
+      expr: initial_wafer_count
+    - name: "Is Hot Lot"
+      expr: is_hot_lot
+    - name: "Lot Created Timestamp"
+      expr: lot_created_timestamp
+    - name: "Lot Disposition"
+      expr: lot_disposition
+    - name: "Lot Notes"
+      expr: lot_notes
+    - name: "Lot Number"
+      expr: lot_number
+    - name: "Lot Type"
+      expr: lot_type
   measures:
-    - name: "total_wafer_lots"
+    - name: "Row Count"
       expr: COUNT(1)
-      comment: "Total number of wafer lots"
-    - name: "total_wafers_started"
-      expr: SUM(CAST(initial_wafer_count AS BIGINT))
-      comment: "Total count of wafers started across all lots"
-    - name: "total_wafers_current"
-      expr: SUM(CAST(wafer_count AS BIGINT))
-      comment: "Current total wafer count across all lots"
-    - name: "total_wafers_scrapped"
-      expr: SUM(CAST(scrap_wafer_count AS BIGINT))
-      comment: "Total count of wafers scrapped"
-    - name: "avg_cycle_time_days"
-      expr: AVG(CAST(cycle_time_days AS DOUBLE))
-      comment: "Average cycle time in days from lot start to completion"
-    - name: "avg_process_time_hours"
-      expr: AVG(CAST(process_time_hours AS DOUBLE))
-      comment: "Average active process time in hours"
-    - name: "avg_queue_time_hours"
-      expr: AVG(CAST(queue_time_hours AS DOUBLE))
-      comment: "Average queue time in hours waiting between operations"
-    - name: "total_rework_count"
-      expr: SUM(CAST(rework_count AS BIGINT))
-      comment: "Total number of rework operations across all lots"
-    - name: "hot_lot_count"
-      expr: SUM(CASE WHEN is_hot_lot = true THEN 1 ELSE 0 END)
-      comment: "Count of expedited hot lots"
-    - name: "hold_lot_count"
-      expr: SUM(CASE WHEN hold_flag = true THEN 1 ELSE 0 END)
-      comment: "Count of lots currently on hold"
-    - name: "distinct_process_nodes"
-      expr: COUNT(DISTINCT process_node_nm)
-      comment: "Number of distinct process technology nodes in production"
+    - name: "Distinct Fabrication Wafer Lot"
+      expr: COUNT(DISTINCT fabrication_wafer_lot_id)
+    - name: "Total Cycle Time Days"
+      expr: SUM(cycle_time_days)
+    - name: "Average Cycle Time Days"
+      expr: AVG(cycle_time_days)
+    - name: "Total Lot On Node"
+      expr: SUM(lot_on_node)
+    - name: "Average Lot On Node"
+      expr: AVG(lot_on_node)
+    - name: "Total Process Time Hours"
+      expr: SUM(process_time_hours)
+    - name: "Average Process Time Hours"
+      expr: AVG(process_time_hours)
+    - name: "Total Queue Time Hours"
+      expr: SUM(queue_time_hours)
+    - name: "Average Queue Time Hours"
+      expr: AVG(queue_time_hours)
 $$;
 
 CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`fabrication_lot_hold`
@@ -153,64 +190,50 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Lot hold and containment metrics tracking quality holds, hold duration, escalations, and disposition actions for risk management"
+  comment: "Lot Hold business metrics"
   source: "`vibe_semiconductors_v1`.`fabrication`.`lot_hold`"
   dimensions:
-    - name: "hold_status"
-      expr: hold_status
-      comment: "Current status of the hold (active, released, expired, etc.)"
-    - name: "hold_type"
-      expr: hold_type
-      comment: "Type of hold (quality, engineering, customer, etc.)"
-    - name: "hold_reason_code"
-      expr: hold_reason_code
-      comment: "Reason code for why hold was placed"
-    - name: "disposition_action"
-      expr: disposition_action
-      comment: "Disposition action taken (release, scrap, rework, sort, etc.)"
-    - name: "priority_level"
-      expr: priority_level
-      comment: "Priority level for hold resolution"
-    - name: "escalation_flag"
-      expr: escalation_flag
-      comment: "Boolean flag indicating whether hold was escalated"
-    - name: "approval_required"
+    - name: "Approval Required"
       expr: approval_required
-      comment: "Boolean flag indicating whether approval is required for release"
-    - name: "customer_notification_required"
+    - name: "Approval Timestamp"
+      expr: approval_timestamp
+    - name: "Created Timestamp"
+      expr: created_timestamp
+    - name: "Customer Notification Required"
       expr: customer_notification_required
-      comment: "Boolean flag indicating whether customer notification is required"
-    - name: "root_cause_code"
-      expr: root_cause_code
-      comment: "Root cause code identified during hold investigation"
-    - name: "hold_placement_month"
-      expr: DATE_TRUNC('month', hold_placement_timestamp)
-      comment: "Month when hold was placed"
+    - name: "Customer Notification Timestamp"
+      expr: customer_notification_timestamp
+    - name: "Defect Density Threshold Exceeded"
+      expr: defect_density_threshold_exceeded
+    - name: "Disposition Action"
+      expr: disposition_action
+    - name: "Disposition Notes"
+      expr: disposition_notes
+    - name: "Escalation Flag"
+      expr: escalation_flag
+    - name: "Hold Expiration Timestamp"
+      expr: hold_expiration_timestamp
+    - name: "Hold Placement Timestamp"
+      expr: hold_placement_timestamp
+    - name: "Hold Reason Code"
+      expr: hold_reason_code
+    - name: "Hold Reason Description"
+      expr: hold_reason_description
+    - name: "Hold Release Timestamp"
+      expr: hold_release_timestamp
+    - name: "Hold Status"
+      expr: hold_status
+    - name: "Hold Type"
+      expr: hold_type
   measures:
-    - name: "total_holds"
+    - name: "Row Count"
       expr: COUNT(1)
-      comment: "Total number of lot holds"
-    - name: "total_wafers_on_hold"
-      expr: SUM(CAST(wafer_count AS BIGINT))
-      comment: "Total count of wafers currently or previously on hold"
-    - name: "avg_hold_cycle_time_hours"
-      expr: AVG(CAST(hold_cycle_time_hours AS DOUBLE))
-      comment: "Average duration of holds in hours from placement to release"
-    - name: "escalated_hold_count"
-      expr: SUM(CASE WHEN escalation_flag = true THEN 1 ELSE 0 END)
-      comment: "Count of holds that were escalated"
-    - name: "customer_notification_count"
-      expr: SUM(CASE WHEN customer_notification_required = true THEN 1 ELSE 0 END)
-      comment: "Count of holds requiring customer notification"
-    - name: "approval_required_count"
-      expr: SUM(CASE WHEN approval_required = true THEN 1 ELSE 0 END)
-      comment: "Count of holds requiring approval for release"
-    - name: "distinct_hold_reasons"
-      expr: COUNT(DISTINCT hold_reason_code)
-      comment: "Number of distinct hold reason codes"
-    - name: "distinct_root_causes"
-      expr: COUNT(DISTINCT root_cause_code)
-      comment: "Number of distinct root cause codes identified"
+    - name: "Distinct Lot Hold"
+      expr: COUNT(DISTINCT lot_hold_id)
+    - name: "Total Hold Cycle Time Hours"
+      expr: SUM(hold_cycle_time_hours)
+    - name: "Average Hold Cycle Time Hours"
+      expr: AVG(hold_cycle_time_hours)
 $$;
 
 CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`fabrication_lot_move`
@@ -218,150 +241,74 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Lot move and operation tracking metrics measuring equipment utilization, process time, queue time, and throughput efficiency"
+  comment: "Lot Move business metrics"
   source: "`vibe_semiconductors_v1`.`fabrication`.`lot_move`"
   dimensions:
-    - name: "move_status"
-      expr: move_status
-      comment: "Status of the lot move operation"
-    - name: "disposition"
+    - name: "Comments"
+      expr: comments
+    - name: "Control Job Code"
+      expr: control_job_code
+    - name: "Created Timestamp"
+      expr: created_timestamp
+    - name: "Defect Count"
+      expr: defect_count
+    - name: "Disposition"
       expr: disposition
-      comment: "Disposition outcome of the move"
-    - name: "process_layer"
+    - name: "Hold Reason Code"
+      expr: hold_reason_code
+    - name: "Last Modified Timestamp"
+      expr: last_modified_timestamp
+    - name: "Measurement Unit"
+      expr: measurement_unit
+    - name: "Move In Timestamp"
+      expr: move_in_timestamp
+    - name: "Move Out Timestamp"
+      expr: move_out_timestamp
+    - name: "Move Status"
+      expr: move_status
+    - name: "Priority Code"
+      expr: priority_code
+    - name: "Process Layer"
       expr: process_layer
-      comment: "Process layer being fabricated"
-    - name: "process_module"
+    - name: "Process Module"
       expr: process_module
-      comment: "Process module (lithography, etch, deposition, etc.)"
-    - name: "technology_node"
-      expr: technology_node
-      comment: "Technology node for this operation"
-    - name: "rework_flag"
-      expr: rework_flag
-      comment: "Boolean flag indicating whether this is a rework operation"
-    - name: "sampling_flag"
-      expr: sampling_flag
-      comment: "Boolean flag indicating whether sampling was performed"
-    - name: "cooling_process_flag"
-      expr: cooling_process_flag
-      comment: "Boolean flag indicating whether cooling process was used"
-    - name: "cooling_optimization_enabled_flag"
-      expr: cooling_optimization_enabled_flag
-      comment: "Boolean flag indicating whether cooling optimization was enabled"
-    - name: "move_in_month"
-      expr: DATE_TRUNC('month', move_in_timestamp)
-      comment: "Month when lot moved into operation"
+    - name: "Process Time Seconds"
+      expr: process_time_seconds
+    - name: "Quantity In"
+      expr: quantity_in
   measures:
-    - name: "total_lot_moves"
+    - name: "Row Count"
       expr: COUNT(1)
-      comment: "Total number of lot move transactions"
-    - name: "total_quantity_in"
-      expr: SUM(CAST(quantity_in AS BIGINT))
-      comment: "Total quantity of wafers moved into operations"
-    - name: "total_quantity_out"
-      expr: SUM(CAST(quantity_out AS BIGINT))
-      comment: "Total quantity of wafers moved out of operations"
-    - name: "total_scrap_quantity"
-      expr: SUM(CAST(scrap_quantity AS BIGINT))
-      comment: "Total quantity of wafers scrapped during operations"
-    - name: "avg_process_time_seconds"
-      expr: AVG(CAST(process_time_seconds AS DOUBLE))
-      comment: "Average process time per operation in seconds"
-    - name: "avg_queue_time_seconds"
-      expr: AVG(CAST(queue_time_seconds AS DOUBLE))
-      comment: "Average queue time waiting for equipment in seconds"
-    - name: "avg_actual_temperature_c"
-      expr: AVG(CAST(actual_temperature_c AS DOUBLE))
-      comment: "Average actual process temperature in Celsius"
-    - name: "avg_actual_pressure_torr"
-      expr: AVG(CAST(actual_pressure_torr AS DOUBLE))
-      comment: "Average actual process pressure in Torr"
-    - name: "avg_cooling_energy_kwh"
-      expr: AVG(CAST(cooling_energy_consumption_kwh AS DOUBLE))
-      comment: "Average cooling energy consumption per operation in kWh"
-    - name: "total_defect_count"
-      expr: SUM(CAST(defect_count AS BIGINT))
-      comment: "Total defects detected during lot moves"
-    - name: "rework_operation_count"
-      expr: SUM(CASE WHEN rework_flag = true THEN 1 ELSE 0 END)
-      comment: "Count of rework operations"
-    - name: "sampling_operation_count"
-      expr: SUM(CASE WHEN sampling_flag = true THEN 1 ELSE 0 END)
-      comment: "Count of operations where sampling was performed"
-$$;
-
-CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`fabrication_fab_facility`
-WITH METRICS
-LANGUAGE YAML
-AS $$
-  version: 1.1
-  comment: "Fabrication facility capacity, utilization, and environmental performance metrics for strategic resource planning and sustainability reporting"
-  source: "`vibe_semiconductors_v1`.`fabrication`.`fab_facility`"
-  dimensions:
-    - name: "facility_code"
-      expr: facility_code
-      comment: "Unique facility code identifier"
-    - name: "facility_name"
-      expr: facility_name
-      comment: "Name of the fabrication facility"
-    - name: "facility_type"
-      expr: facility_type
-      comment: "Type of facility (wafer fab, assembly, test, etc.)"
-    - name: "operational_status"
-      expr: operational_status
-      comment: "Current operational status of the facility"
-    - name: "lifecycle_status"
-      expr: lifecycle_status
-      comment: "Lifecycle status (active, ramping, idle, decommissioned, etc.)"
-    - name: "compliance_status"
-      expr: compliance_status
-      comment: "Regulatory compliance status"
-    - name: "country_code"
-      expr: country_code
-      comment: "Country where facility is located"
-    - name: "process_technology_node"
-      expr: process_technology_node
-      comment: "Primary process technology node supported"
-    - name: "lithography_type"
-      expr: lithography_type
-      comment: "Lithography technology type (DUV, EUV, etc.)"
-    - name: "cleanroom_class"
-      expr: cleanroom_class
-      comment: "ISO cleanroom classification"
-  measures:
-    - name: "total_facilities"
-      expr: COUNT(1)
-      comment: "Total number of fabrication facilities"
-    - name: "total_capacity_wafers_per_month"
-      expr: SUM(CAST(capacity_wafer_per_month AS BIGINT))
-      comment: "Total monthly wafer capacity across all facilities"
-    - name: "avg_capacity_wafers_per_month"
-      expr: AVG(CAST(capacity_wafer_per_month AS DOUBLE))
-      comment: "Average monthly wafer capacity per facility"
-    - name: "total_fab_area_sqft"
-      expr: SUM(CAST(fab_area_sqft AS DOUBLE))
-      comment: "Total fabrication area in square feet"
-    - name: "total_energy_consumption_mwh"
-      expr: SUM(CAST(energy_consumption_mwh AS DOUBLE))
-      comment: "Total energy consumption in megawatt-hours"
-    - name: "total_carbon_footprint_kgco2e"
-      expr: SUM(CAST(carbon_footprint_kgco2e AS DOUBLE))
-      comment: "Total carbon footprint in kilograms CO2 equivalent"
-    - name: "total_water_usage_m3"
-      expr: SUM(CAST(water_usage_m3 AS DOUBLE))
-      comment: "Total water usage in cubic meters"
-    - name: "total_waste_generated_tons"
-      expr: SUM(CAST(waste_generated_tons AS DOUBLE))
-      comment: "Total waste generated in tons"
-    - name: "avg_energy_per_sqft"
-      expr: AVG(CAST(energy_consumption_mwh AS DOUBLE) / NULLIF(CAST(fab_area_sqft AS DOUBLE), 0))
-      comment: "Average energy consumption per square foot of fab area"
-    - name: "total_cleanrooms"
-      expr: SUM(CAST(number_of_cleanrooms AS BIGINT))
-      comment: "Total number of cleanrooms across all facilities"
-    - name: "total_equipment_units"
-      expr: SUM(CAST(number_of_equipment_units AS BIGINT))
-      comment: "Total number of equipment units across all facilities"
+    - name: "Distinct Lot Move"
+      expr: COUNT(DISTINCT lot_move_id)
+    - name: "Total Actual Flow Rate Sccm"
+      expr: SUM(actual_flow_rate_sccm)
+    - name: "Average Actual Flow Rate Sccm"
+      expr: AVG(actual_flow_rate_sccm)
+    - name: "Total Actual Power Watts"
+      expr: SUM(actual_power_watts)
+    - name: "Average Actual Power Watts"
+      expr: AVG(actual_power_watts)
+    - name: "Total Actual Pressure Torr"
+      expr: SUM(actual_pressure_torr)
+    - name: "Average Actual Pressure Torr"
+      expr: AVG(actual_pressure_torr)
+    - name: "Total Actual Temperature C"
+      expr: SUM(actual_temperature_c)
+    - name: "Average Actual Temperature C"
+      expr: AVG(actual_temperature_c)
+    - name: "Total At Step"
+      expr: SUM(at_step)
+    - name: "Average At Step"
+      expr: AVG(at_step)
+    - name: "Total Measurement Value"
+      expr: SUM(measurement_value)
+    - name: "Average Measurement Value"
+      expr: AVG(measurement_value)
+    - name: "Total Tracks Lot"
+      expr: SUM(tracks_lot)
+    - name: "Average Tracks Lot"
+      expr: AVG(tracks_lot)
 $$;
 
 CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`fabrication_photomask`
@@ -369,67 +316,70 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Photomask lifecycle, utilization, and quality metrics for reticle management and lithography cost optimization"
+  comment: "Photomask business metrics"
   source: "`vibe_semiconductors_v1`.`fabrication`.`photomask`"
   dimensions:
-    - name: "mask_status"
-      expr: mask_status
-      comment: "Current status of the photomask (active, quarantine, retired, etc.)"
-    - name: "mask_type"
-      expr: mask_type
-      comment: "Type of photomask (binary, phase-shift, EUV, etc.)"
-    - name: "layer_name"
+    - name: "Cleaning Cycle Count"
+      expr: cleaning_cycle_count
+    - name: "Created Timestamp"
+      expr: created_timestamp
+    - name: "Critical Defect Count"
+      expr: critical_defect_count
+    - name: "Cumulative Usage Count"
+      expr: cumulative_usage_count
+    - name: "Defect Count Last Inspection"
+      expr: defect_count_last_inspection
+    - name: "Defect Retirement Threshold"
+      expr: defect_retirement_threshold
+    - name: "Gds File Checksum"
+      expr: gds_file_checksum
+    - name: "Last Cleaning Date"
+      expr: last_cleaning_date
+    - name: "Last Inspection Date"
+      expr: last_inspection_date
+    - name: "Last Modified Timestamp"
+      expr: last_modified_timestamp
+    - name: "Layer Name"
       expr: layer_name
-      comment: "Layer name for which this mask is used"
-    - name: "lithography_wavelength"
+    - name: "Lithography Wavelength"
       expr: lithography_wavelength
-      comment: "Lithography wavelength (193nm, 13.5nm EUV, etc.)"
-    - name: "mask_generation"
+    - name: "Mask Generation"
       expr: mask_generation
-      comment: "Generation or version of the mask design"
-    - name: "pellicle_status"
-      expr: pellicle_status
-      comment: "Status of the protective pellicle"
-    - name: "retirement_reason"
-      expr: retirement_reason
-      comment: "Reason for mask retirement if applicable"
-    - name: "qualification_month"
-      expr: DATE_TRUNC('month', qualification_date)
-      comment: "Month when mask was qualified for production"
+    - name: "Mask Serial Number"
+      expr: mask_serial_number
+    - name: "Mask Status"
+      expr: mask_status
+    - name: "Mask Type"
+      expr: mask_type
   measures:
-    - name: "total_photomasks"
+    - name: "Row Count"
       expr: COUNT(1)
-      comment: "Total number of photomasks in inventory"
-    - name: "total_acquisition_cost"
-      expr: SUM(CAST(acquisition_cost AS DOUBLE))
-      comment: "Total acquisition cost of all photomasks"
-    - name: "avg_acquisition_cost"
-      expr: AVG(CAST(acquisition_cost AS DOUBLE))
-      comment: "Average acquisition cost per photomask"
-    - name: "total_cumulative_usage"
-      expr: SUM(CAST(cumulative_usage_count AS BIGINT))
-      comment: "Total cumulative usage count across all masks"
-    - name: "avg_cumulative_usage"
-      expr: AVG(CAST(cumulative_usage_count AS DOUBLE))
-      comment: "Average cumulative usage count per mask"
-    - name: "total_cumulative_exposure_hours"
-      expr: SUM(CAST(cumulative_exposure_hours AS DOUBLE))
-      comment: "Total cumulative exposure hours across all masks"
-    - name: "avg_critical_defect_count"
-      expr: AVG(CAST(critical_defect_count AS DOUBLE))
-      comment: "Average critical defect count per mask"
-    - name: "total_cleaning_cycles"
-      expr: SUM(CAST(cleaning_cycle_count AS BIGINT))
-      comment: "Total cleaning cycles performed across all masks"
-    - name: "avg_cd_uniformity"
-      expr: AVG(CAST(cd_uniformity_specification AS DOUBLE))
-      comment: "Average critical dimension uniformity specification"
-    - name: "avg_meef_value"
-      expr: AVG(CAST(meef_value AS DOUBLE))
-      comment: "Average mask error enhancement factor (MEEF) value"
-    - name: "distinct_layers"
-      expr: COUNT(DISTINCT layer_name)
-      comment: "Number of distinct layers covered by photomask inventory"
+    - name: "Distinct Photomask"
+      expr: COUNT(DISTINCT photomask_id)
+    - name: "Total Acquisition Cost"
+      expr: SUM(acquisition_cost)
+    - name: "Average Acquisition Cost"
+      expr: AVG(acquisition_cost)
+    - name: "Total Cd Uniformity Specification"
+      expr: SUM(cd_uniformity_specification)
+    - name: "Average Cd Uniformity Specification"
+      expr: AVG(cd_uniformity_specification)
+    - name: "Total Critical Dimension Target Nm"
+      expr: SUM(critical_dimension_target_nm)
+    - name: "Average Critical Dimension Target Nm"
+      expr: AVG(critical_dimension_target_nm)
+    - name: "Total Cumulative Exposure Hours"
+      expr: SUM(cumulative_exposure_hours)
+    - name: "Average Cumulative Exposure Hours"
+      expr: AVG(cumulative_exposure_hours)
+    - name: "Total Meef Value"
+      expr: SUM(meef_value)
+    - name: "Average Meef Value"
+      expr: AVG(meef_value)
+    - name: "Total Registration Error Specification Nm"
+      expr: SUM(registration_error_specification_nm)
+    - name: "Average Registration Error Specification Nm"
+      expr: AVG(registration_error_specification_nm)
 $$;
 
 CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`fabrication_process_flow`
@@ -437,70 +387,223 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Process flow design and qualification metrics tracking cycle time targets, step complexity, and technology readiness for new product introductions"
+  comment: "Process Flow business metrics"
   source: "`vibe_semiconductors_v1`.`fabrication`.`process_flow`"
   dimensions:
-    - name: "flow_code"
+    - name: "Approval Date"
+      expr: approval_date
+    - name: "Approved By"
+      expr: approved_by
+    - name: "Beol Step Count"
+      expr: beol_step_count
+    - name: "Cool Optimization Mode"
+      expr: cool_optimization_mode
+    - name: "Coolant Type"
+      expr: coolant_type
+    - name: "Cooling Method"
+      expr: cooling_method
+    - name: "Cooling Optimization Mode"
+      expr: cooling_optimization_mode
+    - name: "Created Timestamp"
+      expr: created_timestamp
+    - name: "Effective End Date"
+      expr: effective_end_date
+    - name: "Effective Start Date"
+      expr: effective_start_date
+    - name: "Environmental Classification"
+      expr: environmental_classification
+    - name: "Export Control Classification"
+      expr: export_control_classification
+    - name: "Fab Facility Code"
+      expr: fab_facility_code
+    - name: "Feol Step Count"
+      expr: feol_step_count
+    - name: "Flow Code"
       expr: flow_code
-      comment: "Unique process flow code"
-    - name: "flow_name"
-      expr: flow_name
-      comment: "Name of the process flow"
-    - name: "flow_type"
-      expr: flow_type
-      comment: "Type of process flow (standard, custom, engineering, etc.)"
-    - name: "flow_status"
-      expr: flow_status
-      comment: "Current status of the process flow (active, development, frozen, etc.)"
-    - name: "qualification_status"
-      expr: qualification_status
-      comment: "Qualification status (qualified, in-qualification, not-qualified, etc.)"
-    - name: "lithography_technology"
-      expr: lithography_technology
-      comment: "Lithography technology used in this flow"
-    - name: "transistor_architecture"
-      expr: transistor_architecture
-      comment: "Transistor architecture (FinFET, GAA, planar, etc.)"
-    - name: "substrate_type"
-      expr: substrate_type
-      comment: "Substrate type (silicon, SOI, etc.)"
-    - name: "is_customer_specific"
-      expr: is_customer_specific
-      comment: "Boolean flag indicating whether flow is customer-specific"
-    - name: "requires_nre"
-      expr: requires_nre
-      comment: "Boolean flag indicating whether non-recurring engineering is required"
   measures:
-    - name: "total_process_flows"
+    - name: "Row Count"
       expr: COUNT(1)
-      comment: "Total number of process flows"
-    - name: "avg_total_process_steps"
-      expr: AVG(CAST(total_process_steps AS DOUBLE))
-      comment: "Average total number of process steps per flow"
-    - name: "avg_feol_step_count"
-      expr: AVG(CAST(feol_step_count AS DOUBLE))
-      comment: "Average front-end-of-line step count"
-    - name: "avg_beol_step_count"
-      expr: AVG(CAST(beol_step_count AS DOUBLE))
-      comment: "Average back-end-of-line step count"
-    - name: "avg_metal_layer_count"
-      expr: AVG(CAST(metal_layer_count AS DOUBLE))
-      comment: "Average number of metal layers"
-    - name: "avg_estimated_cycle_time_days"
-      expr: AVG(CAST(estimated_cycle_time_days AS DOUBLE))
-      comment: "Average estimated cycle time in days"
-    - name: "avg_target_yield_percent"
-      expr: AVG(CAST(target_yield_percent AS DOUBLE))
-      comment: "Average target yield percentage"
-    - name: "customer_specific_flow_count"
-      expr: SUM(CASE WHEN is_customer_specific = true THEN 1 ELSE 0 END)
-      comment: "Count of customer-specific process flows"
-    - name: "nre_required_flow_count"
-      expr: SUM(CASE WHEN requires_nre = true THEN 1 ELSE 0 END)
-      comment: "Count of flows requiring non-recurring engineering"
-    - name: "distinct_lithography_technologies"
-      expr: COUNT(DISTINCT lithography_technology)
-      comment: "Number of distinct lithography technologies in use"
+    - name: "Distinct Process Flow"
+      expr: COUNT(DISTINCT process_flow_id)
+    - name: "Total Estimated Cycle Time Days"
+      expr: SUM(estimated_cycle_time_days)
+    - name: "Average Estimated Cycle Time Days"
+      expr: AVG(estimated_cycle_time_days)
+    - name: "Total Target Yield Percent"
+      expr: SUM(target_yield_percent)
+    - name: "Average Target Yield Percent"
+      expr: AVG(target_yield_percent)
+    - name: "Total Waste Elimination Target Pct"
+      expr: SUM(waste_elimination_target_pct)
+    - name: "Average Waste Elimination Target Pct"
+      expr: AVG(waste_elimination_target_pct)
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`fabrication_process_flow_step_recipe`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Process Flow Step Recipe business metrics"
+  source: "`vibe_semiconductors_v1`.`fabrication`.`process_flow_step_recipe`"
+  dimensions:
+    - name: "Created Timestamp"
+      expr: created_timestamp
+    - name: "Effective End Date"
+      expr: effective_end_date
+    - name: "Effective Start Date"
+      expr: effective_start_date
+    - name: "Is Mandatory Step"
+      expr: is_mandatory_step
+    - name: "Last Modified Timestamp"
+      expr: last_modified_timestamp
+    - name: "Modified By"
+      expr: modified_by
+    - name: "Step Description"
+      expr: step_description
+    - name: "Step Sequence Number"
+      expr: step_sequence_number
+    - name: "Step Type"
+      expr: step_type
+    - name: "Created Timestamp Month"
+      expr: DATE_TRUNC('MONTH', created_timestamp)
+    - name: "Effective End Date Month"
+      expr: DATE_TRUNC('MONTH', effective_end_date)
+  measures:
+    - name: "Row Count"
+      expr: COUNT(1)
+    - name: "Distinct Process Flow Step Recipe"
+      expr: COUNT(DISTINCT process_flow_step_recipe_id)
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`fabrication_technology_node`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Technology Node business metrics"
+  source: "`vibe_semiconductors_v1`.`fabrication`.`technology_node`"
+  dimensions:
+    - name: "Active Flag"
+      expr: active_flag
+    - name: "Created Timestamp"
+      expr: created_timestamp
+    - name: "Design Rule Complexity"
+      expr: design_rule_complexity
+    - name: "Dfm Enabled Flag"
+      expr: dfm_enabled_flag
+    - name: "Dft Enabled Flag"
+      expr: dft_enabled_flag
+    - name: "Ear Classification"
+      expr: ear_classification
+    - name: "Eol Announcement Date"
+      expr: eol_announcement_date
+    - name: "Iatf16949 Certified Flag"
+      expr: iatf16949_certified_flag
+    - name: "Iso9001 Certified Flag"
+      expr: iso9001_certified_flag
+    - name: "Itar Controlled Flag"
+      expr: itar_controlled_flag
+    - name: "Last Modified Timestamp"
+      expr: last_modified_timestamp
+    - name: "Lithography Technology"
+      expr: lithography_technology
+    - name: "Metal Layer Count"
+      expr: metal_layer_count
+    - name: "Modified By User"
+      expr: modified_by_user
+    - name: "Node Code"
+      expr: node_code
+    - name: "Node Generation"
+      expr: node_generation
+  measures:
+    - name: "Row Count"
+      expr: COUNT(1)
+    - name: "Distinct Technology Node"
+      expr: COUNT(DISTINCT technology_node_id)
+    - name: "Total Mask Set Cost Usd"
+      expr: SUM(mask_set_cost_usd)
+    - name: "Average Mask Set Cost Usd"
+      expr: AVG(mask_set_cost_usd)
+    - name: "Total Minimum Feature Size Nm"
+      expr: SUM(minimum_feature_size_nm)
+    - name: "Average Minimum Feature Size Nm"
+      expr: AVG(minimum_feature_size_nm)
+    - name: "Total Nre Cost Estimate Usd"
+      expr: SUM(nre_cost_estimate_usd)
+    - name: "Average Nre Cost Estimate Usd"
+      expr: AVG(nre_cost_estimate_usd)
+    - name: "Total Target Yield Percent"
+      expr: SUM(target_yield_percent)
+    - name: "Average Target Yield Percent"
+      expr: AVG(target_yield_percent)
+$$;
+
+CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`fabrication_wafer`
+WITH METRICS
+LANGUAGE YAML
+AS $$
+  version: 1.1
+  comment: "Wafer business metrics"
+  source: "`vibe_semiconductors_v1`.`fabrication`.`wafer`"
+  dimensions:
+    - name: "Completion Timestamp"
+      expr: completion_timestamp
+    - name: "Critical Defect Count"
+      expr: critical_defect_count
+    - name: "Crystal Orientation"
+      expr: crystal_orientation
+    - name: "Current Operation Number"
+      expr: current_operation_number
+    - name: "Current Process Step"
+      expr: current_process_step
+    - name: "Defect Count"
+      expr: defect_count
+    - name: "Diameter Mm"
+      expr: diameter_mm
+    - name: "Disposition Status"
+      expr: disposition_status
+    - name: "Doping Type"
+      expr: doping_type
+    - name: "Epitaxial Layer Flag"
+      expr: epitaxial_layer_flag
+    - name: "Expected Die Count"
+      expr: expected_die_count
+    - name: "Genealogy Path"
+      expr: genealogy_path
+    - name: "Good Die Count"
+      expr: good_die_count
+    - name: "Hold Reason Code"
+      expr: hold_reason_code
+    - name: "Inspection Timestamp"
+      expr: inspection_timestamp
+    - name: "Last Process Timestamp"
+      expr: last_process_timestamp
+  measures:
+    - name: "Row Count"
+      expr: COUNT(1)
+    - name: "Distinct Wafer"
+      expr: COUNT(DISTINCT wafer_id)
+    - name: "Total Belongs To Lot"
+      expr: SUM(belongs_to_lot)
+    - name: "Average Belongs To Lot"
+      expr: AVG(belongs_to_lot)
+    - name: "Total Epitaxial Resistivity Ohm Cm"
+      expr: SUM(epitaxial_resistivity_ohm_cm)
+    - name: "Average Epitaxial Resistivity Ohm Cm"
+      expr: AVG(epitaxial_resistivity_ohm_cm)
+    - name: "Total Epitaxial Thickness Um"
+      expr: SUM(epitaxial_thickness_um)
+    - name: "Average Epitaxial Thickness Um"
+      expr: AVG(epitaxial_thickness_um)
+    - name: "Total Resistivity Ohm Cm"
+      expr: SUM(resistivity_ohm_cm)
+    - name: "Average Resistivity Ohm Cm"
+      expr: AVG(resistivity_ohm_cm)
+    - name: "Total Thickness Um"
+      expr: SUM(thickness_um)
+    - name: "Average Thickness Um"
+      expr: AVG(thickness_um)
 $$;
 
 CREATE OR REPLACE VIEW `vibe_semiconductors_v1`.`_metrics`.`fabrication_wafer_start`
@@ -508,56 +611,52 @@ WITH METRICS
 LANGUAGE YAML
 AS $$
   version: 1.1
-  comment: "Wafer start authorization and release metrics tracking demand fulfillment, priority mix, and production planning effectiveness"
+  comment: "Wafer Start business metrics"
   source: "`vibe_semiconductors_v1`.`fabrication`.`wafer_start`"
   dimensions:
-    - name: "wafer_start_status"
-      expr: wafer_start_status
-      comment: "Status of the wafer start authorization"
-    - name: "wafer_start_type"
-      expr: wafer_start_type
-      comment: "Type of wafer start (production, engineering, qualification, etc.)"
-    - name: "priority_class"
-      expr: priority_class
-      comment: "Priority classification for the wafer start"
-    - name: "production_line"
-      expr: production_line
-      comment: "Production line assigned for fabrication"
-    - name: "substrate_type"
-      expr: substrate_type
-      comment: "Substrate type for the wafer start"
-    - name: "doping_type"
-      expr: doping_type
-      comment: "Doping type (N-type, P-type, etc.)"
-    - name: "crystal_orientation"
+    - name: "Authorization Timestamp"
+      expr: authorization_timestamp
+    - name: "Created Timestamp"
+      expr: created_timestamp
+    - name: "Crystal Orientation"
       expr: crystal_orientation
-      comment: "Crystal orientation of the substrate"
-    - name: "itar_controlled_flag"
+    - name: "Doping Type"
+      expr: doping_type
+    - name: "Ear Classification"
+      expr: ear_classification
+    - name: "Fab Facility Code"
+      expr: fab_facility_code
+    - name: "Hold Reason Code"
+      expr: hold_reason_code
+    - name: "Itar Controlled Flag"
       expr: itar_controlled_flag
-      comment: "Boolean flag indicating whether wafer start is ITAR controlled"
-    - name: "wafer_start_month"
-      expr: DATE_TRUNC('month', wafer_start_timestamp)
-      comment: "Month when wafer start was authorized"
+    - name: "Last Modified Timestamp"
+      expr: last_modified_timestamp
+    - name: "Lot Number"
+      expr: lot_number
+    - name: "Nre Project Code"
+      expr: nre_project_code
+    - name: "Number"
+      expr: number
+    - name: "Parent Lot Number"
+      expr: parent_lot_number
+    - name: "Planned Completion Date"
+      expr: planned_completion_date
+    - name: "Priority Class"
+      expr: priority_class
+    - name: "Production Line"
+      expr: production_line
   measures:
-    - name: "total_wafer_starts"
+    - name: "Row Count"
       expr: COUNT(1)
-      comment: "Total number of wafer start authorizations"
-    - name: "total_wafer_quantity"
-      expr: SUM(CAST(wafer_quantity AS BIGINT))
-      comment: "Total quantity of wafers authorized for start"
-    - name: "avg_wafer_quantity_per_start"
-      expr: AVG(CAST(wafer_quantity AS DOUBLE))
-      comment: "Average wafer quantity per start authorization"
-    - name: "avg_estimated_cycle_time_days"
-      expr: AVG(CAST(estimated_cycle_time_days AS DOUBLE))
-      comment: "Average estimated cycle time in days"
-    - name: "itar_controlled_start_count"
-      expr: SUM(CASE WHEN itar_controlled_flag = true THEN 1 ELSE 0 END)
-      comment: "Count of ITAR-controlled wafer starts"
-    - name: "distinct_production_lines"
-      expr: COUNT(DISTINCT production_line)
-      comment: "Number of distinct production lines utilized"
-    - name: "distinct_priority_classes"
-      expr: COUNT(DISTINCT priority_class)
-      comment: "Number of distinct priority classes"
+    - name: "Distinct Wafer Start"
+      expr: COUNT(DISTINCT wafer_start_id)
+    - name: "Total Estimated Cycle Time Days"
+      expr: SUM(estimated_cycle_time_days)
+    - name: "Average Estimated Cycle Time Days"
+      expr: AVG(estimated_cycle_time_days)
+    - name: "Total Resistivity Ohm Cm"
+      expr: SUM(resistivity_ohm_cm)
+    - name: "Average Resistivity Ohm Cm"
+      expr: AVG(resistivity_ohm_cm)
 $$;

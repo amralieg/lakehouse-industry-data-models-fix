@@ -1,5 +1,5 @@
 -- Schema for Domain: procurement | Business: Construction | Version: v2_mvm
--- Generated on: 2026-06-22 17:24:52
+-- Generated on: 2026-06-27 01:56:04
 
 -- ========= DATABASE =========
 CREATE DATABASE IF NOT EXISTS `vibe_construction_v1`.`procurement` COMMENT 'Procurement and supply chain domain managing the full source-to-contract lifecycle including RFQ/RFP issuance, vendor evaluation, PO (Purchase Order) creation, MTO (Material Take-Off) data, supplier qualification records, and procurement lead times. Coordinates material delivery schedules with project timelines and manages vendor master data via SAP MM.';
@@ -32,8 +32,8 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`vendor` (
     `last_audit_date` DATE COMMENT 'Date of the most recent vendor audit or compliance review. Audits assess quality systems, safety practices, financial controls, and contract compliance. Used to schedule periodic re-audits and maintain vendor qualification status.',
     `last_modified_timestamp` TIMESTAMP COMMENT 'Timestamp when this vendor record was last updated. Tracks the most recent change to any field in the vendor master record. Used for change tracking, data quality monitoring, and synchronization with downstream systems.',
     `vendor_name` STRING COMMENT 'Full legal name of the vendor organization as registered with tax authorities. Used on contracts, purchase orders, and payment documents. Must match legal registration documents.',
-    `payment_method` DECIMAL(18,2) COMMENT 'Preferred payment method for remitting payment to the vendor. ACH for automated clearing house electronic transfer; wire transfer for same-day international payments; check for traditional paper payments; credit card for small purchases; letter of credit for international trade.',
-    `payment_terms_code` DECIMAL(18,2) COMMENT 'Standard payment terms code defining the payment schedule and discount structure for this vendor. Examples include NET30 (net 30 days), NET60, 2/10NET30 (2% discount if paid within 10 days, otherwise net 30). Drives accounts payable processing and cash flow planning.',
+    `payment_method` STRING COMMENT 'Preferred payment method for remitting payment to the vendor. ACH for automated clearing house electronic transfer; wire transfer for same-day international payments; check for traditional paper payments; credit card for small purchases; letter of credit for international trade.. Valid values are `ach|wire_transfer|check|credit_card|letter_of_credit`',
+    `payment_terms_code` STRING COMMENT 'Standard payment terms code defining the payment schedule and discount structure for this vendor. Examples include NET30 (net 30 days), NET60, 2/10NET30 (2% discount if paid within 10 days, otherwise net 30). Drives accounts payable processing and cash flow planning.. Valid values are `^[A-Z0-9]{2,6}$`',
     `postal_code` STRING COMMENT 'Postal or ZIP code for the vendors business address. Used for mail delivery, logistics planning, and geographic segmentation. Format varies by country.',
     `preferred_vendor_flag` BOOLEAN COMMENT 'Boolean flag indicating whether this vendor has preferred vendor status. Preferred vendors receive priority consideration for bid invitations, expedited approval processes, and favorable payment terms based on proven performance and strategic relationship.',
     `prequalification_score` DECIMAL(18,2) COMMENT 'Composite score from the vendor prequalification process evaluating financial stability, technical capability, safety record, quality performance, and past project experience. Scale typically 0-100. Used for vendor ranking and bid invitation decisions.',
@@ -41,7 +41,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`vendor` (
     `primary_contact_name` STRING COMMENT 'Full name of the primary business contact at the vendor organization. This individual serves as the main point of contact for procurement, contract administration, and operational coordination.',
     `primary_contact_phone` STRING COMMENT 'Primary telephone number for the vendor contact. Used for urgent procurement matters, delivery coordination, and issue resolution. Includes country code and extension where applicable.',
     `quality_certification` STRING COMMENT 'Quality management system certifications held by the vendor. Common certifications include ISO 9001 (Quality Management), ISO 14001 (Environmental Management), ISO 45001 (Occupational Health and Safety). Multiple certifications separated by semicolons.',
-    `registration_date` DECIMAL(18,2) COMMENT 'Date when the vendor was first registered in the vendor master system. Marks the beginning of the vendor relationship and is used for vendor tenure analysis and anniversary tracking.',
+    `registration_date` DATE COMMENT 'Date when the vendor was first registered in the vendor master system. Marks the beginning of the vendor relationship and is used for vendor tenure analysis and anniversary tracking.',
     `state_province` STRING COMMENT 'State, province, or region where the vendor is located. Used for tax jurisdiction determination, regional sourcing analysis, and compliance with local content requirements.',
     `suspension_end_date` DATE COMMENT 'Planned or actual date when vendor suspension will be or was lifted. Nullable for indefinite suspensions or vendors that have never been suspended. Used for reinstatement planning and compliance tracking.',
     `suspension_reason` STRING COMMENT 'Reason for vendor suspension or blocking if vendor_status is suspended or blocked. Examples include quality issues, safety violations, contract breaches, financial instability, or ethical violations. Nullable for active vendors.',
@@ -53,7 +53,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`vendor` (
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`vendor_qualification` (
     `vendor_qualification_id` BIGINT COMMENT 'Unique identifier for the vendor qualification record. Primary key for the vendor qualification entity.',
-    `asset_category_id` BIGINT COMMENT 'Foreign key linking to equipment.asset_category. Business justification: Construction vendor prequalification specifies which equipment categories a vendor is certified to maintain or operate (e.g., crane service vendors, lifting equipment). Vendor qualification by equipm',
     `vendor_id` BIGINT COMMENT 'Reference to the vendor master record being qualified. Links to the vendor entity in the procurement domain.',
     `approval_date` DATE COMMENT 'Date when the vendor qualification was formally approved and the vendor was added to the AVL (Approved Vendor List).',
     `approved_material_categories` STRING COMMENT 'Comma-separated list of material categories the vendor is qualified to supply. Examples include concrete, steel, MEP (Mechanical Electrical and Plumbing) equipment, formwork, aggregates. Aligns with MTO (Material Take-Off) classification.',
@@ -100,12 +99,13 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`vendor_qualificati
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`material_catalog` (
     `material_catalog_id` BIGINT COMMENT 'Primary key for material_catalog',
     `master_id` BIGINT COMMENT 'Unique identifier for the material master record in the procurement catalog. Primary key for the material catalog product.',
-    `technical_specification_id` BIGINT COMMENT 'Foreign key linking to design.technical_specification. Business justification: Spec-qualified catalog items: Material catalog entries are qualified against technical specifications that define the standard the material must meet. The existing specification_reference plain-text',
+    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Construction material catalog items are mapped to cost codes for standard costing, procurement categorization, and automatic cost code defaulting on PRs and PO lines. This is a foundational master dat',
+    `gl_account_id` BIGINT COMMENT 'Foreign key linking to finance.gl_account. Business justification: Material catalog items in construction are assigned to GL accounts for inventory valuation and automatic account determination. The existing valuation_class plain text field is a denormalized GL class',
     `abc_classification` STRING COMMENT 'Inventory classification based on value and consumption frequency. A=High value/critical items requiring tight control, B=Moderate value, C=Low value/high volume items. Drives inventory policy and cycle counting frequency.. Valid values are `A|B|C`',
     `alternative_unit_of_measure` STRING COMMENT 'Secondary unit of measure for materials that can be ordered or issued in multiple units (e.g., cement ordered in bags but tracked in tons). Supports conversion factor calculations.',
     `base_unit_of_measure` STRING COMMENT 'Primary unit of measure for material quantity tracking, ordering, and inventory management. Aligns with industry standards for construction materials (EA=Each, M=Meter, M2=Square Meter, M3=Cubic Meter, KG=Kilogram, TON=Metric Ton). [ENUM-REF-CANDIDATE: EA|M|M2|M3|KG|TON|L|GAL|FT|YD|LB|BAG|BOX|ROLL — 14 candidates stripped; promote to reference product]',
     `bim_object_reference` STRING COMMENT 'Unique identifier linking the material to its corresponding 3D object in BIM 360 or other BIM platforms. Enables digital twin integration and clash detection during design and construction phases.',
-    `cost_currency` DECIMAL(18,2) COMMENT 'Three-letter ISO 4217 currency code for standard cost (e.g., USD, EUR, GBP). Supports multi-currency procurement and financial consolidation.',
+    `cost_currency` STRING COMMENT 'Three-letter ISO 4217 currency code for standard cost (e.g., USD, EUR, GBP). Supports multi-currency procurement and financial consolidation.. Valid values are `^[A-Z]{3}$`',
     `country_of_origin` STRING COMMENT 'Three-letter ISO 3166-1 alpha-3 country code indicating where the material is manufactured or sourced. Required for customs compliance, trade regulations, and local content reporting.. Valid values are `^[A-Z]{3}$`',
     `created_date` DATE COMMENT 'Date when the material master record was first created in the system. Used for audit trail and master data governance.',
     `customs_tariff_number` STRING COMMENT 'Harmonized System (HS) code for international trade classification. Used for customs clearance, duty calculation, and import/export documentation for cross-border procurement.. Valid values are `^[0-9]{6,10}$`',
@@ -133,7 +133,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`material_catalog` 
     `short_description` STRING COMMENT 'Abbreviated description of the material for display in transaction screens, reports, and mobile applications. Limited to 40 characters for operational efficiency.',
     `standard_cost` DECIMAL(18,2) COMMENT 'Baseline unit cost of the material used for project budgeting, cost estimation, and variance analysis. Updated periodically based on procurement history and market conditions.',
     `storage_condition` STRING COMMENT 'Required environmental conditions for material storage to maintain quality and safety. Drives warehouse zone assignment and inventory handling procedures. [ENUM-REF-CANDIDATE: ambient|climate_controlled|refrigerated|dry|ventilated|hazmat_certified|outdoor_covered|outdoor_uncovered — 8 candidates stripped; promote to reference product]',
-    `valuation_class` STRING COMMENT 'SAP valuation class code linking material to general ledger (GL) accounts for inventory valuation and cost of goods sold (COGS) posting. Drives financial accounting integration.. Valid values are `^[0-9]{4}$`',
     `volume` DECIMAL(18,2) COMMENT 'Volumetric measurement of the material in cubic meters. Used for bulk materials (concrete, aggregates) and transportation capacity planning.',
     `volume_unit` STRING COMMENT 'Unit of measure for volume field. Typically cubic meters (M3) for construction bulk materials.. Valid values are `M3|L|GAL|FT3`',
     `weight_unit` STRING COMMENT 'Unit of measure for gross and net weight fields. Typically kilograms (KG) or metric tons (TON) for construction materials.. Valid values are `KG|TON|LB|G`',
@@ -145,18 +144,22 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`material_catalog` 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`rfq` (
     `rfq_id` BIGINT COMMENT 'Unique identifier for the Request for Quotation record. Primary key for the RFQ entity.',
     `vendor_id` BIGINT COMMENT 'Identifier of the vendor to whom the contract or purchase order was awarded following RFQ evaluation. Null if RFQ is not yet awarded or was cancelled.',
-    `bim_model_id` BIGINT COMMENT 'Foreign key linking to design.bim_model. Business justification: BIM-based quantity takeoff for procurement: RFQs in construction are scoped against a BIM model to extract quantities and element specifications. The existing bim_reference plain-text field is a den',
-    `account_id` BIGINT COMMENT 'Foreign key linking to client.account. Business justification: RFQ is issued by a client account; linking enables audit of which client requested each quotation.',
-    `construction_project_id` BIGINT COMMENT 'Identifier of the construction project for which this RFQ is issued. Links the RFQ to the specific project requiring materials, equipment, or services.',
+    `bim_model_id` BIGINT COMMENT 'Foreign key linking to design.bim_model. Business justification: BIM-enabled construction projects link RFQs to the BIM model used for quantity take-off and scope definition. bim_reference is a plain-text denormalization of this relationship. Structured FK enables ',
     `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: RFQ includes design drawing to define item scope; procurement uses drawing for accurate material specification.',
-    `mto_header_id` BIGINT COMMENT 'Foreign key linking to material.mto_header. Business justification: In construction, RFQs are issued to cover an MTO package (mto_header). The existing mto_reference is a denormalized string; a proper FK enables procurement teams to track which MTO packages are under ',
-    `purchase_requisition_id` BIGINT COMMENT 'Foreign key linking to procurement.purchase_requisition. Business justification: An RFQ is typically initiated to fulfill one or more purchase requisitions — the PR is the internal demand signal that triggers the external sourcing event. Linking rfq.purchase_requisition_id → purch',
+    `master_services_agreement_id` BIGINT COMMENT 'Foreign key linking to client.master_services_agreement. Business justification: Framework spend governance: RFQs issued for call-off work packages under a client MSA must be linked to the governing framework to track committed spend against ceiling values, enforce approved vendor',
+    `mto_header_id` BIGINT COMMENT 'Foreign key linking to material.mto_header. Business justification: RFQs in construction are issued against MTO packages. mto_reference on rfq is a denormalized text reference to mto_header. Linking rfq to mto_header enables MTO-driven procurement tracking, package-le',
+    `package_id` BIGINT COMMENT 'Foreign key linking to design.package. Business justification: RFQs in construction are issued against a defined design package (IFT/IFB). Procurement must trace which design package triggered the RFQ to ensure vendors quote against the correct document set. A pr',
+    `rfp_issuance_id` BIGINT COMMENT 'Foreign key linking to client.rfp_issuance. Business justification: Bid procurement traceability: when a client issues an RFP, the contractor issues vendor RFQs to price the bid response. Linking RFQ to the triggering client RFP issuance is required for bid cost audit',
+    `staffing_plan_id` BIGINT COMMENT 'Foreign key linking to workforce.staffing_plan. Business justification: In construction, subcontractor labor RFQs are issued to fulfill identified staffing plan requirements. This link enables procurement teams to trace which staffing plan triggered a labor subcontractor ',
     `technical_specification_id` BIGINT COMMENT 'Foreign key linking to design.technical_specification. Business justification: RFQ references technical specification that defines material requirements; linking ensures traceability from procurement to design spec.',
     `award_date` DATE COMMENT 'Date on which the contract or purchase order was awarded to the selected vendor. Null if RFQ is not yet awarded.',
     `awarded_amount` DECIMAL(18,2) COMMENT 'Total monetary value of the contract or purchase order awarded to the winning vendor. Null if RFQ is not yet awarded.',
     `bid_bond_amount` DECIMAL(18,2) COMMENT 'Monetary value of the bid bond required from vendors, if applicable. Typically a percentage of the estimated contract value.',
     `bid_bond_required` BOOLEAN COMMENT 'Indicates whether vendors must submit a bid bond or financial guarantee with their quotation to demonstrate commitment and financial capacity.',
     `boq_reference` STRING COMMENT 'Reference to the Bill of Quantities document or section that this RFQ is based on. Links the RFQ to the project cost estimation and material take-off data.',
+    `buyer_contact_email` STRING COMMENT 'Email address of the buyer or procurement contact for vendor inquiries and quotation submissions.. Valid values are `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$`',
+    `buyer_contact_name` STRING COMMENT 'Name of the procurement professional or buyer responsible for managing this RFQ and serving as the primary point of contact for vendors.',
+    `buyer_contact_phone` STRING COMMENT 'Phone number of the buyer or procurement contact for urgent vendor communications.',
     `cancellation_reason` STRING COMMENT 'Explanation for why the RFQ was cancelled or withdrawn, if applicable. May include project scope changes, budget constraints, or inadequate vendor response.',
     `closed_timestamp` TIMESTAMP COMMENT 'Date and time when the RFQ was officially closed, either through award, cancellation, or withdrawal. Marks the end of the vendor response period.',
     `contract_type` STRING COMMENT 'Type of contract structure anticipated for the awarded work: lump sum, unit price, cost plus fee, Guaranteed Maximum Price (GMP), or time and materials.. Valid values are `lump_sum|unit_price|cost_plus|gmp|time_and_materials`',
@@ -170,7 +173,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`rfq` (
     `issue_date` DATE COMMENT 'Date on which the RFQ was officially issued to vendors. Marks the start of the vendor response period.',
     `issuing_department` STRING COMMENT 'Name or code of the department or business unit that issued the RFQ, such as Procurement, Project Management, or Engineering.',
     `last_modified_timestamp` TIMESTAMP COMMENT 'Date and time when the RFQ record was last updated. Tracks changes to scope, dates, or status throughout the RFQ lifecycle.',
-    `payment_terms` DECIMAL(18,2) COMMENT 'Standard payment terms specified in the RFQ, such as net 30, net 60, progress payments, or milestone-based payments. Defines when and how vendors will be paid.',
+    `payment_terms` STRING COMMENT 'Standard payment terms specified in the RFQ, such as net 30, net 60, progress payments, or milestone-based payments. Defines when and how vendors will be paid.',
     `procurement_lead_time_days` STRING COMMENT 'Estimated or actual number of days from RFQ issuance to material delivery or service commencement. Used for project scheduling and critical path analysis.',
     `quality_requirements` STRING COMMENT 'Description of quality assurance and quality control requirements, including certifications (ISO 9001), testing protocols (FAT, SAT), and inspection plans (ITP) that vendors must comply with.',
     `required_delivery_date` DATE COMMENT 'Target date by which the materials, equipment, or services must be delivered to the project site. Critical for project scheduling alignment using CPM.',
@@ -179,6 +182,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`rfq` (
     `rfq_number` STRING COMMENT 'Business identifier for the RFQ, externally visible and used in vendor communications and procurement workflows. Typically follows organizational numbering conventions.. Valid values are `^RFQ-[A-Z0-9]{6,12}$`',
     `rfq_status` STRING COMMENT 'Current lifecycle status of the RFQ. Tracks progression from draft creation through vendor response collection to final award or cancellation. [ENUM-REF-CANDIDATE: draft|issued|open|closed|awarded|cancelled|withdrawn — 7 candidates stripped; promote to reference product]',
     `rfq_type` STRING COMMENT 'Classification of the RFQ based on the category of procurement: materials (concrete, steel), equipment (cranes, generators), services (engineering, testing), or subcontract work packages.. Valid values are `materials|equipment|services|subcontract|design_build`',
+    `scope_description` STRING COMMENT 'Detailed narrative description of the materials, equipment, or services being requested. Includes technical requirements, quality standards, and any special conditions or constraints.',
     `submission_deadline` TIMESTAMP COMMENT 'Date and time by which vendors must submit their quotations. Late submissions may be rejected per procurement policy.',
     `title` STRING COMMENT 'Short descriptive title summarizing the scope of the RFQ, such as Structural Steel for Bridge Phase 2 or MEP Equipment for Terminal Building.',
     `vendor_prequalification_required` BOOLEAN COMMENT 'Indicates whether vendors must be prequalified or approved before they can submit quotations. Ensures only qualified vendors participate in the bidding process.',
@@ -188,14 +192,10 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`rfq` (
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`rfq_line` (
     `rfq_line_id` BIGINT COMMENT 'Unique identifier for the RFQ line item. Primary key for this entity.',
-    `bim_model_id` BIGINT COMMENT 'Foreign key linking to design.bim_model. Business justification: Model-based procurement at line level: RFQ line items are linked to BIM model elements for quantity extraction and scope definition. The existing bim_model_reference plain-text field denormalizes th',
-    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: RFQ lines in construction reference cost codes to validate bids against budget line items. Proper FK replaces denormalized cost_code text field, enabling budget-to-bid comparison reporting, cost code ',
-    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Line-level drawing traceability: Each RFQ line item corresponds to a specific drawing callout or detail. The existing drawing_reference plain-text field denormalizes this FK. Construction estimators',
+    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: RFQ lines in construction carry cost codes for budget pre-commitment tracking during the bidding process. Finance uses RFQ-line-to-cost-code links to monitor anticipated spend against budget before aw',
     `material_catalog_id` BIGINT COMMENT 'Foreign key linking to procurement.material_catalog. Business justification: Link RFQ line material to master catalog for normalization and remove redundant material_id column.',
     `vendor_id` BIGINT COMMENT 'Reference to a preferred or pre-qualified vendor for this item, if applicable.',
-    `construction_project_id` BIGINT COMMENT 'Reference to the construction project for which this material or service is being procured.',
     `rfq_id` BIGINT COMMENT 'Reference to the parent RFQ header document under which this line item is issued.',
-    `technical_specification_id` BIGINT COMMENT 'Foreign key linking to design.technical_specification. Business justification: Line-level spec compliance: Each RFQ line item has specific technical requirements defined by a specification section. The existing technical_specification_reference plain-text field denormalizes th',
     `created_timestamp` TIMESTAMP COMMENT 'Date and time when this RFQ line item record was first created in the system.',
     `currency_code` STRING COMMENT 'Three-letter ISO 4217 currency code for the estimated amounts and vendor quotations (e.g., USD, EUR, GBP).. Valid values are `^[A-Z]{3}$`',
     `delivery_location` STRING COMMENT 'The site, warehouse, or facility address where the material or service is to be delivered.',
@@ -221,33 +221,76 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`rfq_line` (
     `tax_code` STRING COMMENT 'The tax classification code applicable to this line item, determining VAT, GST, or other tax treatment.',
     `unit_of_measure` STRING COMMENT 'The unit in which the quantity is measured (e.g., EA=Each, M=Meter, M2=Square Meter, M3=Cubic Meter, KG=Kilogram, TON=Metric Ton, L=Liter, HR=Hour, DAY=Day, LOT=Lot, SET=Set, CUM=Cubic Meter, SQM=Square Meter, LM=Linear Meter, MT=Metric Ton). [ENUM-REF-CANDIDATE: EA|M|M2|M3|KG|TON|L|HR|DAY|LOT|SET|CUM|SQM|LM|MT — 15 candidates stripped; promote to reference product]',
     `vendor_evaluation_criteria` STRING COMMENT 'Specific criteria or weighting factors to be used when evaluating vendor quotations for this line item (e.g., price 60%, delivery 20%, quality 20%).',
-    `wbs_element` STRING COMMENT 'The WBS code or element that this procurement line item is charged to, enabling project cost tracking and control.',
     `created_by` STRING COMMENT 'User ID or name of the procurement professional who created this RFQ line item.',
     CONSTRAINT pk_rfq_line PRIMARY KEY(`rfq_line_id`)
 ) COMMENT 'Individual line items within an RFQ corresponding to specific materials, services, or BOQ positions. Captures line number, material or service description, quantity, unit of measure, required delivery date, site delivery location, technical specification reference, and any applicable drawing or BIM model reference. Enables granular vendor pricing comparison at the line-item level.';
 
+CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` (
+    `vendor_quotation_id` BIGINT COMMENT 'Unique identifier for the vendor quotation record. Primary key for this entity.',
+    `material_catalog_id` BIGINT COMMENT 'Foreign key linking to procurement.material_catalog. Business justification: Link vendor quotation material to master catalog for normalization and remove redundant material_id column.',
+    `rfq_id` BIGINT COMMENT 'Reference to the RFQ document that this quotation responds to. Links the vendor response back to the procurement request.',
+    `rfq_line_id` BIGINT COMMENT 'Foreign key linking to procurement.rfq_line. Business justification: A vendor quotation in construction procurement responds to specific RFQ line items (individual materials, services, or BOQ positions). vendor_quotation already has rfq_id linking to the RFQ header, bu',
+    `vendor_id` BIGINT COMMENT 'Reference to the vendor master record submitting this quotation. Identifies the supplier providing the quote.',
+    `attachment_count` STRING COMMENT 'Number of supporting documents attached to the quotation (technical datasheets, certifications, test reports, etc.).',
+    `award_recommendation` STRING COMMENT 'Procurement team recommendation on whether to award the PO to this vendor based on evaluation results.. Valid values are `recommended|not_recommended|conditional|pending`',
+    `commercial_exceptions` STRING COMMENT 'Vendor-declared exceptions or deviations from RFQ commercial terms (payment, delivery, penalties, etc.). Must be evaluated during bid tabulation.',
+    `country_of_origin` STRING COMMENT 'Three-letter ISO country code indicating where the material is manufactured or sourced. Relevant for customs, duties, and local content requirements.. Valid values are `^[A-Z]{3}$`',
+    `created_timestamp` TIMESTAMP COMMENT 'System timestamp when the quotation record was first created in the procurement system. Audit trail for record creation.',
+    `currency_code` STRING COMMENT 'Three-letter ISO currency code for the quoted prices (e.g., USD, EUR, GBP, AED). Critical for multi-currency bid comparison.. Valid values are `^[A-Z]{3}$`',
+    `delivery_lead_time_days` STRING COMMENT 'Number of calendar days from PO issuance to material delivery at site. Critical for project scheduling and CPM integration.',
+    `delivery_terms` STRING COMMENT 'Incoterms delivery terms defining responsibility transfer point (e.g., EXW, FOB, CIF, DDP). Impacts freight cost allocation and risk.',
+    `deviations_from_specification` STRING COMMENT 'Vendor-declared exceptions, deviations, or clarifications to the RFQ technical specifications. Critical for commercial evaluation and risk assessment.',
+    `discount_percentage` DECIMAL(18,2) COMMENT 'Percentage discount offered by vendor from list price or previous quotation. Used for price negotiation and historical benchmarking.',
+    `evaluation_date` DATE COMMENT 'Date when the quotation evaluation was completed and recommendation finalized.',
+    `evaluation_notes` STRING COMMENT 'Free-text notes and comments from the evaluation team regarding technical compliance, commercial terms, or vendor performance considerations.',
+    `evaluation_score` DECIMAL(18,2) COMMENT 'Composite evaluation score assigned during bid tabulation based on price, technical compliance, delivery, and vendor performance. Used for award recommendation.',
+    `freight_cost` DECIMAL(18,2) COMMENT 'Quoted freight or transportation cost if not included in unit price. Depends on delivery terms (Incoterms).',
+    `last_modified_timestamp` TIMESTAMP COMMENT 'System timestamp when the quotation record was last updated. Tracks changes during evaluation and negotiation cycles.',
+    `material_description` STRING COMMENT 'Vendor-provided description of the material or service being quoted. May include brand, model, or specification details.',
+    `payment_terms` STRING COMMENT 'Vendor-offered payment terms (e.g., Net 30, Net 60, 50% advance + 50% on delivery, LC at sight). Impacts cash flow and working capital.',
+    `quotation_number` STRING COMMENT 'Vendor-assigned unique reference number for this quotation. External business identifier used for correspondence and tracking.',
+    `quotation_status` STRING COMMENT 'Current lifecycle status of the vendor quotation in the evaluation and award process.. Valid values are `submitted|under_review|accepted|rejected|withdrawn|expired`',
+    `quoted_quantity` DECIMAL(18,2) COMMENT 'Quantity of material or service the vendor is quoting for. Must align with RFQ requested quantity.',
+    `submission_timestamp` TIMESTAMP COMMENT 'Date and time when the vendor submitted the quotation response. Critical for evaluating timeliness and compliance with RFQ deadlines.',
+    `tax_amount` DECIMAL(18,2) COMMENT 'Applicable tax amount (VAT, GST, sales tax) on the quoted price. May vary by jurisdiction and project location.',
+    `technical_compliance_status` STRING COMMENT 'Assessment of whether the quoted material meets the technical specifications defined in the RFQ. Evaluated by engineering team.. Valid values are `compliant|non_compliant|partial|under_review`',
+    `total_price` DECIMAL(18,2) COMMENT 'Total quoted price for the full quantity (unit price × quantity). May include or exclude taxes and freight depending on quotation terms.',
+    `unit_of_measure` STRING COMMENT 'Unit of measure for the quoted quantity (e.g., EA, M, KG, TON, M3, HR). Must match material master UOM or include conversion factor.',
+    `unit_price` DECIMAL(18,2) COMMENT 'Vendor-quoted price per unit of measure. Base price before taxes, freight, or other charges.',
+    `validity_end_date` DATE COMMENT 'Date until which the vendor commits to honor the quoted price and terms. Critical for award decision timing.',
+    `validity_start_date` DATE COMMENT 'Date from which the quoted price and terms become valid. Typically the quotation submission date.',
+    `warranty_period_months` STRING COMMENT 'Duration of warranty coverage offered by the vendor in months. Aligns with DLP (Defects Liability Period) requirements.',
+    `warranty_terms` STRING COMMENT 'Detailed warranty terms and conditions including coverage scope, exclusions, and claim procedures.',
+    CONSTRAINT pk_vendor_quotation PRIMARY KEY(`vendor_quotation_id`)
+) COMMENT 'Vendor-submitted quotation responses to RFQs capturing quoted unit price, total price, delivery lead time, validity period, payment terms offered, country of origin, warranty terms, exceptions or deviations from specification, quotation submission timestamp, and compliance with technical specifications. Supports commercial bid tabulation, vendor price comparison analysis, and historical lead time benchmarking for award decisions. Links to RFQ and vendor master.';
+
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`purchase_order` (
     `purchase_order_id` BIGINT COMMENT 'Unique system identifier for the purchase order record. Primary key.',
-    `construction_project_id` BIGINT COMMENT 'Reference to the construction project for which materials, equipment, or services are being procured. Links to project master data.',
+    `activity_id` BIGINT COMMENT 'Foreign key linking to schedule.activity. Business justification: Material-to-activity tracking: construction schedulers link POs to specific schedule activities for look-ahead material readiness checks and cost-loaded schedule reporting. A domain expert expects to ',
+    `cost_account_id` BIGINT COMMENT 'Foreign key linking to project.cost_account. Business justification: POs update committed cost balances on cost accounts — core to construction cost control dashboards and EVM reporting. Project controllers track PO commitments against cost account budgets as a primary',
     `cost_center_id` BIGINT COMMENT 'Reference to the organizational cost center responsible for this procurement expenditure. Used for financial reporting and budget tracking.',
     `crew_id` BIGINT COMMENT 'Foreign key linking to workforce.crew. Business justification: REQUIRED: Subcontractor Labor PO Allocation – labor purchase orders are assigned to a specific crew to track labor costs against crew productivity.',
-    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Purchase Order references the drawing for fabricated components, ensuring delivery matches design intent.',
     `gl_account_id` BIGINT COMMENT 'Foreign key linking to finance.gl_account. Business justification: Required for posting purchase order accruals to the general ledger; finance GL account needed for expense recognition.',
-    `project_site_id` BIGINT COMMENT 'Foreign key linking to project.project_site. Business justification: Site managers track all POs delivering to their construction site for logistics coordination, gate access, and receiving planning. Linking PO to project_site replaces six denormalized delivery address',
     `purchase_requisition_id` BIGINT COMMENT 'Foreign key linking to procurement.purchase_requisition. Business justification: Add link from purchase order to its originating purchase requisition to capture parent-child relationship.',
-    `rfq_id` BIGINT COMMENT 'Foreign key linking to procurement.rfq. Business justification: A Purchase Order is typically the contractual outcome of an RFQ/tender process — the awarded vendor from the RFQ becomes the PO vendor. Linking purchase_order.rfq_id → rfq captures the full source-to-',
-    `subcontract_id` BIGINT COMMENT 'Foreign key linking to contract.subcontract. Business justification: Construction POs are frequently issued to execute subcontract work packages. Linking PO to subcontract enables subcontract commitment vs. PO value reconciliation — a standard construction cost control',
     `vendor_id` BIGINT COMMENT 'Reference to the supplier or subcontractor to whom this purchase order is issued. Links to vendor master data.',
+    `warehouse_id` BIGINT COMMENT 'Foreign key linking to material.warehouse. Business justification: A PO specifies the delivery destination warehouse for construction site materials. Linking PO to warehouse enables automated stock reservation, inbound logistics scheduling, and site materials plannin',
     `acknowledgment_date` DATE COMMENT 'Date on which the vendor formally acknowledged receipt and acceptance of the purchase order terms.',
     `amendment_count` STRING COMMENT 'Total number of formal amendments or change orders issued against this purchase order. Used for contract change management reporting.',
     `approval_date` DATE COMMENT 'Date on which final approval was granted for this purchase order.',
     `approval_status` STRING COMMENT 'Current approval state of the purchase order in the authorization workflow. Tracks whether PO has received required management and financial approvals.. Valid values are `pending|approved|rejected|conditional`',
     `approved_by` STRING COMMENT 'Name or identifier of the authorized person who approved this purchase order for issuance.',
+    `buyer_name` STRING COMMENT 'Name of the procurement specialist or buyer responsible for managing this purchase order and vendor relationship.',
     `created_timestamp` TIMESTAMP COMMENT 'System timestamp when this purchase order record was first created in the procurement system.',
     `cumulative_amendment_value` DECIMAL(18,2) COMMENT 'Net change in purchase order value resulting from all amendments and change orders (positive or negative delta from original value).',
     `currency_code` STRING COMMENT 'Three-letter ISO currency code for all monetary values in this purchase order (e.g., USD, EUR, GBP).. Valid values are `^[A-Z]{3}$`',
     `current_revision_number` STRING COMMENT 'Revision number tracking minor corrections or clarifications within the current version. Used for document control and audit trail.',
     `current_version_number` STRING COMMENT 'Version number of the purchase order reflecting amendments and change orders. Increments with each approved modification.',
+    `delivery_address_line1` STRING COMMENT 'Primary street address line for material or equipment delivery to construction site or warehouse.',
+    `delivery_address_line2` STRING COMMENT 'Secondary address line for delivery location (building, floor, gate number, or site-specific instructions).',
+    `delivery_city` STRING COMMENT 'City or municipality for delivery destination.',
+    `delivery_country_code` STRING COMMENT 'Three-letter ISO country code for delivery destination (e.g., USA, CAN, GBR).. Valid values are `^[A-Z]{3}$`',
+    `delivery_postal_code` STRING COMMENT 'Postal or ZIP code for delivery destination.',
+    `delivery_state_province` STRING COMMENT 'State, province, or region for delivery destination.',
     `gmp_amount` DECIMAL(18,2) COMMENT 'The contractual ceiling amount for this purchase order when GMP terms apply. Vendor cannot exceed this amount without approved change orders.',
     `gmp_flag` BOOLEAN COMMENT 'Indicates whether this purchase order is subject to a Guaranteed Maximum Price contract, capping the total cost exposure.',
     `incoterms` STRING COMMENT 'Standard trade terms defining responsibilities for shipping, insurance, and risk transfer between buyer and seller (e.g., DDP, FOB, CIF). [ENUM-REF-CANDIDATE: EXW|FCA|CPT|CIP|DAP|DPU|DDP|FAS|FOB|CFR|CIF — 11 candidates stripped; promote to reference product]',
@@ -257,7 +300,7 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`purchase_order` (
     `last_modified_timestamp` TIMESTAMP COMMENT 'System timestamp of the most recent update to this purchase order record, including amendments, status changes, or data corrections.',
     `ntp_date` DATE COMMENT 'Official date on which the vendor is authorized to commence work or delivery. Critical milestone for schedule tracking and contract start.',
     `original_po_value` DECIMAL(18,2) COMMENT 'Initial total value of the purchase order at time of first issuance, before any amendments or change orders. Used for cost variance analysis.',
-    `payment_terms` DECIMAL(18,2) COMMENT 'Contractual payment terms specifying due date calculation (e.g., Net 30, Net 60, 2/10 Net 30, progress payment schedule, milestone-based).',
+    `payment_terms` STRING COMMENT 'Contractual payment terms specifying due date calculation (e.g., Net 30, Net 60, 2/10 Net 30, progress payment schedule, milestone-based).',
     `po_number` STRING COMMENT 'Externally-known unique purchase order number issued to vendor. Business identifier used in all procurement correspondence and invoicing.. Valid values are `^PO-[0-9]{8,12}$`',
     `po_status` STRING COMMENT 'Current lifecycle status of the purchase order in the procurement workflow. Tracks progression from draft through approval, issuance, receipt, and closure. [ENUM-REF-CANDIDATE: draft|pending_approval|approved|issued|acknowledged|in_progress|partially_received|fully_received|closed|cancelled — 10 candidates stripped; promote to reference product]',
     `po_type` STRING COMMENT 'Classification of purchase order by procurement pattern: standard (one-time material/equipment), blanket (recurring supply agreement), framework (multi-project master agreement), subcontract (labor/construction services), service (professional services), rental (equipment lease).. Valid values are `standard|blanket|framework|subcontract|service|rental`',
@@ -269,17 +312,18 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`purchase_order` (
     `sap_document_number` STRING COMMENT 'SAP MM system-generated unique document number for this purchase order. Used for ERP integration and cross-system reconciliation.. Valid values are `^[0-9]{10}$`',
     `tax_amount` DECIMAL(18,2) COMMENT 'Total tax amount applicable to this purchase order (VAT, GST, sales tax) as calculated per jurisdiction and tax code.',
     `total_po_value` DECIMAL(18,2) COMMENT 'Total monetary value of the purchase order including all line items, taxes, and charges. Expressed in the currency specified by currency_code.',
-    `wbs_element` STRING COMMENT 'Hierarchical WBS code identifying the specific project phase, deliverable, or cost element to which this PO is charged. Used for project cost control and EVM tracking.. Valid values are `^[A-Z0-9]{2,4}-[0-9]{4,8}(.[0-9]{1,4})*$`',
     CONSTRAINT pk_purchase_order PRIMARY KEY(`purchase_order_id`)
 ) COMMENT 'Legally binding purchase order issued to a vendor for supply of materials, equipment, or services, including full amendment and change order history as versioned records. Captures PO number, vendor, project and WBS element, delivery address, incoterms, payment terms, currency, total PO value, GMP flag, retention percentage, PO type (standard, blanket, framework, subcontract), approval status, NTP date, SAP document number, current version/revision number, and complete amendment audit trail (amendment number, amendment type — scope change, quantity change, price adjustment, delivery date change, CO, original value, amended value, value delta, reason, approval status, amendment date). Core transactional anchor of the procurement domain sourced from SAP MM. SSOT for all PO commercial state including historical changes and amendments.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`po_line` (
     `po_line_id` BIGINT COMMENT 'Unique identifier for the purchase order line item. Primary key for the PO line entity.',
-    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: PO lines in construction are assigned to cost codes for job costing and budget tracking. Proper FK replaces denormalized cost_code text field, enabling cost code validation at order line level, commit',
-    `itp_line_id` BIGINT COMMENT 'Foreign key linking to quality.itp_line. Business justification: In construction QA/QC, specific PO line items for quality-critical materials are governed by specific ITP lines (hold/witness points). This link enables material-level quality gate tracking and is req',
-    `material_catalog_id` BIGINT COMMENT 'Foreign key linking to procurement.material_catalog. Business justification: Link PO line material to master catalog for normalization and remove redundant material_id column.',
-    `purchase_order_id` BIGINT COMMENT 'Reference to the parent purchase order header under which this line item is grouped. Links line-level detail to the overall PO document.',
-    `rfq_line_id` BIGINT COMMENT 'Foreign key linking to procurement.rfq_line. Business justification: A PO line item is the contractual commitment that originates from a specific RFQ line item — the quoted price, quantity, and material from the RFQ line become the ordered values on the PO line. This l',
+    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: Multi-project POs in construction require line-level cost center assignment for overhead allocation and departmental budget control. Line-level cost center differs from PO header cost center when line',
+    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Each PO line in construction is coded to a cost code for job cost commitment tracking and budget consumption reporting. The existing plain-text cost_code column is denormalized; a proper FK enables co',
+    `crew_id` BIGINT COMMENT 'Foreign key linking to workforce.crew. Business justification: REQUIRED: Detailed Labor Cost Allocation – PO line for labor services references the crew performing the work, enabling line‑level labor cost reporting.',
+    `gl_account_id` BIGINT COMMENT 'Foreign key linking to finance.gl_account. Business justification: PO lines in construction require GL account assignment for automatic account determination during goods receipt and invoice verification. The existing plain-text gl_account_code is denormalized; a pro',
+    `rfq_line_id` BIGINT COMMENT 'Foreign key linking to procurement.rfq_line. Business justification: Source-to-contract traceability is a critical procurement audit requirement in construction. A PO line originates from an RFQ line item when the sourcing process follows the RFQ route. Adding rfq_line',
+    `vendor_quotation_id` BIGINT COMMENT 'Foreign key linking to procurement.vendor_quotation. Business justification: A PO line is awarded based on a specific vendor quotation in the RFQ-to-PO procurement flow. Adding vendor_quotation_id → vendor_quotation on po_line links the awarded quotation to the resulting PO li',
+    `warehouse_id` BIGINT COMMENT 'Foreign key linking to material.warehouse. Business justification: PO lines in construction can specify different destination warehouses (split deliveries across site storage areas). storage_location on po_line is a denormalized warehouse reference. Per-line warehous',
     `account_assignment_category` STRING COMMENT 'SAP account assignment category indicating how costs are allocated: K=Cost Center, A=Asset, F=Order, P=Project, N=Network, U=Unknown. Determines financial posting logic.. Valid values are `K|A|F|P|N|U`',
     `buyer_name` STRING COMMENT 'Name of the procurement professional responsible for sourcing and purchasing this line item. Used for vendor communication and procurement accountability.',
     `created_timestamp` TIMESTAMP COMMENT 'The date and time when this purchase order line item record was first created in the system. Used for audit trail and process timing analysis.',
@@ -287,12 +331,11 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`po_line` (
     `deletion_indicator` BOOLEAN COMMENT 'Boolean flag indicating whether this line item has been marked for deletion. True if the line is logically deleted but retained for audit purposes.',
     `delivery_date` DATE COMMENT 'The scheduled or requested delivery date for the material or completion date for the service on this line item. Critical for project scheduling and material planning.',
     `free_text_note` STRING COMMENT 'Additional free-form notes or special instructions related to this line item, such as quality requirements, packaging instructions, or delivery constraints.',
-    `gl_account_code` STRING COMMENT 'The general ledger account code to which this line item expenditure will be posted for financial reporting and compliance.',
     `goods_receipt_indicator` BOOLEAN COMMENT 'Boolean flag indicating whether a goods receipt is required for this line item. True if GR is mandatory before invoice processing.',
     `goods_receipt_quantity` DECIMAL(18,2) COMMENT 'The cumulative quantity of goods received to date against this line item. Used to track delivery progress and outstanding quantities.',
     `incoterms` STRING COMMENT 'Standard trade terms defining the responsibilities of buyers and sellers for delivery, insurance, and risk transfer per ICC Incoterms 2020. [ENUM-REF-CANDIDATE: EXW|FCA|CPT|CIP|DAP|DPU|DDP|FAS|FOB|CFR|CIF — 11 candidates stripped; promote to reference product]',
     `incoterms_location` STRING COMMENT 'The specific named place or port associated with the Incoterms designation, defining the point of delivery or risk transfer.',
-    `invoice_receipt_indicator` DECIMAL(18,2) COMMENT 'Boolean flag indicating whether invoice verification is required for this line item. True if IR is mandatory for payment processing.',
+    `invoice_receipt_indicator` BOOLEAN COMMENT 'Boolean flag indicating whether invoice verification is required for this line item. True if IR is mandatory for payment processing.',
     `invoiced_quantity` DECIMAL(18,2) COMMENT 'The cumulative quantity that has been invoiced to date against this line item. Used for three-way matching and payment reconciliation.',
     `item_category` STRING COMMENT 'Classification of the line item type indicating the procurement scenario: standard purchase, service procurement, consignment, subcontracting, or stock transfer.. Valid values are `standard|service|consignment|subcontracting|stock_transfer`',
     `last_modified_timestamp` TIMESTAMP COMMENT 'The date and time when this purchase order line item record was most recently updated. Used for change tracking and audit purposes.',
@@ -306,39 +349,34 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`po_line` (
     `outstanding_quantity` DECIMAL(18,2) COMMENT 'The remaining quantity yet to be delivered, calculated as ordered quantity minus goods receipt quantity. Critical for expediting and delivery monitoring.',
     `over_delivery_tolerance_percent` DECIMAL(18,2) COMMENT 'The acceptable percentage by which the vendor may over-deliver beyond the ordered quantity without requiring approval. Used for goods receipt tolerance checking.',
     `plant_code` STRING COMMENT 'The plant or site location code where the material will be delivered or the service will be performed. Used for multi-site inventory and logistics management.',
-    `price_unit` DECIMAL(18,2) COMMENT 'The quantity of units to which the unit price applies (e.g., price per 1, per 10, per 100 units). Used for bulk pricing scenarios.',
+    `price_unit` STRING COMMENT 'The quantity of units to which the unit price applies (e.g., price per 1, per 10, per 100 units). Used for bulk pricing scenarios.',
     `requisitioner_name` STRING COMMENT 'Name of the person or department who requested this material or service, used for accountability and follow-up communication.',
     `short_text` STRING COMMENT 'Brief descriptive text for the line item, typically used for quick identification and reporting purposes.',
-    `storage_location` STRING COMMENT 'The specific storage location or warehouse within the plant where the material will be received and stored.',
     `tax_amount` DECIMAL(18,2) COMMENT 'The calculated tax amount applicable to this line item based on the tax code and net value.',
     `tax_code` STRING COMMENT 'Tax classification code that determines the applicable tax rate and tax jurisdiction for this line item.',
     `under_delivery_tolerance_percent` DECIMAL(18,2) COMMENT 'The acceptable percentage by which the vendor may under-deliver below the ordered quantity without penalty. Used for goods receipt tolerance checking.',
     `unit_of_measure` STRING COMMENT 'The unit in which the ordered quantity is measured (e.g., each, meter, square meter, cubic meter, kilogram, ton, liter, hour, day, set, lot, box, roll, bag). [ENUM-REF-CANDIDATE: EA|M|M2|M3|KG|TON|L|HR|DAY|SET|LOT|BOX|ROLL|BAG — 14 candidates stripped; promote to reference product]',
     `unit_price` DECIMAL(18,2) COMMENT 'The price per unit of measure for the material or service on this line item, excluding taxes and additional charges.',
     `vendor_material_number` STRING COMMENT 'The suppliers own material or part number for the item being procured. Used for cross-referencing and supplier communication.',
-    `wbs_element` STRING COMMENT 'The WBS element code to which this line item cost is assigned, enabling project-level cost tracking and allocation per CPM methodology.',
     CONSTRAINT pk_po_line PRIMARY KEY(`po_line_id`)
 ) COMMENT 'Individual line items within a purchase order capturing material or service description, ordered quantity, unit of measure, unit price, line total, delivery schedule date, WBS element, cost code, account assignment category, goods receipt indicator, invoice receipt indicator, and cumulative goods receipt quantity to date. Enables granular cost tracking and delivery monitoring at the PO line level.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` (
     `goods_receipt_id` BIGINT COMMENT 'Primary key for goods_receipt',
-    `batch_lot_id` BIGINT COMMENT 'Foreign key linking to material.batch_lot. Business justification: Goods receipt in construction triggers batch/lot assignment for material traceability. Quality inspection, shelf-life tracking, and regulatory compliance all require linking the GR document to the spe',
-    `construction_project_id` BIGINT COMMENT 'Reference to the construction project for which the materials were received. Enables project-level cost tracking and material allocation.',
+    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Construction job costing requires every goods receipt to be coded to a cost code for WIP/inventory posting and three-way match reconciliation. Cost engineers use GR-to-cost-code traceability for earne',
+    `gl_account_id` BIGINT COMMENT 'Foreign key linking to finance.gl_account. Business justification: Goods receipts in construction trigger GR/IR clearing account postings. The GL account for inventory or WIP must be recorded on the GR to support automatic account determination and financial statemen',
     `material_catalog_id` BIGINT COMMENT 'Foreign key linking to procurement.material_catalog. Business justification: Link goods receipt material to master catalog for normalization and remove redundant material_id column.',
-    `po_line_id` BIGINT COMMENT 'Foreign key linking to procurement.po_line. Business justification: A goods receipt is physically received against a specific PO line item. The existing po_line_item_number (INT) is a denormalized line number reference that becomes redundant once a proper FK to po_lin',
-    `purchase_order_id` BIGINT COMMENT 'Reference to the purchase order against which this goods receipt is recorded. Links the physical delivery to the procurement contract.',
-    `craft_worker_id` BIGINT COMMENT 'Foreign key linking to workforce.craft_worker. Business justification: Goods receipts in construction require a named craft worker (foreman or inspector) to sign off on material delivery. This link supports quality accountability, regulatory audit trails, and three-way m',
-    `crew_id` BIGINT COMMENT 'Foreign key linking to workforce.crew. Business justification: The crew physically receiving and unloading materials on a construction site is a key operational link for site logistics, material accountability, and cost allocation to the correct crew. This suppor',
-    `technical_specification_id` BIGINT COMMENT 'Foreign key linking to design.technical_specification. Business justification: Goods receipt QC inspection: Receiving inspectors verify delivered materials against the governing technical specification. This link enables spec-based acceptance criteria at goods receipt, supports ',
+    `permit_to_work_id` BIGINT COMMENT 'Foreign key linking to safety.permit_to_work. Business justification: Receipt of hazardous materials (explosives, chemicals, pressurised gases) on construction sites requires an active Permit to Work. Linking goods_receipt to permit_to_work enables regulatory compliance',
+    `po_line_id` BIGINT COMMENT 'Foreign key linking to procurement.po_line. Business justification: A goods receipt in construction procurement is received against a specific PO line item, not just the PO header. goods_receipt currently has po_line_item_number (INT) as a denormalized line reference.',
     `vendor_id` BIGINT COMMENT 'Reference to the supplier or vendor who delivered the materials. Used for supplier performance tracking and three-way match verification.',
-    `batch_number` STRING COMMENT 'Manufacturer batch or lot number for the received materials. Critical for traceability, quality control, and recall management.',
+    `warehouse_id` BIGINT COMMENT 'Foreign key linking to material.warehouse. Business justification: Goods receipt must identify the destination warehouse to trigger stock level updates and inbound logistics coordination. storage_location_code on goods_receipt is a denormalized warehouse reference. C',
     `carrier_name` STRING COMMENT 'Name of the transportation carrier or logistics provider who delivered the materials. Used for carrier performance tracking.',
     `currency_code` STRING COMMENT 'Three-letter ISO 4217 currency code for the goods receipt value (e.g., USD, EUR, GBP). Used for multi-currency financial reporting.. Valid values are `^[A-Z]{3}$`',
     `delivery_completed_flag` BOOLEAN COMMENT 'Indicates whether this goods receipt completes the delivery for the purchase order line item (True=complete, False=partial delivery expected).',
     `delivery_note_number` STRING COMMENT 'External delivery note or packing slip number provided by the vendor. Used for cross-referencing vendor shipment documentation.',
     `gr_document_number` STRING COMMENT 'Unique business document number assigned to this goods receipt transaction. Used for audit trail and cross-system reconciliation.. Valid values are `^GR[0-9]{10}$`',
     `inspection_status` STRING COMMENT 'Quality inspection status for the received materials. Determines whether materials can be released to inventory or must remain in quarantine.. Valid values are `not_required|pending|in_progress|passed|failed|waived`',
-    `invoice_verification_status` DECIMAL(18,2) COMMENT 'Status of three-way match process comparing PO, goods receipt, and vendor invoice. Determines whether invoice can be paid.',
+    `invoice_verification_status` STRING COMMENT 'Status of three-way match process comparing PO, goods receipt, and vendor invoice. Determines whether invoice can be paid.. Valid values are `not_started|pending|matched|variance|blocked|completed`',
     `material_document_number` STRING COMMENT 'SAP material document number generated upon goods receipt posting. Used for inventory movement tracking and financial integration.. Valid values are `^[0-9]{10}$`',
     `movement_type` STRING COMMENT 'SAP movement type code indicating the type of inventory transaction (e.g., 101=GR for PO, 122=Return Delivery). Determines financial and inventory impact.. Valid values are `^[0-9]{3}$`',
     `ordered_quantity` DECIMAL(18,2) COMMENT 'Quantity of material originally ordered on the purchase order line item. Used for variance analysis against received quantity.',
@@ -353,7 +391,6 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` (
     `reversal_reason` STRING COMMENT 'Reason code or description explaining why the goods receipt was reversed (e.g., incorrect posting, return to vendor, data entry error).',
     `serial_number` STRING COMMENT 'Unique serial number for serialized equipment or high-value items. Enables individual asset tracking and warranty management.',
     `special_handling_instructions` STRING COMMENT 'Any special handling requirements or instructions for the received materials (e.g., temperature control, hazardous material protocols, fragile handling).',
-    `storage_location_code` STRING COMMENT 'Code identifying the specific storage location, warehouse bin, or laydown area where the materials are stored after receipt.. Valid values are `^[A-Z0-9]{4}$`',
     `tax_code` STRING COMMENT 'Tax jurisdiction code applied to the goods receipt for sales tax, VAT, or GST calculation. Determines tax treatment in financial posting.',
     `total_value` DECIMAL(18,2) COMMENT 'Total monetary value of the goods receipt (received quantity × unit price). Updates inventory value and triggers accounts payable accrual.',
     `tracking_number` STRING COMMENT 'Shipment tracking number provided by the carrier. Enables real-time delivery status monitoring and proof of delivery.',
@@ -369,18 +406,19 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` (
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` (
     `purchase_requisition_id` BIGINT COMMENT 'Unique identifier for the purchase requisition. Primary key for the purchase requisition entity.',
-    `construction_project_id` BIGINT COMMENT 'Identifier of the construction project for which this purchase requisition is raised. Links the requisition to the project master data for cost tracking and budget control.',
-    `cost_account_id` BIGINT COMMENT 'Foreign key linking to project.cost_account. Business justification: Budget availability checking at PR approval requires linking requisitions to project cost accounts. Construction PMO processes validate PR cost against cost account budgets before approval. No existin',
-    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: PRs are raised by cost centers in construction organizations. Proper FK replaces denormalized cost_center_code text field, enabling cost center budget availability checks, overhead allocation reportin',
-    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Purchase requisitions in construction are coded to cost codes for budget allocation and cost tracking. Proper FK to finance.cost_code enables cost code validation at requisition stage, supports cost r',
-    `drawing_id` BIGINT COMMENT 'Foreign key linking to design.drawing. Business justification: Material Take-Off (MTO) process: PRs in construction are raised against specific drawings that define what materials are needed. The existing mto_reference plain-text field denormalizes this relatio',
+    `activity_id` BIGINT COMMENT 'Foreign key linking to schedule.activity. Business justification: Procurement is triggered by schedule: a PR is raised when a schedule activity requires materials or services. Linking PR to the originating activity enables procurement lead-time analysis against plan',
+    `account_id` BIGINT COMMENT 'Foreign key linking to client.account. Business justification: Requisition originates from a client account; FK allows allocation of requisition spend to the correct client entity.',
+    `cost_account_id` BIGINT COMMENT 'Foreign key linking to project.cost_account. Business justification: Budget availability checks at PR approval require direct linkage to the project cost account. Construction PMOs use this link to validate that PR value does not exceed cost account budget before appro',
+    `cost_center_id` BIGINT COMMENT 'Foreign key linking to finance.cost_center. Business justification: PRs in construction require cost center assignment for budget availability checking and departmental spend authorization. The existing cost_center_code plain text field is denormalized; a proper FK en',
+    `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Construction PRs must carry a cost code at requisition time for budget availability checking and commitment pre-registration. Finance controllers use PR-to-cost-code links to enforce budget controls b',
+    `master_services_agreement_id` BIGINT COMMENT 'Foreign key linking to client.master_services_agreement. Business justification: Framework call-off management: PRs raised under a client MSA/framework must reference the governing agreement to enforce ceiling values, approved scope, and procurement category constraints. Framework',
+    `material_catalog_id` BIGINT COMMENT 'Foreign key linking to procurement.material_catalog. Business justification: A purchase requisition requests a specific procurable material from the procurement catalog. purchase_requisition currently has material_master_id → procurement.master (cross-domain) but lacks a direct l',
     `master_id` BIGINT COMMENT 'Foreign key linking to material.material_master. Business justification: Purchase requisitions are created for specific materials; linking to material master enables accurate budgeting, inventory checks, and compliance with approved material lists.',
-    `vendor_id` BIGINT COMMENT 'Foreign key linking to procurement.vendor. Business justification: purchase_requisition has a preferred_vendor_code (STRING) — a denormalized vendor reference used by requisitioners to suggest a preferred supplier. Replacing this with a proper FK preferred_vendor_id ',
-    `project_budget_id` BIGINT COMMENT 'Foreign key linking to finance.project_budget. Business justification: Construction PRs require budget availability validation before approval. Linking PR to project_budget enables real-time budget commitment tracking, supports the budget_available_flag and budget_varian',
-    `scope_id` BIGINT COMMENT 'Foreign key linking to contract.contract_scope. Business justification: Purchase requisitions in construction are raised against specific contract scope items (work packages). This link enables scope-level procurement budget tracking and ensures PRs are authorized within ',
-    `technical_specification_id` BIGINT COMMENT 'Foreign key linking to design.technical_specification. Business justification: Spec-driven requisitioning: PRs must reference the technical specification defining material quality and type requirements. The boolean technical_specification_attached flag is a weak substitute for',
+    `mto_line_id` BIGINT COMMENT 'Foreign key linking to material.mto_line. Business justification: Purchase requisitions in construction are generated from MTO lines. mto_reference on purchase_requisition is a denormalized text reference to mto_line. Linking PR to mto_line enables MTO fulfillment s',
+    `opportunity_id` BIGINT COMMENT 'Foreign key linking to client.client_opportunity. Business justification: Bid-phase procurement tracking: PRs raised during pre-award bid preparation must be traceable to the originating client opportunity for bid cost management and go/no-go analysis. No project exists yet',
+    `rfp_issuance_id` BIGINT COMMENT 'Foreign key linking to client.rfp_issuance. Business justification: Bid cost management: PRs raised for bid preparation (surveys, samples, specialist studies) must be traceable to the specific client RFP document to support bid cost reporting, tender budget control, a',
     `approval_date` DATE COMMENT 'Date when the purchase requisition received final approval and became eligible for conversion to RFQ or PO.',
-    `budget_available_flag` DECIMAL(18,2) COMMENT 'Indicates whether sufficient budget is available in the assigned WBS element or cost center to cover the estimated cost of this requisition. True if budget is available, False if insufficient.',
+    `budget_available_flag` BOOLEAN COMMENT 'Indicates whether sufficient budget is available in the assigned WBS element or cost center to cover the estimated cost of this requisition. True if budget is available, False if insufficient.',
     `budget_variance_amount` DECIMAL(18,2) COMMENT 'Difference between available budget and the estimated total cost. Positive value indicates surplus budget, negative indicates deficit requiring approval override.',
     `closed_date` DATE COMMENT 'Date when the purchase requisition was administratively closed after full conversion to procurement documents or cancellation, marking the end of its active lifecycle.',
     `conversion_date` DATE COMMENT 'Date when the purchase requisition was converted to an RFQ or PO document.',
@@ -394,11 +432,11 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`purchase_requisiti
     `estimated_unit_cost` DECIMAL(18,2) COMMENT 'Estimated cost per unit of the requested material or service, used for budget checking and preliminary cost estimation.',
     `justification_notes` STRING COMMENT 'Business justification and rationale for the purchase requisition, including project need, schedule impact, and any special circumstances requiring expedited processing.',
     `last_modified_timestamp` TIMESTAMP COMMENT 'System timestamp when the purchase requisition record was last updated, capturing any changes to status, approvals, or requisition details.',
-    `material_description` STRING COMMENT 'Detailed textual description of the material, equipment, or service being requested. Includes specifications, grade, dimensions, and any special requirements.',
     `material_group` STRING COMMENT 'Classification code grouping similar materials or services for procurement strategy, vendor assignment, and reporting (e.g., concrete, steel, electrical, MEP services).',
     `pr_number` STRING COMMENT 'Business identifier for the purchase requisition, externally visible and used in procurement workflows and communications.. Valid values are `^PR-[0-9]{8}$`',
     `pr_status` STRING COMMENT 'Current lifecycle status of the purchase requisition in the approval and conversion workflow. [ENUM-REF-CANDIDATE: draft|pending_approval|approved|rejected|converted|cancelled|closed — 7 candidates stripped; promote to reference product]',
     `pr_type` STRING COMMENT 'Classification of the purchase requisition based on procurement category: standard materials, subcontract services, general services, stock transfers between sites, consignment arrangements, or equipment rental.. Valid values are `standard|subcontract|service|stock_transfer|consignment|rental`',
+    `preferred_vendor_code` STRING COMMENT 'Vendor code of the preferred or suggested supplier for this requisition, if the requester has a specific vendor recommendation based on prior performance or technical requirements.',
     `procurement_strategy` STRING COMMENT 'Sourcing approach to be used for fulfilling this requisition based on value, complexity, vendor availability, and time constraints.. Valid values are `direct_po|competitive_rfq|framework_agreement|spot_buy|emergency_procurement`',
     `quantity` DECIMAL(18,2) COMMENT 'Quantity of the material or service being requested, expressed in the unit of measure specified.',
     `rejection_date` DATE COMMENT 'Date when the purchase requisition was rejected by an approver in the workflow, if applicable.',
@@ -411,25 +449,16 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`purchase_requisiti
     `technical_specification_attached` BOOLEAN COMMENT 'Indicates whether detailed technical specifications, drawings, or engineering documents are attached to support the requisition evaluation and vendor quotation process.',
     `unit_of_measure` STRING COMMENT 'Standard unit in which the requested quantity is measured (e.g., EA for each, M for meter, M3 for cubic meter, KG for kilogram, HR for hour). [ENUM-REF-CANDIDATE: EA|M|M2|M3|KG|TON|L|HR|DAY|SET|LOT — 11 candidates stripped; promote to reference product]',
     `urgency_classification` STRING COMMENT 'Priority level of the purchase requisition based on project schedule impact and delivery timeline requirements. Emergency requisitions bypass standard approval workflows.. Valid values are `routine|urgent|critical|emergency`',
-    `wbs_element` STRING COMMENT 'Specific WBS element within the project structure to which this requisition is charged. Enables granular cost control and tracking at the work package level.. Valid values are `^[A-Z0-9]{2}-[0-9]{4}-[0-9]{2}-[0-9]{3}$`',
     CONSTRAINT pk_purchase_requisition PRIMARY KEY(`purchase_requisition_id`)
 ) COMMENT 'Internal purchase requisition raised by project or site teams to initiate procurement of materials, equipment, or services. Captures requisition number, requesting department, project and WBS element, material or service description, required quantity, unit of measure, required delivery date, estimated cost, budget availability flag, approval workflow status (pending, approved, rejected), approver, urgency classification, and conversion status (converted to RFQ or PO). Sourced from SAP MM PR process. Entry point for all formal procurement activity.';
 
 CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` (
     `vendor_invoice_id` BIGINT COMMENT 'Unique identifier for the vendor invoice record. Primary key.',
-    `agreement_id` BIGINT COMMENT 'Foreign key linking to contract.agreement. Business justification: Ensures invoice verification against contract terms, supporting audit of payments versus agreed contract values.',
-    `asset_id` BIGINT COMMENT 'Foreign key linking to equipment.asset. Business justification: Invoices for equipment purchases/rentals must link to the asset to close the financial‑asset loop for accounting and warranty tracking.',
-    `construction_project_id` BIGINT COMMENT 'Reference to the construction project to which this invoice is allocated. Used for project cost tracking and job costing.',
     `cost_center_id` BIGINT COMMENT 'Reference to the cost center to which this invoice is charged for financial accounting and cost control purposes.',
     `cost_code_id` BIGINT COMMENT 'Foreign key linking to finance.cost_code. Business justification: Vendor invoices need a cost‑code reference to map spend to project cost structures and support earned‑value analysis.',
     `gl_account_id` BIGINT COMMENT 'Reference to the general ledger account to which this invoice is posted in the financial accounting system.',
-    `goods_receipt_id` BIGINT COMMENT 'Foreign key linking to procurement.goods_receipt. Business justification: Vendor invoices in construction procurement are validated via 3-way match: Purchase Order → Goods Receipt → Invoice. The existing goods_receipt_number (STRING) on vendor_invoice is a denormalized docu',
-    `invoice_id` BIGINT COMMENT 'Foreign key linking to finance.invoice. Business justification: Vendor invoices (procurement) are matched to AP invoice records (finance) in the three-way match process. Linking enables AP reconciliation, duplicate invoice detection, and payment processing workflo',
-    `journal_entry_id` BIGINT COMMENT 'Foreign key linking to finance.journal_entry. Business justification: Vendor invoice posting generates an AP journal entry (liability posting). Proper FK replaces denormalized fi_document_number text field, enabling AP posting audit trail, period-end accrual reporting, ',
-    `payment_certificate_id` BIGINT COMMENT 'Foreign key linking to contract.payment_certificate. Business justification: Construction payment certification drives vendor invoice approval. Linking vendor_invoice to payment_certificate enables the three-way match (PO → payment certificate → invoice) mandated by constructi',
+    `goods_receipt_id` BIGINT COMMENT 'Foreign key linking to procurement.goods_receipt. Business justification: 3-way match (PO + GR + Invoice) is a core procurement control in construction. vendor_invoice currently stores goods_receipt_number (STRING) as a denormalized document reference. Adding goods_receipt_',
     `purchase_order_id` BIGINT COMMENT 'Reference to the purchase order against which this invoice was received. Used for three-way match validation (PO-GR-Invoice).',
-    `rental_agreement_id` BIGINT COMMENT 'Foreign key linking to equipment.rental_agreement. Business justification: Rental invoices from equipment vendors must be matched against the rental agreement for rate validation and payment approval. Rental invoice three-way match (rental_agreement + equipment hours logge',
-    `subcontract_id` BIGINT COMMENT 'Foreign key linking to contract.subcontract. Business justification: Vendor invoices for subcontract work must be reconciled at subcontract level, not just head-contract level. vendor_invoice already has agreement_id (head contract) but subcontract-level invoice tracki',
     `vendor_id` BIGINT COMMENT 'Reference to the vendor who issued this invoice. Links to vendor master data.',
     `approval_date` DATE COMMENT 'The date on which the invoice was approved for payment by the authorized approver.',
     `blocked_reason` STRING COMMENT 'Reason why the invoice is blocked from payment, such as pending approval, missing documentation, price variance, or quality hold.',
@@ -438,22 +467,24 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` (
     `discount_amount` DECIMAL(18,2) COMMENT 'Total discount amount applied to the invoice, including early payment discounts, volume discounts, or negotiated rebates.',
     `dispute_flag` BOOLEAN COMMENT 'Boolean indicator of whether this invoice is currently under dispute due to discrepancies in quantity, quality, pricing, or terms.',
     `dispute_reason` STRING COMMENT 'Detailed explanation of the reason for the invoice dispute, such as quantity mismatch, pricing error, quality issues, or missing documentation.',
+    `fi_document_number` STRING COMMENT 'The SAP FI document number generated when the invoice is posted to the financial accounting system. This is the system-generated accounting document reference.',
     `fiscal_period` STRING COMMENT 'The fiscal period (month) within the fiscal year in which this invoice is recorded.',
     `fiscal_year` STRING COMMENT 'The fiscal year in which this invoice is recorded for financial reporting purposes.',
-    `invoice_date` DECIMAL(18,2) COMMENT 'The date the vendor issued the invoice. This is the principal business event timestamp for the invoice transaction.',
-    `invoice_description` DECIMAL(18,2) COMMENT 'Textual description of the goods or services covered by this invoice, providing context for the transaction.',
+    `invoice_date` DATE COMMENT 'The date the vendor issued the invoice. This is the principal business event timestamp for the invoice transaction.',
+    `invoice_description` STRING COMMENT 'Textual description of the goods or services covered by this invoice, providing context for the transaction.',
     `invoice_gross_amount` DECIMAL(18,2) COMMENT 'Total invoice amount before taxes and adjustments. Represents the base value of goods or services invoiced.',
     `invoice_net_amount` DECIMAL(18,2) COMMENT 'Total invoice amount payable after applying taxes, discounts, and adjustments. This is the final amount due to the vendor.',
-    `invoice_received_date` DECIMAL(18,2) COMMENT 'The date the invoice was received by the procurement or accounts payable department.',
-    `invoice_status` DECIMAL(18,2) COMMENT 'Current lifecycle status of the vendor invoice in the verification and payment workflow. [ENUM-REF-CANDIDATE: draft|received|under_review|blocked|approved|posted|paid|disputed|cancelled — 9 candidates stripped; promote to reference product]',
-    `invoice_type` DECIMAL(18,2) COMMENT 'Classification of the invoice document type indicating the nature of the transaction (standard invoice, credit memo for returns, debit memo for additional charges, etc.). [ENUM-REF-CANDIDATE: standard|credit_memo|debit_memo|prepayment|final|progress|retention_release — 7 candidates stripped; promote to reference product]',
+    `invoice_number` STRING COMMENT 'The externally-issued invoice number provided by the vendor. This is the vendors unique identifier for the invoice document.',
+    `invoice_received_date` DATE COMMENT 'The date the invoice was received by the procurement or accounts payable department.',
+    `invoice_status` STRING COMMENT 'Current lifecycle status of the vendor invoice in the verification and payment workflow. [ENUM-REF-CANDIDATE: draft|received|under_review|blocked|approved|posted|paid|disputed|cancelled — 9 candidates stripped; promote to reference product]',
+    `invoice_type` STRING COMMENT 'Classification of the invoice document type indicating the nature of the transaction (standard invoice, credit memo for returns, debit memo for additional charges, etc.). [ENUM-REF-CANDIDATE: standard|credit_memo|debit_memo|prepayment|final|progress|retention_release — 7 candidates stripped; promote to reference product]',
     `modified_timestamp` TIMESTAMP COMMENT 'Timestamp when this invoice record was last modified or updated.',
     `notes` STRING COMMENT 'Additional free-text notes or comments related to this invoice, such as special instructions, clarifications, or internal remarks.',
-    `payment_date` DECIMAL(18,2) COMMENT 'The actual date on which payment was made to the vendor for this invoice.',
-    `payment_due_date` DECIMAL(18,2) COMMENT 'The date by which payment must be made to the vendor to comply with payment terms and avoid late payment penalties.',
-    `payment_method` DECIMAL(18,2) COMMENT 'The method by which payment will be made to the vendor for this invoice.',
-    `payment_reference_number` DECIMAL(18,2) COMMENT 'Reference number of the payment transaction when the invoice is paid, linking the invoice to the payment record.',
-    `payment_terms` DECIMAL(18,2) COMMENT 'The agreed payment terms for this invoice, such as Net 30, Net 60, or 2/10 Net 30, defining the payment schedule and any early payment discount conditions.',
+    `payment_date` DATE COMMENT 'The actual date on which payment was made to the vendor for this invoice.',
+    `payment_due_date` DATE COMMENT 'The date by which payment must be made to the vendor to comply with payment terms and avoid late payment penalties.',
+    `payment_method` STRING COMMENT 'The method by which payment will be made to the vendor for this invoice.. Valid values are `wire_transfer|check|ach|credit_card|letter_of_credit|cash`',
+    `payment_reference_number` STRING COMMENT 'Reference number of the payment transaction when the invoice is paid, linking the invoice to the payment record.',
+    `payment_terms` STRING COMMENT 'The agreed payment terms for this invoice, such as Net 30, Net 60, or 2/10 Net 30, defining the payment schedule and any early payment discount conditions.',
     `retention_amount` DECIMAL(18,2) COMMENT 'Amount withheld from the invoice payment as retention per contract terms, typically released upon project completion or after the Defects Liability Period (DLP).',
     `retention_percentage` DECIMAL(18,2) COMMENT 'Percentage of the invoice amount withheld as retention, typically ranging from 5% to 10% per construction contract terms.',
     `tax_amount` DECIMAL(18,2) COMMENT 'Total tax amount applied to the invoice, including sales tax, VAT, GST, or other applicable taxes.',
@@ -464,45 +495,44 @@ CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` (
     CONSTRAINT pk_vendor_invoice PRIMARY KEY(`vendor_invoice_id`)
 ) COMMENT 'Vendor invoices received against purchase orders capturing invoice number, vendor, PO reference, invoice date, invoice amount, tax amount, currency, payment due date, three-way match status (PO-GR-Invoice), invoice verification status (blocked, approved, posted), SAP FI document number, and dispute flag. Distinct from client billing invoices owned by the finance domain — this is the SSOT for vendor payable documents in procurement.';
 
-CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`sourcing_info_record` (
-    `sourcing_info_record_id` BIGINT COMMENT 'Primary key for the sourcing_info_record association',
-    `material_catalog_id` BIGINT COMMENT 'Foreign key linking to the material catalog entry for which these vendor-specific sourcing terms apply.',
-    `vendor_id` BIGINT COMMENT 'Foreign key linking to the vendor master record that is approved to supply the material under these sourcing terms.',
-    `effective_date` DATE COMMENT 'Date from which this vendor-material sourcing record is valid and the vendor is eligible to supply this material at the stated terms. Used for time-bounded source determination during PO creation.',
-    `expiry_date` DATE COMMENT 'Date after which this vendor-material sourcing record is no longer valid. Expired records are retained for historical pricing and audit purposes but excluded from active source determination.',
-    `lead_time_days` BIGINT COMMENT 'Vendor-specific number of calendar days from PO issuance to material delivery for this vendor-material combination. Overrides the standard procurement_lead_time_days on material_catalog when this sourcing record is active. Cannot reside on material_catalog (varies by vendor) or vendor (varies by material).',
-    `minimum_order_quantity` DECIMAL(18,2) COMMENT 'Vendor-specific minimum quantity that must be ordered for this material in the materials base unit of measure. Overrides the standard minimum_order_quantity on material_catalog when this sourcing record is active. Varies per vendor-material combination.',
-    `preferred_flag` BOOLEAN COMMENT 'Indicates whether this vendor is the preferred (primary) source for this material. When true, the procurement system defaults to this vendor during automatic source determination. Only one sourcing record per material should carry preferred_flag = true at any given time.',
-    `price_currency_code` STRING COMMENT 'ISO 4217 three-letter currency code for the negotiated unit_price. Defaults to the vendors currency_code but may differ for international sourcing agreements.',
-    `price_unit_quantity` DECIMAL(18,2) COMMENT 'The quantity basis for the unit_price (e.g., price per 100 units, price per 1 tonne). Required to correctly compute PO line item costs when the pricing unit differs from the order unit of measure.',
-    `sourcing_info_record_status` STRING COMMENT 'Lifecycle status of this vendor-material sourcing record. ACTIVE = currently valid for PO creation; EXPIRED = past expiry_date; SUSPENDED = temporarily blocked (e.g., vendor compliance issue); PENDING_APPROVAL = awaiting procurement approval before activation.',
-    `unit_price` DECIMAL(18,2) COMMENT 'Vendor-negotiated unit price for this material in the vendors transaction currency. Varies per vendor-material combination and cannot reside on either vendor or material_catalog alone. Used as the default price during PO creation in SAP MM.',
-    CONSTRAINT pk_sourcing_info_record PRIMARY KEY(`sourcing_info_record_id`)
-) COMMENT 'This association product represents the Contract/Agreement between vendor and material_catalog in the procurement domain. It captures the approved sourcing terms under which a specific vendor may supply a specific material, including negotiated price, vendor-specific lead time, minimum order quantity, preferred source flag, and validity period. Each record links one vendor to one material_catalog entry and carries attributes that exist only in the context of this vendor-material sourcing relationship. Equivalent to the SAP MM Purchasing Info Record (PIR) and serves as the authoritative source for vendor-material pricing and sourcing eligibility used during PO creation and MTO processes.. Existence Justification: In construction procurement, a vendor can supply multiple materials from the catalog, and a single material can be sourced from multiple vendors — each at different unit prices, lead times, minimum order quantities, and validity periods. This is the SAP MM Purchasing Info Record concept, a well-established operational business entity that procurement teams actively create, maintain, and expire as sourcing conditions change. The relationship is not derivable from transactional data; it is a standing master data record that governs which vendor-material combinations are approved for purchasing and under what commercial terms.';
+CREATE OR REPLACE TABLE `vibe_construction_v1`.`procurement`.`purchasing_info_record` (
+    `purchasing_info_record_id` BIGINT COMMENT 'Primary key for the purchasing_info_record association',
+    `material_catalog_id` BIGINT COMMENT 'Foreign key linking to the catalog material being sourced from this vendor',
+    `vendor_id` BIGINT COMMENT 'Foreign key linking to the approved vendor supplying this material',
+    `currency_code` STRING COMMENT 'Three-letter ISO 4217 currency code for the unit_price on this vendor-material record. May differ from the vendors default currency when materials are priced in a project-specific currency.',
+    `effective_date` DATE COMMENT 'Date from which this vendor-material pricing and sourcing record becomes valid for purchase order creation. Required for time-bound price agreements and contract renewals.',
+    `expiry_date` DATE COMMENT 'Date after which this vendor-material record is no longer valid for new purchase orders. Null indicates an open-ended agreement. Used to enforce contract expiry and trigger renegotiation workflows.',
+    `lead_time_days` BIGINT COMMENT 'Number of calendar days from purchase order issuance to expected delivery for this vendor-material combination. Vendor-specific and overrides the material catalogs standard procurement_lead_time_days for MRP and scheduling purposes.',
+    `minimum_order_quantity` DECIMAL(18,2) COMMENT 'Smallest quantity of this material that can be ordered from this specific vendor in the materials base unit of measure. Vendor-specific and may differ from the material catalogs global minimum_order_quantity.',
+    `preferred_vendor_flag` BOOLEAN COMMENT 'Indicates whether this vendor is the preferred source for this specific material. Preference is material-specific — a vendor may be preferred for concrete but not for rebar. This flag belongs to the vendor-material pairing, not to the vendor globally.',
+    `purchasing_info_record_status` STRING COMMENT 'Lifecycle status of this vendor-material sourcing record. Controls whether the record can be used to generate purchase orders. BLOCKED prevents ordering from this vendor for this material (e.g., quality hold).',
+    `unit_price` DECIMAL(18,2) COMMENT 'Negotiated or quoted price per base unit of measure for this specific vendor-material combination. Varies by vendor and cannot be stored on either the vendor or material master alone.',
+    CONSTRAINT pk_purchasing_info_record PRIMARY KEY(`purchasing_info_record_id`)
+) COMMENT 'This association product represents the Contract between vendor and material_catalog in the procurement domain. It captures the approved sourcing relationship between a specific vendor and a specific catalog material, including negotiated price, lead time, and ordering constraints. Each record corresponds to an SAP MM Purchasing Info Record (PIR) — the operational entity that procurement teams create, maintain, and use to drive purchase orders, MTO processes, and goods receipt. A record exists only when a vendor is formally approved to supply a specific material.. Existence Justification: In construction procurement, a vendor supplies many catalog materials (e.g., a concrete supplier also supplies rebar, formwork, and admixtures), and a single material (e.g., structural steel) is sourced from multiple approved vendors at different prices and lead times. This is the SAP MM Purchasing Info Record (PIR) — a well-established operational business entity that procurement teams actively create, maintain, and query. The relationship carries its own data (unit price, lead time, MOQ) that belongs to neither the vendor nor the material alone.';
 
 -- ========= FOREIGN KEYS =========
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_qualification` ADD CONSTRAINT `fk_procurement_vendor_qualification_vendor_id` FOREIGN KEY (`vendor_id`) REFERENCES `vibe_construction_v1`.`procurement`.`vendor`(`vendor_id`);
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ADD CONSTRAINT `fk_procurement_rfq_vendor_id` FOREIGN KEY (`vendor_id`) REFERENCES `vibe_construction_v1`.`procurement`.`vendor`(`vendor_id`);
-ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ADD CONSTRAINT `fk_procurement_rfq_purchase_requisition_id` FOREIGN KEY (`purchase_requisition_id`) REFERENCES `vibe_construction_v1`.`procurement`.`purchase_requisition`(`purchase_requisition_id`);
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq_line` ADD CONSTRAINT `fk_procurement_rfq_line_material_catalog_id` FOREIGN KEY (`material_catalog_id`) REFERENCES `vibe_construction_v1`.`procurement`.`material_catalog`(`material_catalog_id`);
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq_line` ADD CONSTRAINT `fk_procurement_rfq_line_vendor_id` FOREIGN KEY (`vendor_id`) REFERENCES `vibe_construction_v1`.`procurement`.`vendor`(`vendor_id`);
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq_line` ADD CONSTRAINT `fk_procurement_rfq_line_rfq_id` FOREIGN KEY (`rfq_id`) REFERENCES `vibe_construction_v1`.`procurement`.`rfq`(`rfq_id`);
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ADD CONSTRAINT `fk_procurement_vendor_quotation_material_catalog_id` FOREIGN KEY (`material_catalog_id`) REFERENCES `vibe_construction_v1`.`procurement`.`material_catalog`(`material_catalog_id`);
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ADD CONSTRAINT `fk_procurement_vendor_quotation_rfq_id` FOREIGN KEY (`rfq_id`) REFERENCES `vibe_construction_v1`.`procurement`.`rfq`(`rfq_id`);
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ADD CONSTRAINT `fk_procurement_vendor_quotation_rfq_line_id` FOREIGN KEY (`rfq_line_id`) REFERENCES `vibe_construction_v1`.`procurement`.`rfq_line`(`rfq_line_id`);
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ADD CONSTRAINT `fk_procurement_vendor_quotation_vendor_id` FOREIGN KEY (`vendor_id`) REFERENCES `vibe_construction_v1`.`procurement`.`vendor`(`vendor_id`);
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ADD CONSTRAINT `fk_procurement_purchase_order_purchase_requisition_id` FOREIGN KEY (`purchase_requisition_id`) REFERENCES `vibe_construction_v1`.`procurement`.`purchase_requisition`(`purchase_requisition_id`);
-ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ADD CONSTRAINT `fk_procurement_purchase_order_rfq_id` FOREIGN KEY (`rfq_id`) REFERENCES `vibe_construction_v1`.`procurement`.`rfq`(`rfq_id`);
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ADD CONSTRAINT `fk_procurement_purchase_order_vendor_id` FOREIGN KEY (`vendor_id`) REFERENCES `vibe_construction_v1`.`procurement`.`vendor`(`vendor_id`);
-ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ADD CONSTRAINT `fk_procurement_po_line_material_catalog_id` FOREIGN KEY (`material_catalog_id`) REFERENCES `vibe_construction_v1`.`procurement`.`material_catalog`(`material_catalog_id`);
-ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ADD CONSTRAINT `fk_procurement_po_line_purchase_order_id` FOREIGN KEY (`purchase_order_id`) REFERENCES `vibe_construction_v1`.`procurement`.`purchase_order`(`purchase_order_id`);
 ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ADD CONSTRAINT `fk_procurement_po_line_rfq_line_id` FOREIGN KEY (`rfq_line_id`) REFERENCES `vibe_construction_v1`.`procurement`.`rfq_line`(`rfq_line_id`);
+ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ADD CONSTRAINT `fk_procurement_po_line_vendor_quotation_id` FOREIGN KEY (`vendor_quotation_id`) REFERENCES `vibe_construction_v1`.`procurement`.`vendor_quotation`(`vendor_quotation_id`);
 ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ADD CONSTRAINT `fk_procurement_goods_receipt_material_catalog_id` FOREIGN KEY (`material_catalog_id`) REFERENCES `vibe_construction_v1`.`procurement`.`material_catalog`(`material_catalog_id`);
 ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ADD CONSTRAINT `fk_procurement_goods_receipt_po_line_id` FOREIGN KEY (`po_line_id`) REFERENCES `vibe_construction_v1`.`procurement`.`po_line`(`po_line_id`);
-ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ADD CONSTRAINT `fk_procurement_goods_receipt_purchase_order_id` FOREIGN KEY (`purchase_order_id`) REFERENCES `vibe_construction_v1`.`procurement`.`purchase_order`(`purchase_order_id`);
 ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ADD CONSTRAINT `fk_procurement_goods_receipt_vendor_id` FOREIGN KEY (`vendor_id`) REFERENCES `vibe_construction_v1`.`procurement`.`vendor`(`vendor_id`);
-ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ADD CONSTRAINT `fk_procurement_purchase_requisition_vendor_id` FOREIGN KEY (`vendor_id`) REFERENCES `vibe_construction_v1`.`procurement`.`vendor`(`vendor_id`);
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ADD CONSTRAINT `fk_procurement_purchase_requisition_material_catalog_id` FOREIGN KEY (`material_catalog_id`) REFERENCES `vibe_construction_v1`.`procurement`.`material_catalog`(`material_catalog_id`);
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ADD CONSTRAINT `fk_procurement_vendor_invoice_goods_receipt_id` FOREIGN KEY (`goods_receipt_id`) REFERENCES `vibe_construction_v1`.`procurement`.`goods_receipt`(`goods_receipt_id`);
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ADD CONSTRAINT `fk_procurement_vendor_invoice_purchase_order_id` FOREIGN KEY (`purchase_order_id`) REFERENCES `vibe_construction_v1`.`procurement`.`purchase_order`(`purchase_order_id`);
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ADD CONSTRAINT `fk_procurement_vendor_invoice_vendor_id` FOREIGN KEY (`vendor_id`) REFERENCES `vibe_construction_v1`.`procurement`.`vendor`(`vendor_id`);
-ALTER TABLE `vibe_construction_v1`.`procurement`.`sourcing_info_record` ADD CONSTRAINT `fk_procurement_sourcing_info_record_material_catalog_id` FOREIGN KEY (`material_catalog_id`) REFERENCES `vibe_construction_v1`.`procurement`.`material_catalog`(`material_catalog_id`);
-ALTER TABLE `vibe_construction_v1`.`procurement`.`sourcing_info_record` ADD CONSTRAINT `fk_procurement_sourcing_info_record_vendor_id` FOREIGN KEY (`vendor_id`) REFERENCES `vibe_construction_v1`.`procurement`.`vendor`(`vendor_id`);
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchasing_info_record` ADD CONSTRAINT `fk_procurement_purchasing_info_record_material_catalog_id` FOREIGN KEY (`material_catalog_id`) REFERENCES `vibe_construction_v1`.`procurement`.`material_catalog`(`material_catalog_id`);
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchasing_info_record` ADD CONSTRAINT `fk_procurement_purchasing_info_record_vendor_id` FOREIGN KEY (`vendor_id`) REFERENCES `vibe_construction_v1`.`procurement`.`vendor`(`vendor_id`);
 
 -- ========= TAGS =========
 ALTER SCHEMA `vibe_construction_v1`.`procurement` SET TAGS ('dbx_division' = 'operations');
@@ -531,7 +561,6 @@ ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `bank_acc
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `bank_name` SET TAGS ('dbx_business_glossary_term' = 'Vendor Bank Name');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `bank_name` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `bank_name` SET TAGS ('dbx_pii_financial' = 'true');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `bank_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `bank_routing_number` SET TAGS ('dbx_business_glossary_term' = 'Bank Routing Number');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `bank_routing_number` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `bank_routing_number` SET TAGS ('dbx_pii_financial' = 'true');
@@ -558,9 +587,10 @@ ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `insuranc
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `last_audit_date` SET TAGS ('dbx_business_glossary_term' = 'Last Audit Date');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Record Last Modified Timestamp');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `vendor_name` SET TAGS ('dbx_business_glossary_term' = 'Vendor Legal Name');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `vendor_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `payment_method` SET TAGS ('dbx_business_glossary_term' = 'Payment Method');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `payment_method` SET TAGS ('dbx_value_regex' = 'ach|wire_transfer|check|credit_card|letter_of_credit');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `payment_terms_code` SET TAGS ('dbx_business_glossary_term' = 'Payment Terms Code');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `payment_terms_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{2,6}$');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `postal_code` SET TAGS ('dbx_business_glossary_term' = 'Vendor Postal Code');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `postal_code` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `postal_code` SET TAGS ('dbx_pii_address' = 'true');
@@ -570,15 +600,12 @@ ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `primary_
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `primary_contact_email` SET TAGS ('dbx_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `primary_contact_email` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `primary_contact_email` SET TAGS ('dbx_pii_email' = 'true');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `primary_contact_email` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `primary_contact_name` SET TAGS ('dbx_business_glossary_term' = 'Primary Contact Name');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `primary_contact_name` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `primary_contact_name` SET TAGS ('dbx_pii_name' = 'true');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `primary_contact_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `primary_contact_phone` SET TAGS ('dbx_business_glossary_term' = 'Primary Contact Phone Number');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `primary_contact_phone` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `primary_contact_phone` SET TAGS ('dbx_pii_phone' = 'true');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `primary_contact_phone` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `quality_certification` SET TAGS ('dbx_business_glossary_term' = 'Quality Certification');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `registration_date` SET TAGS ('dbx_business_glossary_term' = 'Vendor Registration Date');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `state_province` SET TAGS ('dbx_business_glossary_term' = 'Vendor State or Province');
@@ -589,13 +616,11 @@ ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `suspensi
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `suspension_start_date` SET TAGS ('dbx_business_glossary_term' = 'Suspension Start Date');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `tax_identification_number` SET TAGS ('dbx_business_glossary_term' = 'Tax Identification Number (TIN)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `tax_identification_number` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `tax_identification_number` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `vendor_status` SET TAGS ('dbx_business_glossary_term' = 'Vendor Registration Status');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor` ALTER COLUMN `vendor_status` SET TAGS ('dbx_value_regex' = 'approved|prospective|suspended|blocked|inactive|under_review');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_qualification` SET TAGS ('dbx_data_type' = 'master_data');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_qualification` SET TAGS ('dbx_subdomain' = 'vendor_management');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_qualification` ALTER COLUMN `vendor_qualification_id` SET TAGS ('dbx_business_glossary_term' = 'Vendor Qualification ID');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_qualification` ALTER COLUMN `asset_category_id` SET TAGS ('dbx_business_glossary_term' = 'Asset Category Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_qualification` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Vendor ID');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_qualification` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Qualification Approval Date');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_qualification` ALTER COLUMN `approved_material_categories` SET TAGS ('dbx_business_glossary_term' = 'Approved Material Categories');
@@ -648,13 +673,15 @@ ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` SET TAGS ('d
 ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` SET TAGS ('dbx_subdomain' = 'material_sourcing');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `material_catalog_id` SET TAGS ('dbx_business_glossary_term' = 'Material Catalog Identifier');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Procurement Material Master ID');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `technical_specification_id` SET TAGS ('dbx_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Code Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `gl_account_id` SET TAGS ('dbx_business_glossary_term' = 'Gl Account Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `abc_classification` SET TAGS ('dbx_business_glossary_term' = 'ABC Classification');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `abc_classification` SET TAGS ('dbx_value_regex' = 'A|B|C');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `alternative_unit_of_measure` SET TAGS ('dbx_business_glossary_term' = 'Alternative Unit of Measure (UOM)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `base_unit_of_measure` SET TAGS ('dbx_business_glossary_term' = 'Base Unit of Measure (UOM)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `bim_object_reference` SET TAGS ('dbx_business_glossary_term' = 'BIM (Building Information Modeling) Object Reference');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `cost_currency` SET TAGS ('dbx_business_glossary_term' = 'Cost Currency');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `cost_currency` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `country_of_origin` SET TAGS ('dbx_business_glossary_term' = 'Country of Origin');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `country_of_origin` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `created_date` SET TAGS ('dbx_business_glossary_term' = 'Created Date');
@@ -671,7 +698,6 @@ ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN
 ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `last_modified_date` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Date');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `length` SET TAGS ('dbx_business_glossary_term' = 'Length Dimension');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `manufacturer_name` SET TAGS ('dbx_business_glossary_term' = 'Manufacturer Name');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `manufacturer_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `manufacturer_part_number` SET TAGS ('dbx_business_glossary_term' = 'Manufacturer Part Number (MPN)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `material_description` SET TAGS ('dbx_business_glossary_term' = 'Material Description');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `material_group` SET TAGS ('dbx_business_glossary_term' = 'Material Group');
@@ -690,8 +716,6 @@ ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN
 ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `standard_cost` SET TAGS ('dbx_business_glossary_term' = 'Standard Cost');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `standard_cost` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `storage_condition` SET TAGS ('dbx_business_glossary_term' = 'Storage Condition');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `valuation_class` SET TAGS ('dbx_business_glossary_term' = 'Valuation Class');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `valuation_class` SET TAGS ('dbx_value_regex' = '^[0-9]{4}$');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `volume` SET TAGS ('dbx_business_glossary_term' = 'Volume');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `volume_unit` SET TAGS ('dbx_business_glossary_term' = 'Volume Unit');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`material_catalog` ALTER COLUMN `volume_unit` SET TAGS ('dbx_value_regex' = 'M3|L|GAL|FT3');
@@ -704,17 +728,28 @@ ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` SET TAGS ('dbx_subdomain'
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `rfq_id` SET TAGS ('dbx_business_glossary_term' = 'Request for Quotation (RFQ) ID');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Awarded Vendor ID');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `bim_model_id` SET TAGS ('dbx_business_glossary_term' = 'Bim Model Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Client Account Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `master_services_agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Master Services Agreement Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `mto_header_id` SET TAGS ('dbx_business_glossary_term' = 'Mto Header Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `purchase_requisition_id` SET TAGS ('dbx_business_glossary_term' = 'Purchase Requisition Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `package_id` SET TAGS ('dbx_business_glossary_term' = 'Package Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `rfp_issuance_id` SET TAGS ('dbx_business_glossary_term' = 'Rfp Issuance Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `staffing_plan_id` SET TAGS ('dbx_business_glossary_term' = 'Staffing Plan Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `technical_specification_id` SET TAGS ('dbx_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `award_date` SET TAGS ('dbx_business_glossary_term' = 'Award Date');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `awarded_amount` SET TAGS ('dbx_business_glossary_term' = 'Awarded Amount');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `bid_bond_amount` SET TAGS ('dbx_business_glossary_term' = 'Bid Bond Amount');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `bid_bond_required` SET TAGS ('dbx_business_glossary_term' = 'Bid Bond Required');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `boq_reference` SET TAGS ('dbx_business_glossary_term' = 'Bill of Quantities (BOQ) Reference');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `buyer_contact_email` SET TAGS ('dbx_business_glossary_term' = 'Buyer Contact Email');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `buyer_contact_email` SET TAGS ('dbx_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `buyer_contact_email` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `buyer_contact_email` SET TAGS ('dbx_pii_email' = 'true');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `buyer_contact_name` SET TAGS ('dbx_business_glossary_term' = 'Buyer Contact Name');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `buyer_contact_name` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `buyer_contact_name` SET TAGS ('dbx_pii_name' = 'true');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `buyer_contact_phone` SET TAGS ('dbx_business_glossary_term' = 'Buyer Contact Phone');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `buyer_contact_phone` SET TAGS ('dbx_restricted' = 'true');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `buyer_contact_phone` SET TAGS ('dbx_pii_phone' = 'true');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `cancellation_reason` SET TAGS ('dbx_business_glossary_term' = 'Cancellation Reason');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `closed_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Closed Timestamp');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `contract_type` SET TAGS ('dbx_business_glossary_term' = 'Contract Type');
@@ -741,6 +776,7 @@ ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `rfq_number`
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `rfq_status` SET TAGS ('dbx_business_glossary_term' = 'Request for Quotation (RFQ) Status');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `rfq_type` SET TAGS ('dbx_business_glossary_term' = 'Request for Quotation (RFQ) Type');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `rfq_type` SET TAGS ('dbx_value_regex' = 'materials|equipment|services|subcontract|design_build');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `scope_description` SET TAGS ('dbx_business_glossary_term' = 'Scope Description');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `submission_deadline` SET TAGS ('dbx_business_glossary_term' = 'Submission Deadline');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `title` SET TAGS ('dbx_business_glossary_term' = 'Request for Quotation (RFQ) Title');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `vendor_prequalification_required` SET TAGS ('dbx_business_glossary_term' = 'Vendor Prequalification Required');
@@ -748,14 +784,10 @@ ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq` ALTER COLUMN `warranty_pe
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq_line` SET TAGS ('dbx_data_type' = 'transactional_data');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq_line` SET TAGS ('dbx_subdomain' = 'material_sourcing');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq_line` ALTER COLUMN `rfq_line_id` SET TAGS ('dbx_business_glossary_term' = 'Request for Quotation (RFQ) Line Identifier');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq_line` ALTER COLUMN `bim_model_id` SET TAGS ('dbx_business_glossary_term' = 'Bim Model Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq_line` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Code Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq_line` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq_line` ALTER COLUMN `material_catalog_id` SET TAGS ('dbx_business_glossary_term' = 'Procurement Material Master Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq_line` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Preferred Vendor Identifier');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq_line` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project Identifier');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq_line` ALTER COLUMN `rfq_id` SET TAGS ('dbx_business_glossary_term' = 'Request for Quotation (RFQ) Identifier');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq_line` ALTER COLUMN `technical_specification_id` SET TAGS ('dbx_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq_line` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq_line` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq_line` ALTER COLUMN `currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
@@ -788,27 +820,67 @@ ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq_line` ALTER COLUMN `source
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq_line` ALTER COLUMN `tax_code` SET TAGS ('dbx_business_glossary_term' = 'Tax Code');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq_line` ALTER COLUMN `unit_of_measure` SET TAGS ('dbx_business_glossary_term' = 'Unit of Measure (UOM)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq_line` ALTER COLUMN `vendor_evaluation_criteria` SET TAGS ('dbx_business_glossary_term' = 'Vendor Evaluation Criteria');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq_line` ALTER COLUMN `wbs_element` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Element');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`rfq_line` ALTER COLUMN `created_by` SET TAGS ('dbx_business_glossary_term' = 'Created By');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` SET TAGS ('dbx_data_type' = 'transactional_data');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` SET TAGS ('dbx_subdomain' = 'material_sourcing');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `vendor_quotation_id` SET TAGS ('dbx_business_glossary_term' = 'Vendor Quotation ID');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `material_catalog_id` SET TAGS ('dbx_business_glossary_term' = 'Procurement Material Master Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `rfq_id` SET TAGS ('dbx_business_glossary_term' = 'Request for Quotation (RFQ) ID');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `rfq_line_id` SET TAGS ('dbx_business_glossary_term' = 'Rfq Line Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Vendor ID');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `attachment_count` SET TAGS ('dbx_business_glossary_term' = 'Attachment Count');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `award_recommendation` SET TAGS ('dbx_business_glossary_term' = 'Award Recommendation');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `award_recommendation` SET TAGS ('dbx_value_regex' = 'recommended|not_recommended|conditional|pending');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `commercial_exceptions` SET TAGS ('dbx_business_glossary_term' = 'Commercial Exceptions');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `country_of_origin` SET TAGS ('dbx_business_glossary_term' = 'Country of Origin');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `country_of_origin` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `delivery_lead_time_days` SET TAGS ('dbx_business_glossary_term' = 'Delivery Lead Time (Days)');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `delivery_terms` SET TAGS ('dbx_business_glossary_term' = 'Delivery Terms (Incoterms)');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `deviations_from_specification` SET TAGS ('dbx_business_glossary_term' = 'Deviations from Specification');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `discount_percentage` SET TAGS ('dbx_business_glossary_term' = 'Discount Percentage');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `evaluation_date` SET TAGS ('dbx_business_glossary_term' = 'Evaluation Date');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `evaluation_notes` SET TAGS ('dbx_business_glossary_term' = 'Evaluation Notes');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `evaluation_score` SET TAGS ('dbx_business_glossary_term' = 'Evaluation Score');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `freight_cost` SET TAGS ('dbx_business_glossary_term' = 'Freight Cost');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `material_description` SET TAGS ('dbx_business_glossary_term' = 'Material Description');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `payment_terms` SET TAGS ('dbx_business_glossary_term' = 'Payment Terms');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `quotation_number` SET TAGS ('dbx_business_glossary_term' = 'Quotation Number');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `quotation_status` SET TAGS ('dbx_business_glossary_term' = 'Quotation Status');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `quotation_status` SET TAGS ('dbx_value_regex' = 'submitted|under_review|accepted|rejected|withdrawn|expired');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `quoted_quantity` SET TAGS ('dbx_business_glossary_term' = 'Quoted Quantity');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `submission_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Submission Timestamp');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `tax_amount` SET TAGS ('dbx_business_glossary_term' = 'Tax Amount');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `technical_compliance_status` SET TAGS ('dbx_business_glossary_term' = 'Technical Compliance Status');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `technical_compliance_status` SET TAGS ('dbx_value_regex' = 'compliant|non_compliant|partial|under_review');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `total_price` SET TAGS ('dbx_business_glossary_term' = 'Total Price');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `unit_of_measure` SET TAGS ('dbx_business_glossary_term' = 'Unit of Measure (UOM)');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `unit_price` SET TAGS ('dbx_business_glossary_term' = 'Unit Price');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `validity_end_date` SET TAGS ('dbx_business_glossary_term' = 'Validity End Date');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `validity_start_date` SET TAGS ('dbx_business_glossary_term' = 'Validity Start Date');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `warranty_period_months` SET TAGS ('dbx_business_glossary_term' = 'Warranty Period (Months)');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_quotation` ALTER COLUMN `warranty_terms` SET TAGS ('dbx_business_glossary_term' = 'Warranty Terms');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` SET TAGS ('dbx_data_type' = 'transactional_data');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` SET TAGS ('dbx_subdomain' = 'order_fulfillment');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `purchase_order_id` SET TAGS ('dbx_business_glossary_term' = 'Purchase Order (PO) ID');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `activity_id` SET TAGS ('dbx_business_glossary_term' = 'Activity Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `cost_account_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Account Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center ID');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `crew_id` SET TAGS ('dbx_business_glossary_term' = 'Crew Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `gl_account_id` SET TAGS ('dbx_business_glossary_term' = 'Gl Account Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `project_site_id` SET TAGS ('dbx_business_glossary_term' = 'Project Site Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `purchase_requisition_id` SET TAGS ('dbx_business_glossary_term' = 'Purchase Requisition Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `rfq_id` SET TAGS ('dbx_business_glossary_term' = 'Rfq Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `subcontract_id` SET TAGS ('dbx_business_glossary_term' = 'Subcontract Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Vendor ID');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `warehouse_id` SET TAGS ('dbx_business_glossary_term' = 'Warehouse Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `acknowledgment_date` SET TAGS ('dbx_business_glossary_term' = 'Acknowledgment Date');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `amendment_count` SET TAGS ('dbx_business_glossary_term' = 'Amendment Count');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `approval_status` SET TAGS ('dbx_business_glossary_term' = 'Approval Status');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `approval_status` SET TAGS ('dbx_value_regex' = 'pending|approved|rejected|conditional');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `approved_by` SET TAGS ('dbx_business_glossary_term' = 'Approved By');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `buyer_name` SET TAGS ('dbx_business_glossary_term' = 'Buyer Name');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `cumulative_amendment_value` SET TAGS ('dbx_business_glossary_term' = 'Cumulative Amendment Value');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `cumulative_amendment_value` SET TAGS ('dbx_confidential' = 'true');
@@ -816,6 +888,23 @@ ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `current_revision_number` SET TAGS ('dbx_business_glossary_term' = 'Current Revision Number');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `current_version_number` SET TAGS ('dbx_business_glossary_term' = 'Current Version Number');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `delivery_address_line1` SET TAGS ('dbx_business_glossary_term' = 'Delivery Address Line 1');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `delivery_address_line1` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `delivery_address_line1` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `delivery_address_line2` SET TAGS ('dbx_business_glossary_term' = 'Delivery Address Line 2');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `delivery_address_line2` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `delivery_address_line2` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `delivery_city` SET TAGS ('dbx_business_glossary_term' = 'Delivery City');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `delivery_city` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `delivery_city` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `delivery_country_code` SET TAGS ('dbx_business_glossary_term' = 'Delivery Country Code');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `delivery_country_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `delivery_postal_code` SET TAGS ('dbx_business_glossary_term' = 'Delivery Postal Code');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `delivery_postal_code` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `delivery_postal_code` SET TAGS ('dbx_pii_address' = 'true');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `delivery_state_province` SET TAGS ('dbx_business_glossary_term' = 'Delivery State or Province');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `delivery_state_province` SET TAGS ('dbx_confidential' = 'true');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `delivery_state_province` SET TAGS ('dbx_pii_address' = 'true');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `gmp_amount` SET TAGS ('dbx_business_glossary_term' = 'Guaranteed Maximum Price (GMP) Amount');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `gmp_amount` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `gmp_flag` SET TAGS ('dbx_business_glossary_term' = 'Guaranteed Maximum Price (GMP) Flag');
@@ -847,26 +936,24 @@ ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `tax_amount` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `total_po_value` SET TAGS ('dbx_business_glossary_term' = 'Total Purchase Order (PO) Value');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `total_po_value` SET TAGS ('dbx_confidential' = 'true');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `wbs_element` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Element');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_order` ALTER COLUMN `wbs_element` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{2,4}-[0-9]{4,8}(.[0-9]{1,4})*$');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` SET TAGS ('dbx_data_type' = 'transactional_data');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` SET TAGS ('dbx_subdomain' = 'order_fulfillment');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `po_line_id` SET TAGS ('dbx_business_glossary_term' = 'Purchase Order (PO) Line ID');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Code Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `itp_line_id` SET TAGS ('dbx_business_glossary_term' = 'Itp Line Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `material_catalog_id` SET TAGS ('dbx_business_glossary_term' = 'Procurement Material Master Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `purchase_order_id` SET TAGS ('dbx_business_glossary_term' = 'Purchase Order (PO) Header ID');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `crew_id` SET TAGS ('dbx_business_glossary_term' = 'Crew Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `gl_account_id` SET TAGS ('dbx_business_glossary_term' = 'Gl Account Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `rfq_line_id` SET TAGS ('dbx_business_glossary_term' = 'Rfq Line Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `vendor_quotation_id` SET TAGS ('dbx_business_glossary_term' = 'Vendor Quotation Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `warehouse_id` SET TAGS ('dbx_business_glossary_term' = 'Warehouse Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `account_assignment_category` SET TAGS ('dbx_business_glossary_term' = 'Account Assignment Category');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `account_assignment_category` SET TAGS ('dbx_value_regex' = 'K|A|F|P|N|U');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `buyer_name` SET TAGS ('dbx_business_glossary_term' = 'Buyer Name');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `buyer_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `created_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Created Timestamp');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `deletion_indicator` SET TAGS ('dbx_business_glossary_term' = 'Deletion Indicator');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `delivery_date` SET TAGS ('dbx_business_glossary_term' = 'Delivery Date');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `free_text_note` SET TAGS ('dbx_business_glossary_term' = 'Free Text Note');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `gl_account_code` SET TAGS ('dbx_business_glossary_term' = 'General Ledger (GL) Account Code');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `goods_receipt_indicator` SET TAGS ('dbx_business_glossary_term' = 'Goods Receipt (GR) Indicator');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `goods_receipt_quantity` SET TAGS ('dbx_business_glossary_term' = 'Goods Receipt (GR) Quantity');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `incoterms` SET TAGS ('dbx_business_glossary_term' = 'International Commercial Terms (Incoterms)');
@@ -889,31 +976,24 @@ ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `over_de
 ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `plant_code` SET TAGS ('dbx_business_glossary_term' = 'Plant Code');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `price_unit` SET TAGS ('dbx_business_glossary_term' = 'Price Unit');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `requisitioner_name` SET TAGS ('dbx_business_glossary_term' = 'Requisitioner Name');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `requisitioner_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `short_text` SET TAGS ('dbx_business_glossary_term' = 'Short Text');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `storage_location` SET TAGS ('dbx_business_glossary_term' = 'Storage Location');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `tax_amount` SET TAGS ('dbx_business_glossary_term' = 'Tax Amount');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `tax_code` SET TAGS ('dbx_business_glossary_term' = 'Tax Code');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `under_delivery_tolerance_percent` SET TAGS ('dbx_business_glossary_term' = 'Under Delivery Tolerance Percentage');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `unit_of_measure` SET TAGS ('dbx_business_glossary_term' = 'Unit of Measure (UOM)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `unit_price` SET TAGS ('dbx_business_glossary_term' = 'Unit Price');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `vendor_material_number` SET TAGS ('dbx_business_glossary_term' = 'Vendor Material Number');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`po_line` ALTER COLUMN `wbs_element` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Element');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` SET TAGS ('dbx_data_type' = 'transactional_data');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` SET TAGS ('dbx_subdomain' = 'order_fulfillment');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `goods_receipt_id` SET TAGS ('dbx_business_glossary_term' = 'Goods Receipt Identifier');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `batch_lot_id` SET TAGS ('dbx_business_glossary_term' = 'Batch Lot Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Code Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `gl_account_id` SET TAGS ('dbx_business_glossary_term' = 'Gl Account Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `material_catalog_id` SET TAGS ('dbx_business_glossary_term' = 'Procurement Material Master Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `permit_to_work_id` SET TAGS ('dbx_business_glossary_term' = 'Permit To Work Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `po_line_id` SET TAGS ('dbx_business_glossary_term' = 'Po Line Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `purchase_order_id` SET TAGS ('dbx_business_glossary_term' = 'Purchase Order (PO) ID');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `craft_worker_id` SET TAGS ('dbx_business_glossary_term' = 'Receiving Craft Worker Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `crew_id` SET TAGS ('dbx_business_glossary_term' = 'Receiving Crew Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `technical_specification_id` SET TAGS ('dbx_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Vendor ID');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `batch_number` SET TAGS ('dbx_business_glossary_term' = 'Batch Number');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `warehouse_id` SET TAGS ('dbx_business_glossary_term' = 'Warehouse Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `carrier_name` SET TAGS ('dbx_business_glossary_term' = 'Carrier Name');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `carrier_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `delivery_completed_flag` SET TAGS ('dbx_business_glossary_term' = 'Delivery Completed Flag');
@@ -923,6 +1003,7 @@ ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `g
 ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `inspection_status` SET TAGS ('dbx_business_glossary_term' = 'Inspection Status');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `inspection_status` SET TAGS ('dbx_value_regex' = 'not_required|pending|in_progress|passed|failed|waived');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `invoice_verification_status` SET TAGS ('dbx_business_glossary_term' = 'Invoice Verification Status');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `invoice_verification_status` SET TAGS ('dbx_value_regex' = 'not_started|pending|matched|variance|blocked|completed');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `material_document_number` SET TAGS ('dbx_business_glossary_term' = 'Material Document Number');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `material_document_number` SET TAGS ('dbx_value_regex' = '^[0-9]{10}$');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `movement_type` SET TAGS ('dbx_business_glossary_term' = 'Movement Type');
@@ -940,8 +1021,6 @@ ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `r
 ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `reversal_reason` SET TAGS ('dbx_business_glossary_term' = 'Reversal Reason');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `serial_number` SET TAGS ('dbx_business_glossary_term' = 'Serial Number');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `special_handling_instructions` SET TAGS ('dbx_business_glossary_term' = 'Special Handling Instructions');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `storage_location_code` SET TAGS ('dbx_business_glossary_term' = 'Storage Location Code');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `storage_location_code` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{4}$');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `tax_code` SET TAGS ('dbx_business_glossary_term' = 'Tax Code');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `total_value` SET TAGS ('dbx_business_glossary_term' = 'Total Value');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `total_value` SET TAGS ('dbx_confidential' = 'true');
@@ -956,18 +1035,19 @@ ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `v
 ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `variance_notes` SET TAGS ('dbx_business_glossary_term' = 'Variance Notes');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`goods_receipt` ALTER COLUMN `variance_reason_code` SET TAGS ('dbx_business_glossary_term' = 'Variance Reason Code');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` SET TAGS ('dbx_data_type' = 'transactional_data');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` SET TAGS ('dbx_subdomain' = 'material_sourcing');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` SET TAGS ('dbx_subdomain' = 'order_fulfillment');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `purchase_requisition_id` SET TAGS ('dbx_business_glossary_term' = 'Purchase Requisition (PR) ID');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `activity_id` SET TAGS ('dbx_business_glossary_term' = 'Activity Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `account_id` SET TAGS ('dbx_business_glossary_term' = 'Client Account Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `cost_account_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Account Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Code Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `drawing_id` SET TAGS ('dbx_business_glossary_term' = 'Drawing Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `master_services_agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Master Services Agreement Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `material_catalog_id` SET TAGS ('dbx_business_glossary_term' = 'Material Catalog Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `master_id` SET TAGS ('dbx_business_glossary_term' = 'Material Master Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Preferred Vendor Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `project_budget_id` SET TAGS ('dbx_business_glossary_term' = 'Project Budget Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `scope_id` SET TAGS ('dbx_business_glossary_term' = 'Contract Scope Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `technical_specification_id` SET TAGS ('dbx_business_glossary_term' = 'Technical Specification Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `mto_line_id` SET TAGS ('dbx_business_glossary_term' = 'Mto Line Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `opportunity_id` SET TAGS ('dbx_business_glossary_term' = 'Client Opportunity Id (Foreign Key)');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `rfp_issuance_id` SET TAGS ('dbx_business_glossary_term' = 'Rfp Issuance Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `budget_available_flag` SET TAGS ('dbx_business_glossary_term' = 'Budget Available Flag');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `budget_variance_amount` SET TAGS ('dbx_business_glossary_term' = 'Budget Variance Amount');
@@ -980,19 +1060,18 @@ ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER CO
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Currency Code');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `currency_code` SET TAGS ('dbx_value_regex' = '^[A-Z]{3}$');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `current_approver_name` SET TAGS ('dbx_business_glossary_term' = 'Current Approver Name');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `current_approver_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `delivery_location` SET TAGS ('dbx_business_glossary_term' = 'Delivery Location');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `estimated_total_cost` SET TAGS ('dbx_business_glossary_term' = 'Estimated Total Cost');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `estimated_unit_cost` SET TAGS ('dbx_business_glossary_term' = 'Estimated Unit Cost');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `justification_notes` SET TAGS ('dbx_business_glossary_term' = 'Justification Notes');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `last_modified_timestamp` SET TAGS ('dbx_business_glossary_term' = 'Last Modified Timestamp');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `material_description` SET TAGS ('dbx_business_glossary_term' = 'Material or Service Description');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `material_group` SET TAGS ('dbx_business_glossary_term' = 'Material Group');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `pr_number` SET TAGS ('dbx_business_glossary_term' = 'Purchase Requisition (PR) Number');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `pr_number` SET TAGS ('dbx_value_regex' = '^PR-[0-9]{8}$');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `pr_status` SET TAGS ('dbx_business_glossary_term' = 'Purchase Requisition (PR) Status');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `pr_type` SET TAGS ('dbx_business_glossary_term' = 'Purchase Requisition (PR) Type');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `pr_type` SET TAGS ('dbx_value_regex' = 'standard|subcontract|service|stock_transfer|consignment|rental');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `preferred_vendor_code` SET TAGS ('dbx_business_glossary_term' = 'Preferred Vendor Code');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `procurement_strategy` SET TAGS ('dbx_business_glossary_term' = 'Procurement Strategy');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `procurement_strategy` SET TAGS ('dbx_value_regex' = 'direct_po|competitive_rfq|framework_agreement|spot_buy|emergency_procurement');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `quantity` SET TAGS ('dbx_business_glossary_term' = 'Requested Quantity');
@@ -1002,9 +1081,7 @@ ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER CO
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `requester_email` SET TAGS ('dbx_value_regex' = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `requester_email` SET TAGS ('dbx_confidential' = 'true');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `requester_email` SET TAGS ('dbx_pii_email' = 'true');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `requester_email` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `requester_name` SET TAGS ('dbx_business_glossary_term' = 'Requester Name');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `requester_name` SET TAGS ('dbx_sensitivity' = 'pii');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `requesting_department` SET TAGS ('dbx_business_glossary_term' = 'Requesting Department');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `required_delivery_date` SET TAGS ('dbx_business_glossary_term' = 'Required Delivery Date');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `requisition_date` SET TAGS ('dbx_business_glossary_term' = 'Requisition Date');
@@ -1012,24 +1089,14 @@ ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER CO
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `unit_of_measure` SET TAGS ('dbx_business_glossary_term' = 'Unit of Measure (UOM)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `urgency_classification` SET TAGS ('dbx_business_glossary_term' = 'Urgency Classification');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `urgency_classification` SET TAGS ('dbx_value_regex' = 'routine|urgent|critical|emergency');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `wbs_element` SET TAGS ('dbx_business_glossary_term' = 'Work Breakdown Structure (WBS) Element');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`purchase_requisition` ALTER COLUMN `wbs_element` SET TAGS ('dbx_value_regex' = '^[A-Z0-9]{2}-[0-9]{4}-[0-9]{2}-[0-9]{3}$');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` SET TAGS ('dbx_data_type' = 'transactional_data');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` SET TAGS ('dbx_subdomain' = 'order_fulfillment');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `vendor_invoice_id` SET TAGS ('dbx_business_glossary_term' = 'Vendor Invoice ID');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `asset_id` SET TAGS ('dbx_business_glossary_term' = 'Asset Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `construction_project_id` SET TAGS ('dbx_business_glossary_term' = 'Project ID');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `cost_center_id` SET TAGS ('dbx_business_glossary_term' = 'Cost Center ID');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `cost_code_id` SET TAGS ('dbx_business_glossary_term' = 'Finance Cost Code Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `gl_account_id` SET TAGS ('dbx_business_glossary_term' = 'General Ledger (GL) Account ID');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `goods_receipt_id` SET TAGS ('dbx_business_glossary_term' = 'Goods Receipt Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `invoice_id` SET TAGS ('dbx_business_glossary_term' = 'Invoice Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `journal_entry_id` SET TAGS ('dbx_business_glossary_term' = 'Journal Entry Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `payment_certificate_id` SET TAGS ('dbx_business_glossary_term' = 'Payment Certificate Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `purchase_order_id` SET TAGS ('dbx_business_glossary_term' = 'Purchase Order (PO) ID');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `rental_agreement_id` SET TAGS ('dbx_business_glossary_term' = 'Rental Agreement Id (Foreign Key)');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `subcontract_id` SET TAGS ('dbx_business_glossary_term' = 'Subcontract Id (Foreign Key)');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Vendor ID');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `approval_date` SET TAGS ('dbx_business_glossary_term' = 'Approval Date');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `blocked_reason` SET TAGS ('dbx_business_glossary_term' = 'Blocked Reason');
@@ -1039,12 +1106,14 @@ ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `discount_amount` SET TAGS ('dbx_business_glossary_term' = 'Discount Amount');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `dispute_flag` SET TAGS ('dbx_business_glossary_term' = 'Dispute Flag');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `dispute_reason` SET TAGS ('dbx_business_glossary_term' = 'Dispute Reason');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `fi_document_number` SET TAGS ('dbx_business_glossary_term' = 'Financial (FI) Document Number');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `fiscal_period` SET TAGS ('dbx_business_glossary_term' = 'Fiscal Period');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `fiscal_year` SET TAGS ('dbx_business_glossary_term' = 'Fiscal Year');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `invoice_date` SET TAGS ('dbx_business_glossary_term' = 'Invoice Date');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `invoice_description` SET TAGS ('dbx_business_glossary_term' = 'Invoice Description');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `invoice_gross_amount` SET TAGS ('dbx_business_glossary_term' = 'Invoice Gross Amount');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `invoice_net_amount` SET TAGS ('dbx_business_glossary_term' = 'Invoice Net Amount');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `invoice_number` SET TAGS ('dbx_business_glossary_term' = 'Invoice Number');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `invoice_received_date` SET TAGS ('dbx_business_glossary_term' = 'Invoice Received Date');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `invoice_status` SET TAGS ('dbx_business_glossary_term' = 'Invoice Status');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `invoice_type` SET TAGS ('dbx_business_glossary_term' = 'Invoice Type');
@@ -1053,6 +1122,7 @@ ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `payment_date` SET TAGS ('dbx_business_glossary_term' = 'Payment Date');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `payment_due_date` SET TAGS ('dbx_business_glossary_term' = 'Payment Due Date');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `payment_method` SET TAGS ('dbx_business_glossary_term' = 'Payment Method');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `payment_method` SET TAGS ('dbx_value_regex' = 'wire_transfer|check|ach|credit_card|letter_of_credit|cash');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `payment_reference_number` SET TAGS ('dbx_business_glossary_term' = 'Payment Reference Number');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `payment_terms` SET TAGS ('dbx_business_glossary_term' = 'Payment Terms');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `retention_amount` SET TAGS ('dbx_business_glossary_term' = 'Retention Amount');
@@ -1064,19 +1134,18 @@ ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `verification_status` SET TAGS ('dbx_business_glossary_term' = 'Verification Status');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `verification_status` SET TAGS ('dbx_value_regex' = 'pending|verified|rejected|on_hold');
 ALTER TABLE `vibe_construction_v1`.`procurement`.`vendor_invoice` ALTER COLUMN `withholding_tax_amount` SET TAGS ('dbx_business_glossary_term' = 'Withholding Tax Amount');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`sourcing_info_record` SET TAGS ('dbx_data_type' = 'association_data');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`sourcing_info_record` SET TAGS ('dbx_subdomain' = 'vendor_management');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`sourcing_info_record` SET TAGS ('dbx_association_edges' = 'procurement.vendor,procurement.material_catalog');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`sourcing_info_record` ALTER COLUMN `sourcing_info_record_id` SET TAGS ('dbx_business_glossary_term' = 'Sourcing Info Record - Sourcing Info Record Id');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`sourcing_info_record` ALTER COLUMN `material_catalog_id` SET TAGS ('dbx_business_glossary_term' = 'Sourcing Info Record - Material Catalog Id');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`sourcing_info_record` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Sourcing Info Record - Vendor Id');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`sourcing_info_record` ALTER COLUMN `effective_date` SET TAGS ('dbx_business_glossary_term' = 'Sourcing Agreement Effective Date');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`sourcing_info_record` ALTER COLUMN `expiry_date` SET TAGS ('dbx_business_glossary_term' = 'Sourcing Agreement Expiry Date');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`sourcing_info_record` ALTER COLUMN `lead_time_days` SET TAGS ('dbx_business_glossary_term' = 'Vendor Lead Time (Days)');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`sourcing_info_record` ALTER COLUMN `minimum_order_quantity` SET TAGS ('dbx_business_glossary_term' = 'Vendor Minimum Order Quantity');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`sourcing_info_record` ALTER COLUMN `preferred_flag` SET TAGS ('dbx_business_glossary_term' = 'Preferred Source Flag');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`sourcing_info_record` ALTER COLUMN `price_currency_code` SET TAGS ('dbx_business_glossary_term' = 'Price Currency Code');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`sourcing_info_record` ALTER COLUMN `price_unit_quantity` SET TAGS ('dbx_business_glossary_term' = 'Price Per Unit Quantity');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`sourcing_info_record` ALTER COLUMN `sourcing_info_record_status` SET TAGS ('dbx_business_glossary_term' = 'Sourcing Record Status');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`sourcing_info_record` ALTER COLUMN `unit_price` SET TAGS ('dbx_business_glossary_term' = 'Negotiated Unit Price');
-ALTER TABLE `vibe_construction_v1`.`procurement`.`sourcing_info_record` ALTER COLUMN `unit_price` SET TAGS ('dbx_financial_sensitive' = 'true');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchasing_info_record` SET TAGS ('dbx_data_type' = 'association_data');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchasing_info_record` SET TAGS ('dbx_subdomain' = 'vendor_management');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchasing_info_record` SET TAGS ('dbx_association_edges' = 'procurement.vendor,procurement.material_catalog');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchasing_info_record` ALTER COLUMN `purchasing_info_record_id` SET TAGS ('dbx_business_glossary_term' = 'Purchasing Info Record - Purchasing Info Record Id');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchasing_info_record` ALTER COLUMN `material_catalog_id` SET TAGS ('dbx_business_glossary_term' = 'Purchasing Info Record - Material Catalog Id');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchasing_info_record` ALTER COLUMN `vendor_id` SET TAGS ('dbx_business_glossary_term' = 'Purchasing Info Record - Vendor Id');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchasing_info_record` ALTER COLUMN `currency_code` SET TAGS ('dbx_business_glossary_term' = 'Price Currency Code');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchasing_info_record` ALTER COLUMN `effective_date` SET TAGS ('dbx_business_glossary_term' = 'PIR Effective Date');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchasing_info_record` ALTER COLUMN `expiry_date` SET TAGS ('dbx_business_glossary_term' = 'PIR Expiry Date');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchasing_info_record` ALTER COLUMN `lead_time_days` SET TAGS ('dbx_business_glossary_term' = 'Vendor Lead Time (Days)');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchasing_info_record` ALTER COLUMN `minimum_order_quantity` SET TAGS ('dbx_business_glossary_term' = 'Vendor Minimum Order Quantity');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchasing_info_record` ALTER COLUMN `preferred_vendor_flag` SET TAGS ('dbx_business_glossary_term' = 'Preferred Vendor for Material');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchasing_info_record` ALTER COLUMN `purchasing_info_record_status` SET TAGS ('dbx_business_glossary_term' = 'PIR Status');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchasing_info_record` ALTER COLUMN `unit_price` SET TAGS ('dbx_business_glossary_term' = 'Vendor Unit Price');
+ALTER TABLE `vibe_construction_v1`.`procurement`.`purchasing_info_record` ALTER COLUMN `unit_price` SET TAGS ('dbx_financial' = 'true');
