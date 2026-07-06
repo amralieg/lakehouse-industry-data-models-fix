@@ -1,5 +1,6 @@
 {
   "agent_version": "4.1.8",
+  "release_version": "0.8.0",
   "model_requirements": {
     "business_name": "media_broadcasting",
     "description": "media broadcasting industry enterprise data model.",

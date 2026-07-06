@@ -1,5 +1,6 @@
 {
   "agent_version": "4.2.2",
+  "release_version": "0.8.0",
   "model_requirements": {
     "business_name": "restaurants",
     "description": "restaurants industry enterprise data model.",

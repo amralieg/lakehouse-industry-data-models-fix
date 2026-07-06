@@ -1,5 +1,6 @@
 {
   "agent_version": "4.1.4",
+  "release_version": "0.8.0",
   "model_requirements": {
     "business_name": "health_insurance",
     "description": "health insurance industry enterprise data model.",
