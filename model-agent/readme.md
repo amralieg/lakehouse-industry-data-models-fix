@@ -30,7 +30,9 @@
 
 ## How to run it
 
-Everything runs from one notebook: **`agent/dbx_vibe_modelling_agent.ipynb`**. Import it into a Databricks workspace, attach **Serverless** compute, run all cells to render the widgets, set the widgets, then run again.
+Everything runs from one notebook: **`agent/dbx_vibe_modelling_agent.ipynb`** (under this `model-agent/` folder). Import it into a Databricks workspace, attach **Serverless** compute, and **run all cells top to bottom** (v4.2.8+ notebooks are split into markdown + code cells — intro and widget reference at the top, pipeline code in the middle, widget registration and `main()` near the end). After the first full run, set the widgets, then run again (or submit as a Databricks job with `base_parameters`).
+
+**Maintainers:** the canonical agent repo is [amralieg/vibe-modelling-agent](https://github.com/amralieg/vibe-modelling-agent). To regenerate the multi-cell layout from the monolithic backup, run `python3 scripts/refactor_notebook_layout.py` there (reads `agent/dbx_vibe_modelling_agent.ipynb.bak-layout`). Every generated code cell is syntax-checked before write.
 
 **Prerequisites:** a Unity Catalog you can create schemas in (for physical deployment), and access to the model-serving endpoints the ensemble uses.
 
@@ -45,6 +47,8 @@ Set only these, leave everything else on its default, and run:
 | **03. Operation** | `new base model` |
 | **05. Model Scope** | `Minimum Viable Model - MVM` (lean) or `Expanded Coverage Model - ECM` (full) |
 | **09. Installation Catalog** | a UC catalog you own, e.g. `airlines_mvm_v1` (omit to produce the logical model only, no physical deploy) |
+
+> **Notebook layout (v4.2.8+):** the first markdown cell links to the two [Databricks Vibe Data Modelling blogs](https://www.databricks.com/blog/reimagining-data-modeling-lakehouse-introducing-vibe-data-modeling) and this [40 Lakehouse Industry Data Models](https://github.com/databricks-industry-solutions/lakehouse-industry-data-models) repo. Widget labels in the UI match the table below.
 
 That produces v1: the logical `model.json`, physical schemas/tables/FKs/tags, metric views, sample data, docs, and a `next_vibes.txt`.
 

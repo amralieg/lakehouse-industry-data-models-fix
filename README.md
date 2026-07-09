@@ -295,6 +295,10 @@ Click an industry name to jump to its folder.
 3. Each stage is gated by structural validators (cycle detector, bidirectional-FK detector, dangling-FK detector, fidelity-precision gate) before the next stage starts.
 4. Output is written to a Unity Catalog volume + workspace folder, then published into this repo.
 
+### Build or customise your own model
+
+The same agent that produced these 40 industries ships in **[`model-agent/`](./model-agent/)** — start with [`model-agent/readme.md`](./model-agent/readme.md) (v4.2.8+ multi-cell notebook layout, widget cheat-sheet, vibe-iteration guide). Canonical development continues in [amralieg/vibe-modelling-agent](https://github.com/amralieg/vibe-modelling-agent).
+
 ---
 
 ## Provenance
