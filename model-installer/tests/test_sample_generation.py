@@ -328,6 +328,122 @@ def test_foreign_keys_fan_out_instead_of_collapsing_onto_one_parent(ns, populate
     assert distinct == customer_keys, "some parents are never referenced"
 
 
+def test_a_three_level_chain_resolves_at_every_level(ns):
+    """grandparent <- parent <- child: depth must not degrade into invented keys."""
+    fixture = {"catalog": "demo", "tables": {
+        ("y", "region"): {"columns": [("region_id", "BIGINT", False),
+                                      ("region_name", "STRING", False)],
+                          "pk": ["region_id"], "fks": []},
+        ("y", "store"): {"columns": [("store_id", "BIGINT", False),
+                                     ("region_id", "BIGINT", False)],
+                         "pk": ["store_id"],
+                         "fks": [{"columns": ["region_id"], "parent": ("y", "region"),
+                                  "parent_columns": ["region_id"]}]},
+        ("y", "till"): {"columns": [("till_id", "BIGINT", False),
+                                    ("store_id", "BIGINT", False)],
+                        "pk": ["till_id"],
+                        "fks": [{"columns": ["store_id"], "parent": ("y", "store"),
+                                 "parent_columns": ["store_id"]}]}}}
+    spark = FakeSpark(fixture)
+    ns["generate_sample_data"](spark, sample_config(), ["demo"], lambda m: None)
+    regions = set(r[0] for r in spark.written["demo.y.region"])
+    stores = set(r[0] for r in spark.written["demo.y.store"])
+    assert all(r[1] in regions for r in spark.written["demo.y.store"])
+    assert all(r[1] in stores for r in spark.written["demo.y.till"])
+
+
+def test_two_roles_pointing_at_the_same_parent_both_resolve(ns):
+    """origin and destination are separate draws, not one value copied into both."""
+    fixture = {"catalog": "demo", "tables": {
+        ("g", "location"): {"columns": [("location_id", "BIGINT", False),
+                                        ("city_name", "STRING", False)],
+                            "pk": ["location_id"], "fks": []},
+        ("g", "trip"): {"columns": [("trip_id", "BIGINT", False),
+                                    ("origin_id", "BIGINT", False),
+                                    ("destination_id", "BIGINT", False)],
+                        "pk": ["trip_id"],
+                        "fks": [{"columns": ["origin_id"], "parent": ("g", "location"),
+                                 "parent_columns": ["location_id"]},
+                                {"columns": ["destination_id"], "parent": ("g", "location"),
+                                 "parent_columns": ["location_id"]}]}}}
+    spark = FakeSpark(fixture)
+    ns["generate_sample_data"](spark, sample_config(), ["demo"], lambda m: None)
+    locations = set(r[0] for r in spark.written["demo.g.location"])
+    trips = spark.written["demo.g.trip"]
+    assert all(r[1] in locations and r[2] in locations for r in trips)
+    assert len(set(r[1] for r in trips)) > 1 and len(set(r[2] for r in trips)) > 1
+
+
+def test_a_three_table_foreign_key_cycle_resolves_every_side(ns):
+    """A 2-table cycle can be luck; a 3-table cycle needs the keys-before-references order."""
+    def table(name, points_at):
+        return {"columns": [("%s_id" % name, "BIGINT", False),
+                            ("%s_name" % name, "STRING", False),
+                            ("%s_id" % points_at, "BIGINT", True)],
+                "pk": ["%s_id" % name],
+                "fks": [{"columns": ["%s_id" % points_at], "parent": ("x", points_at),
+                         "parent_columns": ["%s_id" % points_at]}]}
+    fixture = {"catalog": "demo", "tables": {("x", "a"): table("a", "b"),
+                                             ("x", "b"): table("b", "c"),
+                                             ("x", "c"): table("c", "a")}}
+    spark = FakeSpark(fixture)
+    ns["generate_sample_data"](spark, sample_config(), ["demo"], lambda m: None)
+    for child, parent in (("a", "b"), ("b", "c"), ("c", "a")):
+        keys = set(r[0] for r in spark.written["demo.x.%s" % parent])
+        assert all(r[2] in keys for r in spark.written["demo.x.%s" % child]), child
+
+
+def test_a_table_with_no_relationships_still_gets_a_full_unique_block(ns, populated):
+    country = entity_of(populated, "ops", "reference_country")
+    codes = [r["country_code"] for r in country.rows]
+    assert country.fks == [] and len(codes) == 10 == len(set(codes))
+
+
+def test_a_foreign_key_that_cannot_carry_its_parents_type_is_refused_not_orphaned(ns):
+    """Unity Catalog rejects such a key at DDL time, so reaching the gate means the
+    catalog is inconsistent: fail closed rather than write rows that never join."""
+    fixture = {"catalog": "demo", "tables": {
+        ("c", "parent"): {"columns": [("parent_id", "BIGINT", False),
+                                      ("parent_name", "STRING", False)],
+                          "pk": ["parent_id"], "fks": []},
+        ("c", "child"): {"columns": [("child_id", "BIGINT", False),
+                                     ("parent_id", "STRING", True)],
+                         "pk": ["child_id"],
+                         "fks": [{"columns": ["parent_id"], "parent": ("c", "parent"),
+                                  "parent_columns": ["parent_id"]}]}}}
+    spark = FakeSpark(fixture)
+    with pytest.raises(Exception) as err:
+        ns["generate_sample_data"](spark, sample_config(), ["demo"], lambda m: None)
+    assert "no parent key" in str(err.value)
+    assert spark.written == {}
+
+
+@pytest.mark.parametrize("rows", [5, 10, 20, 50, 100])
+def test_every_offered_row_count_keeps_keys_unique_and_every_link_resolved(ns, rows):
+    """The row widget's five choices, each checked end to end on the written rows."""
+    fixture = shop_fixture()
+    spark = FakeSpark(fixture)
+    ns["generate_sample_data"](spark, sample_config(rows=rows), ["demo"], lambda m: None)
+    order = {}
+    for (schema, table), spec in fixture["tables"].items():
+        fqn = "demo.%s.%s" % (schema, table)
+        assert len(spark.written[fqn]) == rows, fqn
+        order[fqn] = [c[0] for c in spec["columns"]]
+        keys = [tuple(r[order[fqn].index(c)] for c in spec["pk"])
+                for r in spark.written[fqn]]
+        assert len(set(keys)) == rows, "%s repeats a key at %d rows" % (fqn, rows)
+    for (schema, table), spec in fixture["tables"].items():
+        child = "demo.%s.%s" % (schema, table)
+        for fk in spec["fks"]:
+            parent = "demo.%s.%s" % fk["parent"]
+            pool = set(tuple(r[order[parent].index(c)] for c in fk["parent_columns"])
+                       for r in spark.written[parent])
+            for row in spark.written[child]:
+                value = tuple(row[order[child].index(c)] for c in fk["columns"])
+                assert all(v is None for v in value) or value in pool, \
+                    "%s %s has no parent in %s at %d rows" % (child, value, parent, rows)
+
+
 # =====================================================================================
 # the integrity gate must actually reject
 # =====================================================================================
