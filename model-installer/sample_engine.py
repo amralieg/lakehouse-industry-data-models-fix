@@ -264,7 +264,7 @@ def _coerce(value, dtype):
     if value is None:
         return None
     if family == "decimal":
-        precision, scale = _decimal_precision(dtype)
+        scale = _decimal_precision(dtype)[1]
         quant = decimal.Decimal(1).scaleb(-scale)
         return decimal.Decimal(str(value)).quantize(quant, rounding=decimal.ROUND_HALF_UP)
     if family == "integer":
