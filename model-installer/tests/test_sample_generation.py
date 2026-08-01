@@ -9,6 +9,7 @@ import json
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -109,6 +110,28 @@ def test_the_installed_keys_and_relationships_are_read_from_the_catalog(ns, spar
     composite = line_event.fks[0]
     assert composite["columns"] == ["order_id", "line_no"]
     assert composite["parent_columns"] == ["order_id", "line_no"]
+
+
+def test_a_cross_schema_foreign_key_is_discovered(ns, spark):
+    """The read must not lose a foreign key whose parent lives in another schema.
+
+    Unity Catalog reports constraint_column_usage.constraint_schema as the REFERENCED
+    table's schema, so a read that correlates it with the foreign key's own schema drops
+    every cross-schema relationship (338 of 506 on the restaurants model) and the
+    generator then invents values for those columns instead of borrowing real keys.
+    """
+    entities = ns["read_installed_model"](spark, ["demo"], None)
+    shipment = entity_of(entities, "ops", "shipment")
+    assert [fk["parent"] for fk in shipment.fks] == ["demo.sales.order"]
+    declared = sum(len(spec.get("fks", [])) for spec in shop_fixture()["tables"].values())
+    assert sum(len(e.fks) for e in entities.values()) == declared
+
+
+def test_the_foreign_key_read_does_not_correlate_constraint_column_usage(ns, spark):
+    ns["read_installed_model"](spark, ["demo"], None)
+    joined = " ".join(" ".join(q.split()) for q in spark.queries)
+    assert "referential_constraints" in joined
+    assert "constraint_column_usage" not in joined
 
 
 def test_views_and_internal_schemas_are_never_populated(ns, spark):
@@ -460,6 +483,43 @@ def test_llm_garbage_is_ignored_rather_than_written(ns):
     assert summary["written"] > 0
 
 
+def test_a_single_llm_failure_does_not_retire_the_endpoint(ns):
+    """One rate-limited table must not cost every other table its realistic values."""
+    spark = FakeSpark(shop_fixture(), ai_error=True)
+    entities = ns["read_installed_model"](spark, ["demo"], None)
+    entity = entity_of(entities, "ops", "shipment")
+    tolerated = ns["SAMPLE_LLM_MAX_ENDPOINT_ERRORS"]
+    broken = ns["_LLM_STATE"]["broken"]
+    ns["_LLM_STATE"]["errors"].pop("flaky", None)
+    broken.discard("flaky")
+    try:
+        for attempt in range(1, tolerated + 1):
+            ns["llm_value_pools"](spark, entity, ["carrier_name"], ["flaky"], 10, None)
+            assert ("flaky" in broken) == (attempt >= tolerated), \
+                "endpoint retired after %d of %d tolerated failures" % (attempt, tolerated)
+    finally:
+        broken.discard("flaky")
+        ns["_LLM_STATE"]["errors"].pop("flaky", None)
+
+
+def test_a_hung_llm_endpoint_does_not_hold_up_the_install(ns):
+    """The realism pass is optional, so its budget bounds it and the rows still land."""
+    spark = FakeSpark(shop_fixture(), ai_response=json.dumps({"carrier_name": ["A"] * 8}),
+                      ai_delay=30.0)
+    original = ns["SAMPLE_LLM_TIMEOUT_S"]
+    ns["SAMPLE_LLM_TIMEOUT_S"] = 1
+    started = time.time()
+    try:
+        summary = ns["generate_sample_data"](
+            spark, sample_config(llm=True, llm_endpoints=["slow"], threads=8),
+            ["demo"], lambda m: None)
+    finally:
+        ns["SAMPLE_LLM_TIMEOUT_S"] = original
+    elapsed = time.time() - started
+    assert elapsed < 20, "the LLM pass did not respect its budget (%.1fs)" % elapsed
+    assert summary["written"] > 0, "deterministic rows must still be written"
+
+
 def test_the_llm_is_never_asked_to_invent_a_key(ns, spark):
     entities = ns["read_installed_model"](spark, ["demo"], None)
     for entity in entities.values():
@@ -625,6 +685,6 @@ def test_the_engine_imports_nothing_from_the_modelling_agent():
     for banned in ("vibe", "VibeOrchestrator", "AIAgent", "ai_agent", "dbx_vibe"):
         assert banned not in source, "sample generation must stand alone (%s)" % banned
     imports = re.findall(r"^(?:from|import)\s+([a-zA-Z_][\w.]*)", source, re.MULTILINE)
-    allowed = {"datetime", "decimal", "json", "random", "re", "threading",
+    allowed = {"datetime", "decimal", "json", "random", "re", "threading", "time",
                "concurrent.futures"}
     assert set(imports) <= allowed, set(imports) - allowed

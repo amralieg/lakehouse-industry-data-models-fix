@@ -6,6 +6,7 @@ so a test can assert on the rows that WOULD land in Unity Catalog.
 """
 import json
 import re
+import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -92,10 +93,12 @@ class FakeSpark(object):
                                                      "parent_columns": [...]}]}}}
     """
 
-    def __init__(self, fixture, ai_response=None, ai_error=False, write_error=()):
+    def __init__(self, fixture, ai_response=None, ai_error=False, write_error=(),
+                 ai_delay=0.0):
         self.fixture = fixture
         self.ai_response = ai_response
         self.ai_error = ai_error
+        self.ai_delay = ai_delay
         self.write_error = set(write_error)
         self.written = {}
         self.queries = []
@@ -117,6 +120,13 @@ class FakeSpark(object):
         return rows
 
     def _fk_rows(self):
+        """One row per (foreign key column, referenced column) pair, ordinals aligned.
+
+        This mirrors referential_constraints joined to key_column_usage on both sides,
+        which is what the engine reads. constraint_column_usage is not modelled because
+        the engine must not use it: in Unity Catalog its constraint_schema is the
+        REFERENCED table's schema, so correlating on it drops cross-schema keys.
+        """
         rows, seq = [], 0
         catalog = self.fixture["catalog"]
         for (schema, table), spec in self.fixture["tables"].items():
@@ -124,10 +134,10 @@ class FakeSpark(object):
                 seq += 1
                 name = "%s_%s_fk%d" % (table, schema, seq)
                 parent_schema, parent_table = fk["parent"]
-                for position, column in enumerate(fk["columns"], start=1):
-                    for parent_column in fk["parent_columns"]:
-                        rows.append((name, schema, table, column, position,
-                                     catalog, parent_schema, parent_table, parent_column))
+                pairs = list(zip(fk["columns"], fk["parent_columns"]))
+                for position, (column, parent_column) in enumerate(pairs, start=1):
+                    rows.append((schema, name, schema, table, column, position,
+                                 catalog, parent_schema, parent_table, parent_column))
         return rows
 
     # -- api -------------------------------------------------------------------
@@ -135,13 +145,19 @@ class FakeSpark(object):
         self.queries.append(query)
         flat = " ".join(query.split())
         if "ai_query" in flat:
+            if self.ai_delay:
+                time.sleep(self.ai_delay)
             if self.ai_error:
                 raise RuntimeError("endpoint unavailable")
             return FakeResult([(self.ai_response or "",)])
         if "information_schema.columns" in flat:
             return FakeResult(self._columns_rows())
-        if "constraint_column_usage" in flat:
+        if "referential_constraints" in flat:
             return FakeResult(self._fk_rows())
+        if "constraint_column_usage" in flat:
+            raise RuntimeError(
+                "constraint_column_usage.constraint_schema is the referenced table's "
+                "schema in Unity Catalog; read foreign keys via referential_constraints")
         if "key_column_usage" in flat:
             return FakeResult(self._pk_rows())
         probe = re.match(r"SELECT \* FROM `([^`]+)`\.`([^`]+)`\.`([^`]+)` LIMIT 0", flat)

@@ -7,15 +7,17 @@ phases just wrote. Nothing here depends on the modelling agent.
 
 Referential integrity holds by construction rather than by repair:
 
-    pass 1  every table's primary-key values are generated first (a key depends on
-            nothing), each table in its own disjoint value block
+    pass 1  every table's primary-key values are generated first, each table in its own
+            disjoint value block. A table whose own key contains a foreign key (an order
+            line keyed by order_id, line_no) borrows that part from its parent, so pass 1
+            visits parents first; ordinary foreign keys impose no order.
     pass 2  every other column is filled; a foreign-key column draws from the pool of
             keys pass 1 already produced for its parent table
     pass 3  the in-memory rows are asserted (unique keys, every foreign key present in
             its parent's key pool, no null in a NOT NULL column) and only then written
 
-Because keys exist before references are filled, a foreign-key cycle between two
-tables is not a special case and no topological ordering is needed.
+Because keys exist before references are filled, an ordinary foreign-key cycle between
+two tables is not a special case.
 
 Values come from a deterministic, seeded, name-and-type aware generator. When an LLM
 endpoint is reachable it is asked once per table for domain-realistic pools for the
@@ -28,13 +30,15 @@ import json
 import random
 import re
 import threading
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed, wait
 
 SAMPLE_ROW_CHOICES = ["5", "10", "20", "50", "100"]
 SAMPLE_INTERNAL_SCHEMAS = ("information_schema", "_metrics", "_install", "_metamodel", "default")
 SAMPLE_SEED = 20260801
 SAMPLE_MAX_LLM_COLUMNS = 12
-SAMPLE_LLM_TIMEOUT_S = 90
+SAMPLE_LLM_TIMEOUT_S = 90        # per-table budget for the optional realism pass
+SAMPLE_LLM_MAX_ENDPOINT_ERRORS = 3   # transient failures tolerated before giving up
 
 
 # --------------------------------------------------------------------------------------
@@ -142,38 +146,42 @@ def _sample_read_catalog(spark, catalog, entities):
         if ent is not None and column not in ent.pk:
             ent.pk.append(column)
 
-    # key_column_usage gives the referencing columns, constraint_column_usage the
-    # referenced ones; both are ordered within the constraint, so zipping them by
-    # ordinal reconstructs a composite foreign key correctly.
+    # referential_constraints maps a foreign key to the parent's UNIQUE/PRIMARY KEY
+    # constraint, and key_column_usage lists the ordered columns of either side, so
+    # matching on ordinal_position pairs child column to parent column.
+    #
+    # constraint_column_usage is deliberately NOT used: its constraint_schema is the
+    # REFERENCED table's schema, not the schema owning the foreign key, so correlating
+    # the two silently loses every cross-schema foreign key (338 of 506 on the
+    # restaurants model, which then wrote unresolvable references).
     fk_rows = _rows_of(spark.sql("""
-        SELECT tc.constraint_name, k.table_schema, k.table_name, k.column_name,
-               k.ordinal_position, u.table_catalog, u.table_schema, u.table_name,
-               u.column_name
-        FROM `%s`.information_schema.table_constraints tc
-        JOIN `%s`.information_schema.key_column_usage k
-          ON tc.constraint_schema = k.constraint_schema
-         AND tc.constraint_name = k.constraint_name
-        JOIN `%s`.information_schema.constraint_column_usage u
-          ON tc.constraint_schema = u.constraint_schema
-         AND tc.constraint_name = u.constraint_name
-        WHERE tc.constraint_type = 'FOREIGN KEY'
-        ORDER BY tc.constraint_name, k.ordinal_position
+        SELECT rc.constraint_schema, rc.constraint_name,
+               ck.table_schema, ck.table_name, ck.column_name, ck.ordinal_position,
+               pk.table_catalog, pk.table_schema, pk.table_name, pk.column_name
+        FROM `%s`.information_schema.referential_constraints rc
+        JOIN `%s`.information_schema.key_column_usage ck
+          ON ck.constraint_catalog = rc.constraint_catalog
+         AND ck.constraint_schema = rc.constraint_schema
+         AND ck.constraint_name = rc.constraint_name
+        JOIN `%s`.information_schema.key_column_usage pk
+          ON pk.constraint_catalog = rc.unique_constraint_catalog
+         AND pk.constraint_schema = rc.unique_constraint_schema
+         AND pk.constraint_name = rc.unique_constraint_name
+         AND pk.ordinal_position = ck.ordinal_position
+        ORDER BY rc.constraint_schema, rc.constraint_name, ck.ordinal_position
     """ % (catalog, catalog, catalog)))
     grouped = {}
-    for (cname, schema, table, column, _pos,
+    for (cschema, cname, schema, table, column, _pos,
          pcat, pschema, ptable, pcolumn) in fk_rows:
-        gkey = (schema, table, cname)
-        slot = grouped.setdefault(gkey, {"columns": [], "parent_columns": [],
-                                         "parent": "%s.%s.%s" % (pcat, pschema, ptable)})
-        # constraint_column_usage repeats the parent row per referencing column, so a
-        # 1-column FK can arrive several times; keep first-seen order, drop repeats.
-        if column not in slot["columns"]:
-            slot["columns"].append(column)
-        if pcolumn not in slot["parent_columns"]:
-            slot["parent_columns"].append(pcolumn)
-    for (schema, table, _cname), slot in grouped.items():
+        slot = grouped.setdefault(
+            (cschema, cname), {"columns": [], "parent_columns": [], "child": (schema, table),
+                               "parent": "%s.%s.%s" % (pcat, pschema, ptable)})
+        slot["columns"].append(column)
+        slot["parent_columns"].append(pcolumn)
+    for slot in grouped.values():
+        schema, table = slot.pop("child")
         ent = entities.get("%s.%s.%s" % (catalog, schema, table))
-        if ent is not None and len(slot["columns"]) == len(slot["parent_columns"]):
+        if ent is not None:
             ent.fks.append(slot)
 
 
@@ -806,7 +814,7 @@ def generate_value(column_name, dtype, rnd, row_index, pools=None):
 # optional LLM realism pass
 # --------------------------------------------------------------------------------------
 
-_LLM_STATE = {"broken": set(), "lock": threading.Lock()}
+_LLM_STATE = {"broken": set(), "errors": {}, "lock": threading.Lock()}
 _LLM_JSON_RE = re.compile(r"\{.*\}", re.DOTALL)
 
 
@@ -861,11 +869,19 @@ def llm_value_pools(spark, entity, columns, endpoints, rows, log=None):
             if pools:
                 return pools
         except Exception as err:
+            # One table's call can fail on a transient rate limit while the endpoint is
+            # perfectly healthy, so retire it only after repeated failures. Retiring on
+            # the first error costs every remaining table its realistic values.
             with _LLM_STATE["lock"]:
-                _LLM_STATE["broken"].add(endpoint)
-            if log:
-                log("  sample: LLM endpoint %s unavailable (%s) - deterministic values"
-                    % (endpoint, str(err).split("\n")[0][:120]))
+                count = _LLM_STATE["errors"].get(endpoint, 0) + 1
+                _LLM_STATE["errors"][endpoint] = count
+                retired = count >= SAMPLE_LLM_MAX_ENDPOINT_ERRORS
+                if retired:
+                    _LLM_STATE["broken"].add(endpoint)
+            if log and retired:
+                log("  sample: LLM endpoint %s retired after %d failures (%s) - "
+                    "deterministic values"
+                    % (endpoint, count, str(err).split("\n")[0][:120]))
     return {}
 
 
@@ -1018,6 +1034,58 @@ def write_entity(spark, entity):
     return len(ordered)
 
 
+def _llm_pools_for_model(spark, cfg, populate, rows, log):
+    """Realistic value pools per table, bounded in time and reported as it goes.
+
+    The pass is optional realism on top of a complete deterministic generator, so it is
+    never allowed to decide how long an install takes: whatever has not answered inside
+    the budget keeps its deterministic values. Progress is logged per wave, because a
+    silent phase is indistinguishable from a hung one.
+    """
+    threads = max(1, cfg["threads"])
+    pools_by_table = {}
+
+    def _pools(entity):
+        return entity.fqn, llm_value_pools(
+            spark, entity, _llm_candidate_columns(entity),
+            cfg["llm_endpoints"], rows, log)
+
+    started = time.time()
+    waves = -(-len(populate) // threads)
+    budget = SAMPLE_LLM_TIMEOUT_S * waves
+    pool_exec = ThreadPoolExecutor(max_workers=threads)
+    try:
+        pending = set(pool_exec.submit(_pools, e) for e in populate.values())
+        answered, logged = 0, 0
+        while pending:
+            remaining = budget - (time.time() - started)
+            if remaining <= 0:
+                break
+            done, pending = wait(pending, timeout=min(30.0, remaining))
+            for future in done:
+                answered += 1
+                try:
+                    fqn, pools = future.result()
+                except Exception:
+                    continue
+                if pools:
+                    pools_by_table[fqn] = pools
+            if done and answered - logged >= threads:
+                logged = answered
+                log("  sample: LLM pools %d/%d table(s)  %.0fs"
+                    % (answered, len(populate), time.time() - started))
+        if pending:
+            log("  sample: LLM pass hit its %ds budget with %d table(s) outstanding - "
+                "those keep deterministic values" % (budget, len(pending)))
+    finally:
+        # Do not block the install on calls that are still in flight: they can only add
+        # realism to tables that already have complete deterministic values.
+        pool_exec.shutdown(wait=False, cancel_futures=True)
+    log("  sample: LLM value pools for %d/%d table(s) in %.0fs"
+        % (len(pools_by_table), len(populate), time.time() - started))
+    return pools_by_table
+
+
 # --------------------------------------------------------------------------------------
 # entry point
 # --------------------------------------------------------------------------------------
@@ -1038,21 +1106,7 @@ def generate_sample_data(spark, cfg, catalogs, log):
 
     pools_by_table = {}
     if cfg.get("llm") and cfg.get("llm_endpoints"):
-        def _pools(entity):
-            return entity.fqn, llm_value_pools(
-                spark, entity, _llm_candidate_columns(entity),
-                cfg["llm_endpoints"], rows, log)
-        with ThreadPoolExecutor(max_workers=cfg["threads"]) as pool_exec:
-            futures = [pool_exec.submit(_pools, e) for e in populate.values()]
-            for future in as_completed(futures):
-                try:
-                    fqn, pools = future.result()
-                except Exception:
-                    continue
-                if pools:
-                    pools_by_table[fqn] = pools
-        log("  sample: LLM value pools for %d/%d table(s)"
-            % (len(pools_by_table), len(populate)))
+        pools_by_table = _llm_pools_for_model(spark, cfg, populate, rows, log)
 
     for entity in populate.values():
         generate_rows(entity, populate, rows, seed, pools_by_table.get(entity.fqn))
