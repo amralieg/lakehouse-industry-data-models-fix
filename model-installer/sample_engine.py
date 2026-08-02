@@ -575,6 +575,110 @@ def key_generation_order(entities):
     return ordered
 
 
+def _strongly_connected(nodes, parents):
+    """Groups of tables that reach each other through foreign keys, Tarjan, iterative.
+
+    Iterative because a wide model can nest deeper than the interpreter's recursion limit.
+    """
+    index, low, on_stack, stack, order = {}, {}, set(), [], []
+    groups, counter = [], [0]
+    for root in nodes:
+        if root in index:
+            continue
+        work = [(root, iter(sorted(parents[root])))]
+        index[root] = low[root] = counter[0]
+        counter[0] += 1
+        stack.append(root)
+        on_stack.add(root)
+        while work:
+            node, children = work[-1]
+            advanced = False
+            for child in children:
+                if child not in index:
+                    index[child] = low[child] = counter[0]
+                    counter[0] += 1
+                    stack.append(child)
+                    on_stack.add(child)
+                    work.append((child, iter(sorted(parents[child]))))
+                    advanced = True
+                    break
+                if child in on_stack:
+                    low[node] = min(low[node], index[child])
+            if advanced:
+                continue
+            work.pop()
+            if work:
+                low[work[-1][0]] = min(low[work[-1][0]], low[node])
+            if low[node] == index[node]:
+                group = []
+                while True:
+                    member = stack.pop()
+                    on_stack.discard(member)
+                    group.append(member)
+                    if member == node:
+                        break
+                groups.append(frozenset(group))
+    del order
+    return groups
+
+
+def _downstream_of(entities, roots):
+    """Every table that reaches `roots` through foreign keys, plus the roots themselves.
+
+    A table whose parent never got rows must not be written, and neither must ITS
+    children, so the closure has to be transitive rather than one level deep.
+    """
+    children = {}
+    for fqn, entity in entities.items():
+        for fk in entity.fks:
+            if fk["parent"] in entities and fk["parent"] != fqn:
+                children.setdefault(fk["parent"], set()).add(fqn)
+    reached, queue = set(roots), list(roots)
+    while queue:
+        for child in children.get(queue.pop(), ()):
+            if child not in reached:
+                reached.add(child)
+                queue.append(child)
+    return reached
+
+
+def write_order(entities):
+    """Waves of tables to write, parents before children, over EVERY foreign key.
+
+    Key generation only needs identifying keys ordered, but WRITING needs all of them:
+    if a child lands and its parent's insert then fails, the child's references point at
+    rows that will never exist. Writing parents first means an aborted pass leaves later
+    tables empty, and an empty child cannot be an orphan.
+
+    Tables inside a foreign-key cycle cannot be layered against each other, so they share
+    one wave. Condensing each cycle to a single node first keeps that concession to the
+    cycle itself: everything downstream of a cycle still gets its own later wave.
+    """
+    parents = {}
+    for fqn, entity in entities.items():
+        parents[fqn] = set(fk["parent"] for fk in entity.fks
+                           if fk["parent"] in entities and fk["parent"] != fqn)
+
+    groups = _strongly_connected(sorted(entities), parents)
+    group_of = dict((member, i) for i, g in enumerate(groups) for member in g)
+    group_deps = {}
+    for i, group in enumerate(groups):
+        group_deps[i] = set(group_of[p] for member in group for p in parents[member]
+                            if group_of[p] != i)
+
+    waves, placed = [], set()
+    remaining = set(range(len(groups)))
+    while remaining:
+        ready = sorted(i for i in remaining if group_deps[i] <= placed)
+        if not ready:                       # unreachable: the condensation is acyclic
+            ready = sorted(remaining)
+        wave = sorted(member for i in ready for member in groups[i])
+        waves.append(wave)
+        placed.update(ready)
+        remaining.difference_update(ready)
+    return waves
+
+
 def _borrowed_key_columns(entity, entities):
     """{pk column: (parent entity, position in the parent key)} for identifying keys."""
     borrowed = {}
@@ -1121,7 +1225,7 @@ def generate_sample_data(spark, cfg, catalogs, log):
                         % "; ".join(problems[:5]))
     log("  sample: integrity check passed (unique keys, every foreign key resolves)")
 
-    written, failures = [0], []
+    written, failures, done = [0], [], set()
     lock = threading.Lock()
 
     def _write(entity):
@@ -1129,19 +1233,54 @@ def generate_sample_data(spark, cfg, catalogs, log):
             count = write_entity(spark, entity)
             with lock:
                 written[0] += count
+                done.add(entity.fqn)
         except Exception as err:
             with lock:
                 failures.append((entity.fqn, str(err).split("\n")[0][:200]))
 
-    with ThreadPoolExecutor(max_workers=cfg["threads"]) as writer:
-        list(as_completed([writer.submit(_write, e) for e in populate.values()]))
+    waves = write_order(populate)
+    blocked = set()
+    for depth, wave in enumerate(waves):
+        due = [f for f in wave if f not in blocked]
+        if due:
+            with ThreadPoolExecutor(max_workers=cfg["threads"]) as writer:
+                list(as_completed([writer.submit(_write, populate[f]) for f in due]))
+        retry = [fqn for fqn, _ in failures if fqn in due]
+        if retry:
+            # The live coffee_roastery run lost one table to a transient write; one retry
+            # costs a second and saves the whole downstream subtree from being skipped.
+            log("  sample: retrying %d table(s) that failed to write in wave %d/%d"
+                % (len(retry), depth + 1, len(waves)))
+            failures[:] = [f for f in failures if f[0] not in retry]
+            with ThreadPoolExecutor(max_workers=cfg["threads"]) as writer:
+                list(as_completed([writer.submit(_write, populate[f]) for f in retry]))
+        still_failed = set(fqn for fqn, _ in failures)
+        if still_failed:
+            blocked = _downstream_of(populate, still_failed)
+            log("  sample: %d table(s) failed - skipping %d table(s) that reference them "
+                "so nothing points at a row that was never written"
+                % (len(still_failed), len(blocked - still_failed - done)))
 
     if failures:
         log("  sample: %d table(s) failed to write" % len(failures))
         for fqn, err in failures[:20]:
             log("      - %s -> %s" % (fqn, err))
+        # Only a foreign-key cycle can put a child in the same wave as a failed parent,
+        # so name any such table instead of letting the orphans go unreported.
+        missing = set(populate) - done
+        for fqn in sorted(done):
+            broken = sorted(fk["parent"] for fk in populate[fqn].fks
+                            if fk["parent"] in missing and fk["parent"] != fqn)
+            if broken:
+                log("      ! %s was written but references unwritten %s"
+                    % (fqn, ", ".join(broken)))
+    failures[:] = sorted(set(failures))
     log("SAMPLE DATA: wrote %d row(s) into %d table(s)%s"
-        % (written[0], len(populate) - len(failures),
-           " (%d failed)" % len(failures) if failures else ""))
+        % (written[0], len(done),
+           " (%d failed, %d skipped)"
+           % (len(failures), len(populate) - len(done) - len(failures))
+           if failures else ""))
     return {"tables": len(populate), "rows": rows, "written": written[0],
-            "failed": [f[0] for f in failures], "problems": []}
+            "failed": [f[0] for f in failures],
+            "skipped": sorted(set(populate) - done - set(f[0] for f in failures)),
+            "problems": []}

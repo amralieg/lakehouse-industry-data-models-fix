@@ -17,7 +17,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from installer_harness import (  # noqa: E402
     ENGINE, FakeSpark, cell_source, find_cell, load_engine, notebook_cells,
-    sample_config, shop_fixture)
+    run_main_cell, sample_config, shop_fixture)
 
 HERE = Path(__file__).resolve().parent
 
@@ -686,63 +686,7 @@ def test_an_empty_catalog_is_reported_rather_than_crashing(ns):
 # =====================================================================================
 
 def _run_main(sample_cfg, failures, calls):
-    """Exec the installer's main cell with stubs and run main() once."""
-    source = find_cell("def main()")
-    assert source.rstrip().endswith("main()")
-    body = source.rstrip()[:-len("main()")]
-
-    class _Exit(Exception):
-        pass
-
-    def notebook_exit(value):
-        calls["exit"] = value
-        raise _Exit()
-
-    import time as _time
-    import datetime as _datetime
-    import os as _os
-    namespace = {
-        "__name__": "installer_main_cell",
-        "time": _time, "datetime": _datetime, "os": _os, "json": json,
-        "log": lambda m: calls.setdefault("log", []).append(m),
-        "INDUSTRIES": ["airlines"],
-        "INSTALLER_TAG_PREFIX": "t_",
-        "_wget": lambda k, d="": {"model": "airlines"}.get(k, d),
-        "_running_as_job": lambda: True,
-        "resolve_config": lambda: {
-            "industry": "airlines", "model_size": "mvm", "catalog": "demo",
-            "cataloging_style": "One Catalog", "catalog_prefix": "", "catalog_suffix": "",
-            "threads": 8, "batch_size": 20, "include_metrics": False, "mode": "REPO",
-            "session_id": "1", "local_install": "", "resolved_version": "v1",
-            "target_catalogs": ["demo"], "sample": sample_cfg},
-        "build_plan": lambda cfg: {"table": ["CREATE TABLE t"]},
-        "install": lambda cfg, plan: (failures, 12.0, {"table": 12.0}),
-        "generate_sample_data": lambda spark, cfg, catalogs, log: (
-            calls.setdefault("samples", []).append((cfg, catalogs))
-            or {"written": 42, "tables": 7, "failed": []}),
-        "setup_log_sink": lambda cfg: None,
-        "teardown_log_sink": lambda: None,
-        "_flush_log_durable": lambda: None,
-        "write_failures_manifest": lambda cfg, final: None,
-        "_SINK": {"path": "/tmp/log"},
-        "spark": None,
-        "dbutils": type("D", (), {"notebook": type("N", (), {"exit": staticmethod(notebook_exit)})})(),
-    }
-    exec(compile(body, "<main-cell>", "exec"), namespace)
-    # install / setup_log_sink / write_failures_manifest are defined by the cell itself,
-    # so they can only be stubbed once it has been executed.
-    namespace.update(
-        install=lambda cfg, plan: (failures, 12.0, {"table": 12.0}),
-        setup_log_sink=lambda cfg: None,
-        teardown_log_sink=lambda: None,
-        write_failures_manifest=lambda cfg, final: None,
-        JobLauncher=type("J", (), {
-            "update_job_tags": staticmethod(lambda tags: {"success": True})}))
-    try:
-        namespace["main"]()
-    except _Exit:
-        pass
-    return calls
+    return run_main_cell(sample_cfg, failures, calls)
 
 
 def test_the_installer_does_not_generate_samples_unless_asked():
