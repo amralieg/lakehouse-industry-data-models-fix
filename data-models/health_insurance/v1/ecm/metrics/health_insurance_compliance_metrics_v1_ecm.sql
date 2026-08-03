@@ -586,7 +586,7 @@ AS $$
       expr: COUNT(CASE WHEN disposition = 'Denied' THEN 1 END)
       comment: "Number of denied privacy requests — potential member satisfaction and compliance review trigger"
     - name: "distinct_members_requesting"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Number of distinct members submitting privacy requests — member engagement with privacy rights"
 $$;
 

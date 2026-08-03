@@ -17,8 +17,8 @@ AS $$
     - name: "period_start_date"
       expr: period_start_date
       comment: "Start date of the cost period"
-    - name: "restaurant_unit_id"
-      expr: restaurant_unit_id
+    - name: "unit_id"
+      expr: unit_id
       comment: "Identifier of the restaurant unit"
     - name: "franchisee_id"
       expr: franchisee_id
@@ -70,8 +70,8 @@ AS $$
     - name: "impacts_cogs"
       expr: impacts_cogs
       comment: "Whether the adjustment impacts COGS"
-    - name: "restaurant_unit_id"
-      expr: restaurant_unit_id
+    - name: "unit_id"
+      expr: unit_id
       comment: "Restaurant unit where adjustment occurred"
     - name: "franchisee_id"
       expr: franchisee_id
@@ -222,8 +222,8 @@ AS $$
     - name: "recipe_id"
       expr: recipe_id
       comment: "Identifier of the recipe"
-    - name: "restaurant_unit_id"
-      expr: restaurant_unit_id
+    - name: "unit_id"
+      expr: unit_id
       comment: "Restaurant unit where preparation occurred"
     - name: "waste_reason_code"
       expr: waste_reason_code

@@ -76,7 +76,7 @@ AS $$
       expr: COUNT(DISTINCT profile_id)
       comment: "Number of unique customers with returns in the period"
     - name: "distinct_locations"
-      expr: COUNT(DISTINCT return_location_id)
+      expr: COUNT(DISTINCT location_id)
       comment: "Number of unique return locations processing RMAs"
     - name: "fraudulent_rma_count"
       expr: SUM(CASE WHEN is_fraudulent = TRUE THEN 1 ELSE 0 END)
@@ -381,7 +381,7 @@ AS $$
       expr: COUNT(DISTINCT profile_id)
       comment: "Number of unique customers involved in fraud cases"
     - name: "distinct_detection_locations"
-      expr: COUNT(DISTINCT detection_location_id)
+      expr: COUNT(DISTINCT location_id)
       comment: "Number of unique locations where fraud was detected"
     - name: "distinct_rmas"
       expr: COUNT(DISTINCT rma_id)
@@ -452,7 +452,7 @@ AS $$
       expr: COUNT(DISTINCT rma_id)
       comment: "Number of unique RMAs associated with restock events"
     - name: "distinct_restock_locations"
-      expr: COUNT(DISTINCT restock_location_id)
+      expr: COUNT(DISTINCT location_id)
       comment: "Number of unique locations receiving restocked inventory"
     - name: "inspection_required_count"
       expr: SUM(CASE WHEN inspection_required = TRUE THEN 1 ELSE 0 END)

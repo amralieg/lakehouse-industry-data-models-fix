@@ -215,7 +215,7 @@ AS $$
       expr: AVG(CAST(total_stops AS BIGINT))
       comment: "Average number of stops per route"
     - name: "distinct_delivery_associates"
-      expr: COUNT(DISTINCT primary_delivery_associate_id)
+      expr: COUNT(DISTINCT associate_id)
       comment: "Number of unique delivery associates executing routes"
     - name: "distinct_fulfillment_nodes_routing"
       expr: COUNT(DISTINCT fulfillment_node_id)
@@ -274,7 +274,7 @@ AS $$
       expr: COUNT(DISTINCT location_id)
       comment: "Number of unique store locations handling BOPIS pickups"
     - name: "distinct_pickup_associates"
-      expr: COUNT(DISTINCT pickup_associate_id)
+      expr: COUNT(DISTINCT associate_id)
       comment: "Number of unique associates handling BOPIS pickups"
 $$;
 
@@ -404,7 +404,7 @@ AS $$
       expr: AVG(CAST(quantity_picked AS DOUBLE))
       comment: "Average quantity picked per task"
     - name: "distinct_pickers"
-      expr: COUNT(DISTINCT assigned_associate_id)
+      expr: COUNT(DISTINCT associate_id)
       comment: "Number of unique associates performing pick tasks"
     - name: "distinct_fulfillment_nodes_picking"
       expr: COUNT(DISTINCT fulfillment_node_id)

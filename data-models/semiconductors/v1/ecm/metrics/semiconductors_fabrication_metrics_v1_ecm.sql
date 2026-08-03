@@ -15,8 +15,8 @@ AS $$
       expr: fab_type
       comment: "Type of fab (e.g., front-end, back-end)."
     - name: "fab_status"
-      expr: status
-      comment: "Operational status of the fab."
+      expr: compliance_status
+      comment: "Operational compliance_status of the fab."
     - name: "fab_month"
       expr: DATE_TRUNC('month', created_timestamp)
       comment: "Month of record creation."
@@ -113,9 +113,9 @@ AS $$
     - name: "process_technology"
       expr: process_technology
       comment: "Process technology associated with the group."
-    - name: "status"
-      expr: status
-      comment: "Current status of the equipment group."
+    - name: "equipment_group_status"
+      expr: equipment_group_status
+      comment: "Current equipment_group_status of the equipment group."
     - name: "equipment_group_month"
       expr: DATE_TRUNC('month', created_timestamp)
       comment: "Month of record creation."

@@ -132,7 +132,7 @@ AS $$
       expr: AVG(CAST(risk_score_confidence_score AS DOUBLE))
       comment: "Average confidence score of risk predictions — measures model reliability"
     - name: "scored_member_count"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Count of distinct members with risk scores — population coverage of scoring program"
     - name: "manual_override_count"
       expr: SUM(CASE WHEN is_manual_override = TRUE THEN 1 ELSE 0 END)
@@ -265,7 +265,7 @@ AS $$
       expr: COUNT(1)
       comment: "Count of risk adjustment payment transactions — volume indicator for reconciliation workload"
     - name: "distinct_member_count"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Count of distinct members receiving risk adjustment payments — population coverage of RA program"
 $$;
 
@@ -418,7 +418,7 @@ AS $$
       expr: COUNT(1)
       comment: "Count of reinsurance claims — frequency of large loss events"
     - name: "distinct_member_count"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Count of distinct members with reinsurance claims — identifies high-cost member concentration"
 $$;
 
@@ -651,7 +651,7 @@ AS $$
       expr: SUM(CASE WHEN audit_error_flag = TRUE THEN 1 ELSE 0 END)
       comment: "Count of audits with errors found — coding accuracy failure rate indicator"
     - name: "distinct_member_audited"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Count of distinct members audited — sample size and exposure breadth"
 $$;
 

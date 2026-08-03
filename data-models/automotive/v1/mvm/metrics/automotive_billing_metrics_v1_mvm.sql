@@ -147,7 +147,7 @@ AS $$
       expr: COUNT(DISTINCT CASE WHEN return_date IS NOT NULL THEN payment_id END)
       comment: "Number of returned payments - credit risk and process quality metric"
     - name: "unique_payer_count"
-      expr: COUNT(DISTINCT payment_party_id)
+      expr: COUNT(DISTINCT party_id)
       comment: "Number of unique parties making payments"
 $$;
 
@@ -325,7 +325,7 @@ AS $$
       expr: COUNT(DISTINCT CASE WHEN floorplan_financing_flag = TRUE THEN dealer_statement_id END)
       comment: "Number of statements with floorplan financing"
     - name: "unique_dealer_count"
-      expr: COUNT(DISTINCT dealer_account_id)
+      expr: COUNT(DISTINCT account_id)
       comment: "Number of unique dealers with statements"
 $$;
 
@@ -399,7 +399,7 @@ AS $$
       expr: COUNT(DISTINCT CASE WHEN is_retroactive = TRUE THEN rebate_agreement_id END)
       comment: "Number of retroactive rebate agreements"
     - name: "unique_beneficiary_count"
-      expr: COUNT(DISTINCT beneficiary_account_id)
+      expr: COUNT(DISTINCT account_id)
       comment: "Number of unique beneficiaries with rebate agreements"
 $$;
 

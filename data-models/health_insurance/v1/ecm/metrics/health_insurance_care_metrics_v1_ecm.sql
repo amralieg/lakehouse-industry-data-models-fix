@@ -58,7 +58,7 @@ AS $$
       expr: AVG(CAST(DATEDIFF(actual_resolution_date, open_date) AS DOUBLE))
       comment: "Average number of days from gap identification to resolution, measuring operational efficiency of gap closure workflows."
     - name: "distinct_members_with_gaps"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Distinct count of members with at least one care gap, measuring population reach of quality gaps."
     - name: "avg_measure_target_value"
       expr: AVG(CAST(measure_target_value AS DOUBLE))
@@ -114,7 +114,7 @@ AS $$
       expr: AVG(CAST(measure_score AS DOUBLE))
       comment: "Average measure score across evaluated members, indicating overall quality performance level."
     - name: "distinct_members_evaluated"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct members evaluated for HEDIS measures, representing quality measurement population reach."
     - name: "distinct_providers_evaluated"
       expr: COUNT(DISTINCT provider_id)
@@ -167,7 +167,7 @@ AS $$
       expr: SUM(CASE WHEN enrollment_status = 'disenrolled' THEN 1 ELSE 0 END)
       comment: "Count of disenrolled members for retention and program effectiveness analysis."
     - name: "distinct_enrolled_members"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Distinct members enrolled in care management programs, measuring population penetration."
     - name: "avg_risk_score"
       expr: AVG(CAST(risk_score AS DOUBLE))
@@ -223,7 +223,7 @@ AS $$
       expr: AVG(CAST(risk_score AS DOUBLE))
       comment: "Average risk score across care plans indicating population complexity and resource requirements."
     - name: "distinct_members_with_plans"
-      expr: COUNT(DISTINCT care_member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Distinct members with care plans, measuring care management population coverage."
     - name: "distinct_coordinators_assigned"
       expr: COUNT(DISTINCT coordinator_id)
@@ -409,7 +409,7 @@ AS $$
       expr: AVG(CAST(DATEDIFF(resolution_date, CAST(identification_timestamp AS DATE)) AS DOUBLE))
       comment: "Average days from barrier identification to resolution, measuring intervention turnaround time."
     - name: "distinct_members_with_barriers"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Distinct members with identified barriers for population-level barrier prevalence analysis."
     - name: "hcc_impacting_barriers"
       expr: SUM(CASE WHEN hcc_impact = TRUE THEN 1 ELSE 0 END)
@@ -468,7 +468,7 @@ AS $$
       expr: AVG(CAST(readmission_risk_score AS DOUBLE))
       comment: "Average readmission risk score across transitions for population risk stratification."
     - name: "distinct_members_transitioned"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct members undergoing care transitions for population-level transition volume analysis."
     - name: "care_gap_flagged_transitions"
       expr: SUM(CASE WHEN care_gap_flag = TRUE THEN 1 ELSE 0 END)
@@ -530,7 +530,7 @@ AS $$
       expr: AVG(CAST(hcc_score AS DOUBLE))
       comment: "Average HCC score of SNF patients indicating population complexity and expected cost."
     - name: "distinct_members_in_snf"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct members with SNF stays for population-level post-acute utilization analysis."
     - name: "care_gap_flagged_stays"
       expr: SUM(CASE WHEN care_gap_flag = TRUE THEN 1 ELSE 0 END)
@@ -595,7 +595,7 @@ AS $$
       expr: SUM(CASE WHEN sdoh_financial_strain = TRUE THEN 1 ELSE 0 END)
       comment: "Count of members identified with financial strain through HRA screening."
     - name: "distinct_members_assessed"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct members who received HRA screening for population coverage measurement."
 $$;
 
@@ -686,7 +686,7 @@ AS $$
       expr: SUM(CASE WHEN follow_up_required = TRUE THEN 1 ELSE 0 END)
       comment: "Count of outreach attempts requiring follow-up for workload planning."
     - name: "distinct_members_contacted"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct members contacted through outreach for population engagement measurement."
     - name: "automated_outreach_count"
       expr: SUM(CASE WHEN is_automated = TRUE THEN 1 ELSE 0 END)
@@ -748,7 +748,7 @@ AS $$
       expr: AVG(CAST(raf_score AS DOUBLE))
       comment: "Average RAF score across conditions indicating risk adjustment revenue opportunity."
     - name: "distinct_members_with_conditions"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct members with registered conditions for population prevalence measurement."
     - name: "confirmed_conditions"
       expr: SUM(CASE WHEN confirmation_status = 'confirmed' THEN 1 ELSE 0 END)
@@ -804,7 +804,7 @@ AS $$
       expr: AVG(CAST(risk_adjustment_factor AS DOUBLE))
       comment: "Average risk adjustment factor from SDOH assessments for cost prediction refinement."
     - name: "distinct_members_screened"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct members screened for SDOH factors measuring population screening coverage."
 $$;
 

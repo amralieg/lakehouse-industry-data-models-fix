@@ -396,7 +396,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total number of item 86 events. Primary availability reliability KPI; high event counts signal systemic supply or operational failures."
     - name: "distinct_items_86d"
-      expr: COUNT(DISTINCT primary_menu_item_id)
+      expr: COUNT(DISTINCT menu_item_id)
       comment: "Count of distinct menu items that experienced at least one 86 event. Measures breadth of menu availability risk across the portfolio."
     - name: "distinct_units_with_86_events"
       expr: COUNT(DISTINCT unit_id)

@@ -17,8 +17,8 @@ AS $$
     - name: "cost_code_id"
       expr: cost_code_id
       comment: "Cost code classification for the issued material — enables breakdown by work type or trade discipline."
-    - name: "material_master_id"
-      expr: material_master_id
+    - name: "master_id"
+      expr: master_id
       comment: "Material item issued — allows analysis of consumption patterns by material type."
     - name: "goods_issue_status"
       expr: goods_issue_status
@@ -97,8 +97,8 @@ AS $$
     - name: "cost_code_id"
       expr: cost_code_id
       comment: "Cost code for the requisitioned material — enables breakdown by work package or trade."
-    - name: "material_master_id"
-      expr: material_master_id
+    - name: "master_id"
+      expr: master_id
       comment: "Material item being requisitioned — identifies high-demand materials and potential supply risks."
     - name: "requisition_status"
       expr: requisition_status
@@ -174,8 +174,8 @@ AS $$
     - name: "construction_project_id"
       expr: construction_project_id
       comment: "Project to which the MTO line belongs — primary dimension for project-level material planning analysis."
-    - name: "material_master_id"
-      expr: material_master_id
+    - name: "master_id"
+      expr: master_id
       comment: "Material item defined in the MTO — identifies specific engineered material requirements."
     - name: "mto_status"
       expr: mto_status
@@ -248,8 +248,8 @@ AS $$
     - name: "warehouse_id"
       expr: warehouse_id
       comment: "Warehouse holding the stock — primary dimension for location-level inventory analysis."
-    - name: "material_master_id"
-      expr: material_master_id
+    - name: "master_id"
+      expr: master_id
       comment: "Material item in stock — enables item-level inventory position analysis."
     - name: "stock_level_status"
       expr: stock_level_status
@@ -316,8 +316,8 @@ AS $$
     - name: "construction_project_id"
       expr: construction_project_id
       comment: "Project receiving the material — primary dimension for project-level supply chain analysis."
-    - name: "material_master_id"
-      expr: material_master_id
+    - name: "master_id"
+      expr: master_id
       comment: "Material item received — enables item-level delivery performance tracking."
     - name: "goods_receipt_type"
       expr: goods_receipt_type
@@ -393,8 +393,8 @@ AS $$
     - name: "construction_project_id"
       expr: construction_project_id
       comment: "Project generating the wastage — primary dimension for project-level waste performance analysis."
-    - name: "material_master_id"
-      expr: material_master_id
+    - name: "master_id"
+      expr: master_id
       comment: "Material item wasted — identifies high-waste materials for targeted reduction programmes."
     - name: "waste_type"
       expr: waste_type
@@ -473,14 +473,14 @@ AS $$
     - name: "construction_project_id"
       expr: construction_project_id
       comment: "Project associated with the stock transfer — primary dimension for project-level logistics analysis."
-    - name: "material_master_id"
-      expr: material_master_id
+    - name: "master_id"
+      expr: master_id
       comment: "Material item being transferred — identifies high-movement materials and reallocation patterns."
     - name: "source_warehouse_id"
       expr: source_warehouse_id
       comment: "Warehouse from which material is being transferred — identifies high-outflow storage locations."
-    - name: "destination_warehouse_id"
-      expr: destination_warehouse_id
+    - name: "warehouse_id"
+      expr: warehouse_id
       comment: "Warehouse receiving the transferred material — identifies high-demand storage locations."
     - name: "stock_transfer_status"
       expr: stock_transfer_status
@@ -532,8 +532,8 @@ AS $$
     - name: "boq_id"
       expr: boq_id
       comment: "Bill of Quantities document — primary grouping for contract-level material scope analysis."
-    - name: "material_master_id"
-      expr: material_master_id
+    - name: "master_id"
+      expr: master_id
       comment: "Material item in the BOQ line — enables item-level contract value analysis."
     - name: "material_boq_line_status"
       expr: material_boq_line_status

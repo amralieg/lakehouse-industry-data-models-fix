@@ -233,7 +233,7 @@ AS $$
       expr: SUM(CASE WHEN dispute_flag = TRUE THEN total_charge_amount ELSE 0 END)
       comment: "Total gross charge amount currently under dispute. Measures at-risk revenue requiring resolution to protect cash flow."
     - name: "distinct_liable_parties"
-      expr: COUNT(DISTINCT liable_party_port_community_participant_id)
+      expr: COUNT(DISTINCT port_community_participant_id)
       comment: "Number of distinct parties liable for demurrage/detention charges. Measures customer exposure concentration and collection risk."
 $$;
 

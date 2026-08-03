@@ -302,7 +302,7 @@ AS $$
       expr: COUNT(DISTINCT property_id)
       comment: "Number of distinct properties receiving inquiries"
     - name: "distinct_channels"
-      expr: COUNT(DISTINCT distribution_channel_id)
+      expr: COUNT(DISTINCT channel_id)
       comment: "Number of distinct channels generating inquiries"
 $$;
 
@@ -501,7 +501,7 @@ AS $$
       expr: SUM(CASE WHEN invoice_status = 'overdue' THEN 1 ELSE 0 END)
       comment: "Count of overdue invoices"
     - name: "distinct_clients"
-      expr: COUNT(DISTINCT client_account_id)
+      expr: COUNT(DISTINCT account_id)
       comment: "Number of distinct client accounts invoiced"
     - name: "distinct_properties"
       expr: COUNT(DISTINCT property_id)

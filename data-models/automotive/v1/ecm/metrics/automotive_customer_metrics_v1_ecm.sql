@@ -125,9 +125,9 @@ AS $$
     - name: "promotion_type"
       expr: promotion_type
       comment: "Type of promotion (e.g., discount, rebate)."
-    - name: "status"
-      expr: status
-      comment: "Current status of the promotion."
+    - name: "promotion_status"
+      expr: promotion_status
+      comment: "Current promotion_status of the promotion."
     - name: "channel"
       expr: channel
       comment: "Marketing channel used for the promotion."

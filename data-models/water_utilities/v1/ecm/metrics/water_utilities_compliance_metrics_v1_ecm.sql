@@ -149,8 +149,8 @@ AS $$
     - name: "turbidity_compliance_status"
       expr: turbidity_compliance_status
       comment: "Turbidity compliance status"
-    - name: "wtp_facility_id"
-      expr: wtp_facility_id
+    - name: "facility_id"
+      expr: facility_id
       comment: "Water treatment plant facility identifier"
   measures:
     - name: "avg_total_water_produced_mgd"

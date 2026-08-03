@@ -55,8 +55,8 @@ AS $$
   comment: "Key performance indicators for EV charging operations"
   source: "`automotive_ecm`.`mobility`.`ev_charging_session`"
   dimensions:
-    - name: "charger_id"
-      expr: charger_id
+    - name: "ev_charger_id"
+      expr: ev_charger_id
       comment: "Identifier of the EV charger used"
     - name: "station_city"
       expr: station_city

@@ -639,7 +639,7 @@ AS $$
     - name: "Customs Bond Number"
       expr: customs_bond_number
     - name: "Description"
-      expr: description
+      expr: resource_description
     - name: "Home Port Code"
       expr: home_port_code
     - name: "Insurance Policy Number"

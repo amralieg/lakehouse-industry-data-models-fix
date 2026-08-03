@@ -61,10 +61,10 @@ AS $$
       expr: AVG(CAST(crane_productivity_target_moves_per_hour AS DOUBLE))
       comment: "Average crane productivity target in moves per hour for operational efficiency"
     - name: "distinct_customers"
-      expr: COUNT(DISTINCT primary_rate_port_community_participant_id)
+      expr: COUNT(DISTINCT port_community_participant_id)
       comment: "Number of unique customers with active rate cards"
     - name: "distinct_shipping_lines"
-      expr: COUNT(DISTINCT masterdata_shipping_line_id)
+      expr: COUNT(DISTINCT shipping_line_id)
       comment: "Number of unique shipping lines with negotiated rate cards"
 $$;
 
@@ -141,7 +141,7 @@ AS $$
       expr: COUNT(DISTINCT port_community_participant_id)
       comment: "Number of unique customers in negotiations"
     - name: "distinct_shipping_lines"
-      expr: COUNT(DISTINCT masterdata_shipping_line_id)
+      expr: COUNT(DISTINCT shipping_line_id)
       comment: "Number of unique shipping lines in negotiations"
 $$;
 
@@ -280,7 +280,7 @@ AS $$
       expr: COUNT(DISTINCT warehouse_id)
       comment: "Number of unique warehouses with storage tariffs"
     - name: "distinct_container_types"
-      expr: COUNT(DISTINCT masterdata_container_type_id)
+      expr: COUNT(DISTINCT container_type_id)
       comment: "Number of unique container types with differentiated storage pricing"
 $$;
 
@@ -339,7 +339,7 @@ AS $$
       expr: AVG(CAST(maximum_demurrage_cap AS DOUBLE))
       comment: "Average maximum demurrage cap limiting customer exposure"
     - name: "distinct_container_types"
-      expr: COUNT(DISTINCT masterdata_container_type_id)
+      expr: COUNT(DISTINCT container_type_id)
       comment: "Number of unique container types with differentiated demurrage rates"
     - name: "distinct_terminal_zones"
       expr: COUNT(DISTINCT terminal_zone_id)
@@ -413,7 +413,7 @@ AS $$
       expr: COUNT(DISTINCT rate_card_id)
       comment: "Number of unique rate cards with exceptions"
     - name: "distinct_vessel_calls"
-      expr: COUNT(DISTINCT vessel_call_id)
+      expr: COUNT(DISTINCT call_id)
       comment: "Number of unique vessel calls with tariff exceptions"
 $$;
 

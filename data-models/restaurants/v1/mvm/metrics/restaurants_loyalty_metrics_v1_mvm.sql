@@ -200,7 +200,7 @@ AS $$
       expr: SUM(CASE WHEN transaction_type = 'Earn' THEN CAST(order_total_amount AS DOUBLE) ELSE 0 END)
       comment: "Total order value on earn-type transactions only. Isolates the revenue base directly attributable to points-earning behavior, used for loyalty-driven revenue attribution."
     - name: "unique_members_with_transactions"
-      expr: COUNT(DISTINCT loyalty_member_id)
+      expr: COUNT(DISTINCT member_id)
       comment: "Count of distinct members with at least one points ledger entry in the period. Measures the active transacting member base — a key denominator for per-member economics."
 $$;
 
@@ -365,7 +365,7 @@ AS $$
       expr: AVG(CAST(personalization_score AS DOUBLE))
       comment: "Average personalization relevance score assigned to offer-member pairings. Tracks the quality of the personalization engine — higher scores should correlate with higher redemption rates."
     - name: "unique_members_assigned"
-      expr: COUNT(DISTINCT loyalty_member_id)
+      expr: COUNT(DISTINCT member_id)
       comment: "Count of distinct members who received at least one offer assignment in the period. Measures the breadth of offer campaign reach across the member base."
 $$;
 
@@ -433,7 +433,7 @@ AS $$
       expr: SUM(CAST(qualifying_spend_amount AS DOUBLE))
       comment: "Total qualifying spend across all tier change events. Measures the aggregate revenue contribution associated with tier qualification activity — links tier program investment to revenue outcomes."
     - name: "unique_members_with_tier_changes"
-      expr: COUNT(DISTINCT loyalty_member_id)
+      expr: COUNT(DISTINCT member_id)
       comment: "Count of distinct members who experienced a tier change in the period. Measures the breadth of tier movement activity across the member base."
 $$;
 

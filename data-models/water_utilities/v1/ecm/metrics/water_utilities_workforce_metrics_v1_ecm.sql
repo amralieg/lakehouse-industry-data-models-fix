@@ -125,8 +125,8 @@ AS $$
     - name: "reviewer_employee_id"
       expr: reviewer_employee_id
       comment: "Employee who performed the review"
-    - name: "primary_performance_employee_id"
-      expr: primary_performance_employee_id
+    - name: "employee_id"
+      expr: employee_id
       comment: "Employee being reviewed"
     - name: "review_status"
       expr: review_status

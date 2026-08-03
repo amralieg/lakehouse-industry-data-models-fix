@@ -48,8 +48,8 @@ AS $$
     - name: "is_lto"
       expr: is_lto
       comment: "Flag indicating whether the order included a limited-time offer item, used to measure LTO-driven traffic lift."
-    - name: "loyalty_member_id"
-      expr: loyalty_member_id
+    - name: "member_id"
+      expr: member_id
       comment: "Loyalty program member identifier to segment orders by loyalty vs. non-loyalty guests."
     - name: "promotion_id"
       expr: promotion_id
@@ -86,10 +86,10 @@ AS $$
       expr: ROUND(100.0 * SUM(CAST(discount_amount AS DOUBLE)) / NULLIF(SUM(CAST(subtotal_amount AS DOUBLE)), 0), 2)
       comment: "Discount as a percentage of subtotal revenue. Measures promotional intensity and margin erosion risk."
     - name: "loyalty_order_count"
-      expr: COUNT(CASE WHEN loyalty_member_id IS NOT NULL THEN 1 END)
+      expr: COUNT(CASE WHEN member_id IS NOT NULL THEN 1 END)
       comment: "Number of orders placed by loyalty program members. Tracks loyalty program engagement and penetration."
     - name: "loyalty_order_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN loyalty_member_id IS NOT NULL THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      expr: ROUND(100.0 * COUNT(CASE WHEN member_id IS NOT NULL THEN 1 END) / NULLIF(COUNT(1), 0), 2)
       comment: "Percentage of orders placed by loyalty members. Key loyalty program health KPI for marketing leadership."
     - name: "lto_order_count"
       expr: COUNT(CASE WHEN is_lto = True THEN 1 END)
@@ -104,10 +104,10 @@ AS $$
       expr: ROUND(100.0 * COUNT(CASE WHEN order_status = 'cancelled' THEN 1 END) / NULLIF(COUNT(1), 0), 2)
       comment: "Percentage of orders that were cancelled. Operational quality KPI — high rates signal fulfillment or demand-forecasting problems."
     - name: "unique_guests"
-      expr: COUNT(DISTINCT primary_guest_profile_id)
+      expr: COUNT(DISTINCT profile_id)
       comment: "Count of distinct guest profiles placing orders. Measures customer reach and repeat-visit frequency when trended."
     - name: "unique_loyalty_members"
-      expr: COUNT(DISTINCT loyalty_member_id)
+      expr: COUNT(DISTINCT member_id)
       comment: "Count of distinct loyalty members placing orders in the period. Tracks active loyalty base size."
 $$;
 
@@ -450,7 +450,7 @@ AS $$
       expr: COUNT(CASE WHEN csat_impact_flag = True THEN 1 END)
       comment: "Number of refunds with a CSAT impact flag. Links operational failures to guest satisfaction outcomes."
     - name: "unique_guests_refunded"
-      expr: COUNT(DISTINCT refund_guest_profile_id)
+      expr: COUNT(DISTINCT profile_id)
       comment: "Count of distinct guests who received a refund. Tracks breadth of guest experience failures in the period."
 $$;
 
@@ -623,7 +623,7 @@ AS $$
       expr: ROUND(100.0 * SUM(CAST(total_amount AS DOUBLE)) / NULLIF(SUM(CAST(quoted_price AS DOUBLE)), 0), 2)
       comment: "Ratio of actual revenue collected to total quoted price. Measures catering sales conversion and pricing accuracy."
     - name: "unique_catering_guests"
-      expr: COUNT(DISTINCT primary_catering_guest_profile_id)
+      expr: COUNT(DISTINCT profile_id)
       comment: "Count of distinct catering guests. Measures catering customer reach and repeat catering business."
 $$;
 

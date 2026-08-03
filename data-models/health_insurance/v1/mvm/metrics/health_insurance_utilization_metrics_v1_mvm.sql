@@ -43,7 +43,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total number of prior authorization requests submitted"
     - name: "unique_members_requesting_pa"
-      expr: COUNT(DISTINCT primary_pa_member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Distinct count of members who submitted prior authorization requests"
     - name: "total_estimated_gross_amount"
       expr: SUM(CAST(estimated_gross_amount AS DOUBLE))
@@ -114,7 +114,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total number of prior authorization decisions rendered"
     - name: "unique_members_with_decisions"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct count of members who received authorization decisions"
     - name: "approval_rate"
       expr: ROUND(100.0 * SUM(CASE WHEN decision_status = 'approved' THEN 1 ELSE 0 END) / NULLIF(COUNT(1), 0), 2)
@@ -185,7 +185,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total number of authorized service lines"
     - name: "unique_members_authorized"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct count of members with authorized service lines"
     - name: "total_authorized_quantity"
       expr: SUM(CAST(authorized_quantity AS DOUBLE))
@@ -259,7 +259,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total number of inpatient admissions, core utilization volume metric"
     - name: "unique_members_admitted"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Distinct count of members with inpatient admissions"
     - name: "total_actual_cost"
       expr: SUM(CAST(actual_cost_amount AS DOUBLE))
@@ -342,7 +342,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total number of utilization management cases, core UM workload metric"
     - name: "unique_members_with_um_cases"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct count of members with utilization management cases"
     - name: "avg_turnaround_time_days"
       expr: AVG(CAST(turnaround_time_days AS DOUBLE))
@@ -407,7 +407,7 @@ AS $$
       expr: COUNT(DISTINCT inpatient_admission_id)
       comment: "Distinct count of inpatient admissions undergoing concurrent review"
     - name: "unique_members_reviewed"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Distinct count of members with concurrent reviews"
     - name: "avg_current_los"
       expr: AVG(CAST(current_length_of_stay AS DOUBLE))
@@ -466,10 +466,10 @@ AS $$
       expr: COUNT(1)
       comment: "Total number of retrospective reviews performed"
     - name: "unique_members_reviewed"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct count of members with retrospective reviews"
     - name: "unique_claims_reviewed"
-      expr: COUNT(DISTINCT claim_header_id)
+      expr: COUNT(DISTINCT header_id)
       comment: "Distinct count of claims undergoing retrospective review"
     - name: "total_adjusted_amount"
       expr: SUM(CAST(adjusted_amount AS DOUBLE))

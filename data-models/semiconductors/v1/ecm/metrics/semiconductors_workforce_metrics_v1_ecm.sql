@@ -201,8 +201,8 @@ AS $$
     - name: "shift_schedule_status"
       expr: shift_schedule_status
       comment: "Current status of the shift schedule"
-    - name: "primary_shift_employee_id"
-      expr: primary_shift_employee_id
+    - name: "employee_id"
+      expr: employee_id
       comment: "Employee assigned as primary for the shift"
   measures:
     - name: "total_shifts"

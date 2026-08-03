@@ -70,7 +70,7 @@ AS $$
       expr: AVG(CAST(days_lost AS DOUBLE))
       comment: "Average days lost per incident (severity indicator)"
     - name: "unique_injured_workers"
-      expr: COUNT(DISTINCT primary_ohs_injured_party_employee_id)
+      expr: COUNT(DISTINCT employee_id)
       comment: "Number of unique workers injured in OHS incidents"
 $$;
 

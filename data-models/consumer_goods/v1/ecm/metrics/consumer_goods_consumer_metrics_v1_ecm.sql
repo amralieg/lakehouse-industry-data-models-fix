@@ -84,11 +84,11 @@ AS $$
     - name: "transaction_month"
       expr: DATE_TRUNC('month', transaction_timestamp)
       comment: "Month of the loyalty transaction"
-    - name: "program_id"
-      expr: program_id
+    - name: "loyalty_program_id"
+      expr: loyalty_program_id
       comment: "Loyalty program identifier"
-    - name: "tier_id"
-      expr: tier_id
+    - name: "loyalty_tier_id"
+      expr: loyalty_tier_id
       comment: "Loyalty tier at time of transaction"
     - name: "transaction_type"
       expr: transaction_type

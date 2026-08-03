@@ -43,8 +43,8 @@ AS $$
   comment: "Transaction-level points ledger metrics linking spend and points activity"
   source: "`restaurants_ecm`.`loyalty`.`points_ledger`"
   dimensions:
-    - name: "loyalty_member_id"
-      expr: loyalty_member_id
+    - name: "member_id"
+      expr: member_id
       comment: "Member associated with the points transaction"
     - name: "transaction_type"
       expr: transaction_type
@@ -110,8 +110,8 @@ AS $$
     - name: "challenge_id"
       expr: challenge_id
       comment: "Challenge identifier"
-    - name: "loyalty_member_id"
-      expr: loyalty_member_id
+    - name: "member_id"
+      expr: member_id
       comment: "Member enrolled in the challenge"
     - name: "enrollment_channel"
       expr: enrollment_channel

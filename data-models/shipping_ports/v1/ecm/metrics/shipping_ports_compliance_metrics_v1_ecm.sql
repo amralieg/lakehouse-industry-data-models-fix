@@ -337,7 +337,7 @@ AS $$
       expr: COUNT(DISTINCT employee_id)
       comment: "Number of unique employees screened"
     - name: "unique_vessel_calls"
-      expr: COUNT(DISTINCT vessel_call_id)
+      expr: COUNT(DISTINCT call_id)
       comment: "Number of unique vessel calls screened"
 $$;
 
@@ -589,6 +589,6 @@ AS $$
       expr: COUNT(DISTINCT terminal_zone_id)
       comment: "Number of unique terminal zones covered by ISPS records"
     - name: "unique_pfso_employees"
-      expr: COUNT(DISTINCT pfso_employee_id)
+      expr: COUNT(DISTINCT employee_id)
       comment: "Number of unique Port Facility Security Officers"
 $$;

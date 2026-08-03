@@ -685,7 +685,7 @@ AS $$
       expr: COUNT(CASE WHEN approval_status = 'Approved' THEN component_id END)
       comment: "Count of approved components — tracks governance approval pipeline efficiency."
     - name: "distinct_implementing_partners"
-      expr: COUNT(DISTINCT implementing_partner_org_id)
+      expr: COUNT(DISTINCT partner_org_id)
       comment: "Number of distinct implementing partner organizations engaged at component level — measures partner network breadth."
     - name: "avg_component_duration_days"
       expr: AVG(DATEDIFF(end_date, start_date))

@@ -212,7 +212,7 @@ AS $$
       expr: COUNT(CASE WHEN suppression_list_flag = TRUE THEN communication_consent_id END)
       comment: "Number of guest records on the suppression list. Tracks do-not-contact volume — used by Marketing Operations to ensure suppressed guests are excluded from all outbound campaigns."
     - name: "distinct_guests_with_consent"
-      expr: COUNT(DISTINCT guest_profile_id)
+      expr: COUNT(DISTINCT profile_id)
       comment: "Number of distinct guest profiles with at least one active consent record. Measures consent programme coverage of the guest base — used to identify consent gaps."
 $$;
 
@@ -335,7 +335,7 @@ AS $$
       expr: COUNT(CASE WHEN vip_flag = TRUE THEN guest_group_block_id END)
       comment: "Number of group blocks with VIP designation. Tracks high-priority group volume requiring elevated service — used by Guest Relations and Operations for VIP group resource planning."
     - name: "distinct_group_leaders"
-      expr: COUNT(DISTINCT group_leader_profile_id)
+      expr: COUNT(DISTINCT profile_id)
       comment: "Number of distinct group leader profiles across active blocks. Measures the breadth of the group customer base — used by Sales to identify key group accounts for relationship management."
 $$;
 

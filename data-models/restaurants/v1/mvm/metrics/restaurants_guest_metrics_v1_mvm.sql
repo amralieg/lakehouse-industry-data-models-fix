@@ -114,10 +114,10 @@ AS $$
       expr: AVG(CAST(average_transactions_per_month AS DOUBLE))
       comment: "Average number of transactions per month per guest. Measures visit frequency, a core driver of LTV and loyalty program ROI."
     - name: "loyalty_member_guest_count"
-      expr: COUNT(DISTINCT CASE WHEN loyalty_member_flag = TRUE THEN primary_lifetime_guest_profile_id END)
+      expr: COUNT(DISTINCT CASE WHEN loyalty_member_flag = TRUE THEN profile_id END)
       comment: "Number of distinct loyalty member guests in the LTV dataset. Used to measure loyalty program coverage of the high-value guest base."
     - name: "total_guest_ltv_records"
-      expr: COUNT(DISTINCT primary_lifetime_guest_profile_id)
+      expr: COUNT(DISTINCT profile_id)
       comment: "Total number of distinct guests with LTV records. Baseline denominator for LTV coverage and penetration metrics."
 $$;
 
@@ -135,8 +135,8 @@ AS $$
     - name: "digital_account_id"
       expr: digital_account_id
       comment: "Digital account associated with the visit. Used to distinguish digital vs. non-digital guest visits."
-    - name: "loyalty_member_id"
-      expr: loyalty_member_id
+    - name: "member_id"
+      expr: member_id
       comment: "Loyalty member associated with the visit. Used to measure loyalty-driven visit volume."
     - name: "shift_id"
       expr: shift_id
@@ -149,7 +149,7 @@ AS $$
       expr: COUNT(DISTINCT profile_id)
       comment: "Number of distinct guests who visited. Measures reach and breadth of guest engagement, distinct from raw visit volume."
     - name: "loyalty_visits"
-      expr: COUNT(DISTINCT CASE WHEN loyalty_member_id IS NOT NULL THEN visit_id END)
+      expr: COUNT(DISTINCT CASE WHEN member_id IS NOT NULL THEN visit_id END)
       comment: "Number of visits attributed to loyalty program members. Measures loyalty program's contribution to total traffic."
     - name: "digital_visits"
       expr: COUNT(DISTINCT CASE WHEN digital_account_id IS NOT NULL THEN visit_id END)
@@ -158,7 +158,7 @@ AS $$
       expr: COUNT(DISTINCT CASE WHEN guest_order_id IS NOT NULL THEN visit_id END)
       comment: "Number of visits that resulted in a recorded order. Measures visit-to-transaction conversion at the unit level."
     - name: "loyalty_visit_rate"
-      expr: COUNT(DISTINCT CASE WHEN loyalty_member_id IS NOT NULL THEN visit_id END)
+      expr: COUNT(DISTINCT CASE WHEN member_id IS NOT NULL THEN visit_id END)
       comment: "Raw count of loyalty visits used as numerator for loyalty visit penetration analysis. Pair with total_visits for rate calculation in BI."
 $$;
 
@@ -217,7 +217,7 @@ AS $$
       expr: COUNT(DISTINCT CASE WHEN nps_score IN ('0', '1', '2', '3', '4', '5', '6') THEN satisfaction_survey_id END)
       comment: "Number of survey responses with NPS scores of 0–6 (detractors). Used to calculate NPS detractor share and identify at-risk guest relationships."
     - name: "unique_guests_surveyed"
-      expr: COUNT(DISTINCT primary_satisfaction_guest_profile_id)
+      expr: COUNT(DISTINCT profile_id)
       comment: "Number of distinct guests who received a satisfaction survey. Measures survey program coverage relative to the total guest base."
     - name: "surveys_linked_to_orders"
       expr: COUNT(DISTINCT CASE WHEN guest_order_id IS NOT NULL THEN satisfaction_survey_id END)
@@ -276,7 +276,7 @@ AS $$
       expr: AVG(CAST(resolution_amount AS DOUBLE))
       comment: "Average resolution cost per complaint. Benchmarks the cost of service recovery and informs resolution policy decisions."
     - name: "unique_guests_complained"
-      expr: COUNT(DISTINCT complaint_guest_profile_id)
+      expr: COUNT(DISTINCT profile_id)
       comment: "Number of distinct guests who filed at least one complaint. Used to measure complaint incidence rate relative to the active guest base."
     - name: "high_severity_complaints"
       expr: COUNT(DISTINCT CASE WHEN severity_level IN ('high', 'critical') THEN complaint_id END)
@@ -385,13 +385,13 @@ AS $$
       expr: COUNT(DISTINCT CASE WHEN consent_status = 'revoked' THEN consent_record_id END)
       comment: "Number of consent records that have been revoked. Tracks consent withdrawal volume, a key regulatory risk indicator."
     - name: "marketing_consented_guests"
-      expr: COUNT(DISTINCT CASE WHEN marketing_consent = TRUE THEN primary_consent_guest_profile_id END)
+      expr: COUNT(DISTINCT CASE WHEN marketing_consent = TRUE THEN profile_id END)
       comment: "Number of distinct guests with active marketing consent. Defines the compliant addressable audience for marketing campaigns."
     - name: "email_consented_guests"
-      expr: COUNT(DISTINCT CASE WHEN email_consent = TRUE THEN primary_consent_guest_profile_id END)
+      expr: COUNT(DISTINCT CASE WHEN email_consent = TRUE THEN profile_id END)
       comment: "Number of distinct guests with email consent. Measures the email-reachable compliant audience size."
     - name: "third_party_consented_guests"
-      expr: COUNT(DISTINCT CASE WHEN third_party_consent = TRUE THEN primary_consent_guest_profile_id END)
+      expr: COUNT(DISTINCT CASE WHEN third_party_consent = TRUE THEN profile_id END)
       comment: "Number of distinct guests who have consented to third-party data sharing. Critical for partnership and data monetization compliance."
     - name: "expiring_consents_90d"
       expr: COUNT(DISTINCT CASE WHEN consent_expiry_date <= DATE_ADD(CURRENT_DATE(), 90) AND consent_status = 'active' THEN consent_record_id END)
@@ -450,21 +450,21 @@ AS $$
       expr: COUNT(DISTINCT preference_id)
       comment: "Total number of distinct guest preference records. Baseline measure for preference data coverage across the guest base."
     - name: "guests_with_dietary_preferences"
-      expr: COUNT(DISTINCT CASE WHEN is_vegan = TRUE OR is_vegetarian = TRUE OR is_halal = TRUE OR is_kosher = TRUE THEN preference_guest_profile_id END)
+      expr: COUNT(DISTINCT CASE WHEN is_vegan = TRUE OR is_vegetarian = TRUE OR is_halal = TRUE OR is_kosher = TRUE THEN profile_id END)
       comment: "Number of distinct guests with at least one dietary preference recorded. Measures the size of the dietary-preference guest segment requiring menu personalization."
     - name: "guests_with_allergen_flags"
-      expr: COUNT(DISTINCT CASE WHEN has_nut_allergy = TRUE OR has_dairy_allergy = TRUE OR has_gluten_allergy = TRUE THEN preference_guest_profile_id END)
+      expr: COUNT(DISTINCT CASE WHEN has_nut_allergy = TRUE OR has_dairy_allergy = TRUE OR has_gluten_allergy = TRUE THEN profile_id END)
       comment: "Number of distinct guests with at least one allergen flag. Critical safety KPI for measuring the at-risk guest population requiring allergen-safe menu options."
     - name: "marketing_opted_in_guests"
-      expr: COUNT(DISTINCT CASE WHEN marketing_opt_in = TRUE THEN preference_guest_profile_id END)
+      expr: COUNT(DISTINCT CASE WHEN marketing_opt_in = TRUE THEN profile_id END)
       comment: "Number of distinct guests who have opted into marketing via their preference record. Measures the preference-layer marketing reachable audience."
     - name: "active_preference_records"
       expr: COUNT(DISTINCT CASE WHEN is_active = TRUE THEN preference_id END)
       comment: "Number of currently active preference records. Measures the volume of actionable, current guest preferences available for personalization."
     - name: "vegan_guest_count"
-      expr: COUNT(DISTINCT CASE WHEN is_vegan = TRUE THEN preference_guest_profile_id END)
+      expr: COUNT(DISTINCT CASE WHEN is_vegan = TRUE THEN profile_id END)
       comment: "Number of distinct guests with a vegan dietary preference. Used to size the vegan segment for menu development and targeted marketing investment."
     - name: "halal_guest_count"
-      expr: COUNT(DISTINCT CASE WHEN is_halal = TRUE THEN preference_guest_profile_id END)
+      expr: COUNT(DISTINCT CASE WHEN is_halal = TRUE THEN profile_id END)
       comment: "Number of distinct guests requiring halal food. Used for location-level halal compliance planning and menu certification decisions."
 $$;

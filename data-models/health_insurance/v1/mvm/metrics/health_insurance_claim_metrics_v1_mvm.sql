@@ -76,10 +76,10 @@ AS $$
       expr: ROUND(100.0 * SUM(CAST(paid_amount AS DOUBLE)) / NULLIF(SUM(CAST(allowed_amount AS DOUBLE)), 0), 2)
       comment: "Percentage of allowed amount actually paid, indicating member cost-sharing and payment efficiency"
     - name: "unique_members"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Number of unique members with claims"
     - name: "unique_providers"
-      expr: COUNT(DISTINCT header_rendering_provider_id)
+      expr: COUNT(DISTINCT provider_id)
       comment: "Number of unique rendering providers submitting claims"
     - name: "unique_facilities"
       expr: COUNT(DISTINCT facility_id)
@@ -207,7 +207,7 @@ AS $$
       expr: ROUND(100.0 * SUM(CAST(total_net_amount AS DOUBLE)) / NULLIF(SUM(CAST(allowed_amount AS DOUBLE)), 0), 2)
       comment: "Plan liability as percentage of allowed amount, financial risk metric"
     - name: "unique_members"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Number of unique members with adjudicated claims"
     - name: "unique_providers"
       expr: COUNT(DISTINCT provider_id)
@@ -290,7 +290,7 @@ AS $$
       expr: ROUND(100.0 * SUM(CASE WHEN letter_generated_flag = TRUE THEN 1 ELSE 0 END) / NULLIF(COUNT(1), 0), 2)
       comment: "Percentage of denials with member notification letters generated"
     - name: "unique_members_denied"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Number of unique members with denied claims"
     - name: "unique_providers_denied"
       expr: COUNT(DISTINCT provider_id)
@@ -379,7 +379,7 @@ AS $$
       expr: ROUND(100.0 * SUM(CASE WHEN payment_method = 'EFT' THEN 1 ELSE 0 END) / NULLIF(COUNT(1), 0), 2)
       comment: "Percentage of payments made via EFT, operational efficiency metric"
     - name: "unique_payees"
-      expr: COUNT(DISTINCT payment_party_id)
+      expr: COUNT(DISTINCT party_id)
       comment: "Number of unique payees receiving payments"
     - name: "unique_batches"
       expr: COUNT(DISTINCT batch_number)
@@ -474,7 +474,7 @@ AS $$
       expr: ROUND(100.0 * SUM(CAST(net_adjustment_amount AS DOUBLE)) / NULLIF(SUM(CAST(adjusted_amount AS DOUBLE)), 0), 2)
       comment: "Percentage of adjusted amount successfully recovered, revenue integrity effectiveness"
     - name: "unique_members_adjusted"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Number of unique members with claim adjustments"
     - name: "unique_providers_adjusted"
       expr: COUNT(DISTINCT provider_id)
@@ -545,6 +545,6 @@ AS $$
       expr: ROUND(100.0 * SUM(CAST(accumulated_amount AS DOUBLE)) / NULLIF(SUM(CAST(limit_amount AS DOUBLE)), 0), 2)
       comment: "Percentage of accumulator limit utilized, benefit design effectiveness metric"
     - name: "unique_members"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Number of unique members with accumulator activity"
 $$;

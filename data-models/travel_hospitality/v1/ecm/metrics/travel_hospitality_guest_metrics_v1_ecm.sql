@@ -676,7 +676,7 @@ AS $$
       expr: COUNT(DISTINCT communication_consent_id)
       comment: "Distinct count of consent records"
     - name: "unique_guests_with_consent"
-      expr: COUNT(DISTINCT guest_profile_id)
+      expr: COUNT(DISTINCT profile_id)
       comment: "Distinct count of guests with consent records"
     - name: "active_consent_count"
       expr: COUNT(DISTINCT CASE WHEN consent_status = 'Granted' THEN communication_consent_id END)

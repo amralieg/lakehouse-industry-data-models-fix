@@ -681,9 +681,6 @@ AS $$
   comment: "Payment run metrics tracking payment processing efficiency, success rates, and cash disbursement operations"
   source: "`retail_ecm`.`finance`.`payment_run`"
   dimensions:
-    - name: "status"
-      expr: status
-      comment: "Status of the payment run"
     - name: "run_type"
       expr: run_type
       comment: "Type of payment run (manual, automatic, scheduled)"
@@ -731,10 +728,10 @@ AS $$
       expr: ROUND(100.0 * SUM(CAST(failed_payment_count AS BIGINT)) / NULLIF(SUM(CAST(total_payment_count AS BIGINT)), 0), 2)
       comment: "Percentage of payments that failed"
     - name: "completed_run_count"
-      expr: COUNT(CASE WHEN status = 'completed' THEN 1 END)
+      expr: COUNT(CASE WHEN reconciliation_status = 'completed' THEN 1 END)
       comment: "Number of completed payment runs"
     - name: "completion_rate_pct"
-      expr: ROUND(100.0 * COUNT(CASE WHEN status = 'completed' THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      expr: ROUND(100.0 * COUNT(CASE WHEN reconciliation_status = 'completed' THEN 1 END) / NULLIF(COUNT(1), 0), 2)
       comment: "Percentage of payment runs completed successfully"
     - name: "reconciled_run_count"
       expr: COUNT(CASE WHEN reconciliation_status = 'reconciled' THEN 1 END)

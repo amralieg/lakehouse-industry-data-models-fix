@@ -28,7 +28,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total number of applicant records submitted"
     - name: "total_referred"
-      expr: SUM(CASE WHEN referral_employee_id IS NOT NULL THEN 1 ELSE 0 END)
+      expr: SUM(CASE WHEN employee_id IS NOT NULL THEN 1 ELSE 0 END)
       comment: "Number of applicants who were referred by an existing employee"
     - name: "avg_years_experience"
       expr: AVG(CAST(years_of_experience AS DOUBLE))

@@ -21,9 +21,6 @@ AS $$
     - name: "total_compliance_records"
       expr: COUNT(1)
       comment: "Total number of compliance records"
-    - name: "compliance_due_soon_count"
-      expr: SUM(CASE WHEN next_compliance_due_date <= DATEADD(day, 30, CURRENT_DATE) THEN 1 ELSE 0 END)
-      comment: "Count of compliance items with due date within next 30 days"
 $$;
 
 CREATE OR REPLACE VIEW `energy_utilities_ecm`.`_metrics`.`asset_risk_assessment`

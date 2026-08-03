@@ -75,9 +75,6 @@ AS $$
     - name: "distinct_kpi_definitions"
       expr: COUNT(DISTINCT kpi_definition_id)
       comment: "Number of unique KPI definitions measured"
-    - name: "distinct_business_entities"
-      expr: COUNT(DISTINCT business_entity_id)
-      comment: "Number of unique business entities measured"
 $$;
 
 CREATE OR REPLACE VIEW `retail_ecm`.`_metrics`.`analytics_alert`
@@ -149,9 +146,6 @@ AS $$
     - name: "distinct_kpi_definitions"
       expr: COUNT(DISTINCT kpi_definition_id)
       comment: "Number of unique KPI definitions that generated alerts"
-    - name: "distinct_business_entities"
-      expr: COUNT(DISTINCT business_entity_id)
-      comment: "Number of unique business entities that triggered alerts"
 $$;
 
 CREATE OR REPLACE VIEW `retail_ecm`.`_metrics`.`analytics_dq_result`
@@ -381,7 +375,7 @@ AS $$
       expr: COUNT(DISTINCT report_definition_id)
       comment: "Number of unique reports with active subscriptions"
     - name: "distinct_subscribers"
-      expr: COUNT(DISTINCT primary_report_associate_id)
+      expr: COUNT(DISTINCT associate_id)
       comment: "Number of unique users with report subscriptions"
 $$;
 

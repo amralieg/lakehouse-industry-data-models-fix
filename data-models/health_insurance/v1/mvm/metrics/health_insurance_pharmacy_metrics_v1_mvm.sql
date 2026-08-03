@@ -67,7 +67,7 @@ AS $$
       expr: SUM(CAST(quantity_dispensed AS DOUBLE))
       comment: "Total quantity of medication units dispensed across all claims"
     - name: "unique_members"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct count of members with pharmacy claims"
     - name: "unique_prescribers"
       expr: COUNT(DISTINCT provider_id)
@@ -233,10 +233,10 @@ AS $$
       expr: AVG(CAST(approved_quantity AS DOUBLE))
       comment: "Average quantity approved per prior authorization"
     - name: "unique_members_with_pa"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Distinct count of members with prior authorization requests"
     - name: "unique_prescribers"
-      expr: COUNT(DISTINCT prescriber_provider_id)
+      expr: COUNT(DISTINCT provider_id)
       comment: "Distinct count of prescribers submitting PA requests"
     - name: "unique_drugs_requiring_pa"
       expr: COUNT(DISTINCT drug_master_id)
@@ -331,10 +331,10 @@ AS $$
       expr: SUM(CAST(quantity_dispensed AS DOUBLE))
       comment: "Total quantity actually dispensed after DUR review"
     - name: "unique_members_with_alerts"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct count of members with DUR alerts"
     - name: "unique_prescribers_with_alerts"
-      expr: COUNT(DISTINCT prescriber_provider_id)
+      expr: COUNT(DISTINCT provider_id)
       comment: "Distinct count of prescribers with DUR alerts on their prescriptions"
     - name: "unique_pharmacies_with_alerts"
       expr: COUNT(DISTINCT dispensing_pharmacy_id)

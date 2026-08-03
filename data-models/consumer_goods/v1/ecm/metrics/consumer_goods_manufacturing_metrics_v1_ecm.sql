@@ -55,9 +55,9 @@ AS $$
     - name: "equipment_type"
       expr: equipment_type
       comment: "Type/category of equipment"
-    - name: "status"
-      expr: status
-      comment: "Current operational status of equipment"
+    - name: "equipment_status"
+      expr: equipment_status
+      comment: "Current operational equipment_status of equipment"
     - name: "manufacturing_facility_id"
       expr: manufacturing_facility_id
       comment: "Facility where equipment is located"

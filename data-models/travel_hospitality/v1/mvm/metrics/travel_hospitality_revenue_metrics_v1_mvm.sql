@@ -17,11 +17,11 @@ AS $$
     - name: "currency_code"
       expr: currency_code
       comment: "Currency in which revenue figures are denominated, critical for multi-currency portfolio reporting."
-    - name: "loyalty_tier_id"
-      expr: loyalty_tier_id
+    - name: "tier_id"
+      expr: tier_id
       comment: "Loyalty tier associated with the performance record, enabling tier-based revenue contribution analysis."
-    - name: "primary_channel_id"
-      expr: primary_channel_id
+    - name: "channel_id"
+      expr: channel_id
       comment: "Distribution channel that drove the booking, used for channel mix and cost-of-acquisition analysis."
     - name: "strategy_id"
       expr: strategy_id
@@ -379,14 +379,14 @@ AS $$
     - name: "stay_date"
       expr: stay_date
       comment: "Stay date for which inventory controls are set, enabling forward-looking inventory management analysis."
-    - name: "primary_inventory_property_id"
-      expr: primary_inventory_property_id
+    - name: "property_id"
+      expr: property_id
       comment: "Property for which inventory controls are applied."
     - name: "room_type_id"
       expr: room_type_id
       comment: "Room type dimension for room-type-level inventory control analysis."
-    - name: "distribution_channel_id"
-      expr: distribution_channel_id
+    - name: "channel_id"
+      expr: channel_id
       comment: "Distribution channel for which the inventory control applies, enabling channel-level sell limit analysis."
     - name: "control_type"
       expr: control_type
@@ -456,8 +456,8 @@ AS $$
     - name: "room_type_id"
       expr: room_type_id
       comment: "Room type dimension for room-type-level rate availability analysis."
-    - name: "distribution_channel_id"
-      expr: distribution_channel_id
+    - name: "channel_id"
+      expr: channel_id
       comment: "Distribution channel for which the rate is available, enabling channel-level rate parity monitoring."
     - name: "revenue_rate_plan_id"
       expr: revenue_rate_plan_id
@@ -702,8 +702,8 @@ AS $$
     - name: "currency_code"
       expr: currency_code
       comment: "Currency of the override rate figures."
-    - name: "distribution_channel_id"
-      expr: distribution_channel_id
+    - name: "channel_id"
+      expr: channel_id
       comment: "Distribution channel affected by the override, used for channel-level override analysis."
   measures:
     - name: "avg_override_rate"

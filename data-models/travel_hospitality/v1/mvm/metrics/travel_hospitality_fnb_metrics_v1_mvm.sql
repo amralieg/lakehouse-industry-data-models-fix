@@ -71,7 +71,7 @@ AS $$
       expr: ROUND(100.0 * SUM(CAST(tip_amount AS DOUBLE)) / NULLIF(SUM(CAST(total_amount AS DOUBLE)), 0), 2)
       comment: "Tips as a percentage of total revenue. Proxy for guest satisfaction and service quality at the outlet level."
     - name: "distinct_loyalty_members"
-      expr: COUNT(DISTINCT loyalty_member_id)
+      expr: COUNT(DISTINCT member_id)
       comment: "Count of unique loyalty members transacting at the outlet. Measures loyalty program engagement in F&B."
 $$;
 

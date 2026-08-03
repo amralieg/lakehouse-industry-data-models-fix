@@ -91,7 +91,7 @@ AS $$
       expr: AVG(CAST(days_supply AS DOUBLE))
       comment: "Average days supply per claim — adherence and fill pattern indicator."
     - name: "unique_members"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct members with pharmacy claims — pharmacy utilization reach."
     - name: "unique_prescribers"
       expr: COUNT(DISTINCT prescriber_npi)
@@ -391,7 +391,7 @@ AS $$
       expr: SUM(CAST(approved_quantity AS DOUBLE))
       comment: "Total approved quantity across all PAs."
     - name: "unique_members"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Distinct members with PA requests — member impact scope."
     - name: "unique_drugs"
       expr: COUNT(DISTINCT drug_ndc)
@@ -480,7 +480,7 @@ AS $$
       expr: SUM(CASE WHEN is_moop_met = TRUE THEN 1 ELSE 0 END)
       comment: "Count of members who have met MOOP — plan bears 100% cost."
     - name: "unique_members"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Distinct members with accumulator records."
     - name: "avg_deductible_applied"
       expr: AVG(CAST(deductible_applied_amt AS DOUBLE))
@@ -560,7 +560,7 @@ AS $$
       expr: SUM(CAST(quantity_requested AS DOUBLE))
       comment: "Total quantity requested across all exceptions."
     - name: "unique_members"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct members requesting formulary exceptions."
     - name: "unique_drugs"
       expr: COUNT(DISTINCT drug_ndc)
@@ -625,7 +625,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total DUR alerts generated — clinical safety intervention volume."
     - name: "unique_members_alerted"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct members with DUR alerts — patient safety reach."
     - name: "pa_triggered_count"
       expr: SUM(CASE WHEN pa_required_flag = TRUE THEN 1 ELSE 0 END)
@@ -829,7 +829,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total MTM services delivered — program activity volume."
     - name: "unique_members_served"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Distinct members receiving MTM services — program reach."
     - name: "cmr_completed_count"
       expr: SUM(CASE WHEN cmr_completion_date IS NOT NULL THEN 1 ELSE 0 END)

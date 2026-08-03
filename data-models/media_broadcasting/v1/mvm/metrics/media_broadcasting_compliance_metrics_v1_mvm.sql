@@ -179,7 +179,7 @@ AS $$
       expr: AVG(CASE WHEN caption_synchronization_compliance = TRUE THEN 100.0 ELSE 0.0 END)
       comment: "Percentage of records with compliant caption synchronization - regulatory requirement"
     - name: "distinct_content_titles"
-      expr: COUNT(DISTINCT content_title_id)
+      expr: COUNT(DISTINCT title_id)
       comment: "Number of unique content titles with caption records"
     - name: "distinct_broadcast_licenses"
       expr: COUNT(DISTINCT broadcast_license_id)
@@ -250,7 +250,7 @@ AS $$
       expr: AVG(CAST(rating_value AS DOUBLE))
       comment: "Average numeric rating value across content portfolio"
     - name: "distinct_content_titles"
-      expr: COUNT(DISTINCT content_title_id)
+      expr: COUNT(DISTINCT title_id)
       comment: "Number of unique content titles with ratings"
     - name: "distinct_rating_systems"
       expr: COUNT(DISTINCT rating_system)

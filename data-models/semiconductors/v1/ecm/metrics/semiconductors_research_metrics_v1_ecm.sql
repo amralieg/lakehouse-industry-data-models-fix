@@ -78,8 +78,8 @@ AS $$
     - name: "research_program_id"
       expr: research_program_id
       comment: "Identifier of the research program sponsoring the IP core"
-    - name: "lead_architect_employee_id"
-      expr: lead_architect_employee_id
+    - name: "employee_id"
+      expr: employee_id
       comment: "Employee ID of the lead architect responsible"
     - name: "ip_category"
       expr: ip_category

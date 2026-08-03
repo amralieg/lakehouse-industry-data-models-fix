@@ -67,10 +67,10 @@ AS $$
       expr: AVG(CAST(allowed_amount AS DOUBLE))
       comment: "Average allowed amount per claim — measures average contracted cost per claim encounter."
     - name: "distinct_members_with_claims"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Count of unique members with claims — measures utilization penetration across the member population."
     - name: "distinct_providers_billed"
-      expr: COUNT(DISTINCT header_claiming_provider_provider_provider_id)
+      expr: COUNT(DISTINCT provider_provider_id)
       comment: "Count of unique billing providers — measures provider network breadth in claims activity."
     - name: "suspended_claim_count"
       expr: SUM(CASE WHEN is_suspended = TRUE THEN 1 ELSE 0 END)
@@ -292,7 +292,7 @@ AS $$
       expr: AVG(CAST(denied_gross_amount AS DOUBLE))
       comment: "Average denied amount per denial — severity metric for denial financial impact."
     - name: "distinct_denied_members"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Count of unique members with denials — measures member impact breadth of denial activity."
 $$;
 
@@ -484,7 +484,7 @@ AS $$
       expr: AVG(CAST(accumulated_amount AS DOUBLE))
       comment: "Average accumulated amount per record — measures typical member progress toward benefit limits."
     - name: "distinct_members_with_accumulators"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Count of unique members with accumulator activity — measures benefit utilization breadth."
 $$;
 
@@ -602,7 +602,7 @@ AS $$
       expr: AVG(CAST(net_recovery_amount AS DOUBLE))
       comment: "Average net recovery per subrogation case — unit economics of recovery program."
     - name: "distinct_members_in_subrogation"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Count of unique members involved in subrogation — measures member impact."
 $$;
 

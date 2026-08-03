@@ -206,8 +206,8 @@ AS $$
   comment: "Dealer statement financial summary metrics"
   source: "`automotive_ecm`.`billing`.`dealer_statement`"
   dimensions:
-    - name: "dealer_account_id"
-      expr: dealer_account_id
+    - name: "account_id"
+      expr: account_id
       comment: "Dealer account linked to the statement"
     - name: "statement_date"
       expr: statement_date

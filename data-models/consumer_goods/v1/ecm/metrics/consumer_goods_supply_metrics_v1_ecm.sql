@@ -14,8 +14,8 @@ AS $$
     - name: "sku_id"
       expr: sku_id
       comment: "Stock Keeping Unit identifier"
-    - name: "supply_network_node_id"
-      expr: supply_network_node_id
+    - name: "network_node_id"
+      expr: network_node_id
       comment: "Supply network node where ATP is calculated"
     - name: "atp_status"
       expr: atp_status
@@ -55,8 +55,8 @@ AS $$
     - name: "sku_id"
       expr: sku_id
       comment: "SKU being planned"
-    - name: "supply_network_node_id"
-      expr: supply_network_node_id
+    - name: "network_node_id"
+      expr: network_node_id
       comment: "Supply node for the plan"
     - name: "version_type"
       expr: version_type
@@ -90,8 +90,8 @@ AS $$
     - name: "sku_id"
       expr: sku_id
       comment: "SKU identifier"
-    - name: "supply_network_node_id"
-      expr: supply_network_node_id
+    - name: "network_node_id"
+      expr: network_node_id
       comment: "Supply node for the projection"
     - name: "projection_type"
       expr: projection_type
@@ -163,8 +163,8 @@ AS $$
     - name: "sku_id"
       expr: sku_id
       comment: "SKU identifier"
-    - name: "supply_network_node_id"
-      expr: supply_network_node_id
+    - name: "network_node_id"
+      expr: network_node_id
       comment: "Supply node for the safety stock"
     - name: "abc_classification"
       expr: abc_classification
@@ -198,8 +198,8 @@ AS $$
     - name: "sku_id"
       expr: sku_id
       comment: "SKU being forecasted"
-    - name: "supply_network_node_id"
-      expr: supply_network_node_id
+    - name: "network_node_id"
+      expr: network_node_id
       comment: "Supply node for the forecast"
     - name: "planning_period_start_date"
       expr: planning_period_start_date

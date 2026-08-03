@@ -450,7 +450,7 @@ AS $$
       expr: COUNT(DISTINCT sku_id)
       comment: "Number of unique SKUs allocated"
     - name: "distinct_fab_tool_count"
-      expr: COUNT(DISTINCT allocated_fab_tool_id)
+      expr: COUNT(DISTINCT fab_tool_id)
       comment: "Number of unique fab tools used in allocations"
     - name: "constrained_allocation_count"
       expr: SUM(CASE WHEN constrained_supply_flag = TRUE THEN 1 ELSE 0 END)
@@ -619,7 +619,7 @@ AS $$
       expr: COUNT(DISTINCT account_id)
       comment: "Number of unique customers with wafer start authorizations"
     - name: "distinct_fab_tool_count"
-      expr: COUNT(DISTINCT primary_fab_tool_id)
+      expr: COUNT(DISTINCT fab_tool_id)
       comment: "Number of unique fab tools authorized for wafer starts"
     - name: "mpw_wsa_count"
       expr: SUM(CASE WHEN is_mpw = TRUE THEN 1 ELSE 0 END)

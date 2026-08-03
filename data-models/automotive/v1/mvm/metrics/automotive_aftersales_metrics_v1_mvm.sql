@@ -91,7 +91,7 @@ AS $$
       expr: ROUND(SUM(CAST(labor_total_cost AS DOUBLE)) / NULLIF(SUM(CAST(labor_total_hours AS DOUBLE)), 0), 2)
       comment: "Effective labor rate realized (total labor revenue divided by total labor hours)"
     - name: "distinct_customers"
-      expr: COUNT(DISTINCT primary_aftersales_customer_party_id)
+      expr: COUNT(DISTINCT party_id)
       comment: "Number of unique customers served across repair orders"
     - name: "distinct_vehicles"
       expr: COUNT(DISTINCT vin_registry_id)
@@ -201,13 +201,13 @@ AS $$
       expr: COUNT(DISTINCT vin_registry_id)
       comment: "Number of unique vehicles with warranty claims"
     - name: "distinct_customers"
-      expr: COUNT(DISTINCT primary_aftersales_customer_party_id)
+      expr: COUNT(DISTINCT party_id)
       comment: "Number of unique customers filing warranty claims"
     - name: "distinct_service_centers"
       expr: COUNT(DISTINCT service_center_id)
       comment: "Number of unique service centers processing warranty claims"
     - name: "distinct_dealers"
-      expr: COUNT(DISTINCT primary_aftersales_dealer_dealership_id)
+      expr: COUNT(DISTINCT dealership_id)
       comment: "Number of unique dealers submitting warranty claims"
 $$;
 
@@ -495,7 +495,7 @@ AS $$
       expr: COUNT(DISTINCT service_center_id)
       comment: "Number of unique service centers placing parts orders"
     - name: "distinct_dealerships"
-      expr: COUNT(DISTINCT primary_aftersales_dealership_id)
+      expr: COUNT(DISTINCT dealership_id)
       comment: "Number of unique dealerships placing parts orders"
     - name: "distinct_repair_orders"
       expr: COUNT(DISTINCT aftersales_repair_order_id)
@@ -581,13 +581,13 @@ AS $$
       expr: ROUND(SUM(CAST(part_cost AS DOUBLE)) / NULLIF(SUM(CAST(labor_cost AS DOUBLE)), 0), 2)
       comment: "Ratio of parts cost to labor cost in goodwill adjustments"
     - name: "distinct_customers"
-      expr: COUNT(DISTINCT primary_goodwill_customer_party_id)
+      expr: COUNT(DISTINCT party_id)
       comment: "Number of unique customers receiving goodwill adjustments"
     - name: "distinct_vehicles"
       expr: COUNT(DISTINCT vin_registry_id)
       comment: "Number of unique vehicles associated with goodwill adjustments"
     - name: "distinct_dealers"
-      expr: COUNT(DISTINCT primary_goodwill_dealer_dealership_id)
+      expr: COUNT(DISTINCT dealership_id)
       comment: "Number of unique dealers processing goodwill adjustments"
     - name: "distinct_repair_orders"
       expr: COUNT(DISTINCT aftersales_repair_order_id)

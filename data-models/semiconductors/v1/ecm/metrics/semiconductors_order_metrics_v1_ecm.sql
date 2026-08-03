@@ -50,7 +50,7 @@ AS $$
   source: "`semiconductors_ecm`.`order`.`order_line`"
   dimensions:
     - name: "order_id"
-      expr: primary_sales_order_id
+      expr: order_id
       comment: "Identifier of the parent order"
     - name: "sku_id"
       expr: sku_id

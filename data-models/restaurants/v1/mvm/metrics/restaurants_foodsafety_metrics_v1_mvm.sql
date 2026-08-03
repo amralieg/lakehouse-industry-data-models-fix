@@ -64,7 +64,7 @@ AS $$
       expr: COUNT(CASE WHEN temperature_monitoring_compliant = False THEN 1 END)
       comment: "Number of audits where temperature monitoring was non-compliant. Directly linked to food safety hazard risk and regulatory exposure."
     - name: "distinct_restaurant_units_audited"
-      expr: COUNT(DISTINCT primary_food_restaurant_unit_id)
+      expr: COUNT(DISTINCT unit_id)
       comment: "Number of distinct restaurant units that received a food safety audit. Measures audit program coverage across the estate."
 $$;
 
@@ -120,7 +120,7 @@ AS $$
       expr: COUNT(DISTINCT facility_id)
       comment: "Number of distinct facilities with at least one audit finding. Measures breadth of compliance issues across the real estate portfolio."
     - name: "distinct_restaurant_units_with_findings"
-      expr: COUNT(DISTINCT primary_audit_restaurant_unit_id)
+      expr: COUNT(DISTINCT unit_id)
       comment: "Number of distinct restaurant units with audit findings. Supports geographic and operational unit-level risk segmentation."
 $$;
 
@@ -256,7 +256,7 @@ AS $$
       expr: COUNT(CASE WHEN follow_up_inspection_required = True THEN 1 END)
       comment: "Number of inspections that triggered a mandatory follow-up. Indicates persistent non-compliance and elevated regulatory scrutiny."
     - name: "distinct_units_inspected"
-      expr: COUNT(DISTINCT primary_health_restaurant_unit_id)
+      expr: COUNT(DISTINCT unit_id)
       comment: "Number of distinct restaurant units that received a health inspection. Measures regulatory inspection coverage across the estate."
 $$;
 
@@ -312,7 +312,7 @@ AS $$
       expr: COUNT(DISTINCT facility_id)
       comment: "Number of distinct facilities with recorded violations. Measures the breadth of regulatory non-compliance across the real estate portfolio."
     - name: "distinct_units_with_violations"
-      expr: COUNT(DISTINCT primary_inspection_restaurant_unit_id)
+      expr: COUNT(DISTINCT unit_id)
       comment: "Number of distinct restaurant units with violations. Supports unit-level risk ranking and targeted compliance intervention."
 $$;
 
@@ -486,7 +486,7 @@ AS $$
       expr: COUNT(CASE WHEN exclusion_decision = True THEN 1 END)
       comment: "Number of illness reports resulting in employee exclusion from work. Measures adherence to food safety exclusion protocols."
     - name: "distinct_units_with_illness_reports"
-      expr: COUNT(DISTINCT primary_illness_restaurant_unit_id)
+      expr: COUNT(DISTINCT unit_id)
       comment: "Number of distinct restaurant units with illness reports. Identifies high-risk units requiring targeted food safety intervention."
     - name: "reports_with_action_plan_completed"
       expr: COUNT(CASE WHEN action_plan_completed_date IS NOT NULL THEN 1 END)
@@ -607,7 +607,7 @@ AS $$
       expr: AVG(CAST(humidity_percent AS DOUBLE))
       comment: "Average humidity level recorded during sanitation tasks. High humidity can accelerate microbial growth; monitoring supports environmental control compliance."
     - name: "distinct_units_with_sanitation_tasks"
-      expr: COUNT(DISTINCT primary_sanitation_restaurant_unit_id)
+      expr: COUNT(DISTINCT unit_id)
       comment: "Number of distinct restaurant units with sanitation task records. Measures sanitation program deployment coverage across the estate."
     - name: "missed_sanitation_tasks_count"
       expr: COUNT(CASE WHEN task_status = 'Missed' OR (scheduled_timestamp < CURRENT_TIMESTAMP() AND completion_timestamp IS NULL) THEN 1 END)

@@ -548,7 +548,7 @@ AS $$
       expr: ROUND(100.0 * COUNT(CASE WHEN registration_status = 'Cancelled' THEN 1 END) / NULLIF(COUNT(1), 0), 2)
       comment: "Percentage of registrations that were cancelled — measures attrition risk and event demand stability."
     - name: "loyalty_linked_attendee_rate"
-      expr: ROUND(100.0 * COUNT(CASE WHEN loyalty_member_id IS NOT NULL THEN 1 END) / NULLIF(COUNT(1), 0), 2)
+      expr: ROUND(100.0 * COUNT(CASE WHEN member_id IS NOT NULL THEN 1 END) / NULLIF(COUNT(1), 0), 2)
       comment: "Percentage of attendees linked to a loyalty member profile — measures loyalty program penetration at events and cross-sell opportunity."
 $$;
 

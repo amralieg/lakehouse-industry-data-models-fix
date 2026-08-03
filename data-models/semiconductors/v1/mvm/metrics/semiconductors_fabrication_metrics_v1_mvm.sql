@@ -325,7 +325,7 @@ AS $$
       expr: SUM(CASE WHEN defect_density_threshold_exceeded = TRUE THEN 1 ELSE 0 END)
       comment: "Number of holds due to defect density threshold excursions"
     - name: "distinct_lots_held"
-      expr: COUNT(DISTINCT primary_fabrication_wafer_lot_id)
+      expr: COUNT(DISTINCT fabrication_wafer_lot_id)
       comment: "Number of distinct wafer lots placed on hold"
     - name: "distinct_facilities"
       expr: COUNT(DISTINCT fab_facility_id)

@@ -483,8 +483,8 @@ AS $$
   comment: "Replenishment order performance metrics covering order fulfilment rates, lead time compliance, cost efficiency, and emergency order frequency. Used by supply chain, merchandising, and procurement leadership to optimise replenishment programmes."
   source: "`retail_ecm`.`inventory`.`replenishment_order`"
   dimensions:
-    - name: "destination_node_inventory_node_id"
-      expr: destination_node_inventory_node_id
+    - name: "inventory_node_id"
+      expr: inventory_node_id
       comment: "Destination inventory node receiving the replenishment — for location-level replenishment performance analysis."
     - name: "sku_id"
       expr: sku_id
@@ -572,8 +572,8 @@ AS $$
   comment: "Inter-node stock transfer performance metrics covering transfer volume, cost efficiency, on-time delivery, and cross-dock utilisation. Used by supply chain and network planning leadership to optimise inventory redistribution."
   source: "`retail_ecm`.`inventory`.`stock_transfer`"
   dimensions:
-    - name: "destination_node_inventory_node_id"
-      expr: destination_node_inventory_node_id
+    - name: "inventory_node_id"
+      expr: inventory_node_id
       comment: "Destination node receiving the transferred stock — for network flow analysis."
     - name: "primary_stock_inventory_node_id"
       expr: primary_stock_inventory_node_id

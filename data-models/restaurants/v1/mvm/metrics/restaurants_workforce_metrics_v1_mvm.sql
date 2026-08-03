@@ -609,7 +609,7 @@ AS $$
       expr: AVG(CAST(assessment_max_score AS DOUBLE))
       comment: "Average maximum possible assessment score. Used as the denominator context for score normalization and pass rate benchmarking."
     - name: "distinct_trained_employees"
-      expr: COUNT(DISTINCT primary_training_employee_id)
+      expr: COUNT(DISTINCT employee_id)
       comment: "Number of distinct employees who have completed at least one training record. Measures training program reach and workforce coverage."
     - name: "non_compliant_training_count"
       expr: COUNT(CASE WHEN compliance_status = 'Non-Compliant' THEN training_completion_id END)

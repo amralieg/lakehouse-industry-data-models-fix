@@ -423,7 +423,7 @@ AS $$
       expr: COUNT(CASE WHEN fulfillment_status = 'Cancelled' THEN 1 END)
       comment: "Number of cancelled amenity fulfillments. Tracks fulfillment failure rate for operational reliability management."
     - name: "distinct_guests_receiving_amenities"
-      expr: COUNT(DISTINCT guest_profile_id)
+      expr: COUNT(DISTINCT profile_id)
       comment: "Number of distinct guests who received amenities. Measures the breadth of amenity program reach."
     - name: "distinct_properties_fulfilling_amenities"
       expr: COUNT(DISTINCT property_id)
@@ -657,7 +657,7 @@ AS $$
       expr: COUNT(CASE WHEN is_complimentary = TRUE THEN 1 END)
       comment: "Number of complimentary special requests. Tracks the volume of no-charge personalization commitments."
     - name: "distinct_guests_with_requests"
-      expr: COUNT(DISTINCT guest_profile_id)
+      expr: COUNT(DISTINCT profile_id)
       comment: "Number of distinct guests submitting special requests. Measures personalization program reach."
 $$;
 

@@ -8,8 +8,8 @@ AS $$
   comment: "Key performance indicators for semiconductor fabs focusing on energy, footprint, and criticality."
   source: "`semiconductors_ecm`.`shared`.`fab`"
   dimensions:
-    - name: "fab_location_id"
-      expr: fab_location_id
+    - name: "location_id"
+      expr: location_id
       comment: "Foreign key to location where the fab resides"
   measures:
     - name: "fab_count"
