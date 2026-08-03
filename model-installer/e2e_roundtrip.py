@@ -76,11 +76,14 @@ def main(argv):
                             catalog, "--profile", profile], text=True)
     audit_ok = audit.returncode == 0
 
-    step("5. rescue the install log, then uninstall")
+    step("5. rescue the install log, then uninstall (widgets only, no local_install)")
     rescue_install_log(profile, result, catalog)
+    # Uninstall is driven from the widgets alone: the install manifest in the target
+    # catalog records exactly what to drop, so local_install must NOT be required here.
+    uninstall_extra = {k: v for k, v in extra.items() if k != "local_install"}
     params = {"operation": "Uninstall", "model": industry, "model_size": "mvm",
               "catalog_name": catalog}
-    params.update(extra)
+    params.update(uninstall_extra)
     state, result = runner.submit_and_wait(profile, notebook, params)
     print(result)
     if state != "SUCCESS":

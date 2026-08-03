@@ -264,7 +264,9 @@ def test_a_local_install_does_not_have_to_name_a_repo_industry():
     # Installing a freshly generated model is the whole point of local_install, and no
     # repo folder describes it yet, so the industry list must not gate it.
     src = find_cell("def resolve_config")
-    assert 'assert industry in INDUSTRIES, "Unknown industry: %s" % industry' in src
+    # On uninstall the industry is a manifest label, so the shipped-model assert now
+    # carries an `or cfg["operation"] == "uninstall"` carve-out; install still asserts.
+    assert 'assert industry in INDUSTRIES or cfg["operation"] == "uninstall"' in src
     guarded = src.split('if cfg["local_install"]:', 1)[1]
     assert "assert industry in INDUSTRIES" in guarded.split("else:", 1)[1]
 
