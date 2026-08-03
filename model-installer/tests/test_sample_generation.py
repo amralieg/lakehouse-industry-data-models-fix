@@ -525,6 +525,23 @@ def test_a_decimal_never_exceeds_its_declared_scale(ns, populated):
                     assert -value.as_tuple().exponent <= scale
 
 
+def test_a_decimal_value_is_clamped_to_its_declared_precision(ns):
+    # An LLM value pool does not pass through numeric_range's type_ceiling clamp, so an
+    # out-of-range magnitude reaches _coerce; unclamped it overflows DECIMAL(p,s) and Spark
+    # rejects the whole write, emptying every table that references it (live repro:
+    # coffee_roastery wholesale.sales_rep failed, 7 FK dependents skipped).
+    coerce = ns["_coerce"]
+    # 1234567.89 is 9 digits; DECIMAL(6,2) holds at most 4 integer + 2 fractional digits.
+    assert coerce(1234567.89, "DECIMAL(6,2)") == decimal.Decimal("9999.99")
+    assert coerce(-99999999, "DECIMAL(6,2)") == decimal.Decimal("-9999.99")
+    # an in-range value is only quantized to scale, never clamped
+    assert coerce(12.5, "DECIMAL(6,2)") == decimal.Decimal("12.50")
+    # too many fractional digits round to scale; magnitude is untouched
+    assert coerce(3.14159, "DECIMAL(6,2)") == decimal.Decimal("3.14")
+    # a wide-but-in-range value fits exactly at the precision boundary
+    assert coerce(999999, "DECIMAL(6,0)") == decimal.Decimal("999999")
+
+
 def test_a_percentage_stays_within_a_believable_range(ns):
     low, high, places = ns["numeric_range"]("completion_pct", "DOUBLE")
     assert (low, high) == (0.0, 100.0) and places == 2

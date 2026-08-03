@@ -264,9 +264,21 @@ def _coerce(value, dtype):
     if value is None:
         return None
     if family == "decimal":
-        scale = _decimal_precision(dtype)[1]
+        precision, scale = _decimal_precision(dtype)
         quant = decimal.Decimal(1).scaleb(-scale)
-        return decimal.Decimal(str(value)).quantize(quant, rounding=decimal.ROUND_HALF_UP)
+        coerced = decimal.Decimal(str(value)).quantize(quant, rounding=decimal.ROUND_HALF_UP)
+        # A DECIMAL(p,s) holds at most (p - s) integer digits. LLM value pools do not pass
+        # through numeric_range's type_ceiling clamp, so an out-of-range magnitude (e.g.
+        # 1234567.89 for DECIMAL(6,2)) reaches here and Spark rejects the whole write on
+        # decimal-precision overflow, which skips every table that references it (live:
+        # coffee_roastery wholesale.sales_rep failed, 7 dependents emptied). Clamp the
+        # magnitude to what the declared precision holds so the value always fits.
+        limit = decimal.Decimal(10) ** (precision - scale) - quant
+        if coerced > limit:
+            coerced = limit
+        elif coerced < -limit:
+            coerced = -limit
+        return coerced
     if family == "integer":
         return int(value)
     if family == "float":
