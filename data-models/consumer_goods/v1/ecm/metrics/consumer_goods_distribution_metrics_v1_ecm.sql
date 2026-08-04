@@ -204,8 +204,8 @@ AS $$
     - name: "sku_id"
       expr: sku_id
       comment: "SKU being picked"
-    - name: "primary_pick_employee_id"
-      expr: primary_pick_employee_id
+    - name: "employee_id"
+      expr: employee_id
       comment: "Employee responsible for the primary pick"
     - name: "task_status"
       expr: task_status

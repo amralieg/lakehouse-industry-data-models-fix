@@ -283,7 +283,7 @@ AS $$
       expr: AVG(CAST(delinquent_amount AS DOUBLE))
       comment: "Average delinquent amount per case — severity indicator for collections prioritization."
     - name: "distinct_delinquent_members"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct members with collection cases — breadth of delinquency across the member population."
 $$;
 
@@ -392,7 +392,7 @@ AS $$
       expr: AVG(CAST(total_premium_amount AS DOUBLE))
       comment: "Average COBRA premium per billing — tracks COBRA cost trends."
     - name: "distinct_cobra_members"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct members on COBRA continuation — COBRA population size."
 $$;
 
@@ -516,7 +516,7 @@ AS $$
       expr: SUM(CASE WHEN retroactive_adjustment_flag = TRUE THEN 1 ELSE 0 END)
       comment: "Count of retroactive adjustment lines — indicator of enrollment change churn impacting billing."
     - name: "distinct_members_billed"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct members with invoice lines — billed member population size."
 $$;
 
@@ -639,7 +639,7 @@ AS $$
       expr: SUM(CASE WHEN is_eligible_for_aptc = TRUE THEN 1 ELSE 0 END)
       comment: "Count of grace periods for APTC-eligible members — these require 90-day grace period under ACA."
     - name: "distinct_members_in_grace"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct members currently in grace period — population at risk of coverage loss."
 $$;
 
@@ -692,6 +692,6 @@ AS $$
       expr: AVG(CAST(refund_amount AS DOUBLE))
       comment: "Average refund amount — indicator of typical overpayment or cancellation refund size."
     - name: "distinct_members_refunded"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct members receiving refunds — breadth of refund activity across membership."
 $$;

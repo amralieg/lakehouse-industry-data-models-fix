@@ -186,8 +186,8 @@ AS $$
     - name: "enrollment_date_month"
       expr: DATE_TRUNC('MONTH', enrollment_date)
       comment: "Month of enrollment. Enables monthly acquisition trend analysis and seasonality assessment."
-    - name: "initial_tier_id"
-      expr: initial_tier_id
+    - name: "tier_id"
+      expr: tier_id
       comment: "Tier assigned at enrollment. Used to analyze status-match and tier-grant enrollment patterns."
     - name: "email_consent_flag"
       expr: email_consent_flag

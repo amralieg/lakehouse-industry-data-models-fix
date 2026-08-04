@@ -99,8 +99,8 @@ AS $$
     - name: "movement_type_id"
       expr: movement_type_id
       comment: "Identifier of the movement type"
-    - name: "source_storage_location_id"
-      expr: source_storage_location_id
+    - name: "storage_location_id"
+      expr: storage_location_id
       comment: "Source storage location"
     - name: "posting_date"
       expr: posting_date

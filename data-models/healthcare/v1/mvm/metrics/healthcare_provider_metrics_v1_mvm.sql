@@ -319,7 +319,7 @@ AS $$
       expr: ROUND(100.0 * COUNT(CASE WHEN malpractice_verified = TRUE THEN 1 END) / NULLIF(COUNT(1), 0), 2)
       comment: "Percentage of privileges with verified malpractice coverage — risk management compliance KPI; unverified coverage creates institutional liability."
     - name: "distinct_privileged_clinicians"
-      expr: COUNT(DISTINCT privileging_clinician_id)
+      expr: COUNT(DISTINCT clinician_id)
       comment: "Count of unique clinicians with at least one privilege record — used to measure privileging coverage across the medical staff."
 $$;
 

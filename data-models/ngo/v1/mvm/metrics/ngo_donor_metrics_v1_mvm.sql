@@ -70,7 +70,7 @@ AS $$
       expr: SUM(CAST(goods_services_value AS DOUBLE))
       comment: "Total value of goods or services provided in exchange for gifts. Required for IRS quid pro quo disclosure compliance and net deductible gift calculation."
     - name: "distinct_donor_count"
-      expr: COUNT(DISTINCT gift_constituent_id)
+      expr: COUNT(DISTINCT constituent_id)
       comment: "Number of unique donors who made at least one gift. Core donor base breadth metric used to track donor acquisition and retention performance."
     - name: "total_refund_count"
       expr: COUNT(CASE WHEN refund_flag = TRUE THEN 1 END)

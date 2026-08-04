@@ -49,7 +49,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total number of appeal cases filed — baseline volume metric for appeal operations."
     - name: "distinct_members_appealing"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Count of unique members who have filed appeals, indicating breadth of member dissatisfaction."
     - name: "expedited_appeal_count"
       expr: SUM(CASE WHEN expedited_trigger = TRUE THEN 1 ELSE 0 END)
@@ -132,7 +132,7 @@ AS $$
       expr: SUM(CASE WHEN appeal_filed_date IS NOT NULL THEN 1 ELSE 0 END)
       comment: "Number of adverse determinations where an appeal was actually filed — numerator for appeal filing rate."
     - name: "distinct_members_denied"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Unique members receiving adverse determinations — breadth of denial impact on membership."
 $$;
 
@@ -185,7 +185,7 @@ AS $$
       expr: SUM(CASE WHEN compliance_flag = FALSE THEN 1 ELSE 0 END)
       comment: "Number of outcomes flagged as non-compliant — critical regulatory risk metric."
     - name: "distinct_members_with_outcomes"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Unique members receiving appeal outcomes."
     - name: "distinct_cases_resolved"
       expr: COUNT(DISTINCT case_id)
@@ -290,7 +290,7 @@ AS $$
       expr: COUNT(DISTINCT case_id)
       comment: "Unique appeal cases with timeline tracking."
     - name: "distinct_members_tracked"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Unique members with appeal timelines being tracked."
 $$;
 
@@ -355,7 +355,7 @@ AS $$
       expr: AVG(CAST(coordination_amount AS DOUBLE))
       comment: "Average coordination of benefits amount per dispute."
     - name: "distinct_members_disputing"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Unique members involved in coverage disputes."
 $$;
 
@@ -479,7 +479,7 @@ AS $$
       expr: SUM(CASE WHEN compliance_flag = TRUE THEN 1 ELSE 0 END)
       comment: "Number of grievances handled in compliance with regulations."
     - name: "distinct_members_grieving"
-      expr: COUNT(DISTINCT filing_party_id)
+      expr: COUNT(DISTINCT party_id)
       comment: "Unique filing parties who submitted grievances."
     - name: "distinct_providers_involved"
       expr: COUNT(DISTINCT provider_id)

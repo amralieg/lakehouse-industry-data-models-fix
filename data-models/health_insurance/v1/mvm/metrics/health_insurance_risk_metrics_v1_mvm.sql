@@ -37,7 +37,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total number of member risk score records"
     - name: "unique_members_scored"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct count of members with risk scores"
     - name: "avg_risk_score_value"
       expr: AVG(CAST(risk_score_value AS DOUBLE))

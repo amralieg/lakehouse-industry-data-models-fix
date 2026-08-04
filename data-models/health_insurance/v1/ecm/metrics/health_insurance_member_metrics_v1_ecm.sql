@@ -159,7 +159,7 @@ AS $$
       expr: COUNT(CASE WHEN termination_reason_code IS NOT NULL THEN 1 END)
       comment: "Count of terminated eligibility spans for disenrollment trend analysis"
     - name: "distinct_members_covered"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct count of members with eligibility spans — unique lives covered"
 $$;
 
@@ -369,7 +369,7 @@ AS $$
       expr: AVG(CAST(disputed_amount AS DOUBLE))
       comment: "Average disputed amount per grievance for severity benchmarking"
     - name: "distinct_members_with_grievances"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Distinct members who filed grievances for member-level complaint rate analysis"
 $$;
 
@@ -638,10 +638,10 @@ AS $$
       expr: COUNT(CASE WHEN assignment_type = 'Member-Selected' OR assignment_type = 'Member Selected' THEN 1 END)
       comment: "Count of member-selected PCP assignments for member engagement analysis"
     - name: "distinct_members_assigned"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Distinct members with PCP assignments for network adequacy reporting"
     - name: "distinct_pcps_utilized"
-      expr: COUNT(DISTINCT pcp_provider_id)
+      expr: COUNT(DISTINCT provider_id)
       comment: "Distinct PCPs with member assignments for panel distribution analysis"
     - name: "pcp_changes"
       expr: COUNT(CASE WHEN change_reason IS NOT NULL THEN 1 END)
@@ -712,7 +712,7 @@ AS $$
       expr: AVG(CAST(sdoh_risk_score AS DOUBLE))
       comment: "Average SDOH risk score for social determinants of health intervention targeting"
     - name: "distinct_segmented_members"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct members with segment assignments for segmentation coverage rate"
 $$;
 
@@ -786,6 +786,6 @@ AS $$
       expr: COUNT(CASE WHEN medicaid_eligibility_loss_flag = true THEN 1 END)
       comment: "Count of Medicaid eligibility loss events for coverage transition management"
     - name: "distinct_members_with_events"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Distinct members with lifecycle events for event frequency analysis"
 $$;

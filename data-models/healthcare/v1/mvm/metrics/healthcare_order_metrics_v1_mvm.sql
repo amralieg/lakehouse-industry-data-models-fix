@@ -58,7 +58,7 @@ AS $$
       expr: COUNT(DISTINCT mpi_record_id)
       comment: "Count of unique patients with at least one clinical order. Measures breadth of care delivery and patient reach."
     - name: "distinct_ordering_providers"
-      expr: COUNT(DISTINCT ordering_provider_npi_registry_id)
+      expr: COUNT(DISTINCT npi_registry_id)
       comment: "Count of unique ordering providers. Used to assess provider ordering activity and workload distribution."
     - name: "cpoe_order_count"
       expr: COUNT(CASE WHEN is_cpoe_entered = TRUE THEN 1 END)
@@ -266,7 +266,7 @@ AS $$
       expr: COUNT(CASE WHEN transmission_status = 'Failed' THEN 1 END)
       comment: "Number of order transmission failures. Transmission failures represent care continuity risk and revenue cycle disruption."
     - name: "distinct_modifying_providers"
-      expr: COUNT(DISTINCT modifying_provider_npi_registry_id)
+      expr: COUNT(DISTINCT npi_registry_id)
       comment: "Number of distinct providers who modified orders. Used to assess modification authority distribution and identify unauthorized change patterns."
 $$;
 
@@ -340,7 +340,7 @@ AS $$
       expr: COUNT(DISTINCT receiving_provider_clinician_id)
       comment: "Number of distinct receiving providers across all referrals. Used to assess referral network breadth and concentration risk."
     - name: "distinct_referring_providers"
-      expr: COUNT(DISTINCT referring_provider_npi_registry_id)
+      expr: COUNT(DISTINCT npi_registry_id)
       comment: "Number of distinct referring providers. Used to analyze referral origination distribution and identify high-volume referrers."
     - name: "distinct_visits_with_referrals"
       expr: COUNT(DISTINCT visit_id)

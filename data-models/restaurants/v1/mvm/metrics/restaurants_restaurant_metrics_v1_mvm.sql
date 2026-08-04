@@ -9,7 +9,7 @@ AS $$
   source: "`restaurants_ecm`.`restaurant`.`unit_performance`"
   dimensions:
     - name: "unit_id"
-      expr: primary_restaurant_unit_id
+      expr: unit_id
       comment: "Foreign key to the restaurant unit — enables slicing all KPIs by individual unit."
     - name: "financial_period_id"
       expr: financial_period_id
@@ -103,7 +103,7 @@ AS $$
       expr: ROUND(100.0 * SUM(CAST(cogs_amount AS DOUBLE)) / NULLIF(SUM(CAST(net_revenue_amount AS DOUBLE)), 0), 2)
       comment: "COGS as a percentage of net revenue, computed from raw amounts. Food cost ratio — the primary lever for margin management in restaurant operations."
     - name: "unit_count"
-      expr: COUNT(DISTINCT primary_restaurant_unit_id)
+      expr: COUNT(DISTINCT unit_id)
       comment: "Count of distinct restaurant units with performance records in the selected period. Used to normalize portfolio-level KPIs and track active unit base."
 $$;
 
@@ -202,7 +202,7 @@ AS $$
       expr: unit_ownership_id
       comment: "Primary key of the ownership record — atomic grain for ownership analysis."
     - name: "unit_id"
-      expr: primary_restaurant_unit_id
+      expr: unit_id
       comment: "Restaurant unit associated with this ownership record — enables unit-level ownership analysis."
     - name: "ownership_type"
       expr: ownership_type
@@ -214,7 +214,7 @@ AS $$
       expr: compliance_status
       comment: "Compliance status of the franchisee (e.g. Compliant, Non-Compliant, Under Review) — used in franchise compliance dashboards and audit planning."
     - name: "franchisee_id"
-      expr: primary_unit_franchise_partner_franchisee_id
+      expr: franchisee_id
       comment: "Franchisee operating the unit — enables franchisee-level portfolio and compliance analysis."
     - name: "legal_entity_id"
       expr: legal_entity_id
@@ -412,7 +412,7 @@ AS $$
       expr: equipment_asset_id
       comment: "Primary key of the equipment asset — atomic grain for asset-level analysis."
     - name: "unit_id"
-      expr: primary_equipment_restaurant_unit_id
+      expr: unit_id
       comment: "Restaurant unit the equipment is assigned to — enables unit-level asset inventory and maintenance analysis."
     - name: "equipment_category"
       expr: equipment_category
@@ -480,7 +480,7 @@ AS $$
       expr: pos_terminal_id
       comment: "Primary key of the POS terminal — atomic grain for terminal-level analysis."
     - name: "unit_id"
-      expr: primary_pos_restaurant_unit_id
+      expr: unit_id
       comment: "Restaurant unit the terminal is assigned to — enables unit-level POS fleet analysis."
     - name: "pos_terminal_status"
       expr: pos_terminal_status

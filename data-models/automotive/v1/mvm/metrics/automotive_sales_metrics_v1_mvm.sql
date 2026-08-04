@@ -91,13 +91,13 @@ AS $$
       expr: ROUND(100.0 * SUM(CAST(incentive_amount AS DOUBLE)) / NULLIF(SUM(CAST(msrp AS DOUBLE)), 0), 2)
       comment: "Percentage incentive rate off MSRP"
     - name: "unique_customers"
-      expr: COUNT(DISTINCT primary_vehicle_customer_party_id)
+      expr: COUNT(DISTINCT party_id)
       comment: "Number of unique customers who placed orders"
     - name: "unique_dealerships"
       expr: COUNT(DISTINCT dealership_id)
       comment: "Number of unique dealerships processing orders"
     - name: "unique_sales_reps"
-      expr: COUNT(DISTINCT primary_vehicle_rep_id)
+      expr: COUNT(DISTINCT rep_id)
       comment: "Number of unique sales representatives handling orders"
 $$;
 
@@ -192,10 +192,10 @@ AS $$
       expr: SUM(CASE WHEN quote_generated = TRUE THEN 1 ELSE 0 END)
       comment: "Number of opportunities with generated quotes"
     - name: "unique_customers"
-      expr: COUNT(DISTINCT opportunity_customer_party_id)
+      expr: COUNT(DISTINCT party_id)
       comment: "Number of unique customers with opportunities"
     - name: "unique_sales_reps"
-      expr: COUNT(DISTINCT opportunity_rep_id)
+      expr: COUNT(DISTINCT rep_id)
       comment: "Number of unique sales reps managing opportunities"
     - name: "unique_dealerships"
       expr: COUNT(DISTINCT dealership_id)
@@ -284,10 +284,10 @@ AS $$
       expr: SUM(CASE WHEN opt_in_sms = TRUE THEN 1 ELSE 0 END)
       comment: "Number of leads opted in for SMS communication"
     - name: "unique_assigned_dealerships"
-      expr: COUNT(DISTINCT lead_assigned_dealer_dealership_id)
+      expr: COUNT(DISTINCT dealership_id)
       comment: "Number of unique dealerships assigned to leads"
     - name: "unique_assigned_reps"
-      expr: COUNT(DISTINCT lead_assigned_owner_rep_id)
+      expr: COUNT(DISTINCT rep_id)
       comment: "Number of unique sales reps assigned to leads"
     - name: "unique_campaigns"
       expr: COUNT(DISTINCT campaign_id)
@@ -394,7 +394,7 @@ AS $$
       expr: SUM(CASE WHEN lease_offered = TRUE THEN 1 ELSE 0 END)
       comment: "Number of quotes with lease offered"
     - name: "unique_customers"
-      expr: COUNT(DISTINCT quote_customer_party_id)
+      expr: COUNT(DISTINCT party_id)
       comment: "Number of unique customers receiving quotes"
     - name: "unique_dealerships"
       expr: COUNT(DISTINCT quote_dealership_id)
@@ -483,10 +483,10 @@ AS $$
       expr: SUM(CASE WHEN maintenance_included_flag = TRUE THEN 1 ELSE 0 END)
       comment: "Number of contracts with maintenance included"
     - name: "unique_fleet_customers"
-      expr: COUNT(DISTINCT primary_fleet_customer_party_id)
+      expr: COUNT(DISTINCT party_id)
       comment: "Number of unique fleet customers"
     - name: "unique_fleet_reps"
-      expr: COUNT(DISTINCT primary_fleet_rep_id)
+      expr: COUNT(DISTINCT rep_id)
       comment: "Number of unique fleet sales representatives"
     - name: "unique_opportunities"
       expr: COUNT(DISTINCT opportunity_id)
@@ -646,7 +646,7 @@ AS $$
       expr: SUM(CASE WHEN incentive_eligible = TRUE THEN 1 ELSE 0 END)
       comment: "Number of quotas eligible for incentives"
     - name: "unique_assignees"
-      expr: COUNT(DISTINCT assignee_rep_id)
+      expr: COUNT(DISTINCT rep_id)
       comment: "Number of unique sales reps assigned quotas"
     - name: "unique_dealerships"
       expr: COUNT(DISTINCT dealership_id)

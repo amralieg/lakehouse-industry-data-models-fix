@@ -142,9 +142,9 @@ AS $$
     - name: "owner_name"
       expr: owner_name
       comment: "Name of the parcel owner"
-    - name: "status"
-      expr: status
-      comment: "Current status of the parcel"
+    - name: "parcel_status"
+      expr: parcel_status
+      comment: "Current parcel_status of the parcel"
   measures:
     - name: "total_tax_assessed"
       expr: SUM(CAST(tax_assessed_value AS DOUBLE))

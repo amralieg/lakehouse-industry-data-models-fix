@@ -271,7 +271,7 @@ AS $$
       expr: COUNT(DISTINCT carrier_id)
       comment: "Number of unique carriers on routes"
     - name: "distinct_origin_plants"
-      expr: COUNT(DISTINCT origin_plant_id)
+      expr: COUNT(DISTINCT plant_id)
       comment: "Number of unique origin plants"
 $$;
 
@@ -484,7 +484,7 @@ AS $$
       expr: COUNT(DISTINCT vin_registry_id)
       comment: "Number of unique vehicles handed over"
     - name: "distinct_receiving_parties"
-      expr: COUNT(DISTINCT receiving_party_id)
+      expr: COUNT(DISTINCT party_id)
       comment: "Number of unique receiving parties - customer reach metric"
 $$;
 

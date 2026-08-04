@@ -8,8 +8,8 @@ AS $$
   comment: "Core financial view for production budgets"
   source: "`media_broadcasting_ecm`.`production`.`budget`"
   dimensions:
-    - name: "production_project_id"
-      expr: production_project_id
+    - name: "project_id"
+      expr: project_id
       comment: "Identifier of the production project"
     - name: "fiscal_year"
       expr: fiscal_year
@@ -46,8 +46,8 @@ AS $$
   comment: "Financial transactions related to production costs"
   source: "`media_broadcasting_ecm`.`production`.`cost_transaction`"
   dimensions:
-    - name: "production_project_id"
-      expr: production_project_id
+    - name: "project_id"
+      expr: project_id
       comment: "Production project linked to the transaction"
     - name: "cost_center_id"
       expr: cost_center_id
@@ -107,8 +107,8 @@ AS $$
   comment: "Daily operational efficiency metrics for production"
   source: "`media_broadcasting_ecm`.`production`.`daily_production_report`"
   dimensions:
-    - name: "production_project_id"
-      expr: production_project_id
+    - name: "project_id"
+      expr: project_id
       comment: "Production project identifier"
     - name: "report_date"
       expr: report_date

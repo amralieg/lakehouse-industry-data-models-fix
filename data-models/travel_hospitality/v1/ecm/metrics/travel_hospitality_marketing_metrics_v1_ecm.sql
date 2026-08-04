@@ -401,7 +401,7 @@ AS $$
     - name: "Created Timestamp"
       expr: created_timestamp
     - name: "Description"
-      expr: description
+      expr: communication_template_description
     - name: "Design Version"
       expr: design_version
     - name: "Effective End Date"

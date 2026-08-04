@@ -46,7 +46,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total number of enrollment eligibility spans for volume tracking"
     - name: "distinct_members_enrolled"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Unique members with enrollment spans, key population size metric"
     - name: "avg_deductible_amount"
       expr: AVG(CAST(deductible_amount AS DOUBLE))
@@ -138,7 +138,7 @@ AS $$
       expr: SUM(CASE WHEN is_grace_period = TRUE THEN 1 ELSE 0 END)
       comment: "Count of grace period transactions indicating payment risk and potential disenrollment"
     - name: "distinct_members_transacted"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Unique members with enrollment transactions for churn and activity analysis"
 $$;
 
@@ -188,7 +188,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total exchange enrollment records for marketplace volume tracking"
     - name: "distinct_exchange_members"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Unique members enrolled through exchanges for marketplace penetration"
     - name: "total_premium_amount"
       expr: SUM(CAST(premium_amount AS DOUBLE))
@@ -256,7 +256,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total items in pend queue for operational volume and backlog tracking"
     - name: "distinct_members_pended"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Unique members with pended enrollment items for member impact assessment"
     - name: "escalated_item_count"
       expr: SUM(CASE WHEN escalation_flag = TRUE THEN 1 ELSE 0 END)
@@ -321,7 +321,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total plan elections for enrollment volume tracking"
     - name: "distinct_members_elected"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Unique members with plan elections for coverage penetration analysis"
     - name: "total_premium"
       expr: SUM(CAST(total_premium AS DOUBLE))
@@ -442,7 +442,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total COBRA election records for volume and compliance tracking"
     - name: "distinct_cobra_members"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Unique members with COBRA elections for population sizing"
     - name: "total_cobra_premium"
       expr: SUM(CAST(cobra_premium_amount AS DOUBLE))
@@ -498,7 +498,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total CMS submissions for regulatory reporting volume tracking"
     - name: "distinct_members_submitted"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Unique members in CMS submissions for coverage reporting completeness"
     - name: "total_premium_submitted"
       expr: SUM(CAST(total_premium_amount AS DOUBLE))
@@ -560,7 +560,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total Medicaid eligibility records for program volume tracking"
     - name: "distinct_medicaid_members"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Unique Medicaid-eligible members for population sizing and capitation"
     - name: "avg_fpl_percentage"
       expr: AVG(CAST(fpl_percentage AS DOUBLE))

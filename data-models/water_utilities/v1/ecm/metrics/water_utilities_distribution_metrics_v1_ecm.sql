@@ -66,7 +66,7 @@ AS $$
       expr: COUNT(1)
       comment: "Number of flow reading records."
     - name: "distinct_measurement_points"
-      expr: COUNT(DISTINCT measurement_point_id)
+      expr: COUNT(DISTINCT point_id)
       comment: "Count of unique measurement points reporting flow."
 $$;
 

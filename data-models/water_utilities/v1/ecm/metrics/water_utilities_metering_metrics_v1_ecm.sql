@@ -49,8 +49,8 @@ AS $$
     - name: "dma_id"
       expr: dma_id
       comment: "Distribution Management Area identifier"
-    - name: "meter_installation_id"
-      expr: meter_installation_id
+    - name: "installation_id"
+      expr: installation_id
       comment: "Identifier of the installed meter"
     - name: "alarm_code"
       expr: alarm_code
@@ -87,8 +87,8 @@ AS $$
     - name: "customer_account_id"
       expr: customer_account_id
       comment: "Customer account linked to the alert"
-    - name: "meter_installation_id"
-      expr: meter_installation_id
+    - name: "installation_id"
+      expr: installation_id
       comment: "Meter installation associated with the alert"
   measures:
     - name: "alert_count"
@@ -145,8 +145,8 @@ AS $$
     - name: "inspection_date"
       expr: inspection_date
       comment: "Date of the field inspection"
-    - name: "inspector_employee_id"
-      expr: inspector_employee_id
+    - name: "employee_id"
+      expr: employee_id
       comment: "Employee who performed the inspection"
     - name: "service_address_id"
       expr: service_address_id

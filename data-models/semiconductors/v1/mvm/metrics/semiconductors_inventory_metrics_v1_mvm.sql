@@ -194,7 +194,7 @@ AS $$
       expr: SUM(CASE WHEN slow_moving_flag = true THEN CAST(qty_on_hand AS DOUBLE) ELSE 0 END)
       comment: "Quantity of slow-moving inventory requiring disposition action"
     - name: "distinct_material_count"
-      expr: COUNT(DISTINCT primary_stock_material_master_id)
+      expr: COUNT(DISTINCT material_master_id)
       comment: "Distinct count of materials in stock for portfolio complexity"
 $$;
 

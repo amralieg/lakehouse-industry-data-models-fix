@@ -79,7 +79,7 @@ AS $$
   source: "`semiconductors_ecm`.`equipment`.`tool_downtime`"
   dimensions:
     - name: "tool_id"
-      expr: primary_fab_tool_id
+      expr: fab_tool_id
       comment: "Primary fab tool experiencing downtime"
     - name: "downtime_type"
       expr: downtime_type
@@ -143,7 +143,7 @@ AS $$
   source: "`semiconductors_ecm`.`equipment`.`tool_capex`"
   dimensions:
     - name: "tool_id"
-      expr: primary_fab_tool_id
+      expr: fab_tool_id
       comment: "Primary fab tool receiving capex"
     - name: "capex_year"
       expr: DATE_TRUNC('year', capex_date)
@@ -175,7 +175,7 @@ AS $$
   source: "`semiconductors_ecm`.`equipment`.`tool_warranty`"
   dimensions:
     - name: "tool_id"
-      expr: primary_fab_tool_id
+      expr: fab_tool_id
       comment: "Primary fab tool under warranty"
     - name: "warranty_type"
       expr: warranty_type

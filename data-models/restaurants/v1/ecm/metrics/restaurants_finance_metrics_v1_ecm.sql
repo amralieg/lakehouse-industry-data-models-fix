@@ -204,9 +204,9 @@ AS $$
     - name: "fiscal_period"
       expr: fiscal_period
       comment: "Fiscal period of the payment run"
-    - name: "status"
-      expr: status
-      comment: "Current status of the payment run"
+    - name: "payment_run_status"
+      expr: payment_run_status
+      comment: "Current payment_run_status of the payment run"
     - name: "payment_run_type"
       expr: payment_run_type
       comment: "Type of payment run"

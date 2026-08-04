@@ -426,7 +426,7 @@ AS $$
       expr: ROUND(100.0 * SUM(CASE WHEN (CASE WHEN pilotage_required = TRUE THEN 1 ELSE 0 END + CASE WHEN towage_required = TRUE THEN 1 ELSE 0 END + CASE WHEN mooring_required = TRUE THEN 1 ELSE 0 END + CASE WHEN launch_service_required = TRUE THEN 1 ELSE 0 END) > 1 THEN 1 ELSE 0 END) / NULLIF(COUNT(1), 0), 2)
       comment: "Percentage of service orders requiring multiple coordinated services"
     - name: "unique_vessel_calls_served"
-      expr: COUNT(DISTINCT vessel_call_id)
+      expr: COUNT(DISTINCT call_id)
       comment: "Number of unique vessel calls receiving marine services"
 $$;
 

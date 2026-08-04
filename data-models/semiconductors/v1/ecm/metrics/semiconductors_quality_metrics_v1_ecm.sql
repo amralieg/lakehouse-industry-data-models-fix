@@ -89,7 +89,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total number of customer complaints recorded"
     - name: "closed_complaints"
-      expr: SUM(CASE WHEN status = 'Closed' THEN 1 ELSE 0 END)
+      expr: SUM(CASE WHEN customer_complaint_status = 'Closed' THEN 1 ELSE 0 END)
       comment: "Number of complaints that have been closed"
     - name: "average_resolution_days"
       expr: AVG(DATEDIFF(resolution_date, complaint_timestamp))

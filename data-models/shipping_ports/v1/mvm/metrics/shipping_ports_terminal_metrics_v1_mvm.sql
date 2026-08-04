@@ -150,7 +150,7 @@ AS $$
       expr: COUNT(DISTINCT shipping_line_id)
       comment: "Number of distinct shipping lines with container visits — measures commercial diversity and customer concentration risk."
     - name: "distinct_vessels_served"
-      expr: COUNT(DISTINCT port_call_id)
+      expr: COUNT(DISTINCT call_id)
       comment: "Number of distinct vessel port calls with container activity — measures vessel call volume and service breadth."
     - name: "avg_reefer_temperature_setpoint_c"
       expr: AVG(CASE WHEN reefer_flag = TRUE THEN CAST(reefer_temperature_setpoint_c AS DOUBLE) END)
@@ -283,7 +283,7 @@ AS $$
       expr: ROUND(100.0 * SUM(CASE WHEN hazmat_flag = TRUE THEN 1 ELSE 0 END) / NULLIF(COUNT(1), 0), 2)
       comment: "Percentage of dispatches involving hazardous materials — used for safety compliance monitoring and certified equipment demand planning."
     - name: "distinct_vessels_served"
-      expr: COUNT(DISTINCT port_call_id)
+      expr: COUNT(DISTINCT call_id)
       comment: "Number of distinct vessel port calls served by equipment dispatches — measures vessel service breadth and crane allocation spread."
     - name: "avg_reefer_temperature_celsius"
       expr: AVG(CASE WHEN reefer_flag = TRUE THEN CAST(reefer_temperature_celsius AS DOUBLE) END)

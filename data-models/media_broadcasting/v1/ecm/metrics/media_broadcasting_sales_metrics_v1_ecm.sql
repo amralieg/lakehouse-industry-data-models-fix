@@ -55,8 +55,8 @@ AS $$
     - name: "channel_id"
       expr: channel_id
       comment: "Channel where the line is scheduled"
-    - name: "scheduling_daypart_id"
-      expr: scheduling_daypart_id
+    - name: "daypart_id"
+      expr: daypart_id
       comment: "Daypart identifier for scheduling"
     - name: "currency_code"
       expr: currency_code
@@ -152,8 +152,8 @@ AS $$
     - name: "sales_territory_id"
       expr: sales_territory_id
       comment: "Territory identifier"
-    - name: "sales_rep_id"
-      expr: sales_rep_id
+    - name: "rep_id"
+      expr: rep_id
       comment: "Sales rep identifier"
     - name: "sales_account_id"
       expr: sales_account_id

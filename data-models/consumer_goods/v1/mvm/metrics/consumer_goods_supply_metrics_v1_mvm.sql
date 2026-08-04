@@ -67,7 +67,7 @@ AS $$
       expr: COUNT(DISTINCT sku_id)
       comment: "Number of distinct SKUs with ATP records — measures breadth of supply availability coverage across the product portfolio."
     - name: "distinct_supply_node_count"
-      expr: COUNT(DISTINCT supply_network_node_id)
+      expr: COUNT(DISTINCT network_node_id)
       comment: "Number of distinct supply network nodes with active ATP records — indicates geographic and network coverage of supply availability."
 $$;
 
@@ -304,7 +304,7 @@ AS $$
       expr: COUNT(DISTINCT sku_id)
       comment: "Number of distinct SKUs with active supply plan records — measures supply planning portfolio coverage."
     - name: "distinct_supply_node_count"
-      expr: COUNT(DISTINCT supply_network_node_id)
+      expr: COUNT(DISTINCT network_node_id)
       comment: "Number of distinct supply network nodes in the plan — measures geographic and network coverage of the supply plan."
 $$;
 

@@ -322,8 +322,8 @@ AS $$
   comment: "Medical equipment asset lifecycle and compliance metrics. Tracks acquisition cost, preventive maintenance compliance, recall exposure, and operational status to support capital planning, patient safety, and regulatory compliance decisions."
   source: "`healthcare_ecm`.`facility`.`equipment_asset`"
   dimensions:
-    - name: "current_location_care_site_id"
-      expr: current_location_care_site_id
+    - name: "care_site_id"
+      expr: care_site_id
       comment: "Care site where the equipment is currently located — enables site-level asset inventory and compliance analysis."
     - name: "unit_id"
       expr: unit_id

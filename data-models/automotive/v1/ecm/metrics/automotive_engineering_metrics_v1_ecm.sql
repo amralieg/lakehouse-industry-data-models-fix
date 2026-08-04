@@ -85,11 +85,11 @@ AS $$
       expr: vehicle_program_id
       comment: "Associated vehicle program"
     - name: "project_status"
-      expr: status
-      comment: "Current project status"
+      expr: milestone_status
+      comment: "Current project milestone_status"
     - name: "project_type"
-      expr: type
-      comment: "Project type classification"
+      expr: project_type
+      comment: "Project project_type classification"
     - name: "start_month"
       expr: DATE_TRUNC('month', start_date)
       comment: "Month project started"

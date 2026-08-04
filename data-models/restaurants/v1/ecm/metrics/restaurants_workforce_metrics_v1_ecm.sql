@@ -184,9 +184,9 @@ AS $$
     - name: "payroll_type"
       expr: payroll_type
       comment: "Type of payroll (e.g., regular, bonus)"
-    - name: "status"
-      expr: status
-      comment: "Current status of the payroll run"
+    - name: "payroll_run_status"
+      expr: payroll_run_status
+      comment: "Current payroll_run_status of the payroll run"
     - name: "unit_id"
       expr: unit_id
       comment: "Restaurant unit identifier"

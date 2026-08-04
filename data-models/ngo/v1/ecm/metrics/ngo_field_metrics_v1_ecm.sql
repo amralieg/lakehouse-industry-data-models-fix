@@ -355,9 +355,9 @@ AS $$
     - name: "severity_level"
       expr: severity_level
       comment: "Severity level of emergency (minor, moderate, severe, catastrophic)"
-    - name: "status"
-      expr: status
-      comment: "Current status of emergency response (active, monitoring, closed)"
+    - name: "emergency_status"
+      expr: emergency_status
+      comment: "Current emergency_status of emergency response (active, monitoring, closed)"
     - name: "geographic_scope"
       expr: geographic_scope
       comment: "Geographic scope of emergency (local, regional, national, multi-country)"

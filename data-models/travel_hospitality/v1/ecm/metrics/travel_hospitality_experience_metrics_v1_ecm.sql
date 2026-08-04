@@ -661,7 +661,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total number of amenity fulfillment requests"
     - name: "unique_guests_receiving_amenities"
-      expr: COUNT(DISTINCT guest_profile_id)
+      expr: COUNT(DISTINCT profile_id)
       comment: "Distinct count of guests receiving amenities"
     - name: "total_amenity_cost"
       expr: SUM(CAST(total_cost AS DOUBLE))

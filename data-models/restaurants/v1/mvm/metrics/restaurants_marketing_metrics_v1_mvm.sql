@@ -252,13 +252,13 @@ AS $$
       expr: COUNT(promotion_redemption_id)
       comment: "Total number of valid promotion redemption events. Baseline volume metric for promotional reach and engagement measurement."
     - name: "count_distinct_guests_redeeming"
-      expr: COUNT(DISTINCT primary_promotion_guest_profile_id)
+      expr: COUNT(DISTINCT profile_id)
       comment: "Number of unique guests who redeemed a promotion. Measures promotional reach breadth and guest engagement depth."
     - name: "count_distinct_loyalty_redemptions"
       expr: COUNT(CASE WHEN loyalty_member_flag = True THEN promotion_redemption_id END)
       comment: "Number of redemptions by loyalty program members. Measures loyalty program engagement with promotional offers; key loyalty ROI input."
     - name: "count_distinct_restaurants_with_redemptions"
-      expr: COUNT(DISTINCT primary_promotion_restaurant_unit_id)
+      expr: COUNT(DISTINCT unit_id)
       comment: "Number of unique restaurant units with at least one redemption. Measures promotional geographic and unit-level penetration."
     - name: "loyalty_redemption_rate"
       expr: ROUND(100.0 * COUNT(CASE WHEN loyalty_member_flag = True THEN promotion_redemption_id END) / NULLIF(COUNT(promotion_redemption_id), 0), 2)

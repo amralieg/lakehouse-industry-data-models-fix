@@ -319,7 +319,7 @@ AS $$
       expr: AVG(CAST(item_count AS BIGINT))
       comment: "Average number of line items per requisition"
     - name: "distinct_requestor_count"
-      expr: COUNT(DISTINCT primary_purchase_requestor_employee_id)
+      expr: COUNT(DISTINCT employee_id)
       comment: "Number of unique employees creating requisitions"
     - name: "distinct_property_count"
       expr: COUNT(DISTINCT property_id)
@@ -586,7 +586,7 @@ AS $$
       expr: SUM(CASE WHEN payroll_processed_flag = TRUE THEN 1 ELSE 0 END)
       comment: "Count of time entries processed in payroll"
     - name: "distinct_employee_count"
-      expr: COUNT(DISTINCT primary_time_employee_id)
+      expr: COUNT(DISTINCT employee_id)
       comment: "Number of unique employees with time entries"
     - name: "distinct_property_count"
       expr: COUNT(DISTINCT property_id)

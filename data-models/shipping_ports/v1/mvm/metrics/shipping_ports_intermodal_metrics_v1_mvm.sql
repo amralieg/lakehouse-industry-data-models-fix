@@ -529,7 +529,7 @@ AS $$
       expr: COUNT(CASE WHEN order_status = 'CANCELLED' THEN 1 END)
       comment: "Count of cancelled transport orders — elevated cancellation rates signal demand volatility or operational execution issues."
     - name: "distinct_shippers"
-      expr: COUNT(DISTINCT primary_transport_participant_account_id)
+      expr: COUNT(DISTINCT participant_account_id)
       comment: "Number of distinct shipper accounts with transport orders — measures customer base breadth and concentration risk."
 $$;
 

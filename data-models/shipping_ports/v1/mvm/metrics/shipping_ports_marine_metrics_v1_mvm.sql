@@ -978,6 +978,6 @@ AS $$
       expr: COUNT(CASE WHEN pilotage_required = TRUE AND towage_required = TRUE THEN 1 END)
       comment: "Number of orders requiring both pilotage and towage — used to identify complex vessel movements requiring coordinated multi-service deployment."
     - name: "distinct_vessel_calls_served"
-      expr: COUNT(DISTINCT vessel_call_id)
+      expr: COUNT(DISTINCT call_id)
       comment: "Number of unique vessel calls served by marine service orders — measures port traffic coverage by marine services."
 $$;

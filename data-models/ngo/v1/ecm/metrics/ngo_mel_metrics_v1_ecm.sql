@@ -501,7 +501,7 @@ AS $$
       expr: COUNT(DISTINCT partner_org_id)
       comment: "Number of unique partner organizations with evaluation findings"
     - name: "distinct_action_owners"
-      expr: COUNT(DISTINCT action_owner_staff_member_id)
+      expr: COUNT(DISTINCT staff_member_id)
       comment: "Number of unique staff members assigned as action owners for findings"
 $$;
 

@@ -362,7 +362,7 @@ AS $$
       expr: COUNT(1)
       comment: "Number of cost allocations performed"
     - name: "unique_source_cost_centers"
-      expr: COUNT(DISTINCT source_cost_center_id)
+      expr: COUNT(DISTINCT cost_center_id)
       comment: "Number of distinct source cost centers"
     - name: "unique_target_cost_centers"
       expr: COUNT(DISTINCT target_cost_center_id)

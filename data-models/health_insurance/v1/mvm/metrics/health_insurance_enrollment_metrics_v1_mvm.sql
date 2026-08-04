@@ -46,7 +46,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total number of eligibility spans (baseline volume metric)"
     - name: "unique_members"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Distinct count of members with eligibility spans"
     - name: "unique_health_plans"
       expr: COUNT(DISTINCT health_plan_id)
@@ -138,7 +138,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total number of plan elections (baseline enrollment volume)"
     - name: "unique_members_elected"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Distinct count of members who made plan elections"
     - name: "unique_health_plans_elected"
       expr: COUNT(DISTINCT health_plan_id)
@@ -245,10 +245,10 @@ AS $$
       expr: COUNT(1)
       comment: "Total number of enrollment transactions (baseline activity volume)"
     - name: "unique_members_transacted"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Distinct count of members with enrollment transactions"
     - name: "unique_employer_groups"
-      expr: COUNT(DISTINCT member_group_id)
+      expr: COUNT(DISTINCT group_id)
       comment: "Distinct count of employer groups with transactions"
     - name: "total_gross_amount"
       expr: SUM(CAST(gross_amount AS DOUBLE))
@@ -337,7 +337,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total number of Medicare entitlement records (baseline Medicare population)"
     - name: "unique_medicare_members"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Distinct count of members with Medicare entitlement"
     - name: "unique_health_plans"
       expr: COUNT(DISTINCT health_plan_id)
@@ -423,7 +423,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total number of Medicaid eligibility records (baseline Medicaid population)"
     - name: "unique_medicaid_members"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Distinct count of members with Medicaid eligibility"
     - name: "unique_health_plans"
       expr: COUNT(DISTINCT health_plan_id)
@@ -518,7 +518,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total number of exchange enrollments (baseline marketplace volume)"
     - name: "unique_exchange_members"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Distinct count of members enrolled through exchanges"
     - name: "unique_health_plans"
       expr: COUNT(DISTINCT health_plan_id)
@@ -616,7 +616,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total number of COBRA elections (baseline continuation coverage volume)"
     - name: "unique_cobra_members"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Distinct count of members with COBRA elections"
     - name: "unique_employer_groups"
       expr: COUNT(DISTINCT group_id)
@@ -666,7 +666,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total number of qualifying life events reported (baseline QLE volume)"
     - name: "unique_members_with_qle"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Distinct count of members reporting qualifying life events"
 $$;
 

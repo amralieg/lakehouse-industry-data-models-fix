@@ -26,8 +26,8 @@ AS $$
     - name: "period_number"
       expr: period_number
       comment: "Business period number (e.g., Period 1–13) for alignment with fiscal calendar reporting."
-    - name: "restaurant_unit_id"
-      expr: restaurant_unit_id
+    - name: "unit_id"
+      expr: unit_id
       comment: "Restaurant unit identifier for unit-level food cost benchmarking and ranking."
     - name: "franchisee_id"
       expr: franchisee_id
@@ -113,7 +113,7 @@ AS $$
       expr: DATE_TRUNC('month', waste_date)
       comment: "Month of waste event for time-series trending of waste volumes and costs."
     - name: "restaurant_unit_id"
-      expr: primary_waste_restaurant_unit_id
+      expr: unit_id
       comment: "Restaurant unit where waste occurred. Enables unit-level waste benchmarking and ranking."
     - name: "stock_item_id"
       expr: stock_item_id
@@ -178,10 +178,10 @@ AS $$
       expr: DATE_TRUNC('day', snapshot_timestamp)
       comment: "Date of the inventory snapshot for point-in-time balance trending."
     - name: "restaurant_unit_id"
-      expr: primary_on_restaurant_unit_id
+      expr: unit_id
       comment: "Restaurant unit holding the inventory. Enables unit-level stock position analysis."
     - name: "stock_item_id"
-      expr: primary_on_sku_stock_item_id
+      expr: stock_item_id
       comment: "Stock item (SKU) identifier for item-level inventory position analysis."
     - name: "franchisee_id"
       expr: franchisee_id
@@ -212,7 +212,7 @@ AS $$
       expr: COUNT(CASE WHEN quantity_on_hand < safety_stock THEN 1 END)
       comment: "Number of SKU-location combinations below safety stock threshold. Critical stockout risk indicator for operations."
     - name: "distinct_active_skus"
-      expr: COUNT(DISTINCT primary_on_sku_stock_item_id)
+      expr: COUNT(DISTINCT stock_item_id)
       comment: "Number of distinct SKUs with on-hand inventory. Tracks active assortment breadth and inventory complexity."
 $$;
 
@@ -251,8 +251,8 @@ AS $$
     - name: "cost_center_code"
       expr: cost_center_code
       comment: "Cost center associated with the adjustment for departmental cost accountability."
-    - name: "restaurant_unit_id"
-      expr: restaurant_unit_id
+    - name: "unit_id"
+      expr: unit_id
       comment: "Restaurant unit where the adjustment occurred. Enables unit-level shrinkage and adjustment benchmarking."
     - name: "stock_item_id"
       expr: stock_item_id
@@ -320,7 +320,7 @@ AS $$
       expr: variance_flag
       comment: "Whether a quantity or value variance was detected at receiving. Filters for exception-based review."
     - name: "restaurant_unit_id"
-      expr: receiving_restaurant_unit_id
+      expr: unit_id
       comment: "Restaurant unit receiving the delivery. Enables unit-level receiving performance analysis."
   measures:
     - name: "total_received_value"
@@ -379,7 +379,7 @@ AS $$
       expr: DATE_TRUNC('month', count_date)
       comment: "Month of physical count for time-series trending of count frequency and variance patterns."
     - name: "restaurant_unit_id"
-      expr: primary_physical_restaurant_unit_id
+      expr: unit_id
       comment: "Restaurant unit where the count was performed. Enables unit-level count accuracy benchmarking."
     - name: "franchisee_id"
       expr: franchisee_id
@@ -443,8 +443,8 @@ AS $$
     - name: "variance_flag"
       expr: variance_flag
       comment: "Whether a variance was detected on the order (quantity, price, or delivery). Drives exception-based procurement review."
-    - name: "restaurant_unit_id"
-      expr: restaurant_unit_id
+    - name: "unit_id"
+      expr: unit_id
       comment: "Restaurant unit that placed the replenishment order. Enables unit-level procurement analysis."
     - name: "franchisee_id"
       expr: franchisee_id
@@ -517,8 +517,8 @@ AS $$
     - name: "origin_restaurant_unit_id"
       expr: origin_restaurant_unit_id
       comment: "Restaurant unit originating the transfer. Identifies units with chronic overstock that are net senders."
-    - name: "destination_restaurant_unit_id"
-      expr: destination_restaurant_unit_id
+    - name: "unit_id"
+      expr: unit_id
       comment: "Restaurant unit receiving the transfer. Identifies units with chronic shortages that are net receivers."
   measures:
     - name: "total_transfer_value"
@@ -540,7 +540,7 @@ AS $$
       expr: COUNT(DISTINCT origin_restaurant_unit_id)
       comment: "Number of distinct restaurant units sending transfers. Broad sender base indicates network-wide inventory imbalance."
     - name: "distinct_destination_units"
-      expr: COUNT(DISTINCT destination_restaurant_unit_id)
+      expr: COUNT(DISTINCT unit_id)
       comment: "Number of distinct restaurant units receiving transfers. Identifies units with persistent supply gaps."
 $$;
 

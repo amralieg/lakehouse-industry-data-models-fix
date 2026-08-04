@@ -535,7 +535,7 @@ AS $$
       expr: COUNT(CASE WHEN sla_compliance_flag = True THEN 1 END)
       comment: "Number of orders that met SLA turnaround time"
     - name: "unique_vendors"
-      expr: COUNT(DISTINCT processing_vendor_id)
+      expr: COUNT(DISTINCT vendor_id)
       comment: "Number of unique vendors processing laundry"
 $$;
 

@@ -143,9 +143,9 @@ AS $$
     - name: "contract_type"
       expr: contract_type
       comment: "Type of the contract."
-    - name: "status"
-      expr: status
-      comment: "Current status of the contract."
+    - name: "revenue_contract_status"
+      expr: revenue_contract_status
+      comment: "Current revenue_contract_status of the contract."
     - name: "renewal_flag"
       expr: renewal_flag
       comment: "Indicates if the contract is set for renewal."
@@ -181,9 +181,9 @@ AS $$
     - name: "obligation_type"
       expr: obligation_type
       comment: "Type of performance obligation."
-    - name: "status"
-      expr: status
-      comment: "Current status of the obligation."
+    - name: "performance_obligation_status"
+      expr: performance_obligation_status
+      comment: "Current performance_obligation_status of the obligation."
   measures:
     - name: "obligation_count"
       expr: COUNT(1)

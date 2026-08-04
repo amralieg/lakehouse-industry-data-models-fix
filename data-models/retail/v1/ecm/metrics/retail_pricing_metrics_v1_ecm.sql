@@ -185,7 +185,7 @@ AS $$
     - name: "Approval Required Flag"
       expr: approval_required_flag
     - name: "Code"
-      expr: code
+      expr: cost_zone_code
     - name: "Competitive Intensity"
       expr: competitive_intensity
     - name: "Cost Review Frequency"
@@ -199,7 +199,7 @@ AS $$
     - name: "Default Cost Method"
       expr: default_cost_method
     - name: "Description"
-      expr: description
+      expr: cost_zone_description
     - name: "Effective End Date"
       expr: effective_end_date
     - name: "Effective Start Date"
@@ -212,8 +212,8 @@ AS $$
       expr: last_cost_review_date
     - name: "Last Modified Timestamp"
       expr: last_modified_timestamp
-    - name: "Name"
-      expr: name
+    - cost_zone_name: "Name"
+      expr: cost_zone_name
   measures:
     - name: "Row Count"
       expr: COUNT(1)

@@ -217,10 +217,10 @@ AS $$
       expr: region
       comment: "Geographic region targeted by the campaign"
     - name: "campaign_status"
-      expr: status
-      comment: "Current status of the campaign"
+      expr: campaign_status
+      comment: "Current campaign_status of the campaign"
     - name: "campaign_type"
-      expr: type
+      expr: campaign_type
       comment: "Type/category of the campaign"
     - name: "campaign_start_year"
       expr: DATE_TRUNC('year', start_date)

@@ -64,7 +64,7 @@ AS $$
       expr: COUNT(gift_id)
       comment: "Total number of gifts received"
     - name: "unique_donors"
-      expr: COUNT(DISTINCT gift_constituent_id)
+      expr: COUNT(DISTINCT constituent_id)
       comment: "Number of unique donors who made gifts"
     - name: "matching_gift_revenue"
       expr: SUM(CASE WHEN matching_gift_flag = TRUE THEN CAST(amount AS DOUBLE) ELSE 0 END)

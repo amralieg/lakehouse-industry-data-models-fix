@@ -37,7 +37,7 @@ AS $$
       expr: COUNT(1)
       comment: "Total number of care management enrollments"
     - name: "unique_members_enrolled"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Distinct count of members enrolled in care management programs"
     - name: "avg_risk_score"
       expr: AVG(CAST(risk_score AS DOUBLE))
@@ -108,7 +108,7 @@ AS $$
       expr: AVG(DATEDIFF(actual_resolution_date, open_date))
       comment: "Average number of days from gap identification to closure, measuring care coordination efficiency"
     - name: "unique_members_with_gaps"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Distinct count of members with identified care gaps"
 $$;
 
@@ -167,7 +167,7 @@ AS $$
       expr: AVG(CAST(measure_score AS DOUBLE))
       comment: "Average measure score across all HEDIS results"
     - name: "unique_members_measured"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct count of members included in HEDIS measurement"
     - name: "exclusion_count"
       expr: COUNT(CASE WHEN is_excluded = TRUE THEN 1 END)
@@ -244,7 +244,7 @@ AS $$
       expr: AVG(CAST(star_rating_impact_score AS DOUBLE))
       comment: "Average Star Rating impact score, measuring contribution to overall Medicare Advantage Star Rating"
     - name: "unique_members_surveyed"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Distinct count of members who received CAHPS surveys"
 $$;
 
@@ -321,7 +321,7 @@ AS $$
       expr: COUNT(CASE WHEN (sdoh_food_insecurity = TRUE OR sdoh_housing_instability = TRUE OR sdoh_transportation = TRUE OR sdoh_social_isolation = TRUE OR sdoh_financial_strain = TRUE) THEN 1 END)
       comment: "Count of members with any identified social determinant of health barrier, driving whole-person care strategies"
     - name: "unique_members_assessed"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct count of members who completed health risk assessments"
 $$;
 
@@ -377,7 +377,7 @@ AS $$
       expr: COUNT(CASE WHEN follow_up_required = TRUE THEN 1 END)
       comment: "Count of outreach attempts requiring follow-up, indicating unresolved member needs"
     - name: "unique_members_contacted"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct count of members contacted through outreach efforts"
     - name: "automated_outreach_count"
       expr: COUNT(CASE WHEN is_automated = TRUE THEN 1 END)
@@ -448,7 +448,7 @@ AS $$
       expr: SUM(CAST(raf_score AS DOUBLE))
       comment: "Total RAF score impact across all conditions, measuring revenue optimization opportunity"
     - name: "unique_members_with_conditions"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Distinct count of members with registered conditions"
     - name: "confirmed_conditions"
       expr: COUNT(CASE WHEN confirmation_status = 'confirmed' THEN 1 END)

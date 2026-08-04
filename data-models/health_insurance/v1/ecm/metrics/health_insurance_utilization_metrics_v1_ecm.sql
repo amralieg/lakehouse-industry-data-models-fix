@@ -55,10 +55,10 @@ AS $$
       expr: AVG(CAST(estimated_gross_amount AS DOUBLE))
       comment: "Average estimated gross amount per PA request - indicates typical service cost under review"
     - name: "distinct_members_requesting_pa"
-      expr: COUNT(DISTINCT pa_member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Unique members with PA requests - measures member impact breadth of UM program"
     - name: "distinct_providers_submitting"
-      expr: COUNT(DISTINCT pa_provider_id)
+      expr: COUNT(DISTINCT provider_id)
       comment: "Unique providers submitting PA requests - measures provider engagement with UM process"
     - name: "duplicate_request_count"
       expr: SUM(CASE WHEN is_duplicate_request = true THEN 1 ELSE 0 END)
@@ -371,10 +371,10 @@ AS $$
       expr: SUM(CASE WHEN compliance_flag = true THEN 1 ELSE 0 END)
       comment: "Cases meeting compliance standards - numerator for case-level compliance rate"
     - name: "distinct_members"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Unique members with UM cases - measures member impact and potential access concerns"
     - name: "distinct_providers"
-      expr: COUNT(DISTINCT primary_provider_id)
+      expr: COUNT(DISTINCT provider_id)
       comment: "Unique providers associated with UM cases - measures provider network engagement with UM"
 $$;
 
@@ -427,7 +427,7 @@ AS $$
       expr: SUM(CASE WHEN retro_review_deadline_flag = true THEN 1 ELSE 0 END)
       comment: "Reviews completed within regulatory deadline - compliance metric for timely filing"
     - name: "distinct_members_reviewed"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Unique members subject to retrospective review - monitors review concentration and potential member impact"
 $$;
 

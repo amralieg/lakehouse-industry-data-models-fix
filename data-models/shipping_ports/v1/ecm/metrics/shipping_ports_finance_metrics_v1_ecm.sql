@@ -493,10 +493,10 @@ AS $$
       expr: AVG(CAST(allocation_percentage AS DOUBLE))
       comment: "Average allocation percentage for cost distribution pattern analysis"
     - name: "distinct_sender_cost_centres"
-      expr: COUNT(DISTINCT primary_sender_cost_centre_id)
+      expr: COUNT(DISTINCT cost_centre_id)
       comment: "Number of unique sender cost centers for overhead source diversity"
     - name: "distinct_receiver_profit_centres"
-      expr: COUNT(DISTINCT receiver_profit_centre_id)
+      expr: COUNT(DISTINCT profit_centre_id)
       comment: "Number of unique receiver profit centers for cost absorption breadth"
     - name: "reversal_count"
       expr: SUM(CASE WHEN reversal_indicator = TRUE THEN 1 ELSE 0 END)

@@ -384,7 +384,7 @@ AS $$
       expr: AVG(CAST(leave_balance_after AS DOUBLE))
       comment: "Average remaining leave balance after request — indicates leave bank depletion risk"
     - name: "distinct_employees_on_leave"
-      expr: COUNT(DISTINCT primary_leave_employee_id)
+      expr: COUNT(DISTINCT employee_id)
       comment: "Distinct employees requesting leave — workforce availability impact"
 $$;
 
@@ -541,7 +541,7 @@ AS $$
       expr: COUNT(CASE WHEN performance_improvement_plan_flag = TRUE THEN 1 END)
       comment: "Count of Performance Improvement Plans triggered — risk indicator for talent retention"
     - name: "distinct_employees_reviewed"
-      expr: COUNT(DISTINCT primary_performance_employee_id)
+      expr: COUNT(DISTINCT employee_id)
       comment: "Distinct employees who received performance reviews in the cycle"
 $$;
 
@@ -606,7 +606,7 @@ AS $$
       expr: COUNT(CASE WHEN is_expired = TRUE THEN 1 END)
       comment: "Count of expired training records — compliance risk metric for HIPAA and regulatory audits"
     - name: "distinct_employees_trained"
-      expr: COUNT(DISTINCT primary_training_employee_id)
+      expr: COUNT(DISTINCT employee_id)
       comment: "Distinct employees with training records — training penetration metric"
 $$;
 
@@ -916,7 +916,7 @@ AS $$
       expr: COUNT(CASE WHEN appeal_status IS NOT NULL AND appeal_status != '' THEN 1 END)
       comment: "Count of disciplinary actions that were appealed — fairness and process quality indicator"
     - name: "distinct_employees_disciplined"
-      expr: COUNT(DISTINCT primary_disciplinary_employee_id)
+      expr: COUNT(DISTINCT employee_id)
       comment: "Distinct employees receiving disciplinary actions — concentration risk analysis"
 $$;
 

@@ -209,7 +209,7 @@ AS $$
       expr: COUNT(CASE WHEN is_temperature_controlled = TRUE THEN 1 END)
       comment: "Number of temperature-controlled (reefer) cargo bookings — drives reefer plug capacity planning and cold-chain infrastructure investment decisions."
     - name: "distinct_shipping_lines"
-      expr: COUNT(DISTINCT masterdata_shipping_line_id)
+      expr: COUNT(DISTINCT shipping_line_id)
       comment: "Number of distinct shipping lines with cargo bookings — measures commercial diversity and customer concentration risk."
 $$;
 
@@ -593,6 +593,6 @@ AS $$
       expr: COUNT(CASE WHEN is_refrigerated = TRUE THEN 1 END)
       comment: "Number of refrigerated cargo truck gate bookings — drives reefer inspection staffing and cold-chain gate processing planning."
     - name: "distinct_trucking_companies"
-      expr: COUNT(DISTINCT trucking_company_port_community_participant_id)
+      expr: COUNT(DISTINCT port_community_participant_id)
       comment: "Number of distinct trucking companies using the gate — measures landside customer diversity and dependency concentration risk."
 $$;

@@ -132,7 +132,7 @@ AS $$
       expr: COUNT(member_eligibility_span_id)
       comment: "Total count of eligibility spans for enrollment transaction volume and system capacity planning"
     - name: "unique_members"
-      expr: COUNT(DISTINCT member_identity_id)
+      expr: COUNT(DISTINCT identity_id)
       comment: "Unique member count for membership reporting and market penetration analysis"
     - name: "avg_coverage_duration_days"
       expr: AVG(DATEDIFF(COALESCE(termination_date, CURRENT_DATE()), effective_date))
@@ -283,7 +283,7 @@ AS $$
       expr: COUNT(disenrollment_id)
       comment: "Total disenrollment event count for churn volume tracking and retention program sizing"
     - name: "unique_disenrolled_members"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Unique member count disenrolled for member-level churn rate calculation"
     - name: "total_refund_gross"
       expr: SUM(CAST(refund_gross_amount AS DOUBLE))
@@ -357,16 +357,16 @@ AS $$
       expr: COUNT(pcp_assignment_id)
       comment: "Total PCP assignment count for attribution volume and care coordination capacity"
     - name: "unique_members_with_pcp"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Unique member count with PCP assignment for attribution rate and access to primary care"
     - name: "unique_pcps_assigned"
-      expr: COUNT(DISTINCT pcp_provider_id)
+      expr: COUNT(DISTINCT provider_id)
       comment: "Unique PCP count with member assignments for panel distribution and network utilization"
     - name: "active_assignments"
       expr: COUNT(CASE WHEN assignment_status = 'active' AND is_current = TRUE THEN pcp_assignment_id END)
       comment: "Count of active current PCP assignments for care coordination and quality measure attribution"
     - name: "avg_panel_size"
-      expr: COUNT(CASE WHEN assignment_status = 'active' AND is_current = TRUE THEN pcp_assignment_id END) / NULLIF(COUNT(DISTINCT pcp_provider_id), 0)
+      expr: COUNT(CASE WHEN assignment_status = 'active' AND is_current = TRUE THEN pcp_assignment_id END) / NULLIF(COUNT(DISTINCT provider_id), 0)
       comment: "Average panel size per PCP for capacity planning and provider compensation modeling"
     - name: "member_selected_rate"
       expr: ROUND(100.0 * COUNT(CASE WHEN assignment_type = 'member-selected' THEN pcp_assignment_id END) / NULLIF(COUNT(pcp_assignment_id), 0), 2)
@@ -431,7 +431,7 @@ AS $$
       expr: COUNT(cobra_continuant_id)
       comment: "Total COBRA continuant count for post-employment revenue opportunity and regulatory reporting"
     - name: "unique_cobra_members"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Unique member count on COBRA for continuation coverage penetration"
     - name: "total_cobra_premium_revenue"
       expr: SUM(CAST(premium_amount AS DOUBLE))
@@ -499,7 +499,7 @@ AS $$
       expr: COUNT(cob_record_id)
       comment: "Total COB record count for dual coverage prevalence and claims coordination workload"
     - name: "unique_members_with_cob"
-      expr: COUNT(DISTINCT member_subscriber_id)
+      expr: COUNT(DISTINCT subscriber_id)
       comment: "Unique member count with other coverage for COB savings opportunity sizing"
     - name: "active_cob_records"
       expr: COUNT(CASE WHEN cob_status = 'active' THEN cob_record_id END)

@@ -61,7 +61,7 @@ AS $$
       expr: AVG(CAST(prepayment_amount AS DOUBLE))
       comment: "Average prepayment amount per appointment; benchmarks prepayment policy effectiveness across channels."
     - name: "distinct_guests"
-      expr: COUNT(DISTINCT appointment_guest_profile_id)
+      expr: COUNT(DISTINCT profile_id)
       comment: "Count of unique guests with appointments; measures spa reach and guest penetration within the property."
     - name: "distinct_therapists_utilised"
       expr: COUNT(DISTINCT therapist_id)

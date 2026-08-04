@@ -14,9 +14,9 @@ AS $$
     - name: "priority"
       expr: priority
       comment: "Priority level of the change request"
-    - name: "status"
-      expr: status
-      comment: "Current status of the change request"
+    - name: "change_request_status"
+      expr: change_request_status
+      comment: "Current change_request_status of the change request"
     - name: "request_date"
       expr: DATE_TRUNC('day', request_timestamp)
       comment: "Date the change request was submitted"
@@ -146,9 +146,9 @@ AS $$
     - name: "design_type"
       expr: design_type
       comment: "Type of design (e.g., ASIC, FPGA)"
-    - name: "status"
-      expr: status
-      comment: "Current status of the revision"
+    - name: "design_revision_status"
+      expr: design_revision_status
+      comment: "Current design_revision_status of the revision"
     - name: "revision_type"
       expr: revision_type
       comment: "Classification of the revision (e.g., incremental, major)"

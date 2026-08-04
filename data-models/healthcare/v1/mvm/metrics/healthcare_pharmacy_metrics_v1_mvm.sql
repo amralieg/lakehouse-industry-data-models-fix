@@ -236,7 +236,7 @@ AS $$
       expr: COUNT(DISTINCT mpi_record_id)
       comment: "Count of distinct patients who experienced an ADE — measures patient safety population impact."
     - name: "unique_causative_drugs"
-      expr: COUNT(DISTINCT causative_drug_master_id)
+      expr: COUNT(DISTINCT drug_master_id)
       comment: "Count of distinct drugs identified as causative — measures breadth of drug safety signals requiring monitoring."
 $$;
 
