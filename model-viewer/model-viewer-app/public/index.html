@@ -780,80 +780,6 @@ function buildIndexes(graphData){
   return {tableById,domainByName,tablesByDomain,edgesBySource,edgesByTarget,edgesWithinDomain};
 }
 
-// ── Clustered layout positions ─────────────────────────────
-function calcClusteredPositions(nodes, tableArrangement, domainSizes){
-  domainSizes=domainSizes||{};
-  const domainTables={};
-  nodes.forEach(n=>{if(n.classes==='table-node'){const d=n.data.domain||'unknown';(domainTables[d]=domainTables[d]||[]).push(n);}});
-  const domainNames=Object.keys(domainTables).sort();
-  const numDomains=domainNames.length;
-  if(!numDomains) return {};
-
-  // Compute each domain's actual box size
-  const boxSizes={};
-  domainNames.forEach(dname=>{
-    const sz=domainSizes[`domain_${dname}`]||{};
-    const tblCount=(domainTables[dname]||[]).length;
-    const autoW=Math.max(DEFAULT_W, Math.ceil(Math.sqrt(tblCount))*120);
-    const autoH=Math.max(DEFAULT_H, Math.ceil(Math.sqrt(tblCount))*100);
-    boxSizes[dname]={w:sz.width||autoW, h:sz.height||autoH};
-  });
-
-  // Outer ring: large enough that boxes don't overlap
-  const gap=80;
-  const circumference=domainNames.reduce((sum,d)=>{
-    const diag=Math.sqrt(boxSizes[d].w**2+boxSizes[d].h**2);
-    return sum+diag+gap;
-  },0);
-  let outerR=Math.max(800, circumference/(2*Math.PI));
-
-  const domainCenters={};
-  if(numDomains===1){
-    domainCenters[domainNames[0]]=[0,0];
-  } else {
-    domainNames.forEach((dname,i)=>{
-      const angle=(2*Math.PI*i/numDomains)-(Math.PI/2);
-      domainCenters[dname]=[outerR*Math.cos(angle), outerR*Math.sin(angle)];
-    });
-  }
-
-  const positions={};
-  domainNames.forEach(dname=>{
-    const tables=domainTables[dname]||[];
-    const [cx,cy]=domainCenters[dname];
-    const bw=boxSizes[dname].w, bh=boxSizes[dname].h;
-    const pad=40;
-
-    if(tableArrangement==='circle'){
-      // Circular arrangement inside the box
-      const r=Math.min(bw,bh)/2-pad;
-      if(tables.length===1){
-        positions[tables[0].data.id]={x:cx,y:cy};
-      } else {
-        tables.forEach((n,i)=>{
-          const a=(2*Math.PI*i/tables.length)-(Math.PI/2);
-          positions[n.data.id]={x:cx+r*Math.cos(a), y:cy+r*Math.sin(a)};
-        });
-      }
-    } else {
-      // Grid arrangement inside the box
-      const usableW=bw-pad*2, usableH=bh-pad*2;
-      const cols=Math.max(1,Math.ceil(Math.sqrt(tables.length)));
-      const rows=Math.ceil(tables.length/cols);
-      const cellW=usableW/cols, cellH=usableH/rows;
-      tables.forEach((n,i)=>{
-        const col=i%cols, row=Math.floor(i/cols);
-        positions[n.data.id]={
-          x: cx-usableW/2+cellW/2+col*cellW,
-          y: cy-usableH/2+cellH/2+row*cellH
-        };
-      });
-    }
-    positions[`domain_${dname}`]={x:cx,y:cy};
-  });
-  return positions;
-}
-
 // ── Domain view positions ──────────────────────────────────
 function calcDomainViewPositions(filteredNodes){
   const groups={};
@@ -1101,14 +1027,8 @@ function getStylesheet(showDomains=true,sizeScale=1,t=null){
 
 }
 
-// ── LAYOUT CONFIGS ────────────────────────────────────────
-const LAYOUT_CONFIGS={
-  circle:{name:'circle',animate:false,fit:true,padding:40,avoidOverlap:true,spacingFactor:1.2},
-  concentric:{name:'concentric',animate:false,fit:true,padding:50,avoidOverlap:true,minNodeSpacing:10},
-  cose:{name:'cose',animate:false,fit:true,padding:50,nodeRepulsion:5000,idealEdgeLength:50,avoidOverlap:true,randomize:false},
-  grid:{name:'grid',animate:false,fit:true,padding:50,avoidOverlap:true,condense:true},
-  clustered:{name:'preset',animate:false,fit:true,padding:50},
-};
+// ── LAYOUT CONFIG ─────────────────────────────────────────
+const CIRCLE_LAYOUT={name:'circle',animate:false,fit:true,padding:40,avoidOverlap:true,spacingFactor:1.2};
 
 // ── API helpers ────────────────────────────────────────────
 async function apiFetch(url){
@@ -1731,7 +1651,6 @@ function App(){
   const lastFitKeyRef=useRef('');
 
   // UI state
-  const layout='circle';
   const [showDomains,setShowDomains]=useState(true);
   const [sizeScale,setSizeScale]=useState(1.0);
   const [filterState,setFilterState]=useState({type:null,value:null});
@@ -2186,7 +2105,7 @@ function App(){
       return n;
     });
     return [...allNodes,...edges];
-  },[graphData,graphIndexes,filterState,domainSizes,layout]);
+  },[graphData,graphIndexes,filterState,domainSizes]);
 
   // ── Push elements to Cytoscape ─────────────────────────
   useEffect(()=>{
@@ -2208,11 +2127,7 @@ function App(){
       cy.add(paintElements(validElements,resolveTheme()));
     });
     // Choose layout strategy
-    if(!type && layout==='clustered'){
-      const pos=calcClusteredPositions(graphData.nodes, 'grid',
-        Object.fromEntries(Object.entries(domainSizes.main||{}).map(([k,v])=>[k,v])));
-      cy.nodes().forEach(n=>{if(pos[n.id()])n.position(pos[n.id()]);});
-    } else if(!type && layout==='circle'){
+    if(!type){
       // Circular grouped by domain — tables stay compound children so dragging a box moves them
       const tblNodes=cy.nodes('.table-node').sort((a,b)=>{
         const da=(a.data('domain')||''), db=(b.data('domain')||'');
@@ -2226,7 +2141,7 @@ function App(){
           node.position({x:r*Math.cos(angle), y:r*Math.sin(angle)});
         });
       }
-    } else if(type==='domain' && layout==='circle'){
+    } else if(type==='domain'){
       // Circular grouped by subdomain — compound parents auto-wrap; dragging box moves products
       const tblNodes=cy.nodes('.domain-view-node').sort((a,b)=>{
         const pa=(a.data('parent')||''), pb=(b.data('parent')||'');
@@ -2240,7 +2155,7 @@ function App(){
           node.position({x:r*Math.cos(angle), y:r*Math.sin(angle)});
         });
       }
-    } else if(type==='attribute'||type==='edge'||type==='domain'){
+    } else if(type==='attribute'||type==='edge'){
       cy.layout({name:'preset',animate:false,fit:true,padding:60}).run();
     } else if(type==='table'){
       // Product focus view: SAME global-circle layout as main view. Related
@@ -2269,9 +2184,8 @@ function App(){
         });
       }
     } else {
-      // Other layouts (cose, concentric, grid) or domain sub-views
-      const layoutCfg={...(LAYOUT_CONFIGS[layout]||LAYOUT_CONFIGS.circle)};
-      cy.layout(layoutCfg).run();
+      // Any view type without a hand-placed arrangement above
+      cy.layout({...CIRCLE_LAYOUT}).run();
     }
     // Fit to screen — ONLY on first render of a new view (filter/layout change).
     // Skip auto-fit when user drags/resizes boxes (which triggers re-render via
@@ -2288,7 +2202,7 @@ function App(){
     setTimeout(doFit,1000);
     setTimeout(doFit,3000);
     }catch(e){console.error('Cytoscape layout error:',e);}
-  },[graphElements,layout,filterState,graphData,domainSizes]);
+  },[graphElements,filterState,graphData,domainSizes]);
 
   // ── Update stylesheet when showDomains or sizeScale changes ─────
   useEffect(()=>{
