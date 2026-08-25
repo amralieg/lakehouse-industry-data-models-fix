@@ -463,8 +463,6 @@
     border-radius:9px;cursor:pointer;font-size:12px;font-weight:650;transition:background .15s,border-color .15s}
   .btn:hover{background:var(--well);border-color:var(--line-strong)}
   .btn:active{background:var(--line)}
-  .btn-accent{background:var(--brand);border-color:var(--brand);color:var(--on-accent)}
-  .btn-accent:hover{background:var(--brand-ink);border-color:var(--brand-ink)}
   .btn-danger{background:var(--danger);border-color:var(--danger);color:var(--on-accent)}
   .btn-danger:hover{filter:brightness(1.08)}
 
@@ -1487,384 +1485,6 @@ function NodeInfoPanel({selectedNode,selectedEdge,treeClick,graphData,domainSize
   return null;
 }
 
-// ── GitHub repo browser ───────────────────────────────────
-const REPO_LS_KEY='model_viewer:last_repo';
-const CACHE_PREFIX='model_viewer:cache:';
-const MODEL_DIR_RE=/^(ecm|mvm)(_v?\d+)?$/i;
-// Default repo shown in the From Repo dialog when no saved repo exists.
-// Change this single constant if you fork this viewer for a different project.
-const DEFAULT_REPO='databricks-industry-solutions/lakehouse-industry-data-models';
-const DEFAULT_BRANCH='main';
-
-function parseRepoSpec(raw){
-  if(!raw)return null;
-  let s=String(raw).trim().replace(/\.git$/,'').replace(/\/+$/,'');
-  let m=s.match(/^https?:\/\/github\.com\/([^\/\s]+)\/([^\/\s]+?)(?:\/tree\/([^\/\s]+)(?:\/(.*))?)?$/i);
-  if(m)return {owner:m[1],repo:m[2],branch:m[3]||null,path:m[4]||''};
-  m=s.match(/^git@github\.com:([^\/\s]+)\/(.+)$/i);
-  if(m)return {owner:m[1],repo:m[2].replace(/\/+$/,''),branch:null,path:''};
-  m=s.match(/^([^\/\s]+)\/([^\/\s]+)$/);
-  if(m)return {owner:m[1],repo:m[2],branch:null,path:''};
-  return null;
-}
-
-async function ghFetch(url,token,accept){
-  const headers={'Accept':accept||'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};
-  if(token)headers['Authorization']='Bearer '+token;
-  const r=await fetch(url,{headers});
-  if(!r.ok){
-    let body='';try{body=await r.text();}catch(_){}
-    let msg=`GitHub API ${r.status}`;
-    try{const j=JSON.parse(body);if(j&&j.message)msg+=`: ${j.message}`;}catch(_){msg+=': '+body.slice(0,200);}
-    if(r.status===404)msg+=' (repo/branch/path not found, or token lacks access to a private repo)';
-    if(r.status===401||r.status===403)msg+=' (auth or rate-limit; supply a token with repo scope)';
-    const e=new Error(msg);e.status=r.status;throw e;
-  }
-  return r;
-}
-async function ghJson(url,token){return (await ghFetch(url,token)).json();}
-
-async function fetchDefaultBranch(owner,repo,token){
-  const info=await ghJson(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`,token);
-  return info.default_branch||'main';
-}
-
-async function fetchRepoTree(owner,repo,branch,token){
-  // Resolve branch -> commit SHA -> tree SHA -> recursive tree
-  const ref=await ghJson(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/ref/heads/${encodeURIComponent(branch)}`,token);
-  const commitSha=ref&&ref.object&&ref.object.sha;
-  if(!commitSha)throw new Error(`Branch '${branch}' not found`);
-  const commit=await ghJson(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/commits/${commitSha}`,token);
-  const treeSha=commit&&commit.tree&&commit.tree.sha;
-  if(!treeSha)throw new Error('Could not resolve tree SHA from commit');
-  return ghJson(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/trees/${treeSha}?recursive=1`,token);
-}
-
-async function fetchModelJsonRaw(owner,repo,branch,dirPath,token){
-  const filePath=(dirPath?dirPath.replace(/^\/+|\/+$/g,'')+'/':'')+'model.json';
-  const url=`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${filePath.split('/').map(encodeURIComponent).join('/')}?ref=${encodeURIComponent(branch)}`;
-  const r=await ghFetch(url,token,'application/vnd.github.raw');
-  return r.text();
-}
-
-function cacheKey(owner,repo,branch,dirPath){return `${CACHE_PREFIX}${owner}/${repo}@${branch}:${dirPath||''}`;}
-function readCachedModel(owner,repo,branch,dirPath){
-  try{
-    const raw=localStorage.getItem(cacheKey(owner,repo,branch,dirPath));
-    if(!raw)return null;
-    const parsed=JSON.parse(raw);
-    return parsed&&typeof parsed.content==='string'?parsed:null;
-  }catch(_){return null;}
-}
-function writeCachedModel(owner,repo,branch,dirPath,content){
-  const k=cacheKey(owner,repo,branch,dirPath);
-  const v=JSON.stringify({ts:Date.now(),content});
-  try{localStorage.setItem(k,v);return;}catch(_){}
-  // Quota: evict oldest 25% of cache entries and retry
-  try{
-    const keys=Object.keys(localStorage).filter(x=>x.startsWith(CACHE_PREFIX));
-    const aged=keys.map(x=>{
-      let ts=0;try{ts=JSON.parse(localStorage.getItem(x)||'{}').ts||0;}catch(_){}
-      return [x,ts];
-    }).sort((a,b)=>a[1]-b[1]);
-    const trim=Math.max(1,Math.floor(aged.length/4));
-    aged.slice(0,trim).forEach(([x])=>localStorage.removeItem(x));
-    localStorage.setItem(k,v);
-  }catch(_){/* give up silently */}
-}
-// Bump when the default repo changes so returning users with a stale saved
-// repo in localStorage are auto-reset to DEFAULT_REPO (the latest published
-// models) instead of silently re-loading a previously-browsed repo.
-const REPO_SCHEMA_VERSION=2;
-function readLastRepo(){try{const raw=localStorage.getItem(REPO_LS_KEY);if(!raw)return null;const p=JSON.parse(raw);return (p&&p._sv===REPO_SCHEMA_VERSION)?p:null;}catch(_){return null;}}
-function writeLastRepo(spec){try{localStorage.setItem(REPO_LS_KEY,JSON.stringify({...spec,_sv:REPO_SCHEMA_VERSION}));}catch(_){}}
-
-// Scan flat git/trees output for every industry model.json blob and group by
-// industry. Supports two on-disk layouts:
-//   NEW: <industry>/v<N>/(ecm|mvm)/model.json  (version dir is parent, scope dir is child)
-//   OLD: <industry>/(ecm|mvm)_v?<N>/model.json (scope+version combined in one dir)
-// Grouping key is the industry directory path, so all versions of one industry
-// share a row and same-named industries under different prefixes stay distinct.
-// Returns sorted rows: [{industry, parentPath, ecm:[{ver,name,path}], mvm:[...]}],
-// versions sorted newest-first per scope.
-function buildIndustryRows(treeEntries){
-  const byKey={};
-  (treeEntries||[]).forEach(e=>{
-    if(!e||e.type!=='blob')return;
-    const p=e.path||'';
-    if(!p.endsWith('/model.json'))return;
-    const parts=p.split('/');
-    if(parts.length<3)return; // need at least <industry>/<scope_dir>/model.json
-    const scopeDir=parts[parts.length-2];
-    let scope,ver,industry,industryPath,name;
-    const sm=scopeDir.match(/^(ecm|mvm)$/i);
-    const vm=parts.length>=4?parts[parts.length-3].match(/^v(\d+)$/i):null;
-    if(sm&&vm){
-      // NEW layout: bare ecm|mvm scope dir under a v<N> version dir.
-      scope=sm[1].toLowerCase();
-      ver=parseInt(vm[1],10);
-      industry=parts[parts.length-4];
-      industryPath=parts.slice(0,-3).join('/');
-      name='v'+ver;
-    }else{
-      // OLD layout: scope and version combined in a single dir.
-      const om=scopeDir.match(/^(ecm|mvm)_v?(\d+)$/i);
-      if(!om)return;
-      scope=om[1].toLowerCase();
-      ver=parseInt(om[2],10);
-      industry=parts[parts.length-3];
-      industryPath=parts.slice(0,-2).join('/');
-      name=scopeDir;
-    }
-    const dirPath=parts.slice(0,-1).join('/');
-    if(!byKey[industryPath]){byKey[industryPath]={industry,parentPath:industryPath,ecm:[],mvm:[]};}
-    byKey[industryPath][scope].push({ver,name,path:dirPath});
-  });
-  return Object.values(byKey).map(r=>({
-    ...r,
-    ecm:r.ecm.sort((a,b)=>b.ver-a.ver),
-    mvm:r.mvm.sort((a,b)=>b.ver-a.ver),
-  })).sort((a,b)=>a.industry.localeCompare(b.industry)||a.parentPath.localeCompare(b.parentPath));
-}
-
-// One industry+scope cell. Enforces "always use the latest version": the newest
-// version (items are pre-sorted newest-first) is the PRIMARY button; older
-// versions stay reachable behind a collapsed "history" toggle so the default
-// action a user can take is always the latest published model.
-function ScopeCell({scope,items,resolved,loadingPath,onSelect,cacheTick}){
-  const [showHistory,setShowHistory]=useState(false);
-  if(!items||!items.length)return h('span',{style:{color:'var(--line-strong)'}},'—');
-  const latest=items[0];
-  const older=items.slice(1);
-  const verBtn=(item,primary)=>{
-    const cached=resolved?!!readCachedModel(resolved.owner,resolved.repo,resolved.branch,item.path):false;
-    const isLoading=loadingPath===item.path;
-    const bg=isLoading?'var(--faint)':(scope==='ecm'?'var(--brand)':'var(--g-violet-line)');
-    return h('button',{key:item.path,onClick:()=>onSelect(item.path),disabled:isLoading,
-      title:`Load ${item.path}/model.json`,
-      style:{padding:primary?'5px 12px':'3px 9px',background:bg,color:'var(--ink)',border:'none',borderRadius:4,
-             fontSize:primary?12:10,fontWeight:primary?700:600,cursor:isLoading?'wait':'pointer',
-             opacity:primary?1:0.7,display:'inline-flex',alignItems:'center',gap:5,marginRight:6,marginBottom:4}},
-      isLoading?'Loading…':(primary?`Load ${item.name} (latest)`:`Load ${item.name}`),
-      cached&&!isLoading&&h('span',{style:{fontSize:9,background:'var(--well)',
-        padding:'1px 5px',borderRadius:6}},'✓'));
-  };
-  return h('div',{style:{display:'flex',flexWrap:'wrap',alignItems:'center'}},
-    verBtn(latest,true),
-    older.length>0&&h('button',{key:'__hist',onClick:()=>setShowHistory(v=>!v),
-      title:`${older.length} older version${older.length>1?'s':''}`,
-      style:{padding:'3px 8px',background:'transparent',color:'var(--muted)',border:'1px solid var(--line)',
-             borderRadius:4,fontSize:10,cursor:'pointer',marginRight:6,marginBottom:4,whiteSpace:'nowrap'}},
-      `history (${older.length}) ${showHistory?'▴':'▾'}`),
-    showHistory&&older.map(it=>verBtn(it,false)));
-}
-
-function IndustryTable({rows,onSelect,loadingPath,resolved,cacheTick}){
-  if(!rows||!rows.length){
-    return h('div',{style:{textAlign:'center',padding:40,color:'var(--muted)',fontSize:12}},
-      h('div',{style:{fontSize:32,marginBottom:10}},'🤷'),
-      'No industry models found. Looking for ',
-      h('code',{style:{color:'var(--brand)'}},'<industry>/v*/ecm/model.json'),' or ',
-      h('code',{style:{color:'var(--brand)'}},'<industry>/v*/mvm/model.json'),' (or legacy ',
-      h('code',{style:{color:'var(--brand)'}},'<industry>/(ecm|mvm)_v*/model.json'),') anywhere in the repo.');
-  }
-  const thStyle={textAlign:'left',padding:'10px 14px',fontSize:11,color:'var(--muted)',
-                 textTransform:'uppercase',letterSpacing:0.5,borderBottom:'1px solid var(--line)',
-                 background:'var(--bg)',position:'sticky',top:0,zIndex:1};
-  const tdStyle={padding:'12px 14px',borderBottom:'1px solid var(--line)',verticalAlign:'middle'};
-  return h('table',{style:{width:'100%',borderCollapse:'collapse',fontSize:13}},
-    h('thead',{},h('tr',{},
-      h('th',{style:thStyle},'Industry'),
-      h('th',{style:thStyle},'Load ECM'),
-      h('th',{style:thStyle},'Load MVM'))),
-    h('tbody',{},rows.map(row=>h('tr',{key:row.parentPath},
-      h('td',{style:{...tdStyle,color:'var(--ink)',fontWeight:600}}, row.industry,
-        row.parentPath!==row.industry&&h('div',{style:{color:'var(--faint)',fontSize:10,fontWeight:400,marginTop:2}},row.parentPath)),
-      h('td',{style:tdStyle}, h(ScopeCell,{scope:'ecm',items:row.ecm,resolved,loadingPath,onSelect,cacheTick})),
-      h('td',{style:tdStyle}, h(ScopeCell,{scope:'mvm',items:row.mvm,resolved,loadingPath,onSelect,cacheTick})))))
-  );
-}
-
-function RepoBrowser({onLoadModel,onClose}){
-  // Resolution order for the initial repo / branch:
-  //   1. last_repo from localStorage (user's most recent pick)
-  //   2. DEFAULT_REPO / DEFAULT_BRANCH constants (this viewer's baseline)
-  const last=useMemo(()=>readLastRepo()||{},[]);
-  const initialRepo=(last.owner&&last.repo)
-    ? `https://github.com/${last.owner}/${last.repo}`
-    : (DEFAULT_REPO?`https://github.com/${DEFAULT_REPO}`:'');
-  const initialBranch=last.branch||(DEFAULT_REPO?DEFAULT_BRANCH:'');
-  const [repoInput,setRepoInput]=useState(initialRepo);
-  const [branchInput,setBranchInput]=useState(initialBranch);
-  const [tokenInput,setTokenInput]=useState(last.token||'');
-  const [showToken,setShowToken]=useState(false);
-  const [rows,setRows]=useState(null);
-  const [resolved,setResolved]=useState(null);
-  const [truncated,setTruncated]=useState(false);
-  const [loading,setLoading]=useState(false);
-  const [error,setError]=useState(null);
-  const [loadingPath,setLoadingPath]=useState(null);
-  const [cacheTick,setCacheTick]=useState(0); // bump to force re-render after cache writes
-
-  const browseRepo=useCallback(async(overrideRepo)=>{
-    setError(null);setRows(null);setLoading(true);setTruncated(false);setResolved(null);
-    try{
-      const raw=(typeof overrideRepo==='string')?overrideRepo:repoInput;
-      const spec=parseRepoSpec(raw);
-      if(!spec)throw new Error('Could not parse repo. Use https://github.com/owner/repo, owner/repo, or git@github.com:owner/repo');
-      // A branch embedded in a pasted /tree/<branch> URL is the most explicit signal,
-      // so honour it over a stale value left in the Branch box, and reflect it back.
-      let branch=(spec.branch||'').trim()||(branchInput||'').trim();
-      if(spec.branch&&spec.branch!==branchInput){setBranchInput(spec.branch);}
-      if(!branch){branch=await fetchDefaultBranch(spec.owner,spec.repo,tokenInput||null);}
-      const treeData=await fetchRepoTree(spec.owner,spec.repo,branch,tokenInput||null);
-      const built=buildIndustryRows(treeData.tree||[]);
-      setRows(built);
-      setResolved({owner:spec.owner,repo:spec.repo,branch});
-      setTruncated(!!treeData.truncated);
-      writeLastRepo({owner:spec.owner,repo:spec.repo,branch,token:tokenInput||''});
-    }catch(e){setError(e.message||String(e));}
-    finally{setLoading(false);}
-  },[repoInput,branchInput,tokenInput]);
-
-  // Auto-load on first open if we have either a saved repo OR a default.
-  const autoRanRef=useRef(false);
-  useEffect(()=>{
-    if(autoRanRef.current)return;
-    autoRanRef.current=true;
-    if((last.owner&&last.repo)||DEFAULT_REPO){browseRepo();}
-  },[]); // eslint-disable-line
-
-  // Reset back to this viewer's default repo. Clears any stale saved repo in
-  // localStorage (a common reason a previously-browsed repo hides newly
-  // published versions) and re-browses the default so the latest is shown.
-  const resetToDefault=useCallback(()=>{
-    try{localStorage.removeItem(REPO_LS_KEY);}catch(_){}
-    const durl=DEFAULT_REPO?`https://github.com/${DEFAULT_REPO}`:'';
-    setRepoInput(durl);setBranchInput(DEFAULT_REPO?DEFAULT_BRANCH:'');setTokenInput('');
-    if(durl)browseRepo(durl);
-  },[browseRepo]);
-
-  const handleSelect=useCallback(async(dirPath)=>{
-    if(!resolved)return;
-    setLoadingPath(dirPath);setError(null);
-    try{
-      const cached=readCachedModel(resolved.owner,resolved.repo,resolved.branch,dirPath);
-      let content,fromCache=false;
-      if(cached){content=cached.content;fromCache=true;}
-      else{
-        content=await fetchModelJsonRaw(resolved.owner,resolved.repo,resolved.branch,dirPath,tokenInput||null);
-        writeCachedModel(resolved.owner,resolved.repo,resolved.branch,dirPath,content);
-      }
-      const data=JSON.parse(content);
-      const label=`${resolved.owner}/${resolved.repo}@${resolved.branch}/${dirPath}/model.json${fromCache?' (cached)':''}`;
-      onLoadModel(data,label);
-      onClose();
-    }catch(e){setError((e&&e.message)||String(e));}
-    finally{setLoadingPath(null);setCacheTick(t=>t+1);}
-  },[resolved,tokenInput,onLoadModel,onClose]);
-
-  const clearCache=useCallback(()=>{
-    if(!resolved){
-      Object.keys(localStorage).filter(k=>k.startsWith(CACHE_PREFIX)).forEach(k=>localStorage.removeItem(k));
-    }else{
-      const pref=`${CACHE_PREFIX}${resolved.owner}/${resolved.repo}@${resolved.branch}:`;
-      Object.keys(localStorage).filter(k=>k.startsWith(pref)).forEach(k=>localStorage.removeItem(k));
-    }
-    setCacheTick(t=>t+1);
-  },[resolved]);
-
-  const inputStyle={background:'var(--bg)',color:'var(--ink)',border:'1px solid var(--line)',borderRadius:4,padding:'8px 10px',fontSize:12,outline:'none',width:'100%'};
-  const labelStyle={display:'block',color:'var(--muted)',fontSize:10,marginBottom:4,letterSpacing:0.5,textTransform:'uppercase'};
-
-  return h('div',{style:{position:'fixed',inset:0,background:'var(--scrim)',
-                          display:'flex',alignItems:'center',justifyContent:'center',zIndex:5000},
-                  onClick:e=>{if(e.target===e.currentTarget)onClose();}},
-    h('div',{style:{width:'min(720px, 92vw)',height:'min(720px, 88vh)',background:'var(--card)',
-                    borderRadius:10,border:'1px solid var(--line)',boxShadow:'var(--shadow-xl)',
-                    display:'flex',flexDirection:'column',overflow:'hidden'}},
-      // Header
-      h('div',{style:{padding:'14px 18px',borderBottom:'1px solid var(--line)',
-                       display:'flex',alignItems:'center',gap:10,flexShrink:0}},
-        h('span',{style:{fontSize:18}},'📁'),
-        h('h2',{style:{margin:0,fontSize:15,fontWeight:600,flex:1,color:'var(--ink)'}},'Load model.json from GitHub repo'),
-        h('button',{onClick:onClose,style:{background:'transparent',color:'var(--muted)',border:'none',
-          fontSize:20,cursor:'pointer',padding:'0 6px',lineHeight:1}},'×')
-      ),
-      // Form
-      h('div',{style:{padding:'14px 18px',borderBottom:'1px solid var(--well)',flexShrink:0}},
-        h('div',{style:{display:'grid',gridTemplateColumns:'2fr 1fr',gap:10,marginBottom:8}},
-          h('div',{},
-            h('label',{style:labelStyle},'Repository'),
-            h('input',{type:'text',value:repoInput,onChange:e=>{const v=e.target.value;setRepoInput(v);const sp=parseRepoSpec(v);if(sp&&sp.branch)setBranchInput(sp.branch);},
-              placeholder:'https://github.com/owner/repo  or  owner/repo',
-              style:inputStyle,
-              onKeyDown:e=>{if(e.key==='Enter')browseRepo();}})
-          ),
-          h('div',{},
-            h('label',{style:labelStyle},'Branch (blank = default)'),
-            h('input',{type:'text',value:branchInput,onChange:e=>setBranchInput(e.target.value),
-              placeholder:'main',style:inputStyle,
-              onKeyDown:e=>{if(e.key==='Enter')browseRepo();}})
-          )
-        ),
-        h('div',{style:{display:'flex',alignItems:'center',gap:10,marginBottom:8}},
-          h('div',{style:{flex:1}},
-            h('label',{style:labelStyle},'GitHub Token (optional, needed for private repos / rate limit)'),
-            h('input',{type:showToken?'text':'password',value:tokenInput,onChange:e=>setTokenInput(e.target.value),
-              placeholder:'ghp_… (stored in your browser localStorage)',style:inputStyle,
-              onKeyDown:e=>{if(e.key==='Enter')browseRepo();}})
-          ),
-          h('div',{style:{display:'flex',flexDirection:'column',gap:4,paddingTop:14}},
-            h('button',{onClick:()=>setShowToken(s=>!s),
-              style:{padding:'6px 10px',background:'var(--line)',color:'var(--ink)',border:'1px solid var(--line)',
-                     borderRadius:4,fontSize:10,cursor:'pointer',whiteSpace:'nowrap'}},
-              showToken?'Hide':'Show')
-          )
-        ),
-        h('div',{style:{display:'flex',gap:8,alignItems:'center'}},
-          h('button',{onClick:()=>browseRepo(),disabled:loading,
-            style:{padding:'8px 16px',background:loading?'var(--line-strong)':'var(--brand)',color:'var(--ink)',border:'none',
-                   borderRadius:4,fontSize:12,cursor:loading?'wait':'pointer',fontWeight:600}},
-            loading?'Loading…':(rows?'Refresh':'Browse repo')),
-          rows&&h('button',{onClick:clearCache,title:'Clear cached model.json files for this repo',
-            style:{padding:'6px 10px',background:'var(--line)',color:'var(--ink)',border:'1px solid var(--line)',
-                   borderRadius:4,fontSize:10,cursor:'pointer',whiteSpace:'nowrap'}},
-            'Clear cache'),
-          DEFAULT_REPO&&h('button',{onClick:resetToDefault,disabled:loading,
-            title:`Reset to the default repository (${DEFAULT_REPO}) and show the latest published models`,
-            style:{padding:'6px 10px',background:'var(--line)',color:'var(--ink)',border:'1px solid var(--line)',
-                   borderRadius:4,fontSize:10,cursor:loading?'wait':'pointer',whiteSpace:'nowrap'}},
-            'Use default repo'),
-          rows&&h('span',{style:{color:'var(--faint)',fontSize:10,marginLeft:'auto'}},
-            `${rows.length} ${rows.length===1?'industry':'industries'}`)
-        ),
-        resolved&&h('div',{style:{color:'var(--faint)',fontSize:10,marginTop:8}},
-          `Browsing ${resolved.owner}/${resolved.repo} @ ${resolved.branch}`,
-          truncated?h('span',{style:{color:'var(--g-amber-line)',marginLeft:8}},'(tree truncated by GitHub — use a more specific repo)'):null)
-      ),
-      // Body — industry table
-      h('div',{style:{flex:1,overflowY:'auto',background:'var(--bg)'}},
-        error&&h('div',{style:{margin:18,padding:12,background:'var(--danger-bg)',border:'1px solid var(--danger)',
-                               borderRadius:6,color:'var(--g-amber-line)',fontSize:12,wordBreak:'break-word'}},
-          h('strong',{style:{color:'var(--danger)'}},'Error: '),error),
-        loading&&h('div',{style:{textAlign:'center',padding:30,color:'var(--muted)',fontSize:12}},
-          h('div',{className:'spinner',style:{margin:'0 auto 12px'}}),'Loading repository…'),
-        !loading&&rows&&h(IndustryTable,{rows,onSelect:handleSelect,loadingPath,resolved,cacheTick}),
-        !loading&&!rows&&!error&&h('div',{style:{textAlign:'center',padding:40,color:'var(--faint)',fontSize:12}},
-          h('div',{style:{fontSize:32,marginBottom:10}},'📊'),
-          'Enter a repo above and click ',h('strong',{},'Browse repo'),' to start.'),
-      ),
-      // Footer hint
-      h('div',{style:{padding:'10px 18px',borderTop:'1px solid var(--line)',fontSize:10,color:'var(--faint)',flexShrink:0}},
-        'Each row is one industry. The primary ECM / MVM button always loads the ',
-        h('strong',{style:{color:'var(--brand)'}},'latest'),' ',
-        h('code',{style:{color:'var(--brand)'}},'<industry>/v<N>/(ecm|mvm)/model.json'),
-        '; older versions are under “history”. Loaded files are cached in your browser.')
-    )
-  );
-}
-
 // ── Main App ──────────────────────────────────────────────
 /* ─────────────────────────────────────────────────────────
    GALLERY — industry navigation over a CI-generated manifest
@@ -1936,16 +1556,6 @@ async function fetchModelJson(urls,expectedBytes,onProgress){
   throw new Error((lastErr&&lastErr.message)||'all sources failed');
 }
 
-/* Bring-your-own-model controls. Shared by the app toolbar and the gallery's
-   industry bar so there is one definition of what "load a model" offers. */
-function DataSourceButtons({onUpload,onRepo}){
-  return h(React.Fragment,null,
-    h('label',{className:'btn btn-accent',style:{margin:0}},'Upload JSON',
-      h('input',{type:'file',accept:'.json',style:{display:'none'},onChange:onUpload})),
-    h('button',{className:'btn',onClick:onRepo,title:'Load a model.json from any GitHub repo'},'From Repo')
-  );
-}
-
 function ThemeControls({theme,onTheme,palette,onPalette}){
   const [open,setOpen]=useState(false);
   const boxRef=useRef(null);
@@ -1979,7 +1589,7 @@ function ThemeControls({theme,onTheme,palette,onPalette}){
   );
 }
 
-function IndustryBar({manifest,section,onSection,sel,onSelect,onJump,theme,onTheme,palette,onPalette,actions}){
+function IndustryBar({manifest,section,onSection,sel,onSelect,onJump,theme,onTheme,palette,onPalette}){
   const sections=manifest.sections||[];
   const active=sections[section]||sections[0]||{industries:[]};
   const industry=sel.industry?findIndustry(manifest,sel.industry):null;
@@ -2000,7 +1610,6 @@ function IndustryBar({manifest,section,onSection,sel,onSelect,onJump,theme,onThe
           s.name,h('span',{className:'sectab-n'},s.industries.length)))
       ),
       h('div',{style:{display:'flex',alignItems:'center',gap:8,marginLeft:'auto'}},
-        actions||null,
         h('button',{className:'btn',onClick:onJump,title:'Jump to any industry'},
           'Search ',h('span',{className:'kbd'},(isMac?'⌘':'Ctrl')+'K')),
         h(ThemeControls,{theme,onTheme,palette,onPalette})
@@ -2122,10 +1731,8 @@ function App(){
   const lastFitKeyRef=useRef('');
 
   // UI state
-  const [layout,setLayout]=useState('circle');
+  const layout='circle';
   const [showDomains,setShowDomains]=useState(true);
-  const [semanticNames,setSemanticNames]=useState(true);
-  const [showDbxFk,setShowDbxFk]=useState(true);
   const [sizeScale,setSizeScale]=useState(1.0);
   const [filterState,setFilterState]=useState({type:null,value:null});
   const [navHistory,setNavHistory]=useState([]);
@@ -2138,8 +1745,7 @@ function App(){
   const [searchTerm,setSearchTerm]=useState('');
   const [isLoading,setIsLoading]=useState(false);
   const [loadError,setLoadError]=useState(null);
-  const [uploadStatus,setUploadStatus]=useState('');
-  const [showRepoDialog,setShowRepoDialog]=useState(false);
+  const [loadStatus,setLoadStatus]=useState('');
   const [theme,setTheme]=useState(currentTheme);
   const [palette,setPalette]=useState(currentPalette);
   // Gallery state. `manifest===null` means "not probed yet", `false` means
@@ -2186,44 +1792,6 @@ function App(){
     setIsLoading(false);
   },[]);
 
-  // Handle file upload
-  const handleUpload=useCallback(e=>{
-    const file=e.target.files[0];
-    if(!file)return;
-    setIsLoading(true);setLoadError(null);setUploadStatus('');
-    const sizeMB=(file.size/1048576).toFixed(1);
-    setUploadStatus(`Reading ${sizeMB} MB...`);
-    const reader=new FileReader();
-    reader.onload=ev=>{
-      try{
-        setUploadStatus('Parsing...');
-        const data=JSON.parse(ev.target.result);
-        // Defer processing so spinner renders
-        setTimeout(()=>{
-          try{
-            processModel(data,file.name);
-            setUploadStatus('✓ '+file.name);
-          }catch(err){
-            setLoadError('Processing error: '+err.message);
-            setIsLoading(false);
-            setUploadStatus('✗ Error');
-          }
-        },50);
-      }catch(err){
-        setLoadError('JSON parse error: '+err.message);
-        setIsLoading(false);
-        setUploadStatus('✗ Parse error');
-      }
-    };
-    reader.onerror=()=>{
-      setLoadError('Failed to read file');
-      setIsLoading(false);
-      setUploadStatus('✗ Read error');
-    };
-    reader.readAsText(file);
-    e.target.value='';
-  },[processModel]);
-
   // Auto-load a server-bundled model on first mount (if the app ships one at
   // /model.json). Silently no-ops when absent or when the route returns HTML
   // (old servers with only a SPA catch-all), so the empty state still shows.
@@ -2248,18 +1816,18 @@ function App(){
           target=models[0];
         }
         setIsLoading(true);setLoadError(null);
-        setUploadStatus(`Loading ${target.label||'bundled model'}…`);
+        setLoadStatus(`Loading ${target.label||'bundled model'}…`);
         const r=await fetch('.'+target.path,{headers:{'Accept':'application/json'}});
         if(!r.ok)throw new Error(`HTTP ${r.status}`);
         if((r.headers.get('content-type')||'').indexOf('json')<0)throw new Error('not json');
         const data=await r.json();
         setTimeout(()=>{
-          try{processModel(data,target.label||'bundled/model.json');setUploadStatus('✓ '+(target.label||'bundled model'));}
-          catch(err){setLoadError('Processing error: '+err.message);setIsLoading(false);setUploadStatus('✗ Error');}
+          try{processModel(data,target.label||'bundled/model.json');setLoadStatus('✓ '+(target.label||'bundled model'));}
+          catch(err){setLoadError('Processing error: '+err.message);setIsLoading(false);setLoadStatus('✗ Error');}
         },50);
       }catch(err){
-        setIsLoading(false);setUploadStatus('');
-        /* No bundled model is a normal state: Upload and From Repo carry the flow. */
+        setIsLoading(false);setLoadStatus('');
+        /* No bundled model is a normal state: the empty state explains it. */
       }
     })();
   },[manifest,processModel]);
@@ -2267,7 +1835,7 @@ function App(){
   /* ── Gallery: context detection ───────────────────────────
      manifest.json is emitted next to this page only by the Pages build, so its
      presence is what distinguishes the gallery from the Databricks App. The App
-     keeps Upload and From Repo and never sees the industry bar. */
+     serves its own bundled model.json and never sees the industry bar. */
   useEffect(()=>{
     let live=true;
     (async()=>{
@@ -2293,11 +1861,11 @@ function App(){
     const token=++loadTokenRef.current;
 
     const cached=modelCache.current.get(entry.path);
-    if(cached){ setLoadError(null); setUploadStatus('✓ '+label); processModel(cached,label); return; }
+    if(cached){ setLoadError(null); setLoadStatus('✓ '+label); processModel(cached,label); return; }
 
     setIsLoading(true); setLoadError(null);
     setProgress({received:0,total:entry.bytes,label});
-    setUploadStatus(`Loading ${label} · ${fmtBytes(entry.bytes)}`);
+    setLoadStatus(`Loading ${label} · ${fmtBytes(entry.bytes)}`);
     try{
       const data=await fetchModelJson(
         modelUrls(m.source,entry.path,entry.bytes),
@@ -2307,12 +1875,12 @@ function App(){
       if(token!==loadTokenRef.current) return;   // a newer selection superseded this one
       modelCache.current.set(entry.path,data);
       setProgress(null);
-      setUploadStatus('✓ '+label);
+      setLoadStatus('✓ '+label);
       processModel(data,label);
     }catch(e){
       if(token!==loadTokenRef.current) return;
       setProgress(null); setIsLoading(false);
-      setUploadStatus('');
+      setLoadStatus('');
       setLoadError(`Could not load ${label} (${fmtBytes(entry.bytes)}): ${e.message}`);
     }
   },[processModel]);
@@ -2543,7 +2111,7 @@ function App(){
           const scMap=(subs[sdname]||{}).schemaCount||{};
           const sdSchema=Object.keys(scMap).sort((a,b)=>scMap[b]-scMap[a])[0]||'';
           const semLbl=sdname.replace(/_/g,' ').replace(/-/g,' ');
-          result.push({data:{id:sdId,label:semanticNames?semLbl:(sdSchema||semLbl),
+          result.push({data:{id:sdId,label:semLbl,
             sem_label:semLbl,orig_label:sdSchema||semLbl,orig_schema:sdSchema,
             type:'subdomain',color:sdColor,slot:sdSlot,domain:dname,domain_color:domColor},classes:'subdomain-node'});
         });
@@ -2744,32 +2312,6 @@ function App(){
     repaintGraph(cy,t);
   },[theme,palette]);
 
-  // ── Semantic toggle: swap product node labels between the business (semantic)
-  //    name and the original physical table name. Data carries both, so this is
-  //    a pure re-label (no graph rebuild). ───────────────────────────────────
-  useEffect(()=>{
-    const cy=cyRef.current;
-    if(!cy)return;
-    cy.batch(()=>{
-      cy.nodes('.table-node, .domain-node, .subdomain-node').forEach(n=>{
-        const sem=n.data('sem_label'), orig=n.data('orig_label');
-        if(sem||orig) n.data('label', semanticNames ? (sem||orig) : (orig||sem));
-      });
-    });
-  },[semanticNames,graphElements]);
-
-  // ── dbx_fk toggle: hide/show agent-synthesised FK edges (those carrying a
-  //    `_dbx_fk_*` tag). Declared UC FKs are unaffected. Pure display toggle. ──
-  useEffect(()=>{
-    const cy=cyRef.current;
-    if(!cy)return;
-    cy.batch(()=>{
-      cy.edges('.dbx-fk-edge').forEach(e=>{
-        e.style('display', showDbxFk ? 'element' : 'none');
-      });
-    });
-  },[showDbxFk,graphElements]);
-
   // ── Stats ──────────────────────────────────────────────
   const statsText=useMemo(()=>{
     if(!graphData)return '';
@@ -2846,10 +2388,7 @@ function App(){
     gallery&&h(IndustryBar,{manifest,section,onSection:setSection,sel,
       onSelect:next=>applySel(next),
       onJump:()=>setCmdOpen(true),
-      theme,onTheme:setTheme,palette,onPalette:setPalette,
-      // On the landing surface the app toolbar is empty, so the bring-your-own
-      // controls move up here rather than sitting alone in a blank band.
-      actions:landing?h(DataSourceButtons,{onUpload:handleUpload,onRepo:()=>setShowRepoDialog(true)}):null}),
+      theme,onTheme:setTheme,palette,onPalette:setPalette}),
 
     // ── Top toolbar ──────────────────────────────────────
     !landing&&h('div',{style:{display:'flex',alignItems:'center',
@@ -2873,8 +2412,7 @@ function App(){
       ),
       // Right controls
       h('div',{style:{display:'flex',alignItems:'center',gap:4,marginLeft:'auto',flexWrap:'wrap'}},
-        h(DataSourceButtons,{onUpload:handleUpload,onRepo:()=>setShowRepoDialog(true)}),
-        uploadStatus&&h('span',{style:{color:'var(--brand)',fontSize:10,marginRight:4}},uploadStatus),
+        loadStatus&&h('span',{style:{color:'var(--brand)',fontSize:10,marginRight:4}},loadStatus),
         // Graph controls do nothing without a graph, so they stay out of the way
         // until one is loaded. This is what keeps the gallery landing page clean.
         graphData&&h(React.Fragment,null,
@@ -2893,21 +2431,6 @@ function App(){
           h('label',{style:{color:'var(--muted)',fontSize:10,marginRight:4}},'Domains'),
           h('input',{type:'checkbox',checked:showDomains,onChange:e=>setShowDomains(e.target.checked),style:{cursor:'pointer'}})
         ),
-        h('div',{style:{display:'flex',alignItems:'center',marginLeft:4}},
-          h('label',{style:{color:'var(--muted)',fontSize:10,marginRight:4},title:'On: business (semantic) product names. Off: original physical table names.'},'Semantic'),
-          h('input',{type:'checkbox',checked:semanticNames,onChange:e=>setSemanticNames(e.target.checked),style:{cursor:'pointer'}})
-        ),
-        h('div',{style:{display:'flex',alignItems:'center',marginLeft:4}},
-          h('label',{style:{color:'var(--muted)',fontSize:10,marginRight:4},title:'Show agent-synthesised (_dbx_fk) foreign-key links. Off: only declared UC FKs.'},'dbx FK'),
-          h('input',{type:'checkbox',checked:showDbxFk,onChange:e=>setShowDbxFk(e.target.checked),style:{cursor:'pointer'}})
-        ),
-        h('select',{value:layout,onChange:e=>setLayout(e.target.value),style:{fontSize:11}},
-          h('option',{value:'circle'},'Circular'),
-          h('option',{value:'cose'},'Force (Cose)'),
-          h('option',{value:'concentric'},'Concentric'),
-          h('option',{value:'clustered'},'Clustered'),
-          h('option',{value:'grid'},'Grid')
-        )
         ),
         // In gallery mode the industry bar already carries these.
         !gallery&&h(ThemeControls,{theme,onTheme:setTheme,palette,onPalette:setPalette})
@@ -2946,7 +2469,7 @@ function App(){
         h('div',{style:{flex:1,overflowY:'auto',padding:'0 15px 15px'}},
           !graphData&&h('div',{style:{textAlign:'center',paddingTop:30}},
             h('div',{style:{fontSize:32,marginBottom:10}},'📊'),
-            h('p',{style:{color:'var(--faint)',fontSize:12}},'Upload or load a model to begin')
+            h('p',{style:{color:'var(--faint)',fontSize:12}},'No model loaded')
           ),
           graphData&&sortedDomains.map(([dname,ddata])=>
             h(TreeNode,{key:dname,domainName:dname,domainData:ddata,
@@ -3005,7 +2528,7 @@ function App(){
                             display:'flex',alignItems:'center',justifyContent:'center',zIndex:500}},
               h('div',{style:{textAlign:'center'}},
                 h('div',{style:{fontSize:48,marginBottom:15}},'📊'),
-                h('p',{style:{color:'var(--muted)',fontSize:14}},'Upload a JSON file or load from Databricks')
+                h('p',{style:{color:'var(--muted)',fontSize:14}},'No model.json is bundled with this app')
               )
             )
         ),
@@ -3060,19 +2583,6 @@ function App(){
       gallery
         ? (manifest.source.owner+'/'+manifest.source.repo+' @ '+String(manifest.source.ref).slice(0,7))
         : 'v1.1'),
-
-    // Repo browser dialog
-    showRepoDialog&&h(RepoBrowser,{
-      onLoadModel:(data,label)=>{
-        setIsLoading(true);setLoadError(null);
-        setUploadStatus(`Loading ${label.split('/').slice(-2).join('/')}…`);
-        setTimeout(()=>{
-          try{processModel(data,label);setUploadStatus('✓ '+label.split('/').slice(-2,-1)[0]+'/model.json');}
-          catch(err){setLoadError('Processing error: '+err.message);setIsLoading(false);setUploadStatus('✗ Error');}
-        },50);
-      },
-      onClose:()=>setShowRepoDialog(false)
-    }),
 
     // Cmd-K jump palette — 40 industries do not browse well by clicking alone.
     gallery&&cmdOpen&&h(CommandPalette,{manifest,
