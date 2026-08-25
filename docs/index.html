@@ -493,30 +493,42 @@
     text-transform:uppercase;letter-spacing:.06em}
 
   /* ── gallery chrome ─────────────────────────────────────────── */
-  .topbar{display:flex;flex-direction:column;flex-shrink:0;background:var(--panel);
+  /* One row, and it must stay one row: nowrap plus a single shrinkable
+     cell (.topbar-mid) means a narrow window clips the model stats
+     instead of pushing the controls onto a second line. */
+  .topbar{display:flex;align-items:center;gap:9px;flex-shrink:0;flex-wrap:nowrap;
+    padding:6px 12px;background:var(--panel);
     border-bottom:1px solid var(--line);box-shadow:var(--shadow-seam)}
-  .topbar-row{display:flex;align-items:center;gap:8px;padding:7px 14px;flex-wrap:wrap}
-  .topbar-row+.topbar-row{border-top:1px solid var(--line)}
-  .brandmark{display:flex;align-items:center;gap:8px;margin-right:6px;white-space:nowrap}
+  .topbar-mid{display:flex;align-items:center;gap:9px;min-width:0;flex:1;overflow:hidden}
+  .topbar-end{display:flex;align-items:center;gap:6px;flex-shrink:0}
+  .vrule{width:1px;height:22px;background:var(--line);flex-shrink:0}
+  .brandmark{display:flex;align-items:center;gap:7px;white-space:nowrap;flex-shrink:0}
   .brandmark-dot{width:10px;height:10px;border-radius:3px;background:var(--brand);flex-shrink:0}
-  .brandmark-title{font-size:15px;font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+  .brandmark-title{font-size:14px;font-weight:800;letter-spacing:-.02em;color:var(--ink)}
 
-  .sectab{padding:6px 11px;border:1px solid transparent;border-radius:10px;background:transparent;
-    color:var(--muted);font-size:12px;font-weight:650;cursor:pointer;white-space:nowrap;
-    transition:background .15s,color .15s,border-color .15s}
-  .sectab:hover{background:var(--veil);color:var(--ink)}
-  .sectab.on{background:var(--card);color:var(--ink);border-color:var(--line-strong);box-shadow:var(--shadow)}
-  .sectab-n{margin-left:6px;font-size:10px;font-weight:700;color:var(--faint)}
-  .sectab.on .sectab-n{color:var(--brand)}
+  /* Searchable industry picker: the trigger names the open model, and opens
+     the same palette Cmd-K does rather than a second search of its own. */
+  .indpick{display:inline-flex;align-items:center;gap:8px;max-width:280px;
+    padding:5px 9px;border:1px solid var(--line-strong);border-radius:9px;
+    background:var(--card);color:var(--ink);font-size:12px;font-weight:700;
+    cursor:pointer;white-space:nowrap;flex-shrink:0}
+  .indpick:hover{border-color:var(--brand-bd);background:var(--brand-wash)}
+  .indpick-name{overflow:hidden;text-overflow:ellipsis}
+  .indpick-sec{font-size:10px;font-weight:650;color:var(--faint);flex-shrink:0}
+  .indpick-caret{color:var(--muted);font-size:9px;flex-shrink:0}
 
-  .chip{padding:5px 11px;border-radius:20px;border:1px solid var(--line);background:var(--card);
-    color:var(--ink);font-size:12px;font-weight:650;cursor:pointer;white-space:nowrap;
-    transition:background .15s,border-color .15s,color .15s}
-  .chip:hover{border-color:var(--brand-bd);background:var(--brand-wash)}
-  .chip.on{background:var(--brand);border-color:var(--brand);color:var(--on-accent)}
-  .chip.on:hover{background:var(--brand-ink)}
+  /* Shrinks last: which model is open matters more than its counts, so the
+     stats give up room first and only a pathological name ellipsizes. */
+  .modelname{font-size:12px;font-weight:750;color:var(--ink);white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;flex-shrink:0;max-width:220px}
 
-  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--card)}
+  .tbtn{height:26px;min-width:26px;padding:0 7px;display:inline-flex;align-items:center;
+    justify-content:center;background:var(--card);color:var(--ink);
+    border:1px solid var(--line);border-radius:7px;cursor:pointer;
+    font-size:11px;font-weight:700;flex-shrink:0}
+  .tbtn:hover{background:var(--well);border-color:var(--line-strong)}
+
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--card);flex-shrink:0}
   .seg button{padding:5px 11px;border:0;background:transparent;color:var(--muted);font-size:11px;
     font-weight:700;cursor:pointer;letter-spacing:.04em}
   .seg button+button{border-left:1px solid var(--line)}
@@ -526,6 +538,10 @@
   .stat{display:inline-flex;align-items:baseline;gap:4px;font-size:11px;white-space:nowrap}
   .stat b{font-size:12px;font-weight:800;color:var(--ink)}
   .stat span{color:var(--muted)}
+  /* The stats are the one thing allowed to disappear when the line runs out
+     of room, because every control beside them is a control. */
+  .statset{display:flex;align-items:center;gap:10px;min-width:0;overflow:hidden}
+  .statset .stat{flex-shrink:0}
 
   .iconbtn{width:30px;height:28px;display:inline-flex;align-items:center;justify-content:center;
     padding:0;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:9px;
@@ -554,28 +570,8 @@
   .palette-row:hover,.palette-row.cursor{background:var(--brand-wash);outline:1px solid var(--brand-bd)}
   .palette-row small{color:var(--faint);font-size:11px;margin-left:auto;white-space:nowrap}
 
-  /* auto-fill so a 4-industry section does not stretch four cards across a
-     1600px viewport; the max-width keeps the row readable on ultrawides. */
-  .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:14px;
-    padding:20px 24px 28px;overflow-y:auto;align-content:start;
-    max-width:1560px;margin:0 auto;width:100%;box-sizing:border-box}
-  .icard{text-align:left;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--card);
-    cursor:pointer;box-shadow:var(--shadow);transition:border-color .15s,box-shadow .15s,transform .15s}
-  .icard:hover{border-color:var(--brand-bd);box-shadow:var(--shadow-lg);transform:translateY(-2px)}
-  .icard-accent{height:4px;border-radius:2px;margin-bottom:10px}
-  .icard h4{font-size:14px;font-weight:750;color:var(--ink);margin-bottom:2px}
-  .icard .sec{font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
-  .icard dl{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;margin-top:10px}
-  .icard dl div{display:flex;justify-content:space-between;font-size:11px}
-  .icard dt{color:var(--muted)}
-  .icard dd{font-weight:750;color:var(--ink)}
-  .icard .foot{margin-top:10px;padding-top:8px;border-top:1px solid var(--line);
-    display:flex;justify-content:space-between;font-size:10px;color:var(--faint)}
-
   .bar{height:3px;background:var(--line);border-radius:2px;overflow:hidden}
   .bar i{display:block;height:100%;background:var(--brand);transition:width .18s ease-out}
-  .kbd{display:inline-block;padding:1px 5px;border:1px solid var(--line-strong);border-bottom-width:2px;
-    border-radius:5px;background:var(--well);font-size:10px;font-weight:700;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -1399,15 +1395,38 @@ const JSDELIVR_MAX_BYTES=20*1024*1024;   // jsDelivr refuses to serve above this
 const FLAVOURS=[{id:'ecm',label:'ECM',title:'Enterprise Canonical Model — the full model'},
                 {id:'mvm',label:'MVM',title:'Minimum Viable Model — the core subset'}];
 
+/* There is no landing page, so a first-ever visit has to open something.
+   Retail MVM is the pick: recognisable, and small enough to be interactive
+   quickly. `version:null` resolves to the industry's latest. */
+const DEFAULT_SEL={industry:'retail',version:null,flavour:'mvm'};
+const SEL_LS_KEY='dbx-model-sel';
+
+function readStoredSel(){
+  try{
+    const raw=localStorage.getItem(SEL_LS_KEY);
+    if(!raw) return null;
+    const s=JSON.parse(raw);
+    if(!s||typeof s.industry!=='string') return null;
+    return {industry:s.industry,
+            version:typeof s.version==='string'?s.version:null,
+            flavour:s.flavour==='mvm'?'mvm':'ecm'};
+  }catch(_){ return null; }
+}
+function writeStoredSel(sel){
+  try{ localStorage.setItem(SEL_LS_KEY,JSON.stringify(sel)); }catch(_){}
+}
+
 function fmtBytes(n){
   if(!n&&n!==0) return '';
   if(n<1024) return n+' B';
   if(n<1048576) return (n/1024).toFixed(0)+' KB';
   return (n/1048576).toFixed(n<10485760?1:0)+' MB';
 }
+/* Grouped in full rather than abbreviated: the top line is now the only place
+   these counts appear, so "6.4k" would throw away detail nothing else shows. */
 function fmtCount(n){
   if(n==null) return '—';
-  return n>=1000?(n/1000).toFixed(n>=10000?0:1)+'k':String(n);
+  return Number(n).toLocaleString('en-US');
 }
 
 function findIndustry(manifest,slug){
@@ -1494,85 +1513,79 @@ function ThemeControls({theme,onTheme,palette,onPalette}){
   );
 }
 
-function IndustryBar({manifest,section,onSection,sel,onSelect,onJump,theme,onTheme,palette,onPalette}){
-  const sections=manifest.sections||[];
-  const active=sections[section]||sections[0]||{industries:[]};
-  const industry=sel.industry?findIndustry(manifest,sel.industry):null;
+/* The whole chrome, on one line: brand, then the loaded model and its counts,
+   then the searchable industry picker and every control. `actions` carries the
+   graph buttons so this stays presentational and App keeps the cytoscape refs. */
+function TopBar({manifest,sel,onSelect,onJump,graphData,loadStatus,actions}){
+  const gallery=!!manifest;
+  const industry=gallery&&sel.industry?findIndustry(manifest,sel.industry):null;
   const versions=industry?(industry.versions||[]).map(v=>v.version):[];
+  const entry=industry?findEntry(industry,sel.version,sel.flavour):null;
   const isMac=/Mac|iPhone|iPad/.test(navigator.platform||navigator.userAgent||'');
+  const jumpHint='Search all '+((manifest&&manifest.industries||[]).length)+
+    ' industries ('+(isMac?'⌘':'Ctrl')+'K)';
+
+  /* In the gallery the version and flavour are right there as controls, so
+     repeating the model's own "v2_mvm" suffix here would just be noise. The
+     App has no such controls, so it keeps the full string. */
+  const modelLabel=!graphData?null
+    :(gallery?graphData.modelName
+      :(graphData.modelVersion?`${graphData.modelName} ${graphData.modelVersion}`:graphData.modelName));
 
   return h('div',{className:'topbar'},
-    h('div',{className:'topbar-row'},
-      h('div',{className:'brandmark'},
-        h('span',{className:'brandmark-dot'}),
-        h('span',{className:'brandmark-title'},'Industry Data Models')
-      ),
-      h('nav',{style:{display:'flex',gap:2,flexWrap:'wrap'},'aria-label':'Industry sections'},
-        sections.map((s,i)=>h('button',{key:s.name,
-          className:'sectab'+(i===section?' on':''),
-          'aria-current':i===section?'true':undefined,
-          onClick:()=>onSection(i)},
-          s.name,h('span',{className:'sectab-n'},s.industries.length)))
-      ),
-      h('div',{style:{display:'flex',alignItems:'center',gap:8,marginLeft:'auto'}},
-        h('button',{className:'btn',onClick:onJump,title:'Jump to any industry'},
-          'Search ',h('span',{className:'kbd'},(isMac?'⌘':'Ctrl')+'K')),
-        h(ThemeControls,{theme,onTheme,palette,onPalette})
-      )
+    h('div',{className:'brandmark'},
+      h('span',{className:'brandmark-dot'}),
+      h('span',{className:'brandmark-title'},gallery?'Lakehouse Industry Model':'Model Viewer')
     ),
-    h('div',{className:'topbar-row'},
-      h('div',{style:{display:'flex',gap:6,flexWrap:'wrap'},role:'tablist','aria-label':active.name},
-        (active.industries||[]).map(slug=>{
-          const ind=findIndustry(manifest,slug);
-          return h('button',{key:slug,role:'tab',
-            className:'chip'+(sel.industry===slug?' on':''),
-            'aria-selected':sel.industry===slug?'true':'false',
-            onClick:()=>onSelect({industry:slug})},
-            ind?ind.display:slug);
-        })
-      ),
-      h('div',{style:{display:'flex',alignItems:'center',gap:8,marginLeft:'auto'}},
-        h('div',{className:'seg',role:'group','aria-label':'Model flavour'},
-          FLAVOURS.map(f=>h('button',{key:f.id,title:f.title,
-            className:sel.flavour===f.id?'on':'',
-            onClick:()=>onSelect({flavour:f.id})},f.label))
-        ),
-        versions.length>1&&h('select',{value:sel.version||'',title:'Model version',
-          'aria-label':'Model version',
-          onChange:e=>onSelect({version:e.target.value})},
-          versions.map(v=>h('option',{key:v,value:v},v.toUpperCase()))
-        )
-      )
-    )
-  );
-}
 
-function IndustryGrid({manifest,section,sel,onPick}){
-  const active=(manifest.sections||[])[section]||{industries:[]};
-  return h('div',{className:'card-grid'},
-    (active.industries||[]).map((slug,i)=>{
-      const ind=findIndustry(manifest,slug);
-      if(!ind) return null;
-      const entry=findEntry(ind,sel.version,sel.flavour);
-      const c=(entry&&entry.counts)||{};
-      const slot=DOMAIN_SLOTS[i%DOMAIN_SLOTS.length];
-      return h('button',{key:slug,className:'icard',
-        onClick:()=>onPick({industry:slug,version:entry?entry.version:ind.latest})},
-        h('div',{className:'icard-accent',style:{background:'var('+slot+')'}}),
-        h('div',{className:'sec'},active.name),
-        h('h4',null,ind.display),
-        h('dl',null,
-          h('div',null,h('dt',null,'Domains'),h('dd',null,fmtCount(c.domains))),
-          h('div',null,h('dt',null,'Tables'),h('dd',null,fmtCount(c.products))),
-          h('div',null,h('dt',null,'Columns'),h('dd',null,fmtCount(c.attributes))),
-          h('div',null,h('dt',null,'Links'),h('dd',null,fmtCount(c.foreign_keys)))
-        ),
-        h('div',{className:'foot'},
-          h('span',null,(entry?entry.version.toUpperCase():'')+' · '+(sel.flavour||'').toUpperCase()),
-          h('span',null,entry?fmtBytes(entry.bytes):'')
-        )
-      );
-    })
+    // Loaded model, then its counts. Both live in the one cell that is
+    // allowed to shrink, so the controls to the right never wrap.
+    h('div',{className:'topbar-mid'},
+      modelLabel&&h(React.Fragment,null,
+        h('span',{className:'vrule'}),
+        h('span',{className:'modelname',title:modelLabel},modelLabel),
+        h('span',{className:'vrule'})
+      ),
+      graphData&&h('div',{className:'statset'},
+        h('span',{className:'stat'},
+          h('b',{style:{color:'var(--brand)'}},fmtCount(Object.keys(graphData.domainColors||{}).length)),
+          h('span',null,'Domains')),
+        h('span',{className:'stat'},
+          h('b',{style:{color:'var(--g-amber-line)'}},
+            fmtCount(graphData.nodes.filter(n=>n.classes==='table-node').length)),
+          h('span',null,'Products')),
+        h('span',{className:'stat'},
+          h('b',{style:{color:'var(--g-violet-line)'}},fmtCount(graphData.totalAttrs||0)),
+          h('span',null,'Attributes')),
+        h('span',{className:'stat'},
+          h('b',{style:{color:'var(--danger)'}},fmtCount(graphData.edges.length)),
+          h('span',null,'FKs')),
+        entry&&h('span',{className:'stat'},h('span',null,fmtBytes(entry.bytes)))
+      ),
+      loadStatus&&h('span',{style:{color:'var(--brand)',fontSize:10,whiteSpace:'nowrap'}},loadStatus)
+    ),
+
+    // Searchable industry menu, then the rest of the controls.
+    h('div',{className:'topbar-end'},
+      gallery&&h('button',{className:'indpick',onClick:onJump,title:jumpHint,
+          'aria-haspopup':'dialog'},
+        h('span',{style:{color:'var(--muted)',flexShrink:0}},'⌕'),
+        h('span',{className:'indpick-name'},industry?industry.display:'Choose industry'),
+        industry&&h('span',{className:'indpick-sec'},industry.section),
+        h('span',{className:'indpick-caret'},'▾')
+      ),
+      gallery&&h('div',{className:'seg',role:'group','aria-label':'Model flavour'},
+        FLAVOURS.map(f=>h('button',{key:f.id,title:f.title,
+          className:sel.flavour===f.id?'on':'',
+          onClick:()=>onSelect({flavour:f.id})},f.label))
+      ),
+      gallery&&versions.length>1&&h('select',{value:sel.version||(industry?industry.latest:''),
+        title:'Model version','aria-label':'Model version',
+        onChange:e=>onSelect({version:e.target.value})},
+        versions.map(v=>h('option',{key:v,value:v},v.toUpperCase()))
+      ),
+      actions
+    )
   );
 }
 
@@ -1655,8 +1668,7 @@ function App(){
   // Gallery state. `manifest===null` means "not probed yet", `false` means
   // "absent", i.e. running as the Databricks App rather than the Pages gallery.
   const [manifest,setManifest]=useState(null);
-  const [section,setSection]=useState(0);
-  const [sel,setSel]=useState({industry:null,version:null,flavour:'ecm'});
+  const [sel,setSel]=useState({industry:null,version:null,flavour:DEFAULT_SEL.flavour});
   const [progress,setProgress]=useState(null);
   const [cmdOpen,setCmdOpen]=useState(false);
   const modelCache=useRef(new Map());
@@ -1823,23 +1835,34 @@ function App(){
     return ()=>window.removeEventListener('popstate',onPop);
   },[readUrl]);
 
-  // Seed the selection from the URL once the manifest is known.
+  /* Seed the selection once the manifest is known: an explicit link wins, then
+     whatever this browser was last looking at, then the default. Written with
+     replaceState rather than pushState so the first Back leaves the site
+     instead of returning to a blank selection the visitor never chose. */
   const seededRef=useRef(false);
   useEffect(()=>{
     if(!manifest||seededRef.current) return;
     seededRef.current=true;
     const u=readUrl();
-    const industry=u.industry&&findIndustry(manifest,u.industry)?u.industry:null;
-    setSel({industry,version:u.version,flavour:u.flavour||'ecm'});
-    const s=(manifest.sections||[]).findIndex(x=>(x.industries||[]).includes(industry));
-    if(s>=0) setSection(s);
+    const pick=(cand)=>cand&&findIndustry(manifest,cand.industry)?cand:null;
+    const chosen=pick(u.industry?u:null)
+      ||pick(readStoredSel())
+      ||pick(DEFAULT_SEL)
+      ||{industry:(manifest.industries[0]||{}).slug,version:null,flavour:'ecm'};
+    const next={industry:chosen.industry,version:chosen.version||null,
+                flavour:chosen.flavour||DEFAULT_SEL.flavour};
+    setSel(next);
+    const p=new URLSearchParams();
+    p.set('industry',next.industry);
+    if(next.version) p.set('version',next.version);
+    if(next.flavour) p.set('flavour',next.flavour);
+    history.replaceState({},'','?'+p.toString());
   },[manifest,readUrl]);
 
-  // Selection changed -> fetch. Keeps the section tab in step with the industry.
+  // Selection changed -> fetch, and remember it for the next visit.
   useEffect(()=>{
     if(!manifest||!sel.industry) return;
-    const s=(manifest.sections||[]).findIndex(x=>(x.industries||[]).includes(sel.industry));
-    if(s>=0) setSection(s);
+    writeStoredSel({industry:sel.industry,version:sel.version,flavour:sel.flavour});
     loadEntry(manifest,sel.industry,sel.version,sel.flavour);
   },[manifest,sel.industry,sel.version,sel.flavour,loadEntry]);
 
@@ -2208,23 +2231,6 @@ function App(){
     repaintGraph(cy,t);
   },[theme,palette]);
 
-  // ── Stats ──────────────────────────────────────────────
-  const statsText=useMemo(()=>{
-    if(!graphData)return '';
-    const {modelName,modelVersion,domainColors,nodes,edges,totalAttrs,totalTags,sourceLabel}=graphData;
-    const domCount=Object.keys(domainColors).length;
-    const tblCount=nodes.filter(n=>n.classes==='table-node').length;
-    const {type,value}=filterState;
-    if(type==='table'&&value){
-      const tname=(value||'').split('.').pop();
-      return `${modelName} • FK: ${tname}`;
-    }
-    if(type==='domain'&&value) return `Domain: ${value}`;
-    if(type==='edge') return `${modelName} • Link View`;
-    if(type==='attribute'&&value) return `${modelName} • Attr: ${(value||'').split('.').pop()}`;
-    return `${domCount} domains, ${tblCount} products, ${totalAttrs} attributes`;
-  },[graphData,filterState]);
-
   const filterInfoText=useMemo(()=>{
     if(!graphData||!filterState.type) return '';
     const {type,value}=filterState;
@@ -2237,12 +2243,6 @@ function App(){
     if(type==='attribute'&&value) return `📊 ${(value||'').split('.').slice(1).join('.')}`;
     return '';
   },[graphData,graphIndexes,filterState]);
-
-  const modelBadge=useMemo(()=>{
-    if(!graphData||filterState.type) return '';
-    const {modelName,modelVersion}=graphData;
-    return modelVersion?`${modelName} ${modelVersion}`:modelName;
-  },[graphData,filterState]);
 
   // Tree interaction
   const handleToggleDomain=useCallback(dname=>{
@@ -2275,63 +2275,42 @@ function App(){
   const btnStyle={padding:'8px 12px',background:'var(--line)',color:'var(--ink)',border:'none',borderRadius:4,cursor:'pointer',fontSize:12,marginRight:6};
 
   const gallery=!!manifest;
-  // The gallery's landing surface: manifest present, nothing picked, nothing failed.
-  const landing=gallery&&!graphData&&!isLoading&&!loadError;
 
   return h('div',{style:{display:'flex',flexDirection:'column',height:'100vh',background:'var(--bg)',color:'var(--ink)',overflow:'hidden'}},
 
-    // ── Industry bar (gallery only) ──────────────────────
-    gallery&&h(IndustryBar,{manifest,section,onSection:setSection,sel,
+    // ── The single top line ──────────────────────────────
+    // The "✓ loaded" form would just repeat the model name beside it, so the
+    // status only shows while a fetch is actually in flight.
+    h(TopBar,{manifest,sel,graphData,loadStatus:isLoading?loadStatus:'',
       onSelect:next=>applySel(next),
       onJump:()=>setCmdOpen(true),
-      theme,onTheme:setTheme,palette,onPalette:setPalette}),
-
-    // ── Top toolbar ──────────────────────────────────────
-    !landing&&h('div',{style:{display:'flex',alignItems:'center',
-                    padding:'8px 16px',background:'var(--panel)',
-                    borderBottom:'1px solid var(--line)',flexShrink:0,gap:10,flexWrap:'wrap'}},
-      // Title
-      !gallery&&h('div',{style:{display:'flex',alignItems:'center',gap:8,marginRight:4}},
-        h('h1',{style:{margin:0,fontSize:18,fontWeight:600,color:'var(--ink)',whiteSpace:'nowrap'}},'Model Viewer')
-      ),
-      // Model summary stats
-      graphData&&h('div',{style:{display:'flex',alignItems:'center',gap:12,marginLeft:4}},
-        h('div',{style:{width:1,height:28,background:'var(--line)',flexShrink:0}}),
-        h('span',{style:{color:'var(--brand)',fontSize:11,whiteSpace:'nowrap'}},
-          Object.keys(graphData.domainColors||{}).length+' Domains'),
-        h('span',{style:{color:'var(--g-amber-line)',fontSize:11,whiteSpace:'nowrap'}},
-          graphData.nodes.filter(n=>n.classes==='table-node').length+' Products'),
-        h('span',{style:{color:'var(--g-violet-line)',fontSize:11,whiteSpace:'nowrap'}},
-          (graphData.totalAttrs||0)+' Attributes'),
-        h('span',{style:{color:'var(--danger)',fontSize:11,whiteSpace:'nowrap'}},
-          graphData.edges.length+' FKs')
-      ),
-      // Right controls
-      h('div',{style:{display:'flex',alignItems:'center',gap:4,marginLeft:'auto',flexWrap:'wrap'}},
-        loadStatus&&h('span',{style:{color:'var(--brand)',fontSize:10,marginRight:4}},loadStatus),
-        // Graph controls do nothing without a graph, so they stay out of the way
-        // until one is loaded. This is what keeps the gallery landing page clean.
+      actions:h(React.Fragment,null,
+        // Graph controls do nothing without a graph, so they stay hidden until
+        // one is loaded rather than sitting there inert.
         graphData&&h(React.Fragment,null,
-        h('button',{style:{...btnStyle,padding:'6px 10px'},onClick:()=>cyRef.current&&cyRef.current.zoom(cyRef.current.zoom()*0.8)},'−'),
-        h('button',{style:{...btnStyle,padding:'6px 10px'},onClick:()=>cyRef.current&&cyRef.current.zoom(cyRef.current.zoom()*1.25)},'+'),
-        h('button',{style:{...btnStyle,padding:'6px 10px'},title:'Decrease node/font size',
-          onClick:()=>setSizeScale(s=>Math.max(0.5,s-0.2))},'F−'),
-        h('button',{style:{...btnStyle,padding:'6px 10px'},title:'Increase node/font size',
-          onClick:()=>setSizeScale(s=>Math.min(3,s+0.2))},'F+'),
-        h('button',{style:{...btnStyle,padding:'6px 10px'},onClick:()=>cyRef.current&&cyRef.current.fit(50)},'Fit'),
-        h('button',{style:{...btnStyle,padding:'6px 10px'},onClick:()=>{
-          setFilterState({type:null,value:null});setNavHistory([]);
-          setTimeout(()=>cyRef.current&&cyRef.current.fit(50),100);
-        }},'Reset'),
-        h('div',{style:{display:'flex',alignItems:'center',marginLeft:4}},
-          h('label',{style:{color:'var(--muted)',fontSize:10,marginRight:4}},'Domains'),
-          h('input',{type:'checkbox',checked:showDomains,onChange:e=>setShowDomains(e.target.checked),style:{cursor:'pointer'}})
+          h('button',{className:'tbtn',title:'Zoom out',
+            onClick:()=>cyRef.current&&cyRef.current.zoom(cyRef.current.zoom()*0.8)},'−'),
+          h('button',{className:'tbtn',title:'Zoom in',
+            onClick:()=>cyRef.current&&cyRef.current.zoom(cyRef.current.zoom()*1.25)},'+'),
+          h('button',{className:'tbtn',title:'Decrease node/font size',
+            onClick:()=>setSizeScale(s=>Math.max(0.5,s-0.2))},'F−'),
+          h('button',{className:'tbtn',title:'Increase node/font size',
+            onClick:()=>setSizeScale(s=>Math.min(3,s+0.2))},'F+'),
+          h('button',{className:'tbtn',title:'Fit graph to view',
+            onClick:()=>cyRef.current&&cyRef.current.fit(50)},'Fit'),
+          h('button',{className:'tbtn',title:'Reset to the full model',onClick:()=>{
+            setFilterState({type:null,value:null});setNavHistory([]);
+            setTimeout(()=>cyRef.current&&cyRef.current.fit(50),100);
+          }},'Reset'),
+          h('label',{className:'tbtn',title:'Show domain grouping boxes',
+              style:{gap:5,cursor:'pointer',fontWeight:650,color:'var(--muted)'}},
+            h('input',{type:'checkbox',checked:showDomains,
+              onChange:e=>setShowDomains(e.target.checked),
+              style:{cursor:'pointer',margin:0}}),
+            'Domains')
         ),
-        ),
-        // In gallery mode the industry bar already carries these.
-        !gallery&&h(ThemeControls,{theme,onTheme:setTheme,palette,onPalette:setPalette})
-      )
-    ),
+        h(ThemeControls,{theme,onTheme:setTheme,palette,onPalette:setPalette})
+      )}),
 
     // Determinate transfer progress: the manifest gives us the true blob size,
     // so this is a real percentage rather than a spinner pretending to be one.
@@ -2344,19 +2323,10 @@ function App(){
     // ── Main body ────────────────────────────────────────
     h('div',{style:{display:'flex',flex:1,overflow:'hidden'}},
 
-      // Left sidebar. On the gallery landing surface there is no model to
-      // outline yet, so both rails collapse and the industry grid gets the
-      // full width instead of sitting in a 900px slot.
-      !landing&&h('div',{style:{width:250,background:'var(--card)',borderRight:'1px solid var(--line)',
+      // Left sidebar: the model outline.
+      h('div',{style:{width:250,background:'var(--card)',borderRight:'1px solid var(--line)',
                       display:'flex',flexDirection:'column',flexShrink:0}},
-        h('div',{style:{padding:'15px 15px 0',flexShrink:0}},
-          h('h3',{style:{margin:'0 0 3px',fontSize:14,color:'var(--ink)'}},
-            graphData?(graphData.modelVersion?`${graphData.modelName} ${graphData.modelVersion}`:graphData.modelName):'Data Model'
-          ),
-          graphData&&h('span',{style:{color:'var(--muted)',fontSize:11,display:'block',marginBottom:10,
-                                      paddingBottom:10,borderBottom:'1px solid var(--line)'}},
-            statsText
-          ),
+        h('div',{style:{padding:'12px 15px 0',flexShrink:0}},
           h('input',{type:'text',placeholder:'Search domains, tables...',
                      value:searchTerm,onChange:e=>setSearchTerm(e.target.value),
                      style:{marginBottom:6}})
@@ -2397,36 +2367,18 @@ function App(){
                                         color:'var(--g-amber-ink)',borderRadius:9,fontSize:12,fontWeight:650}},
           filterInfoText),
 
-        // Model name badge (main view only)
-        modelBadge&&h('div',{style:{position:'absolute',top:15,right:15,zIndex:1000,
-                                     padding:'7px 13px',background:'var(--brand)',
-                                     color:'var(--on-accent)',borderRadius:9,fontSize:12,fontWeight:650,
-                                     boxShadow:'var(--shadow)'}},
-          modelBadge),
-
-        // Empty state — in gallery mode this is the landing surface, so it shows
-        // the section's industries as cards rather than an idle prompt.
-        !graphData&&!isLoading&&!loadError&&(gallery
-          ? h('div',{style:{position:'absolute',top:0,left:0,right:0,bottom:0,overflowY:'auto',zIndex:500}},
-              h('div',{style:{padding:'26px 24px 4px',maxWidth:1560,margin:'0 auto',
-                              width:'100%',boxSizing:'border-box'}},
-                h('h2',{style:{margin:0,fontSize:19,fontWeight:650,color:'var(--ink)'}},
-                  ((manifest.sections||[])[section]||{}).name||'Industries'),
-                h('p',{style:{margin:'5px 0 0',fontSize:12.5,color:'var(--muted)'}},
-                  'Pick an industry to open its model. '+
-                  (manifest.industries||[]).length+' industries · '+
-                  (manifest.model_count||0)+' models · pinned to '+
-                  String(manifest.source&&manifest.source.ref||'').slice(0,7))
-              ),
-              h(IndustryGrid,{manifest,section,sel,onPick:next=>applySel(next)})
-            )
-          : h('div',{style:{position:'absolute',top:0,left:0,right:0,bottom:0,
-                            display:'flex',alignItems:'center',justifyContent:'center',zIndex:500}},
-              h('div',{style:{textAlign:'center'}},
-                h('div',{style:{fontSize:48,marginBottom:15}},'📊'),
-                h('p',{style:{color:'var(--muted)',fontSize:14}},'No model.json is bundled with this app')
-              )
-            )
+        // No landing page: the gallery opens straight into a model, so this only
+        // shows if that model could not be resolved at all.
+        !graphData&&!isLoading&&!loadError&&h('div',
+          {style:{position:'absolute',top:0,left:0,right:0,bottom:0,
+                  display:'flex',alignItems:'center',justifyContent:'center',zIndex:500}},
+          h('div',{style:{textAlign:'center'}},
+            h('div',{style:{fontSize:48,marginBottom:15}},'📊'),
+            h('p',{style:{color:'var(--muted)',fontSize:14}},
+              gallery?'Pick an industry to open its model':'No model.json is bundled with this app'),
+            gallery&&h('button',{className:'btn',style:{marginTop:12},
+              onClick:()=>setCmdOpen(true)},'Choose industry')
+          )
         ),
 
         // Loading overlay
@@ -2450,7 +2402,7 @@ function App(){
             gallery&&sel.industry&&h('button',{style:{...btnStyle,background:'var(--brand)',color:'var(--on-accent)',border:'none'},
               onClick:()=>{setLoadError(null);loadEntry(manifest,sel.industry,sel.version,sel.flavour);}},'Retry'),
             gallery&&h('button',{style:{...btnStyle},
-              onClick:()=>{setLoadError(null);applySel({industry:null,version:null});}},'Back to industries'),
+              onClick:()=>{setLoadError(null);setCmdOpen(true);}},'Choose another industry'),
             h('button',{style:{...btnStyle,background:'var(--danger)',color:'var(--on-accent)',border:'none',marginRight:0},
               onClick:()=>setLoadError(null)},'Dismiss')
           )
@@ -2461,7 +2413,7 @@ function App(){
       ),
 
       // Right panel
-      !landing&&h('div',{style:{width:280,background:'var(--card)',borderLeft:'1px solid var(--line)',
+      h('div',{style:{width:280,background:'var(--card)',borderLeft:'1px solid var(--line)',
                       display:'flex',flexDirection:'column',flexShrink:0,overflowY:'auto'}},
         h(NodeInfoPanel,{
           selectedNode:treeClick?null:selectedNode,
