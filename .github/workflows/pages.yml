@@ -28,13 +28,16 @@ jobs:
   drift-guard:
     runs-on: ubuntu-latest
     steps:
+      # Leading slashes anchor these to the repo root. Without them a non-cone
+      # pattern is a glob, so `docs` also matches every data-models/*/docs/ and
+      # the checkout pulls hundreds of MB it does not need.
       - uses: actions/checkout@v4
         with:
           filter: blob:none
           sparse-checkout: |
-            docs
-            tools
-            model-viewer/model-viewer-app/public
+            /docs/
+            /tools/
+            /model-viewer/model-viewer-app/public/
           sparse-checkout-cone-mode: false
       - name: docs/index.html and the Databricks App copy must be identical
         run: python3 tools/sync_viewer.py --check
@@ -42,24 +45,29 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # The model.json blobs are 866 MB, so the checkout is blobless and sparse.
-      # build_manifest.py reads byte sizes from `git ls-tree -l` (trees only) and
-      # v1 counts from models-info.csv, so 80 of the 108 models cost no bytes.
-      # The 28 v2 models have no CSV row, so it reads them with `git cat-file`,
-      # which the partial clone lazily fetches: 261 MB instead of 866 MB.
+      # The model.json blobs are 866 MB, so the checkout is blobless and sparse
+      # and pulls none of them: leading slashes keep the patterns anchored to the
+      # repo root rather than acting as globs.
       - uses: actions/checkout@v4
         with:
           filter: blob:none
           sparse-checkout: |
-            docs
-            tools
-            README.md
-            data-models/models-info.csv
+            /docs/
+            /tools/
+            /README.md
+            /data-models/models-info.csv
           sparse-checkout-cone-mode: false
 
+      # 80 of the 108 models are counted from models-info.csv, so they cost no
+      # bytes at all. The other 28 have no CSV row and are fetched gzipped from
+      # raw.githubusercontent (~30 MB on the wire, not 261 MB) while blob sizes
+      # come from one tree API call. Both avoid git's per-object lazy fetch on a
+      # partial clone, which took over 30 minutes for the same work.
       - name: Build manifest
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          python3 tools/build_manifest.py \
+          python3 -u tools/build_manifest.py \
             --repo . \
             --ref "$GITHUB_SHA" \
             --source "$GITHUB_REPOSITORY" \

@@ -26,18 +26,23 @@ a real difference, so this is worth the fetch.
 from __future__ import annotations
 
 import argparse
+import concurrent.futures as cf
 import csv
+import gzip
 import json
 import os
 import re
 import subprocess
 import sys
+import urllib.parse
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
 MODEL_PATH_RE = re.compile(r"^data-models/([a-z0-9_]+)/(v\d+)/(ecm|mvm)/model\.json$")
 INDEX_ROW_RE = re.compile(r"^\|\s*\[([^\]]+)\]\(\./data-models/([a-z0-9_]+)/\)\s*\|")
-LS_TREE_RE = re.compile(r"^\d+\s+blob\s+(\S+)\s+(\d+)\t(.+)$")
+LS_TREE_RE = re.compile(r"^\d+\s+blob\s+(\S+)\t(.+)$")
+LS_TREE_LONG_RE = re.compile(r"^\d+\s+blob\s+(\S+)\s+(\d+)\t(.+)$")
 
 EXPECTED_SECTIONS = 8
 EXPECTED_INDUSTRIES = 40
@@ -76,8 +81,56 @@ def run_git(repo: Path, *args: str) -> str:
     return proc.stdout
 
 
-def read_blob(repo: Path, sha: str) -> bytes:
-    """Raw blob bytes. Works on a blobless clone: git lazily fetches the object."""
+def prefetch_over_http(source: str, ref: str, paths: list[str]) -> dict[str, bytes]:
+    """Download the models we have to parse, in parallel, gzipped.
+
+    `git cat-file` on a blobless partial clone fetches ONE object per call, so
+    the 28 models needing a parse cost 28 sequential round-trips: ~65 s each on
+    a GitHub runner, which is the >30 min build this replaces. raw.githubusercontent
+    serves the same bytes gzipped over one connection per file, so the 261 MB of
+    JSON is ~30 MB on the wire (the 22.7 MB healthcare v2 ECM is 2.6 MB), and
+    the requests run concurrently.
+
+    Pinned to `ref`, so this reads exactly the commit being published. Returns
+    only what it got: a miss falls through to read_model, which keeps the build
+    working with no network and on a full clone.
+    """
+    if not source or not paths:
+        return {}
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    base = f"https://raw.githubusercontent.com/{source}/{ref}/"
+
+    def get(path: str) -> tuple[str, bytes | None]:
+        req = urllib.request.Request(
+            base + urllib.parse.quote(path),
+            headers={"Accept-Encoding": "gzip", "User-Agent": "build_manifest"},
+        )
+        if token:
+            req.add_header("Authorization", f"Bearer {token}")
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                raw = resp.read()
+                if resp.headers.get("Content-Encoding") == "gzip":
+                    raw = gzip.decompress(raw)
+                return path, raw
+        except Exception:
+            return path, None
+
+    out: dict[str, bytes] = {}
+    with cf.ThreadPoolExecutor(max_workers=8) as pool:
+        for path, body in pool.map(get, paths):
+            if body is not None:
+                out[path] = body
+    return out
+
+
+def read_model(repo: Path, path: str, sha: str, prefetched: dict[str, bytes]) -> bytes:
+    """Raw bytes for one model: the prefetch, then the working tree, then git."""
+    if path in prefetched:
+        return prefetched[path]
+    on_disk = repo / path
+    if on_disk.is_file():
+        return on_disk.read_bytes()
     proc = subprocess.run(
         ["git", "cat-file", "blob", sha],
         cwd=repo,
@@ -156,20 +209,89 @@ def parse_models_info(csv_path: Path) -> tuple[dict[str, str], dict[tuple[str, s
     return agent_versions, counts
 
 
-def list_models(repo: Path, ref: str) -> dict[tuple[str, str, str], dict]:
-    """Map (slug, version, flavour) -> {path, bytes, sha} from the git tree."""
-    output = run_git(repo, "ls-tree", "-r", "-l", ref, "data-models")
+def api_tree_sizes(source: str, ref: str) -> dict[str, int]:
+    """path -> byte size for the whole tree at `ref`, in one request.
+
+    `git ls-tree -l` reports a size by reading the object, so on a blobless
+    clone it fetches every blob it lists: measured at 3m08s for just the 108
+    model.json files, and the reason the first CI build sat for 30 minutes.
+    The tree API carries the size as metadata, so one call covers everything
+    (6040 entries here, untruncated, 3 s).
+
+    Returns {} on any failure or truncation so the caller falls back to git.
+    """
+    if not source:
+        return {}
+    req = urllib.request.Request(
+        f"https://api.github.com/repos/{source}/git/trees/{ref}?recursive=1",
+        headers={"Accept": "application/vnd.github+json", "User-Agent": "build_manifest"},
+    )
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    if token:
+        req.add_header("Authorization", f"Bearer {token}")
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            payload = json.loads(resp.read())
+    except Exception:
+        return {}
+    if payload.get("truncated"):
+        return {}
+    return {
+        entry["path"]: entry["size"]
+        for entry in payload.get("tree", [])
+        if entry.get("type") == "blob" and isinstance(entry.get("size"), int)
+    }
+
+
+def list_models(repo: Path, ref: str, source: str = "") -> dict[tuple[str, str, str], dict]:
+    """Map (slug, version, flavour) -> {path, bytes, sha} from the git tree.
+
+    Paths and SHAs come from `ls-tree` without `-l`, which needs no blobs and is
+    instant on a partial clone. Sizes come from the tree API, then the working
+    tree, then `ls-tree -l` for whatever is left.
+    """
+    output = run_git(repo, "ls-tree", "-r", ref, "data-models")
     found: dict[tuple[str, str, str], dict] = {}
     for line in output.splitlines():
         match = LS_TREE_RE.match(line)
         if not match:
             continue
-        sha, size, path = match.groups()
+        sha, path = match.groups()
         path_match = MODEL_PATH_RE.match(path)
         if not path_match:
             continue
         slug, version, flavour = path_match.groups()
-        found[(slug, version, flavour)] = {"path": path, "bytes": int(size), "sha": sha}
+        found[(slug, version, flavour)] = {"path": path, "bytes": None, "sha": sha}
+
+    sizes = api_tree_sizes(source, ref)
+    unsized: list[dict] = []
+    for meta in found.values():
+        size = sizes.get(meta["path"])
+        if size is None:
+            on_disk = repo / meta["path"]
+            size = on_disk.stat().st_size if on_disk.is_file() else None
+        if size is None:
+            unsized.append(meta)
+        else:
+            meta["bytes"] = size
+
+    if unsized:
+        # Last resort, and the slow one: this reads each object.
+        print(
+            f"warning: falling back to 'ls-tree -l' for {len(unsized)} size(s)",
+            file=sys.stderr,
+        )
+        long_form = run_git(
+            repo, "ls-tree", "-r", "-l", ref, "--", *(m["path"] for m in unsized)
+        )
+        by_path = {}
+        for line in long_form.splitlines():
+            match = LS_TREE_LONG_RE.match(line)
+            if match:
+                by_path[match.group(3)] = int(match.group(2))
+        for meta in unsized:
+            meta["bytes"] = by_path.get(meta["path"], 0)
+
     return found
 
 
@@ -236,9 +358,11 @@ def resolve_source(repo: Path, ref: str, override: str | None) -> dict:
 
 
 def build(repo: Path, ref: str, strict: bool, source: str | None) -> dict:
+    resolved_source = resolve_source(repo, ref, source)
     sections, by_slug = parse_readme_sections(repo / "README.md")
     agent_versions, csv_counts = parse_models_info(repo / "data-models" / "models-info.csv")
-    tree = list_models(repo, ref)
+    source_slug = f"{resolved_source['owner']}/{resolved_source['repo']}"
+    tree = list_models(repo, ref, source_slug)
 
     tree_slugs = {key[0] for key in tree}
     missing_from_readme = sorted(tree_slugs - set(by_slug))
@@ -257,6 +381,21 @@ def build(repo: Path, ref: str, strict: bool, source: str | None) -> dict:
     grouped: dict[str, dict[str, dict[str, dict]]] = {}
     for (slug, version, flavour), meta in tree.items():
         grouped.setdefault(slug, {}).setdefault(version, {})[flavour] = meta
+
+    # models-info.csv only covers CSV_VERSION, so every other model has to be
+    # parsed. Pull those concurrently up front instead of one blob at a time.
+    needs_parse = sorted(
+        meta["path"]
+        for (slug, version, flavour), meta in tree.items()
+        if version != CSV_VERSION or (slug, flavour) not in csv_counts
+    )
+    absent = [p for p in needs_parse if not (repo / p).is_file()]
+    prefetched = prefetch_over_http(source_slug, ref, absent) if absent else {}
+    if absent:
+        print(
+            f"prefetched {len(prefetched)}/{len(absent)} model(s) over https",
+            file=sys.stderr,
+        )
 
     industries = []
     uncounted: list[str] = []
@@ -283,7 +422,7 @@ def build(repo: Path, ref: str, strict: bool, source: str | None) -> dict:
                         entry["counts_from"] = "models-info.csv"
                     else:
                         try:
-                            payload = json.loads(read_blob(repo, meta["sha"]))
+                            payload = json.loads(read_model(repo, meta["path"], meta["sha"], prefetched))
                             entry["counts"] = count_model(payload)
                             entry["counts_from"] = "model.json"
                             parsed_paths.append(meta["path"])
@@ -323,7 +462,7 @@ def build(repo: Path, ref: str, strict: bool, source: str | None) -> dict:
     return {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "commit_sha": ref,
-        "source": resolve_source(repo, ref, source),
+        "source": resolved_source,
         "model_count": total_models,
         "totals": {
             "sections": len(sections),
@@ -381,8 +520,9 @@ def check(manifest: dict) -> list[str]:
             if not version["flavours"]:
                 problems.append(f"{slug} {version['version']} has no flavours")
             for flavour in version["flavours"]:
-                if flavour["bytes"] <= 0:
-                    problems.append(f"{flavour['path']} has zero bytes")
+                size = flavour.get("bytes")
+                if not isinstance(size, int) or size <= 0:
+                    problems.append(f"{flavour['path']} has no usable byte size: {size!r}")
                 counts = flavour.get("counts") or {}
                 for field in COUNT_FIELDS:
                     if field not in counts:
