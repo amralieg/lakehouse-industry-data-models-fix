@@ -651,7 +651,6 @@ function extractGraph(dataModel) {
     domainSlots[dname] = slot;
 
     let dAttr=0, dFk=0, dTag=0, dTbl=0;
-    const dCatCount={};
     domainHierarchy[dname] = {
       color, slot, description: domain.description||'', division: domain.division||'',
       tables:{}, subdomains:{}
@@ -661,15 +660,6 @@ function extractGraph(dataModel) {
       const tname = product.name||'';
       const fullId = `${dname}.${tname}`;
       const subdomain = product.subdomain||'';
-      // original physical table name (for the "semantic" toggle): prefer the source
-      // reference (catalog.schema.table) leaf, then table_name, then the product name.
-      const origName = ((product.reference||'').split('.').pop())||product.table_name||tname;
-      // physical catalog/schema from the source reference (catalog.schema.table),
-      // used by the Semantic toggle to relabel domain->catalog, subdomain->database.
-      const refParts=(product.reference||'').split('.');
-      const pCatalog=refParts.length>=3?refParts[0]:'';
-      const pSchema=refParts.length>=3?refParts[refParts.length-2]:'';
-      if(pCatalog) dCatCount[pCatalog]=(dCatCount[pCatalog]||0)+1;
       dTbl++;
 
       const attrs = product.attributes||[];
@@ -699,15 +689,13 @@ function extractGraph(dataModel) {
 
       if(subdomain){
         if(!domainHierarchy[dname].subdomains[subdomain])
-          domainHierarchy[dname].subdomains[subdomain]={tables:[],attr_count:0,fk_count:0,schemaCount:{}};
+          domainHierarchy[dname].subdomains[subdomain]={tables:[],attr_count:0,fk_count:0};
         const sd=domainHierarchy[dname].subdomains[subdomain];
         sd.tables.push(tname); sd.attr_count+=attrList.length; sd.fk_count+=fkCount;
-        if(pSchema) sd.schemaCount[pSchema]=(sd.schemaCount[pSchema]||0)+1;
       }
 
       nodes.push({
-        data:{id:fullId,label:tname,sem_label:tname,orig_label:origName,
-              orig_catalog:pCatalog,orig_schema:pSchema,
+        data:{id:fullId,label:tname,
               parent:`domain_${dname}`,type:'table',
               domain:dname,subdomain,attribute_count:attrList.length,
               fk_count:fkCount,tag_count:tagArr.length,color,slot},
@@ -737,12 +725,9 @@ function extractGraph(dataModel) {
     });
 
     domainStats[dname]={table_count:dTbl,attr_count:dAttr,fk_count:dFk,tag_count:dTag};
-    const domCatalog=Object.keys(dCatCount).sort((a,b)=>dCatCount[b]-dCatCount[a])[0]||'';
-    domainHierarchy[dname].catalog=domCatalog;
     nodes.push({
       data:{id:`domain_${dname}`,label:dname.toUpperCase(),
-            sem_label:dname.toUpperCase(),orig_label:domCatalog||dname.toUpperCase(),
-            orig_catalog:domCatalog,type:'domain',color,slot,
+            type:'domain',color,slot,
             division:domain.division||'',table_count:dTbl,attr_count:dAttr,
             fk_count:dFk,tag_count:dTag,width:DEFAULT_W,height:DEFAULT_H},
       classes:'domain-node'
@@ -2027,11 +2012,8 @@ function App(){
           subNodeIds.add(sdId);
           const sdSlot=SUBDOMAIN_SLOTS[sdi%SUBDOMAIN_SLOTS.length];
           const sdColor='var('+sdSlot+')';
-          const scMap=(subs[sdname]||{}).schemaCount||{};
-          const sdSchema=Object.keys(scMap).sort((a,b)=>scMap[b]-scMap[a])[0]||'';
           const semLbl=sdname.replace(/_/g,' ').replace(/-/g,' ');
           result.push({data:{id:sdId,label:semLbl,
-            sem_label:semLbl,orig_label:sdSchema||semLbl,orig_schema:sdSchema,
             type:'subdomain',color:sdColor,slot:sdSlot,domain:dname,domain_color:domColor},classes:'subdomain-node'});
         });
       } else {
