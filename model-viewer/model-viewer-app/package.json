@@ -4,7 +4,9 @@
   "description": "Data Model Viewer - interactive graph visualization",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "sync": "python3 ../../tools/sync_viewer.py",
+    "sync:check": "python3 ../../tools/sync_viewer.py --check"
   },
   "dependencies": {
     "express": "^4.18.2"
