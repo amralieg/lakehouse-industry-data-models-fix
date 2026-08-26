@@ -467,6 +467,8 @@
     border-radius:9px;cursor:pointer;font-size:12px;font-weight:650;transition:background .15s,border-color .15s}
   .btn:hover{background:var(--well);border-color:var(--line-strong)}
   .btn:active{background:var(--line)}
+  .btn-accent{background:var(--brand);border-color:var(--brand);color:var(--on-accent);flex-shrink:0}
+  .btn-accent:hover{filter:brightness(1.06)}
   .btn-danger{background:var(--danger);border-color:var(--danger);color:var(--on-accent)}
   .btn-danger:hover{filter:brightness(1.08)}
 
@@ -505,6 +507,7 @@
     border-bottom:1px solid var(--line);box-shadow:var(--shadow-seam)}
   .topbar-mid{display:flex;align-items:center;gap:9px;min-width:0;flex:1;overflow:hidden}
   .topbar-end{display:flex;align-items:center;gap:6px;flex-shrink:0}
+  .topbar-start{display:flex;align-items:center;gap:7px;flex-shrink:0}
   .vrule{width:1px;height:22px;background:var(--line);flex-shrink:0}
   .brandmark{display:flex;align-items:center;gap:7px;white-space:nowrap;flex-shrink:0;
     text-decoration:none;color:inherit}
@@ -559,10 +562,8 @@
      affordance vanishing. */
   .extarrow{font-size:9px;line-height:1;opacity:.5;flex-shrink:0;transform:translateY(-1px)}
 
-  /* Last in the row and never shrinks. Separated by a margin rather than a rule,
-     because it closes the bar rather than joining the control group. */
-  .dbxlogo{display:inline-flex;align-items:center;flex-shrink:0;margin-left:5px;
-    color:var(--logo-ink)}
+  /* Opens the bar: sits with the wordmark, not at the trailing edge. */
+  .dbxlogo{display:inline-flex;align-items:center;flex-shrink:0;color:var(--logo-ink)}
   a.brandmark:hover .brandmark-title{color:var(--brand)}
   a.brandmark:hover .extarrow{opacity:1}
 
@@ -672,9 +673,8 @@ const TREE_ATTR_CAP = 250;
 
 // ── Theme ─────────────────────────────────────────────────
 const THEME_KEY='dbx-model-theme', PAL_KEY='dbx-model-pal', ANIM_KEY='dbx-model-animate';
-/* Every outbound GitHub link in the chrome points here. Model JSON is still
-   fetched from manifest.source (which may be a fork's Pages deploy), but a
-   visitor clicking the wordmark or the industry name should land on upstream. */
+/* Every outbound GitHub link in the chrome points here. Industry model JSON is
+   fetched from upstream main via modelUrls(); manifest.source is not used for loads. */
 const UPSTREAM_REPO={owner:'databricks-industry-solutions',repo:'lakehouse-industry-data-models'};
 const PALETTES=[
   {id:'default',label:'Default'},{id:'muted',label:'Muted'},{id:'vivid',label:'Vivid'},
@@ -1694,10 +1694,11 @@ function modelDirLink(_source,entry){
   return `https://github.com/${UPSTREAM_REPO.owner}/${UPSTREAM_REPO.repo}/tree/main/${dir}`;
 }
 
-/* Both URLs are pinned to the manifest's commit, so a model can never be
-   fetched from a tree that disagrees with the counts the card advertised. */
-function modelUrls(source,path,bytes){
-  const {owner,repo,ref}=source;
+/* Industry models always load from the canonical upstream repo on main, even when
+   manifest.source points at a fork's Pages build. Paths still come from the manifest. */
+function modelUrls(path,bytes){
+  const {owner,repo}=UPSTREAM_REPO;
+  const ref='main';
   const raw=`https://raw.githubusercontent.com/${owner}/${repo}/${ref}/${path}`;
   if(bytes>JSDELIVR_MAX_BYTES) return [raw];
   return [`https://cdn.jsdelivr.net/gh/${owner}/${repo}@${ref}/${path}`,raw];
@@ -1731,6 +1732,19 @@ async function fetchModelJson(urls,expectedBytes,onProgress){
     }catch(e){ lastErr=e; }
   }
   throw new Error((lastErr&&lastErr.message)||'all sources failed');
+}
+
+function LoadJsonButton({onFile}){
+  return h('label',{className:'btn btn-accent',title:'Open a local model.json file',
+      style:{margin:0,cursor:'pointer',whiteSpace:'nowrap'}},
+    'Load from JSON',
+    h('input',{type:'file',accept:'.json,application/json',style:{display:'none'},
+      onChange:e=>{
+        const f=e.target.files&&e.target.files[0];
+        e.target.value='';
+        if(f&&onFile) onFile(f);
+      }})
+  );
 }
 
 function ThemeControls({theme,onTheme,palette,onPalette}){
@@ -1769,7 +1783,7 @@ function ThemeControls({theme,onTheme,palette,onPalette}){
 /* The whole chrome, on one line: brand, then the loaded model and its counts,
    then the searchable industry picker and every control. `actions` carries the
    graph buttons so this stays presentational and App keeps the cytoscape refs. */
-function TopBar({manifest,sel,onSelect,onJump,graphData,loadStatus,actions}){
+function TopBar({manifest,sel,onSelect,onJump,graphData,loadStatus,onLoadJson,actions}){
   const gallery=!!manifest;
   const industry=gallery&&sel.industry?findIndustry(manifest,sel.industry):null;
   const versions=industry?(industry.versions||[]).map(v=>v.version):[];
@@ -1789,14 +1803,16 @@ function TopBar({manifest,sel,onSelect,onJump,graphData,loadStatus,actions}){
   const repoUrl=gallery?repoHomeLink():'';
 
   return h('div',{className:'topbar'},
-    // An anchor only when there is a repo to point at, so the App keeps a plain
-    // wordmark rather than a link that would go nowhere.
-    h(repoUrl?'a':'div',{className:'brandmark',
-        ...(repoUrl?{href:repoUrl,target:'_blank',rel:'noopener noreferrer',
-          title:'Open the Lakehouse Industry Model repository on GitHub'}:{})},
-      h('span',{className:'brandmark-dot'}),
-      h('span',{className:'brandmark-title'},gallery?'Lakehouse Industry Model':'Model Viewer'),
-      repoUrl&&h('span',{className:'extarrow','aria-hidden':'true'},'↗')
+    h('div',{className:'topbar-start'},
+      h(DatabricksLogo),
+      h(repoUrl?'a':'div',{className:'brandmark',
+          ...(repoUrl?{href:repoUrl,target:'_blank',rel:'noopener noreferrer',
+            title:'Open the Lakehouse Industry Model repository on GitHub'}:{})},
+        h('span',{className:'brandmark-dot'}),
+        h('span',{className:'brandmark-title'},gallery?'Lakehouse Industry Model':'Model Viewer'),
+        repoUrl&&h('span',{className:'extarrow','aria-hidden':'true'},'↗')
+      ),
+      onLoadJson&&h(LoadJsonButton,{onFile:onLoadJson})
     ),
 
     // Loaded model, then its counts. Both live in the one cell that is
@@ -1856,8 +1872,7 @@ function TopBar({manifest,sel,onSelect,onJump,graphData,loadStatus,actions}){
         onChange:e=>onSelect({version:e.target.value})},
         versions.map(v=>h('option',{key:v,value:v},v.toUpperCase()))
       ),
-      actions,
-      h(DatabricksLogo)
+      actions
     )
   );
 }
@@ -2075,7 +2090,7 @@ function App(){
     setLoadStatus(`Loading ${label} · ${fmtBytes(entry.bytes)}`);
     try{
       const data=await fetchModelJson(
-        modelUrls(m.source,entry.path,entry.bytes),
+        modelUrls(entry.path,entry.bytes),
         entry.bytes,
         (received,total)=>{ if(token===loadTokenRef.current) setProgress({received,total,label}); }
       );
@@ -2090,6 +2105,31 @@ function App(){
       setLoadStatus('');
       setLoadError(`Could not load ${label} (${fmtBytes(entry.bytes)}): ${e.message}`);
     }
+  },[processModel]);
+
+  const handleLoadJsonFile=useCallback((file)=>{
+    if(!file) return;
+    loadTokenRef.current++;
+    setIsLoading(true); setLoadError(null); setProgress(null);
+    setLoadStatus('Reading '+file.name+'…');
+    const reader=new FileReader();
+    reader.onload=()=>{
+      try{
+        const data=JSON.parse(String(reader.result||''));
+        setProgress(null);
+        const label=file.name.replace(/\.json$/i,'')||file.name;
+        processModel(data,label);
+        setLoadStatus('✓ '+label);
+      }catch(e){
+        setIsLoading(false); setProgress(null); setLoadStatus('');
+        setLoadError('Could not parse '+file.name+': '+e.message);
+      }
+    };
+    reader.onerror=()=>{
+      setIsLoading(false); setLoadStatus('');
+      setLoadError('Could not read '+file.name);
+    };
+    reader.readAsText(file);
   },[processModel]);
 
   /* ── Gallery: URL is the source of truth ──────────────────
@@ -2618,6 +2658,7 @@ function App(){
     h(TopBar,{manifest,sel,graphData,loadStatus:isLoading?loadStatus:'',
       onSelect:next=>applySel(next),
       onJump:()=>setCmdOpen(true),
+      onLoadJson:handleLoadJsonFile,
       actions:h(React.Fragment,null,
         // Graph controls do nothing without a graph, so they stay hidden until
         // one is loaded rather than sitting there inert.
@@ -2769,7 +2810,7 @@ function App(){
                     padding:'4px 10px',background:'var(--well)',border:'1px solid var(--line)',
                     borderRadius:12,fontSize:11,color:'var(--muted)'}},
       gallery
-        ? (manifest.source.owner+'/'+manifest.source.repo+' @ '+String(manifest.source.ref).slice(0,7))
+        ? (UPSTREAM_REPO.owner+'/'+UPSTREAM_REPO.repo+' @ main')
         : 'v1.1'),
 
     // Cmd-K jump palette — 40 industries do not browse well by clicking alone.
