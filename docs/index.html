@@ -1829,10 +1829,28 @@ function ThemeControls({theme,onTheme,palette,onPalette}){
   );
 }
 
+function GraphViewToggles({showDomains,onShowDomains,animate,onAnimate}){
+  return h(React.Fragment,null,
+    h('label',{className:'tbtn',title:'Show domain grouping boxes',
+        style:{gap:5,cursor:'pointer',fontWeight:650,color:'var(--muted)'}},
+      h('input',{type:'checkbox',checked:showDomains,
+        onChange:e=>onShowDomains(e.target.checked),
+        style:{cursor:'pointer',margin:0}}),
+      'Domains'),
+    h('label',{className:'tbtn',title:'Spiral the graph in when a view loads',
+        style:{gap:5,cursor:'pointer',fontWeight:650,color:'var(--muted)'}},
+      h('input',{type:'checkbox',checked:animate,
+        onChange:e=>onAnimate(e.target.checked),
+        style:{cursor:'pointer',margin:0}}),
+      'Animate')
+  );
+}
+
 /* The whole chrome, on one line: brand, then the loaded model and its counts,
    then the searchable industry picker and every control. `actions` carries the
    graph buttons so this stays presentational and App keeps the cytoscape refs. */
-function TopBar({manifest,sel,onSelect,onJump,graphData,loadStatus,localModel,onLoadJson,actions}){
+function TopBar({manifest,sel,onSelect,onJump,graphData,loadStatus,localModel,onLoadJson,
+  showDomains,onShowDomains,animate,onAnimate,actions}){
   const gallery=!!manifest;
   const industry=gallery&&sel.industry?findIndustry(manifest,sel.industry):null;
   const versions=industry?(industry.versions||[]).map(v=>v.version):[];
@@ -1938,6 +1956,7 @@ function TopBar({manifest,sel,onSelect,onJump,graphData,loadStatus,localModel,on
         onChange:e=>onSelect({version:e.target.value})},
         versions.map(v=>h('option',{key:v,value:v},v.toUpperCase()))
       ),
+      graphData&&h(GraphViewToggles,{showDomains,onShowDomains,animate,onAnimate}),
       actions
     )
   );
@@ -2735,6 +2754,7 @@ function App(){
       },
       onJump:()=>setCmdOpen(true),
       onLoadJson:handleLoadJsonFile,
+      showDomains,onShowDomains:setShowDomains,animate,onAnimate:setAnimate,
       actions:h(React.Fragment,null,
         // Graph controls do nothing without a graph, so they stay hidden until
         // one is loaded rather than sitting there inert.
@@ -2758,19 +2778,7 @@ function App(){
             onClick:()=>{
           setFilterState({type:null,value:null});setNavHistory([]);
           setTimeout(()=>cyRef.current&&cyRef.current.fit(50),100);
-        }},h(ToolbarIcon,{name:'reset'})),
-          h('label',{className:'tbtn',title:'Show domain grouping boxes',
-              style:{gap:5,cursor:'pointer',fontWeight:650,color:'var(--muted)'}},
-            h('input',{type:'checkbox',checked:showDomains,
-              onChange:e=>setShowDomains(e.target.checked),
-              style:{cursor:'pointer',margin:0}}),
-            'Domains'),
-          h('label',{className:'tbtn',title:'Spiral the graph in when a view loads',
-              style:{gap:5,cursor:'pointer',fontWeight:650,color:'var(--muted)'}},
-            h('input',{type:'checkbox',checked:animate,
-              onChange:e=>setAnimate(e.target.checked),
-              style:{cursor:'pointer',margin:0}}),
-            'Animate')
+        }},h(ToolbarIcon,{name:'reset'}))
         ),
         h(ThemeControls,{theme,onTheme:setTheme,palette,onPalette:setPalette})
       )}),
