@@ -508,47 +508,63 @@
   .vrule{width:1px;height:22px;background:var(--line);flex-shrink:0}
   .brandmark{display:flex;align-items:center;gap:7px;white-space:nowrap;flex-shrink:0;
     text-decoration:none;color:inherit}
-  a.brandmark:hover .brandmark-title{color:var(--brand)}
   .brandmark-dot{width:10px;height:10px;border-radius:3px;background:var(--brand);flex-shrink:0}
   .brandmark-title{font-size:14px;font-weight:800;letter-spacing:-.02em;color:var(--ink)}
   /* The wordmark does not shrink, so on small laptops it starved the mid cell
-     until the model name and Open Model had nowhere to sit. The dot keeps the
-     brand present; the functional controls get the width. */
-  @media (max-width:1200px){ .brandmark-title{display:none} }
+     until the model name had nowhere to sit. The dot keeps the brand present;
+     the functional controls get the width. The arrow goes with the words it
+     annotates: left on its own beside the dot it reads as a stray glyph. */
+  @media (max-width:1200px){
+    .brandmark-title,.brandmark .extarrow{display:none}
+  }
 
   /* Searchable industry picker: the trigger names the open model, and opens
      the same palette Cmd-K does rather than a second search of its own. */
+  /* Shrinkable, or a long industry name holds the trigger at its full width and
+     the deficit lands on the fixed control group instead, pushing the last of it
+     (the logo) off the right edge. Shrinking here ellipsises a name nobody needs
+     in full, because the same name sits in the link beside the wordmark. */
   .indpick{display:inline-flex;align-items:center;gap:8px;max-width:280px;
     padding:5px 9px;border:1px solid var(--line-strong);border-radius:9px;
     background:var(--card);color:var(--ink);font-size:12px;font-weight:700;
-    cursor:pointer;white-space:nowrap;flex-shrink:0}
+    cursor:pointer;white-space:nowrap;flex-shrink:1;min-width:0}
   .indpick:hover{border-color:var(--brand-bd);background:var(--brand-wash)}
-  .indpick-name{overflow:hidden;text-overflow:ellipsis}
+  .indpick-name{overflow:hidden;text-overflow:ellipsis;min-width:0}
   .indpick-sec{font-size:10px;font-weight:650;color:var(--faint);flex-shrink:0}
   .indpick-caret{color:var(--muted);font-size:9px;flex-shrink:0}
+  /* The section is context for the name, so it goes before the name thins out. */
+  @media (max-width:1080px){ .indpick-sec{display:none} }
 
   /* Shrinks last: which model is open matters more than its counts, so the
      stats give up room first and only a pathological name ellipsizes. It must
      still be shrinkable, or text-overflow can never engage and the mid cell's
-     overflow:hidden slices the name off mid-letter instead. */
-  .modelname{font-size:12px;font-weight:750;color:var(--ink);white-space:nowrap;
-    overflow:hidden;text-overflow:ellipsis;flex-shrink:1;min-width:0;max-width:220px}
-  /* By here the name has ellipsised down to a letter or two and the industry
-     picker beside it already spells out the same model, so it and its rules go.
-     The toolbar never shrinks, so the picker also gives back some of its width
-     (its label ellipsises) to leave Open Model whole. Must follow the rules it
-     overrides. */
-  @media (max-width:1080px){
-    .modelname{display:none} .topbar-mid .vrule{display:none}
-    .indpick{max-width:190px} }
+     overflow:hidden slices the name off mid-letter instead. It is now the link
+     to the model, so it may ellipsise but must never be hidden. */
+  .modelname{display:inline-flex;align-items:baseline;gap:3px;
+    font-size:12px;font-weight:750;color:var(--ink);white-space:nowrap;
+    overflow:hidden;flex-shrink:1;min-width:0;max-width:230px;text-decoration:none}
+  .modelname .lbl{overflow:hidden;text-overflow:ellipsis;min-width:0}
+  a.modelname:hover{color:var(--brand)}
+  a.modelname:hover .extarrow{opacity:1}
+  /* Below this the mid cell can only fund an initial and an ellipsis, and at the
+     bottom of the band the label reached zero width while the arrow survived,
+     leaving an affordance floating between two rules. The picker still names the
+     open industry, so the whole cell leaves together with its trailing rule. */
+  @media (max-width:920px){
+    .modelname,.modelname+.vrule{display:none}
+  }
 
-  /* Sits after the counts and does not shrink, so the stats clip before a
-     control the visitor was promised disappears. */
-  .openmodel{display:inline-flex;align-items:center;gap:5px;flex-shrink:0;
-    padding:4px 9px;border:1px solid var(--brand-bd);border-radius:8px;
-    background:var(--brand-wash);color:var(--brand-ink);font-size:11px;
-    font-weight:750;text-decoration:none;white-space:nowrap}
-  .openmodel:hover{background:var(--brand);color:var(--on-accent);border-color:var(--brand)}
+  /* The two links in the bar say so the same way: a muted arrow that firms up on
+     hover. It never shrinks, so the name ellipsises under it rather than the
+     affordance vanishing. */
+  .extarrow{font-size:9px;line-height:1;opacity:.5;flex-shrink:0;transform:translateY(-1px)}
+
+  /* Last in the row and never shrinks. Separated by a margin rather than a rule,
+     because it closes the bar rather than joining the control group. */
+  .dbxlogo{display:inline-flex;align-items:center;flex-shrink:0;margin-left:5px;
+    color:var(--logo-ink)}
+  a.brandmark:hover .brandmark-title{color:var(--brand)}
+  a.brandmark:hover .extarrow{opacity:1}
 
   .tbtn{height:26px;min-width:26px;padding:0 7px;display:inline-flex;align-items:center;
     justify-content:center;background:var(--card);color:var(--ink);
@@ -582,8 +598,16 @@
   .statset .stat{flex-shrink:0}
   /* Must follow .statset's own display rule to win the cascade. Below this the
      counts are down to a digit or two and worthless, so the whole set goes
-     rather than lingering as a sliced fragment. */
-  @media (max-width:1200px){ .statset{display:none} }
+     rather than lingering as a sliced fragment.
+
+     Wrapping only hides a chip that can move to the clipped second row, so it
+     cannot save a chip that is itself wider than the cell: at 1200 the longest
+     industry name left the counts 56px against a 64px "13 Domains" and the chip
+     was sliced. The cell gets viewport minus about 1224px for the longest name
+     in the gallery, so one chip needs roughly 1340px; 1360 keeps a margin. The
+     cost is that short-named models lose their counts a little earlier than they
+     strictly must, which is the trade this element was chosen to absorb. */
+  @media (max-width:1360px){ .statset{display:none} }
 
   .iconbtn{width:30px;height:28px;display:inline-flex;align-items:center;justify-content:center;
     padding:0;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:9px;
@@ -914,34 +938,109 @@ function repaintGraph(cy,t){
   });
 }
 
+/* The hue behind a slot name or a var() reference to one, e.g. --g-teal-line and
+   var(--g-teal-ink) both give 'teal'. '' for the non-hue slots (--m-gold,
+   --danger, --brand), whose callers fall back to a neutral. */
+function hueOfSlot(slot){
+  const m=/--g-([a-z]+)-/.exec(slot||'');
+  return m?m[1]:'';
+}
+
+/* Style for a filled chip on a hue. Composed from tile/ink/bd, never from
+   line/head/ink: those are STROKE colours, dark in BOTH themes, so filling with
+   one and writing --ink on top gives a dark block with dark text in light mode.
+   tile/ink flip per theme, so the chip stays legible in both. */
+function hueChip(hue){
+  return hue
+    ?{background:`var(--g-${hue}-tile)`,color:`var(--g-${hue}-ink)`,
+      border:`1px solid var(--g-${hue}-bd)`}
+    :{background:'var(--well)',color:'var(--ink)',border:'1px solid var(--line)'};
+}
+
 function prefersReducedMotion(){
   return !!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 }
 
-/* The camera moves, not the elements, so the entry costs the same on a 15-table
-   model as on a 1500-relationship one. Edges are held back for the flight because
-   they are the bulk of the per-frame draw cost: the glide keeps its frame rate on
-   the largest models, and the network snaps together on arrival. Call it with the
-   viewport already fitted — that fit is the destination. */
-function playCameraIntro(cy,host,cinematic){
+/* Entry animation. Every arrangement in this viewer is radial — the main view
+   rings its domains, a domain view rings its products — so a node's finished
+   position is already polar about the centre, and the entry is just that polar
+   pair animated: the radius grows from nothing while an extra twist unwinds to
+   nothing. Everything therefore starts as one dot in the middle and spirals out
+   into place, and no separate set of start positions has to be invented.
+
+   Only childless nodes are moved. Cytoscape derives a compound parent's box from
+   its children, so the domain boxes grow out of the middle for free.
+
+   Edges are held for the run and released in waves on arrival: they are the bulk
+   of the per-frame cost, and holding them is what lets 542 nodes move at frame
+   rate on the largest model. It has to be display, not visibility. A
+   visibility:hidden edge is still walked and its geometry still recomputed every
+   frame, so it bought almost nothing (measured on the largest model: 150ms per
+   frame drawn, 124ms with visibility:hidden, 41ms with display:none).
+
+   Call it with the viewport already fitted: that fit is the destination. */
+function playSpiralIntro(cy,host,cinematic){
   const w=cy.width(),h=cy.height();
   if(!w||!h) return null;
   const zTo=cy.zoom(),pTo=Object.assign({},cy.pan());
   if(!(zTo>0)) return null;
+
+  const movers=cy.nodes().filter(n=>n.isChildless());
+  if(movers.length<2) return null;
+
+  let sx=0,sy=0;
+  movers.forEach(n=>{const p=n.position();sx+=p.x;sy+=p.y;});
+  const ox=sx/movers.length,oy=sy/movers.length;
+
+  const seeds=[];
+  let rMax=0;
+  movers.forEach(n=>{
+    const p=n.position(),dx=p.x-ox,dy=p.y-oy;
+    const r=Math.hypot(dx,dy);
+    if(r>rMax) rMax=r;
+    seeds.push({n,x:p.x,y:p.y,r,a:Math.atan2(dy,dx)});
+  });
+  // A single point has no radius to grow along, so there is nothing to spiral.
+  if(!(rMax>0)) return null;
+
+  const dur=cinematic?1500:620;
+  const swirl=cinematic?5.2:1.5;   // radians of twist, unwound by arrival
+  const lag=cinematic?0.45:0.22;   // share of the run spent releasing outer rings
+  const lift=cinematic?0.14:0.05;  // the camera opens out as the rings do
   const edges=cy.edges();
-  const zFar=Math.max(cy.minZoom()*1.02,zTo*(cinematic?0.055:0.22));
-  const approach=cinematic?1250:520,settle=cinematic?340:200;
   const waveTimers=[];
   const handle={finished:false};
+  let raf=0;
 
-  edges.style('visibility','hidden');
-  cy.zoom({level:zFar,renderedPosition:{x:w/2,y:h/2}});
-  cy.panBy({x:Math.round(w*0.09),y:-Math.round(h*0.06)});
-  if(host){host.classList.remove('cy-flyin');void host.offsetWidth;host.classList.add('cy-flyin');}
+  // Keeping the world point that ends up at the centre of the viewport pinned
+  // there for every intermediate zoom, so the camera opens about the dot rather
+  // than about the canvas origin.
+  const wx=(w/2-pTo.x)/zTo,wy=(h/2-pTo.y)/zTo;
+  const camAt=z=>({zoom:z,pan:{x:w/2-z*wx,y:h/2-z*wy}});
+  const ease=x=>1-Math.pow(1-x,3);
 
+  /* The camera move goes inside the same batch as the positions. On its own it
+     is a second notification in the same frame, and cytoscape answers each one
+     with its own render pass, which halved the frame rate for a move the eye can
+     barely follow. */
+  const place=p=>{
+    cy.batch(()=>{
+      for(let i=0;i<seeds.length;i++){
+        const s=seeds[i];
+        const e=ease(Math.min(1,Math.max(0,(p-lag*(s.r/rMax))/(1-lag))));
+        const r=s.r*e,a=s.a+swirl*(1-e);
+        s.n.position({x:ox+r*Math.cos(a),y:oy+r*Math.sin(a)});
+      }
+      cy.viewport(camAt(zTo*(1+lift*(1-ease(p)))));
+    });
+  };
+  const land=()=>{
+    cy.batch(()=>{for(let i=0;i<seeds.length;i++) seeds[i].n.position({x:seeds[i].x,y:seeds[i].y});});
+    cy.viewport({zoom:zTo,pan:pTo});
+  };
   const revealEdges=staged=>{
     const all=edges.toArray();
-    const show=slice=>{if(!cy.destroyed()) cy.batch(()=>slice.forEach(e=>e.removeStyle('visibility')));};
+    const show=slice=>{if(!cy.destroyed()) cy.batch(()=>slice.forEach(e=>e.removeStyle('display')));};
     if(!staged||all.length<24){show(all);return;}
     const size=Math.ceil(all.length/3);
     for(let i=0;i<3;i++){
@@ -950,27 +1049,45 @@ function playCameraIntro(cy,host,cinematic){
       waveTimers.push(setTimeout(()=>show(slice),i*100));
     }
   };
-  /* land=true means a live viewer took the wheel mid-flight: give them the finished
-     frame at once. land=false is a teardown, where the elements this intro was
-     flying towards have already been replaced. */
-  handle.cancel=land=>{
+  const stop=()=>{
+    if(raf) cancelAnimationFrame(raf);
+    raf=0;
+    waveTimers.forEach(clearTimeout);
+  };
+  /* settle=true means a live viewer took the wheel mid-run: put the graph in its
+     finished state at once, since a half-spiralled model is not a view anyone
+     asked for. settle=false is a teardown, where the nodes this was moving have
+     already been replaced. */
+  handle.cancel=settle=>{
     if(handle.finished) return;
     handle.finished=true;
-    waveTimers.forEach(clearTimeout);
+    stop();
     if(cy.destroyed()) return;
-    cy.stop();
-    if(land){cy.viewport({zoom:zTo,pan:pTo});revealEdges(false);}
+    if(settle){land();revealEdges(false);}
   };
   const arrive=()=>{
     if(handle.finished) return;
     handle.finished=true;
+    stop();
+    if(cy.destroyed()) return;
+    land();
     revealEdges(true);
   };
 
-  cy.animate({zoom:zTo*1.06,pan:pTo},{duration:approach,easing:'ease-in-out-cubic',complete:()=>{
+  edges.style('display','none');
+  place(0);
+  if(host){host.classList.remove('cy-flyin');void host.offsetWidth;host.classList.add('cy-flyin');}
+
+  const t0=(window.performance||Date).now();
+  const step=()=>{
+    raf=0;
     if(handle.finished||cy.destroyed()) return;
-    cy.animate({zoom:zTo,pan:pTo},{duration:settle,easing:'ease-out-sine',complete:arrive});
-  }});
+    const p=Math.min(1,((window.performance||Date).now()-t0)/dur);
+    place(p);
+    if(p<1){raf=requestAnimationFrame(step);return;}
+    arrive();
+  };
+  raf=requestAnimationFrame(step);
   return handle;
 }
 
@@ -1133,9 +1250,6 @@ const TreeNode=memo(({domainName,domainData,expandedDomains,expandedTables,
   const showTables=isExpanded||(st&&matchingTables.length>0);
   const visibleTables=st?matchingTables:tableEntries;
   const visibleCount=visibleTables.length;
-  /* Hue name only. The badge composes tile/ink/bd from it, because `line` is a
-     stroke colour: as a fill it is dark in BOTH themes, so the light-mode badge
-     came out a dark block with dark text on it. tile/ink flip per theme. */
   const divHues={'operations':'coral','business':'blue','corporate':'amber'};
   const divAbbr={'operations':'OPS','business':'BIZ','corporate':'COR'};
   const divLower=(division||'').toLowerCase();
@@ -1199,10 +1313,7 @@ const TreeNode=memo(({domainName,domainData,expandedDomains,expandedTables,
         },domainName.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())),
         h('span',{style:{fontSize:10,color:'var(--faint)',marginLeft:5}},'('+visibleCount+')'),
         divHues[divLower]&&h('span',{style:{
-          display:'inline-block',padding:'1px 4px',
-          background:`var(--g-${divHues[divLower]}-tile)`,
-          color:`var(--g-${divHues[divLower]}-ink)`,
-          border:`1px solid var(--g-${divHues[divLower]}-bd)`,
+          display:'inline-block',padding:'1px 4px',...hueChip(divHues[divLower]),
           borderRadius:3,fontSize:8,fontWeight:'bold',marginLeft:5,flexShrink:0,lineHeight:'12px'
         }},divAbbr[divLower]||divLower.slice(0,3).toUpperCase())
       )
@@ -1316,6 +1427,12 @@ function NodeInfoPanel({selectedNode,selectedEdge,treeClick,graphData,domainSize
       const ddata=domainHierarchy[dname]||{};
       nodeData={...selectedNode,...ddata,color:selectedNode.color||ddata.color||'var(--muted)'};
     }
+    /* A canvas click carries the colour cytoscape had resolved when it was
+       clicked, which is a literal from whichever theme was live then, so the
+       panel kept painting the old theme after a swap. Re-deriving it from the
+       node's slot hands the resolution back to the DOM, which is what makes the
+       tree-click path follow the theme already. */
+    if(nodeData&&nodeData.slot) nodeData={...nodeData,color:`var(${nodeData.slot})`};
   }
 
   if(!nodeData) return h('div',{style:{padding:'15px'}},
@@ -1368,7 +1485,8 @@ function NodeInfoPanel({selectedNode,selectedEdge,treeClick,graphData,domainSize
             h('div',{style:{display:'flex',alignItems:'center',marginBottom:4}},
               h('span',{style:{fontSize:10,color:nodeData.color,marginRight:6}},'◆'),
               h('span',{style:{fontSize:12,fontWeight:600,color:'var(--ink)',flex:1}},sdname.replace(/_/g,' ').replace(/-/g,' ')),
-              h('span',{style:{fontSize:10,color:'var(--ink)',background:nodeData.color,borderRadius:10,padding:'1px 7px',fontWeight:'bold'}},''+sd.tables.length)
+              h('span',{style:{fontSize:10,borderRadius:10,padding:'1px 7px',fontWeight:'bold',
+                ...hueChip(hueOfSlot(nodeData.slot||nodeData.color))}},''+sd.tables.length)
             ),
             h('div',{style:{fontSize:10,color:'var(--muted)',marginBottom:4}},'📋 '+sd.attr_count+' attrs  🔗 '+sd.fk_count+' FKs'),
             h('div',{style:{display:'flex',flexWrap:'wrap'}},
@@ -1428,7 +1546,8 @@ function NodeInfoPanel({selectedNode,selectedEdge,treeClick,graphData,domainSize
     const sortedAttrs=[...pkAttrs,...fkAttrs,...otherAttrs];
     return h('div',{style:{padding:'15px',display:'flex',flexDirection:'column',height:'100%'}},
       h('div',{style:{display:'flex',alignItems:'center',marginBottom:10}},
-        h('div',{style:{width:20,height:20,background:nodeData.color,borderRadius:'50%',marginRight:10,border:'2px solid white'}}),
+        h('div',{style:{width:20,height:20,background:nodeData.color,borderRadius:'50%',marginRight:10,
+                        border:'2px solid var(--card)'}}),
         h('div',{},
           h('span',{style:{fontSize:16,fontWeight:'bold',color:'var(--ink)',display:'block'}},tname),
           h('span',{style:{fontSize:10,color:nodeData.color}},dname.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())),
@@ -1670,15 +1789,26 @@ function TopBar({manifest,sel,onSelect,onJump,graphData,loadStatus,actions}){
         ...(repoUrl?{href:repoUrl,target:'_blank',rel:'noopener noreferrer',
           title:'Open the Lakehouse Industry Model repository on GitHub'}:{})},
       h('span',{className:'brandmark-dot'}),
-      h('span',{className:'brandmark-title'},gallery?'Lakehouse Industry Model':'Model Viewer')
+      h('span',{className:'brandmark-title'},gallery?'Lakehouse Industry Model':'Model Viewer'),
+      repoUrl&&h('span',{className:'extarrow','aria-hidden':'true'},'↗')
     ),
 
     // Loaded model, then its counts. Both live in the one cell that is
     // allowed to shrink, so the controls to the right never wrap.
     h('div',{className:'topbar-mid'},
+      // The name IS the link to the model, so the App (no manifest, no URL to
+      // point at) renders the same element as a plain span.
       modelLabel&&h(React.Fragment,null,
         h('span',{className:'vrule'}),
-        h('span',{className:'modelname',title:modelLabel},modelLabel),
+        h(modelDirUrl?'a':'span',{className:'modelname',
+            title:modelDirUrl
+              ?`${modelLabel} on GitHub — readme, docs, metrics and diagram`
+              :modelLabel,
+            ...(modelDirUrl?{href:modelDirUrl,target:'_blank',
+              rel:'noopener noreferrer'}:{})},
+          h('span',{className:'lbl'},modelLabel),
+          modelDirUrl&&h('span',{className:'extarrow','aria-hidden':'true'},'↗')
+        ),
         h('span',{className:'vrule'})
       ),
       graphData&&h('div',{className:'statset'},
@@ -1697,11 +1827,6 @@ function TopBar({manifest,sel,onSelect,onJump,graphData,loadStatus,actions}){
           h('span',null,'FKs')),
         entry&&h('span',{className:'stat'},h('span',null,fmtBytes(entry.bytes)))
       ),
-
-      modelDirUrl&&h('a',{className:'openmodel',href:modelDirUrl,
-          target:'_blank',rel:'noopener noreferrer',
-          title:'Open this model on GitHub — readme, docs, metrics and diagram'},
-        'Open Model'),
 
       loadStatus&&h('span',{style:{color:'var(--brand)',fontSize:10,whiteSpace:'nowrap'}},loadStatus)
     ),
@@ -1725,7 +1850,21 @@ function TopBar({manifest,sel,onSelect,onJump,graphData,loadStatus,actions}){
         onChange:e=>onSelect({version:e.target.value})},
         versions.map(v=>h('option',{key:v,value:v},v.toUpperCase()))
       ),
-      actions
+      actions,
+      h(DatabricksLogo)
+    )
+  );
+}
+
+/* Inlined rather than fetched: the gallery is one self-contained file on Pages,
+   so an <img> would be the only network request in the chrome and the only thing
+   that can 404. currentColor comes from --logo-ink, which every palette already
+   defines light and dark. */
+function DatabricksLogo(){
+  return h('span',{className:'dbxlogo',title:'Databricks','aria-label':'Databricks'},
+    h('svg',{viewBox:'0 0 24 24',width:15,height:15,fill:'currentColor',
+        role:'img','aria-hidden':'true',focusable:'false'},
+      h('path',{d:'M.95 14.184L12 20.403l9.919-5.55v2.21L12 22.662l-10.484-5.96-.565.308v.77L12 24l11.05-6.218v-4.317l-.515-.309L12 19.118l-9.867-5.653v-2.21L12 16.805l11.05-6.218V6.32l-.515-.308L12 11.974 2.647 6.681 12 1.388l7.76 4.368.668-.411v-.566L12 0 .95 6.27v.72L12 13.207l9.919-5.55v2.26L12 15.52 1.516 9.56l-.565.308Z'})
     )
   );
 }
@@ -2377,7 +2516,7 @@ function App(){
     const tryFly=()=>{
       if(introduced()) return;
       if(viewerTookOverRef.current||prefersReducedMotion()){mark();return;}
-      const cam=playCameraIntro(cy,containerRef.current,!introSeenRef.current);
+      const cam=playSpiralIntro(cy,containerRef.current,!introSeenRef.current);
       if(!cam) return;
       introRef.current=cam;
       introSeenRef.current=true;
@@ -2479,15 +2618,15 @@ function App(){
           h('button',{className:'tbtn',title:'Zoom in',
             onClick:()=>cyRef.current&&cyRef.current.zoom(cyRef.current.zoom()*1.25)},'+'),
           h('button',{className:'tbtn',title:'Decrease node/font size',
-            onClick:()=>setSizeScale(s=>Math.max(0.5,s-0.2))},'F−'),
+          onClick:()=>setSizeScale(s=>Math.max(0.5,s-0.2))},'F−'),
           h('button',{className:'tbtn',title:'Increase node/font size',
-            onClick:()=>setSizeScale(s=>Math.min(3,s+0.2))},'F+'),
+          onClick:()=>setSizeScale(s=>Math.min(3,s+0.2))},'F+'),
           h('button',{className:'tbtn',title:'Fit graph to view',
             onClick:()=>cyRef.current&&cyRef.current.fit(50)},'Fit'),
           h('button',{className:'tbtn',title:'Reset to the full model',onClick:()=>{
-            setFilterState({type:null,value:null});setNavHistory([]);
-            setTimeout(()=>cyRef.current&&cyRef.current.fit(50),100);
-          }},'Reset'),
+          setFilterState({type:null,value:null});setNavHistory([]);
+          setTimeout(()=>cyRef.current&&cyRef.current.fit(50),100);
+        }},'Reset'),
           h('label',{className:'tbtn',title:'Show domain grouping boxes',
               style:{gap:5,cursor:'pointer',fontWeight:650,color:'var(--muted)'}},
             h('input',{type:'checkbox',checked:showDomains,
@@ -2557,7 +2696,7 @@ function App(){
         // shows if that model could not be resolved at all.
         !graphData&&!isLoading&&!loadError&&h('div',
           {style:{position:'absolute',top:0,left:0,right:0,bottom:0,
-                  display:'flex',alignItems:'center',justifyContent:'center',zIndex:500}},
+                                                             display:'flex',alignItems:'center',justifyContent:'center',zIndex:500}},
           h('div',{style:{textAlign:'center'}},
             h('div',{style:{fontSize:48,marginBottom:15}},'📊'),
             h('p',{style:{color:'var(--muted)',fontSize:14}},
