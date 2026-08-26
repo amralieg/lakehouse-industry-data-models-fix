@@ -535,6 +535,11 @@
   .indpick-name{overflow:hidden;text-overflow:ellipsis;min-width:0}
   .indpick-sec{font-size:10px;font-weight:650;color:var(--faint);flex-shrink:0}
   .indpick-caret{color:var(--muted);font-size:9px;flex-shrink:0}
+  .loador{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;white-space:nowrap}
+  .loador-sep{font-size:11px;font-weight:650;color:var(--muted)}
+  .loadjson{font-size:11px;font-weight:700;color:var(--brand);cursor:pointer;
+    text-decoration:underline;text-underline-offset:2px}
+  .loadjson:hover{color:var(--ink)}
   /* The section is context for the name, so it goes before the name thins out. */
   @media (max-width:1080px){ .indpick-sec{display:none} }
 
@@ -1734,10 +1739,10 @@ async function fetchModelJson(urls,expectedBytes,onProgress){
   throw new Error((lastErr&&lastErr.message)||'all sources failed');
 }
 
-function LoadJsonButton({onFile}){
-  return h('label',{className:'btn btn-accent',title:'Open a local model.json file',
-      style:{margin:0,cursor:'pointer',whiteSpace:'nowrap'}},
-    'Load from JSON',
+function LoadJsonButton({onFile,label}){
+  return h('label',{className:'loadjson',title:'Open a local model.json file',
+      style:{margin:0}},
+    label||'load from JSON',
     h('input',{type:'file',accept:'.json,application/json',style:{display:'none'},
       onChange:e=>{
         const f=e.target.files&&e.target.files[0];
@@ -1811,8 +1816,7 @@ function TopBar({manifest,sel,onSelect,onJump,graphData,loadStatus,onLoadJson,ac
         h('span',{className:'brandmark-dot'}),
         h('span',{className:'brandmark-title'},gallery?'Lakehouse Industry Model':'Model Viewer'),
         repoUrl&&h('span',{className:'extarrow','aria-hidden':'true'},'↗')
-      ),
-      onLoadJson&&h(LoadJsonButton,{onFile:onLoadJson})
+      )
     ),
 
     // Loaded model, then its counts. Both live in the one cell that is
@@ -1862,6 +1866,11 @@ function TopBar({manifest,sel,onSelect,onJump,graphData,loadStatus,onLoadJson,ac
         industry&&h('span',{className:'indpick-sec'},industry.section),
         h('span',{className:'indpick-caret'},'▾')
       ),
+      gallery&&onLoadJson&&h('div',{className:'loador'},
+        h('span',{className:'loador-sep'},'OR'),
+        h(LoadJsonButton,{onFile:onLoadJson})
+      ),
+      !gallery&&onLoadJson&&h(LoadJsonButton,{onFile:onLoadJson}),
       gallery&&h('div',{className:'seg',role:'group','aria-label':'Model flavour'},
         FLAVOURS.map(f=>h('button',{key:f.id,title:f.title,
           className:sel.flavour===f.id?'on':'',
