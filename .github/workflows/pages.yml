@@ -41,6 +41,8 @@ jobs:
           sparse-checkout-cone-mode: false
       - name: docs/index.html and the Databricks App copy must be identical
         run: python3 tools/sync_viewer.py --check
+      - name: committed docs/manifest.json is well-formed
+        run: python3 tools/build_manifest.py --check docs/manifest.json
 
   build:
     runs-on: ubuntu-latest
