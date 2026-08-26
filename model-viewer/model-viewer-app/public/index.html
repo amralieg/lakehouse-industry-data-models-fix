@@ -466,6 +466,8 @@
   .btn{padding:7px 11px;background:var(--card);color:var(--ink);border:1px solid var(--line);
     border-radius:9px;cursor:pointer;font-size:12px;font-weight:650;transition:background .15s,border-color .15s}
   .btn:hover{background:var(--well);border-color:var(--line-strong)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn:disabled:hover{background:var(--card);border-color:var(--line)}
   .btn:active{background:var(--line)}
   .btn-accent{background:var(--brand);border-color:var(--brand);color:var(--on-accent);flex-shrink:0}
   .btn-accent:hover{filter:brightness(1.06)}
@@ -1715,6 +1717,27 @@ function modelUrls(path,bytes){
   return [`https://cdn.jsdelivr.net/gh/${owner}/${repo}@${ref}/${path}`,raw];
 }
 
+function modelDocsXlsxPath(slug,version,flavour){
+  return `data-models/${slug}/${version}/${flavour}/docs/${slug}_model_${version}_${flavour}.xlsx`;
+}
+function modelDocsXlsxUrl(slug,version,flavour){
+  const path=modelDocsXlsxPath(slug,version,flavour);
+  const {owner,repo}=UPSTREAM_REPO;
+  return `https://raw.githubusercontent.com/${owner}/${repo}/main/${path}`;
+}
+function downloadUpstreamFile(url,filename){
+  return fetch(url).then(res=>{
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    return res.blob();
+  }).then(blob=>{
+    const obj=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=obj; a.download=filename; a.rel='noopener';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(obj);
+  });
+}
+
 /* Progress is measured in DECODED bytes, which is what the stream yields, so
    the manifest's uncompressed blob size is the right denominator even though
    the transfer itself is gzipped. */
@@ -1828,6 +1851,9 @@ function TopBar({manifest,sel,onSelect,onJump,graphData,loadStatus,localModel,on
 
   const modelDirUrl=localModel?'':modelDirLink(gallery?manifest.source:null,entry);
   const repoUrl=gallery?repoHomeLink():'';
+  const canDownload=gallery&&!!industry&&!!entry&&!localModel;
+  const xlsxFile=canDownload?`${sel.industry}_model_${entry.version}_${entry.flavour}.xlsx`:'';
+  const xlsxUrl=canDownload?modelDocsXlsxUrl(sel.industry,entry.version,entry.flavour):'';
 
   return h('div',{className:'topbar'},
     h('div',{className:'topbar-start'},
@@ -1880,6 +1906,16 @@ function TopBar({manifest,sel,onSelect,onJump,graphData,loadStatus,localModel,on
 
     // Searchable industry menu, then the rest of the controls.
     h('div',{className:'topbar-end'},
+      gallery&&h('button',{className:'btn',disabled:!canDownload,
+          title:localModel?'Download is not available for uploaded JSON models'
+            :!industry?'Choose an industry to download its Excel workbook'
+            :`Download ${industry.display} ${entry.version.toUpperCase()} ${entry.flavour.toUpperCase()} Excel workbook`,
+          onClick:()=>{
+            if(!canDownload) return;
+            downloadUpstreamFile(xlsxUrl,xlsxFile)
+              .catch(()=>window.open(xlsxUrl,'_blank','noopener'));
+          }},
+        'Download'),
       gallery&&h('button',{className:'indpick',onClick:onJump,title:jumpHint,
           'aria-haspopup':'dialog'},
         h('span',{style:{color:'var(--muted)',flexShrink:0}},'⌕'),
