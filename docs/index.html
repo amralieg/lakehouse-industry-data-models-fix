@@ -1817,7 +1817,8 @@ function TopBar({manifest,sel,onSelect,onJump,graphData,loadStatus,localModel,on
   /* In the gallery the version and flavour are right there as controls, so
      repeating the model's own "v2_mvm" suffix here would just be noise. The
      App has no such controls, so it keeps the full string. */
-  const modelLabel=!graphData||localModel?null
+  const modelLabel=!graphData?null
+    :localModel?(graphData.sourceLabel||graphData.modelName)
     :(gallery?graphData.modelName
       :(graphData.modelVersion?`${graphData.modelName} ${graphData.modelVersion}`:graphData.modelName));
 
