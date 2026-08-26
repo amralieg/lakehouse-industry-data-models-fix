@@ -38,9 +38,18 @@ jobs:
             /docs/
             /tools/
             /model-viewer/model-viewer-app/public/
+            /README.md
+            /data-models/models-info.csv
           sparse-checkout-cone-mode: false
       - name: docs/index.html and the Databricks App copy must be identical
         run: python3 tools/sync_viewer.py --check
+      - name: docs/manifest.json must match a fresh build
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 tools/build_manifest.py --repo . --ref "${{ github.sha }}" --strict --out /tmp/manifest.json
+          python3 tools/build_manifest.py --check /tmp/manifest.json
+          diff -q docs/manifest.json /tmp/manifest.json
 
   build:
     runs-on: ubuntu-latest
