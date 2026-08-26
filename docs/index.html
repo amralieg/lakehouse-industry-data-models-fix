@@ -437,8 +437,11 @@
     --line:#e6e6e6; --line-strong:#d4d4d4;
     --well:#f4f4f4; --panel:#f5f5f5; --plat-fill:#fbfbfb; --logo-ink:#303030; }
   body.pal-mono.theme-dark {
+    /* This is the one palette whose brand is lighter than the page, so the
+       inherited white --on-accent left every brand-filled control (the ECM/MVM
+       segment, Open Model's hover) at 1.56:1. Dark ink instead. */
     --brand:#cfcfcf; --brand-bd:#5a5a5a; --brand-soft:#444444; --brand-wash:#1e1e1e;
-    --brand-ink:#e2e2e2;
+    --brand-ink:#e2e2e2; --on-accent:#171717;
     --flow-neutral:#9c9c9c; --flow-medal:#9c9c9c;
     --m-bronze:#b4b4b4; --m-silver:#cccccc; --m-gold:#9d9d9d;
     --ink:#eeeeee; --muted:#b0b0b0; --faint:#8c8c8c; --sep:#838383;
@@ -458,6 +461,7 @@
   @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
   .fade-in{animation:fadeIn .2s ease-in}
+  .cy-flyin{animation:fadeIn .5s ease-out both}
 
   .btn{padding:7px 11px;background:var(--card);color:var(--ink);border:1px solid var(--line);
     border-radius:9px;cursor:pointer;font-size:12px;font-weight:650;transition:background .15s,border-color .15s}
@@ -502,9 +506,15 @@
   .topbar-mid{display:flex;align-items:center;gap:9px;min-width:0;flex:1;overflow:hidden}
   .topbar-end{display:flex;align-items:center;gap:6px;flex-shrink:0}
   .vrule{width:1px;height:22px;background:var(--line);flex-shrink:0}
-  .brandmark{display:flex;align-items:center;gap:7px;white-space:nowrap;flex-shrink:0}
+  .brandmark{display:flex;align-items:center;gap:7px;white-space:nowrap;flex-shrink:0;
+    text-decoration:none;color:inherit}
+  a.brandmark:hover .brandmark-title{color:var(--brand)}
   .brandmark-dot{width:10px;height:10px;border-radius:3px;background:var(--brand);flex-shrink:0}
   .brandmark-title{font-size:14px;font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+  /* The wordmark does not shrink, so on small laptops it starved the mid cell
+     until the model name and Open Model had nowhere to sit. The dot keeps the
+     brand present; the functional controls get the width. */
+  @media (max-width:1200px){ .brandmark-title{display:none} }
 
   /* Searchable industry picker: the trigger names the open model, and opens
      the same palette Cmd-K does rather than a second search of its own. */
@@ -518,9 +528,27 @@
   .indpick-caret{color:var(--muted);font-size:9px;flex-shrink:0}
 
   /* Shrinks last: which model is open matters more than its counts, so the
-     stats give up room first and only a pathological name ellipsizes. */
+     stats give up room first and only a pathological name ellipsizes. It must
+     still be shrinkable, or text-overflow can never engage and the mid cell's
+     overflow:hidden slices the name off mid-letter instead. */
   .modelname{font-size:12px;font-weight:750;color:var(--ink);white-space:nowrap;
-    overflow:hidden;text-overflow:ellipsis;flex-shrink:0;max-width:220px}
+    overflow:hidden;text-overflow:ellipsis;flex-shrink:1;min-width:0;max-width:220px}
+  /* By here the name has ellipsised down to a letter or two and the industry
+     picker beside it already spells out the same model, so it and its rules go.
+     The toolbar never shrinks, so the picker also gives back some of its width
+     (its label ellipsises) to leave Open Model whole. Must follow the rules it
+     overrides. */
+  @media (max-width:1080px){
+    .modelname{display:none} .topbar-mid .vrule{display:none}
+    .indpick{max-width:190px} }
+
+  /* Sits after the counts and does not shrink, so the stats clip before a
+     control the visitor was promised disappears. */
+  .openmodel{display:inline-flex;align-items:center;gap:5px;flex-shrink:0;
+    padding:4px 9px;border:1px solid var(--brand-bd);border-radius:8px;
+    background:var(--brand-wash);color:var(--brand-ink);font-size:11px;
+    font-weight:750;text-decoration:none;white-space:nowrap}
+  .openmodel:hover{background:var(--brand);color:var(--on-accent);border-color:var(--brand)}
 
   .tbtn{height:26px;min-width:26px;padding:0 7px;display:inline-flex;align-items:center;
     justify-content:center;background:var(--card);color:var(--ink);
@@ -538,10 +566,24 @@
   .stat{display:inline-flex;align-items:baseline;gap:4px;font-size:11px;white-space:nowrap}
   .stat b{font-size:12px;font-weight:800;color:var(--ink)}
   .stat span{color:var(--muted)}
-  /* The stats are the one thing allowed to disappear when the line runs out
-     of room, because every control beside them is a control. */
-  .statset{display:flex;align-items:center;gap:10px;min-width:0;overflow:hidden}
+  /* The stats are the one thing allowed to disappear when the line runs out of
+     room, because everything beside them is a control.
+
+     Chips do not shrink, so a narrow bar used to slice the last one mid-word
+     ("13 Domain"). Wrapping instead pushes whichever chips do not fit onto a
+     second row that max-height clips away, so a chip is either fully readable
+     or fully absent. 17px is one chip row; the 10px gap puts row two clear.
+
+     The large flex-shrink makes the counts absorb essentially the whole deficit
+     before the model name gives up a pixel, so the name stays whole while the
+     counts thin out and only ellipsises once they are gone. */
+  .statset{display:flex;flex-wrap:wrap;align-content:flex-start;align-items:center;
+    gap:10px;min-width:0;overflow:hidden;max-height:17px;flex-shrink:9999}
   .statset .stat{flex-shrink:0}
+  /* Must follow .statset's own display rule to win the cascade. Below this the
+     counts are down to a digit or two and worthless, so the whole set goes
+     rather than lingering as a sliced fragment. */
+  @media (max-width:1200px){ .statset{display:none} }
 
   .iconbtn{width:30px;height:28px;display:inline-flex;align-items:center;justify-content:center;
     padding:0;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:9px;
@@ -872,6 +914,66 @@ function repaintGraph(cy,t){
   });
 }
 
+function prefersReducedMotion(){
+  return !!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+
+/* The camera moves, not the elements, so the entry costs the same on a 15-table
+   model as on a 1500-relationship one. Edges are held back for the flight because
+   they are the bulk of the per-frame draw cost: the glide keeps its frame rate on
+   the largest models, and the network snaps together on arrival. Call it with the
+   viewport already fitted — that fit is the destination. */
+function playCameraIntro(cy,host,cinematic){
+  const w=cy.width(),h=cy.height();
+  if(!w||!h) return null;
+  const zTo=cy.zoom(),pTo=Object.assign({},cy.pan());
+  if(!(zTo>0)) return null;
+  const edges=cy.edges();
+  const zFar=Math.max(cy.minZoom()*1.02,zTo*(cinematic?0.055:0.22));
+  const approach=cinematic?1250:520,settle=cinematic?340:200;
+  const waveTimers=[];
+  const handle={finished:false};
+
+  edges.style('visibility','hidden');
+  cy.zoom({level:zFar,renderedPosition:{x:w/2,y:h/2}});
+  cy.panBy({x:Math.round(w*0.09),y:-Math.round(h*0.06)});
+  if(host){host.classList.remove('cy-flyin');void host.offsetWidth;host.classList.add('cy-flyin');}
+
+  const revealEdges=staged=>{
+    const all=edges.toArray();
+    const show=slice=>{if(!cy.destroyed()) cy.batch(()=>slice.forEach(e=>e.removeStyle('visibility')));};
+    if(!staged||all.length<24){show(all);return;}
+    const size=Math.ceil(all.length/3);
+    for(let i=0;i<3;i++){
+      const slice=all.slice(i*size,(i+1)*size);
+      if(!slice.length) break;
+      waveTimers.push(setTimeout(()=>show(slice),i*100));
+    }
+  };
+  /* land=true means a live viewer took the wheel mid-flight: give them the finished
+     frame at once. land=false is a teardown, where the elements this intro was
+     flying towards have already been replaced. */
+  handle.cancel=land=>{
+    if(handle.finished) return;
+    handle.finished=true;
+    waveTimers.forEach(clearTimeout);
+    if(cy.destroyed()) return;
+    cy.stop();
+    if(land){cy.viewport({zoom:zTo,pan:pTo});revealEdges(false);}
+  };
+  const arrive=()=>{
+    if(handle.finished) return;
+    handle.finished=true;
+    revealEdges(true);
+  };
+
+  cy.animate({zoom:zTo*1.06,pan:pTo},{duration:approach,easing:'ease-in-out-cubic',complete:()=>{
+    if(handle.finished||cy.destroyed()) return;
+    cy.animate({zoom:zTo,pan:pTo},{duration:settle,easing:'ease-out-sine',complete:arrive});
+  }});
+  return handle;
+}
+
 function getStylesheet(showDomains=true,sizeScale=1,t=null){
   t=t||resolveTheme();
   const s=sizeScale;
@@ -1031,7 +1133,10 @@ const TreeNode=memo(({domainName,domainData,expandedDomains,expandedTables,
   const showTables=isExpanded||(st&&matchingTables.length>0);
   const visibleTables=st?matchingTables:tableEntries;
   const visibleCount=visibleTables.length;
-  const divColors={'operations':'var(--g-coral-line)','business':'var(--g-blue-line)','corporate':'var(--g-amber-line)'};
+  /* Hue name only. The badge composes tile/ink/bd from it, because `line` is a
+     stroke colour: as a fill it is dark in BOTH themes, so the light-mode badge
+     came out a dark block with dark text on it. tile/ink flip per theme. */
+  const divHues={'operations':'coral','business':'blue','corporate':'amber'};
   const divAbbr={'operations':'OPS','business':'BIZ','corporate':'COR'};
   const divLower=(division||'').toLowerCase();
   const hasSubs=Object.keys(subdomains).length>0;
@@ -1093,8 +1198,11 @@ const TreeNode=memo(({domainName,domainData,expandedDomains,expandedTables,
           onClick:()=>onClickDomain(domainName)
         },domainName.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())),
         h('span',{style:{fontSize:10,color:'var(--faint)',marginLeft:5}},'('+visibleCount+')'),
-        divColors[divLower]&&h('span',{style:{
-          display:'inline-block',padding:'1px 4px',background:divColors[divLower],color:'var(--ink)',
+        divHues[divLower]&&h('span',{style:{
+          display:'inline-block',padding:'1px 4px',
+          background:`var(--g-${divHues[divLower]}-tile)`,
+          color:`var(--g-${divHues[divLower]}-ink)`,
+          border:`1px solid var(--g-${divHues[divLower]}-bd)`,
           borderRadius:3,fontSize:8,fontWeight:'bold',marginLeft:5,flexShrink:0,lineHeight:'12px'
         }},divAbbr[divLower]||divLower.slice(0,3).toUpperCase())
       )
@@ -1441,6 +1549,26 @@ function findEntry(industry,version,flavour){
   return f?{...f,version:v.version}:null;
 }
 
+/* Repo landing page, deliberately unpinned: the wordmark should lead to the
+   project as it stands now, not to the commit this build was cut from. */
+function repoHomeLink(source){
+  if(!source||!source.owner||!source.repo) return '';
+  return `https://github.com/${source.owner}/${source.repo}`;
+}
+
+/* The GitHub page for model.json's own folder, where GitHub renders that
+   model's readme beside its docs, metrics and diagram. Pinned to the same
+   commit the JSON was fetched from. Returns '' when either side is missing, so
+   the App (no manifest) simply does not render the link. */
+function modelDirLink(source,entry){
+  if(!source||!entry||!entry.path) return '';
+  const dir=entry.path.replace(/\/[^/]+$/,'');
+  if(!dir||dir===entry.path) return '';
+  const {owner,repo,ref}=source;
+  if(!owner||!repo||!ref) return '';
+  return `https://github.com/${owner}/${repo}/tree/${ref}/${dir}`;
+}
+
 /* Both URLs are pinned to the manifest's commit, so a model can never be
    fetched from a tree that disagrees with the counts the card advertised. */
 function modelUrls(source,path,bytes){
@@ -1532,8 +1660,15 @@ function TopBar({manifest,sel,onSelect,onJump,graphData,loadStatus,actions}){
     :(gallery?graphData.modelName
       :(graphData.modelVersion?`${graphData.modelName} ${graphData.modelVersion}`:graphData.modelName));
 
+  const modelDirUrl=modelDirLink(gallery?manifest.source:null,entry);
+  const repoUrl=repoHomeLink(gallery?manifest.source:null);
+
   return h('div',{className:'topbar'},
-    h('div',{className:'brandmark'},
+    // An anchor only when there is a repo to point at, so the App keeps a plain
+    // wordmark rather than a link that would go nowhere.
+    h(repoUrl?'a':'div',{className:'brandmark',
+        ...(repoUrl?{href:repoUrl,target:'_blank',rel:'noopener noreferrer',
+          title:'Open the Lakehouse Industry Model repository on GitHub'}:{})},
       h('span',{className:'brandmark-dot'}),
       h('span',{className:'brandmark-title'},gallery?'Lakehouse Industry Model':'Model Viewer')
     ),
@@ -1562,6 +1697,12 @@ function TopBar({manifest,sel,onSelect,onJump,graphData,loadStatus,actions}){
           h('span',null,'FKs')),
         entry&&h('span',{className:'stat'},h('span',null,fmtBytes(entry.bytes)))
       ),
+
+      modelDirUrl&&h('a',{className:'openmodel',href:modelDirUrl,
+          target:'_blank',rel:'noopener noreferrer',
+          title:'Open this model on GitHub — readme, docs, metrics and diagram'},
+        'Open Model'),
+
       loadStatus&&h('span',{style:{color:'var(--brand)',fontSize:10,whiteSpace:'nowrap'}},loadStatus)
     ),
 
@@ -1644,9 +1785,13 @@ function App(){
   const [graphIndexes,setGraphIndexes]=useState(null);
   const cyRef=useRef(null);
   const containerRef=useRef(null);
-  // Track last fit-worthy view fingerprint so we skip auto-fit on drag/resize
-  // re-renders (user-driven state changes should preserve user's viewport).
-  const lastFitKeyRef=useRef('');
+  // Fingerprint of the last drawn view. A re-render that carries the same model
+  // and the same filter is a box drag or resize, not a new view, so it gets the
+  // plain fit and no camera move.
+  const lastFitKeyRef=useRef({graph:null,key:''});
+  const introRef=useRef(null);
+  const introSeenRef=useRef(false);
+  const viewerTookOverRef=useRef(false);
 
   // UI state
   const [showDomains,setShowDomains]=useState(true);
@@ -1933,7 +2078,21 @@ function App(){
       }
     });
 
-    return()=>{cy.destroy();cyRef.current=null;};
+    // Touching the canvas hands the viewport to the viewer for as long as this view
+    // is on screen: it lands any camera move in flight and stops the settling fits
+    // from re-framing over the top of them.
+    const host=containerRef.current;
+    const takeOver=()=>{
+      viewerTookOverRef.current=true;
+      if(introRef.current) introRef.current.cancel(true);
+    };
+    const inputs=['wheel','mousedown','touchstart'];
+    inputs.forEach(t=>host.addEventListener(t,takeOver,{passive:true}));
+
+    return()=>{
+      inputs.forEach(t=>host.removeEventListener(t,takeOver));
+      cy.destroy();cyRef.current=null;
+    };
   },[]);
 
   // ── Navigation ─────────────────────────────────────────
@@ -2118,6 +2277,7 @@ function App(){
     if(!cy)return;
     if(!graphData){cy.elements().remove();return;}
     const {type}=filterState;
+    const fitTimers=[];
     try{
     // Filter out edges with missing source/target nodes
     const nodeIds=new Set(graphElements.filter(e=>!e.data.source).map(e=>e.data.id));
@@ -2192,21 +2352,47 @@ function App(){
       // Any view type without a hand-placed arrangement above
       cy.layout({...CIRCLE_LAYOUT}).run();
     }
-    // Fit to screen — ONLY on first render of a new view (filter/layout change).
-    // Skip auto-fit when user drags/resizes boxes (which triggers re-render via
-    // domainSizes state update but user wants their viewport preserved).
-    // Always auto-fit after any re-render (initial load, drag, resize, view
-    // change). fit() only adjusts zoom + viewport — it preserves the node
-    // positions chosen by the user (drags stick).
+    // Frame the graph after every re-render (initial load, drag, resize, view
+    // change). fit() only adjusts zoom + pan, so node positions the user dragged
+    // into place survive it.
+    // resize() first: the container is measured while it is still display:none, so
+    // on a slow model nothing has refreshed that 0x0 reading by the time the first
+    // fit runs, and the fit silently does nothing.
     const doFit=()=>{
+      cy.resize();
       cy.fit(60);
       if(cy.zoom()>1.8) cy.zoom(1.8);
       cy.center();
     };
-    setTimeout(doFit,200);
-    setTimeout(doFit,1000);
-    setTimeout(doFit,3000);
+    // The later fits exist to catch labels and boxes that settle after the first
+    // one, so they must not run while the camera is mid-flight towards the same
+    // destination, nor once the viewer has taken the viewport. The view is only
+    // marked as introduced once a move actually starts, so a fit that landed on a
+    // not-yet-measured viewport leaves the next one free to try again.
+    const viewKey=`${type||''}::${filterState.value||''}`;
+    const introduced=()=>lastFitKeyRef.current.graph===graphData&&lastFitKeyRef.current.key===viewKey;
+    const mark=()=>{lastFitKeyRef.current={graph:graphData,key:viewKey};};
+    const camFree=()=>!viewerTookOverRef.current&&(!introRef.current||introRef.current.finished);
+    viewerTookOverRef.current=false;
+    const tryFly=()=>{
+      if(introduced()) return;
+      if(viewerTookOverRef.current||prefersReducedMotion()){mark();return;}
+      const cam=playCameraIntro(cy,containerRef.current,!introSeenRef.current);
+      if(!cam) return;
+      introRef.current=cam;
+      introSeenRef.current=true;
+      mark();
+    };
+    // The first framing is unconditional: until it runs the graph may be entirely
+    // off screen, so there is no viewport worth preserving.
+    fitTimers.push(setTimeout(()=>{doFit();tryFly();},200));
+    fitTimers.push(setTimeout(()=>{if(camFree()){doFit();tryFly();}},1000));
+    fitTimers.push(setTimeout(()=>{if(camFree())doFit();},3000));
     }catch(e){console.error('Cytoscape layout error:',e);}
+    return()=>{
+      fitTimers.forEach(clearTimeout);
+      if(introRef.current){introRef.current.cancel(false);introRef.current=null;}
+    };
   },[graphElements,filterState,graphData,domainSizes]);
 
   // ── Update stylesheet when showDomains or sizeScale changes ─────
