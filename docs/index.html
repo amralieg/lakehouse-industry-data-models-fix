@@ -671,7 +671,11 @@ const DEFAULT_W = 500, DEFAULT_H = 400;
 const TREE_ATTR_CAP = 250;
 
 // ── Theme ─────────────────────────────────────────────────
-const THEME_KEY='dbx-model-theme', PAL_KEY='dbx-model-pal';
+const THEME_KEY='dbx-model-theme', PAL_KEY='dbx-model-pal', ANIM_KEY='dbx-model-animate';
+/* Every outbound GitHub link in the chrome points here. Model JSON is still
+   fetched from manifest.source (which may be a fork's Pages deploy), but a
+   visitor clicking the wordmark or the industry name should land on upstream. */
+const UPSTREAM_REPO={owner:'databricks-industry-solutions',repo:'lakehouse-industry-data-models'};
 const PALETTES=[
   {id:'default',label:'Default'},{id:'muted',label:'Muted'},{id:'vivid',label:'Vivid'},
   {id:'ocean',label:'Ocean'},{id:'sunset',label:'Sunset'},{id:'mono',label:'Mono'},
@@ -687,6 +691,10 @@ function currentTheme(){return document.body.classList.contains('theme-dark')?'d
 function currentPalette(){
   const m=(document.body.className||'').match(/\bpal-([a-z]+)\b/);
   return m?m[1]:'default';
+}
+function currentAnimate(){
+  const v=store.get(ANIM_KEY,'1');
+  return v!=='0'&&v!=='false';
 }
 function applyTheme(theme){
   document.body.classList.toggle('theme-dark',theme==='dark');
@@ -1470,7 +1478,8 @@ function NodeInfoPanel({selectedNode,selectedEdge,treeClick,graphData,domainSize
           h('span',{style:{color:'var(--g-amber-line)',fontSize:11}},'📋 '+(dstats.attr_count||0)+' attrs'),
           h('br',{}),
           h('span',{style:{color:'var(--danger)',fontSize:11,marginRight:15}},'🔗 '+(dstats.fk_count||0)+' FKs'),
-          h('span',{style:{color:'var(--g-violet-line)',fontSize:11}},'🏷️ '+(dstats.tag_count||0)+' tags'),
+          (dstats.tag_count||0)>0&&h('span',{style:{color:'var(--g-violet-line)',fontSize:11}},
+            '🏷️ '+dstats.tag_count+' tags'),
         )
       ),
       nodeData.description&&h('div',{style:{background:'var(--well)',borderRadius:6,padding:10,marginBottom:10}},
@@ -1557,7 +1566,8 @@ function NodeInfoPanel({selectedNode,selectedEdge,treeClick,graphData,domainSize
       h('div',{className:'domain-box',style:{marginBottom:10}},
         h('span',{style:{color:'var(--brand)',fontSize:11,marginRight:15}},'📊 '+(nodeData.attribute_count||attrs.length)+' attrs'),
         h('span',{style:{color:'var(--danger)',fontSize:11,marginRight:15}},'🔗 '+(nodeData.fk_count||0)+' FKs'),
-        h('span',{style:{color:'var(--g-violet-line)',fontSize:11}},'🏷️ '+tags.length+' tags'),
+        tags.length>0&&h('span',{style:{color:'var(--g-violet-line)',fontSize:11}},
+          '🏷️ '+tags.length+' tags'),
       ),
       nodeData.description&&h('p',{style:{
         color:'var(--ink)',fontSize:13,lineHeight:1.6,marginBottom:12,padding:8,
@@ -1668,24 +1678,20 @@ function findEntry(industry,version,flavour){
   return f?{...f,version:v.version}:null;
 }
 
-/* Repo landing page, deliberately unpinned: the wordmark should lead to the
-   project as it stands now, not to the commit this build was cut from. */
-function repoHomeLink(source){
-  if(!source||!source.owner||!source.repo) return '';
-  return `https://github.com/${source.owner}/${source.repo}`;
+/* Repo landing page on upstream, deliberately unpinned: the wordmark should
+   lead to the canonical project, not to whichever fork served this build. */
+function repoHomeLink(){
+  return `https://github.com/${UPSTREAM_REPO.owner}/${UPSTREAM_REPO.repo}`;
 }
 
-/* The GitHub page for model.json's own folder, where GitHub renders that
-   model's readme beside its docs, metrics and diagram. Pinned to the same
-   commit the JSON was fetched from. Returns '' when either side is missing, so
-   the App (no manifest) simply does not render the link. */
-function modelDirLink(source,entry){
-  if(!source||!entry||!entry.path) return '';
+/* The GitHub page for model.json's own folder on upstream, where GitHub renders
+   that model's readme beside its docs, metrics and diagram. Uses main on
+   upstream so a fork-only commit SHA does not 404 when the visitor clicks through. */
+function modelDirLink(_source,entry){
+  if(!entry||!entry.path) return '';
   const dir=entry.path.replace(/\/[^/]+$/,'');
   if(!dir||dir===entry.path) return '';
-  const {owner,repo,ref}=source;
-  if(!owner||!repo||!ref) return '';
-  return `https://github.com/${owner}/${repo}/tree/${ref}/${dir}`;
+  return `https://github.com/${UPSTREAM_REPO.owner}/${UPSTREAM_REPO.repo}/tree/main/${dir}`;
 }
 
 /* Both URLs are pinned to the manifest's commit, so a model can never be
@@ -1780,7 +1786,7 @@ function TopBar({manifest,sel,onSelect,onJump,graphData,loadStatus,actions}){
       :(graphData.modelVersion?`${graphData.modelName} ${graphData.modelVersion}`:graphData.modelName));
 
   const modelDirUrl=modelDirLink(gallery?manifest.source:null,entry);
-  const repoUrl=repoHomeLink(gallery?manifest.source:null);
+  const repoUrl=gallery?repoHomeLink():'';
 
   return h('div',{className:'topbar'},
     // An anchor only when there is a repo to point at, so the App keeps a plain
@@ -1934,6 +1940,7 @@ function App(){
 
   // UI state
   const [showDomains,setShowDomains]=useState(true);
+  const [animate,setAnimate]=useState(currentAnimate);
   const [sizeScale,setSizeScale]=useState(1.0);
   const [filterState,setFilterState]=useState({type:null,value:null});
   const [navHistory,setNavHistory]=useState([]);
@@ -2515,7 +2522,7 @@ function App(){
     viewerTookOverRef.current=false;
     const tryFly=()=>{
       if(introduced()) return;
-      if(viewerTookOverRef.current||prefersReducedMotion()){mark();return;}
+      if(viewerTookOverRef.current||prefersReducedMotion()||!animate){mark();return;}
       const cam=playSpiralIntro(cy,containerRef.current,!introSeenRef.current);
       if(!cam) return;
       introRef.current=cam;
@@ -2532,7 +2539,7 @@ function App(){
       fitTimers.forEach(clearTimeout);
       if(introRef.current){introRef.current.cancel(false);introRef.current=null;}
     };
-  },[graphElements,filterState,graphData,domainSizes]);
+  },[graphElements,filterState,graphData,domainSizes,animate]);
 
   // ── Update stylesheet when showDomains or sizeScale changes ─────
   useEffect(()=>{
@@ -2555,6 +2562,8 @@ function App(){
     cy.style(getStylesheet(showDomains,sizeScale,t));
     repaintGraph(cy,t);
   },[theme,palette]);
+
+  useEffect(()=>{store.set(ANIM_KEY,animate?'1':'0');},[animate]);
 
   const filterInfoText=useMemo(()=>{
     if(!graphData||!filterState.type) return '';
@@ -2632,7 +2641,13 @@ function App(){
             h('input',{type:'checkbox',checked:showDomains,
               onChange:e=>setShowDomains(e.target.checked),
               style:{cursor:'pointer',margin:0}}),
-            'Domains')
+            'Domains'),
+          h('label',{className:'tbtn',title:'Spiral the graph in when a view loads',
+              style:{gap:5,cursor:'pointer',fontWeight:650,color:'var(--muted)'}},
+            h('input',{type:'checkbox',checked:animate,
+              onChange:e=>setAnimate(e.target.checked),
+              style:{cursor:'pointer',margin:0}}),
+            'Animate')
         ),
         h(ThemeControls,{theme,onTheme:setTheme,palette,onPalette:setPalette})
       )}),
