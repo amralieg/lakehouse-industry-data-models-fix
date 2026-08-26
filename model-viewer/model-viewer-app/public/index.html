@@ -1676,6 +1676,10 @@ function fmtCount(n){
 function findIndustry(manifest,slug){
   return (manifest.industries||[]).find(i=>i.slug===slug)||null;
 }
+function sortIndustries(list){
+  return (list||[]).slice().sort((a,b)=>
+    String(a.display||a.slug).localeCompare(String(b.display||b.slug),undefined,{sensitivity:'base'}));
+}
 function findEntry(industry,version,flavour){
   if(!industry) return null;
   const v=(industry.versions||[]).find(x=>x.version===version)
@@ -1924,7 +1928,7 @@ function CommandPalette({manifest,onPick,onClose}){
 
   const hits=useMemo(()=>{
     const needle=q.trim().toLowerCase();
-    const all=manifest.industries||[];
+    const all=sortIndustries(manifest.industries);
     if(!needle) return all.slice(0,60);
     return all.filter(i=>
       i.display.toLowerCase().includes(needle)||
@@ -2095,6 +2099,7 @@ function App(){
         if(ct.indexOf('json')<0) throw new Error('not json');
         const m=await r.json();
         if(!m||!Array.isArray(m.industries)||!m.industries.length) throw new Error('empty manifest');
+        m.industries=sortIndustries(m.industries);
         if(live) setManifest(m);
       }catch(_){ if(live) setManifest(false); }
     })();

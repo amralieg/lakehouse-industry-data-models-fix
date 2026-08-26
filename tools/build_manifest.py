@@ -443,6 +443,8 @@ def build(repo: Path, ref: str, strict: bool, source: str | None) -> dict:
                 }
             )
 
+    industries.sort(key=lambda x: x["display"].casefold())
+
     if uncounted:
         message = (
             f"{len(uncounted)} model(s) could not be counted, so their cards would be "
