@@ -4,7 +4,7 @@ Forty production-ready industry data models, each shipped in two flavours (ECM +
 
 **40 industries · 80 models · 23,092 tables · 885,842 attributes · 156,641 foreign keys · 11,661 metric views**
 
-**[Open the interactive gallery](https://amralieg.github.io/lakehouse-industry-data-models-fix/)** · **[View the repository on GitHub](https://github.com/databricks-industry-solutions/lakehouse-industry-data-models)**
+**[Open the interactive gallery](https://databricks-industry-solutions.github.io/lakehouse-industry-data-models/)**
 
 ![Lakehouse Industry Data Model gallery — interactive ER graph viewer](./docs/gallery-screenshot.png)
 

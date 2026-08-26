@@ -48,6 +48,8 @@ EXPECTED_SECTIONS = 8
 EXPECTED_INDUSTRIES = 40
 EXPECTED_MODELS = 108
 
+CANONICAL_SOURCE_SLUG = "databricks-industry-solutions/lakehouse-industry-data-models"
+
 # The version models-info.csv describes. Its rows carry no version column, and
 # every row matches the v1 model.json exactly, so this is the safe reading.
 CSV_VERSION = "v1"
@@ -341,10 +343,9 @@ def version_sort_key(version: str) -> int:
 
 
 def resolve_source(repo: Path, ref: str, override: str | None) -> dict:
-    """Owner/repo for the CDN URLs. An explicit override wins, then
-    GITHUB_REPOSITORY so a fork or an upstream merge needs no edit, then the git
-    remote. The remote is last because it goes stale when a repo is renamed."""
-    slug = (override or os.environ.get("GITHUB_REPOSITORY", "")).strip()
+    """Owner/repo recorded in the manifest. Defaults to the canonical upstream
+    project so fork Pages builds never advertise the fork as the model source."""
+    slug = (override or CANONICAL_SOURCE_SLUG).strip()
     if not slug:
         url = run_git(repo, "remote", "get-url", "origin").strip()
         match = re.search(r"[:/]([^/:]+)/([^/]+?)(?:\.git)?$", url)
@@ -550,7 +551,7 @@ def main() -> int:
     parser.add_argument(
         "--source",
         default=None,
-        help="owner/repo the page fetches models from (default: $GITHUB_REPOSITORY, then origin)",
+        help=f"owner/repo recorded in manifest.source (default: {CANONICAL_SOURCE_SLUG})",
     )
     parser.add_argument(
         "--strict",
