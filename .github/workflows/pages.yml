@@ -1,0 +1,100 @@
+name: Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'data-models/**'
+      - 'docs/**'
+      - 'tools/build_manifest.py'
+      - 'tools/sync_viewer.py'
+      - 'README.md'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  # The viewer is authored once in docs/ and copied into the Databricks App.
+  # This job is the enforcement that keeps the copy honest; it must run even
+  # when the deploy is skipped, so it is a separate job with no dependency.
+  drift-guard:
+    runs-on: ubuntu-latest
+    steps:
+      # Leading slashes anchor these to the repo root. Without them a non-cone
+      # pattern is a glob, so `docs` also matches every data-models/*/docs/ and
+      # the checkout pulls hundreds of MB it does not need.
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            /docs/
+            /tools/
+            /model-viewer/model-viewer-app/public/
+          sparse-checkout-cone-mode: false
+      - name: docs/index.html and the Databricks App copy must be identical
+        run: python3 tools/sync_viewer.py --check
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # The model.json blobs are 866 MB, so the checkout is blobless and sparse
+      # and pulls none of them: leading slashes keep the patterns anchored to the
+      # repo root rather than acting as globs.
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            /docs/
+            /tools/
+            /README.md
+            /data-models/models-info.csv
+          sparse-checkout-cone-mode: false
+
+      # 80 of the 108 models are counted from models-info.csv, so they cost no
+      # bytes at all. The other 28 have no CSV row and are fetched gzipped from
+      # raw.githubusercontent (~30 MB on the wire, not 261 MB) while blob sizes
+      # come from one tree API call. Both avoid git's per-object lazy fetch on a
+      # partial clone, which took over 30 minutes for the same work.
+      - name: Build manifest
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 -u tools/build_manifest.py \
+            --repo . \
+            --ref "$GITHUB_SHA" \
+            --source "$GITHUB_REPOSITORY" \
+            --strict \
+            --out docs/manifest.json
+          python3 -m json.tool docs/manifest.json > /dev/null
+
+      - name: Assert manifest shape
+        run: python3 tools/build_manifest.py --check docs/manifest.json
+
+      - name: Assemble _site
+        run: |
+          mkdir -p _site
+          cp docs/index.html docs/manifest.json _site/
+          touch _site/.nojekyll
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: [build, drift-guard]
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
