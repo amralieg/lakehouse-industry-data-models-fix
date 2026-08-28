@@ -754,7 +754,7 @@ Verify: `databricks jobs list` shows ONLY the canonical JOB.
 
 **Step 5 — Upload agent + tester + runner to VERSIONED paths at user-root.**
 ```bash
-WS="/Users/<user>@databricks.com"
+WS="/Users/<user>@example.com"
 databricks workspace import "$WS/dbx_vibe_modelling_agent_v<NN>" --file agent/dbx_vibe_modelling_agent.ipynb --format JUPYTER --language PYTHON --overwrite --profile <profile>
 databricks workspace import "$WS/vibe_tester_v<NN>" --file tests/vibe_tester.ipynb --format JUPYTER --language PYTHON --overwrite --profile <profile>
 databricks workspace import "$WS/vibe_runner_v<NN>" --file runner/vibe_runner.ipynb --format JUPYTER --language PYTHON --overwrite --profile <profile>

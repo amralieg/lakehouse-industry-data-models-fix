@@ -3,7 +3,7 @@
 sync_to_repo: post-sector hook for orchestrate_sectors.py.
 
 Mirrors completed-industry artifacts from the Databricks workspace folder
-`/Users/<user>@databricks.com/vibe_runner_models/<industry>/` into a local
+`/Users/<user>@example.com/vibe_runner_models/<industry>/` into a local
 git working copy of `amralieg/vibe-business-data-models`, then commits and
 pushes one commit per industry.
 

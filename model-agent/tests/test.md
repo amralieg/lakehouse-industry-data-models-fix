@@ -424,7 +424,7 @@ The watcher's per-pulse output format:
 |---|---|
 | Script | `/tmp/v200/v206_with_vibes_watcher.sh` |
 | Output stream | Cursor-visible background shell (`block_until_ms: 0`); writes pulses to stdout, captured by Cursor for UI display |
-| Process | `bash /tmp/v200/v206_with_vibes_watcher.sh`, pid recorded in the Cursor terminal file under `/Users/user/.cursor/projects/Users-amr-ali-Documents-projects-vibe-modelling-agent/terminals/` |
+| Process | `bash /tmp/v200/v206_with_vibes_watcher.sh`, pid recorded in the Cursor terminal file under `/Users/user/.cursor/projects/Users-user-Documents-projects-vibe-modelling-agent/terminals/` |
 | Pulse interval | 900s (15 min) |
 | Log mirror dir | `/tmp/v200/v206_with_vibes_logs/<BIZ>__<filename>` |
 | Auto-exit | When all 3 runs reach `TERMINATED`, `INTERNAL_ERROR`, or `SKIPPED` |
